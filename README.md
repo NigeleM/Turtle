@@ -26,3 +26,4 @@ memory allocation to help with developing objects and recursive functions.
 I was developing a package for it.
 I had developed a successful package that could run when you click a *.t file.
 the timestamp file was able to determine was file had been clicked and then tell the interpreter to run that file.
+Package was for MacOs, had not tested a windows version of it. 
