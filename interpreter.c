@@ -1,6 +1,6 @@
 
 /*
- Nigele McCoy
+  ---- Nigele McCoy
  Developer and Creator of the turtle interpreter
  Creator of the turtle programming language
  
