@@ -27,3 +27,9 @@ I was developing a package for it.
 I had developed a successful package that could run when you click a *.t file.
 the timestamp file was able to determine was file had been clicked and then tell the interpreter to run that file.
 Package was for MacOs, had not tested a windows version of it. 
+
+# Interpreter 
+1. The interpreter is the file Interpreter.C 
+2. Compile interpreter using clang
+3. pass in turtle file to run program/script example in commandline ./turtle file.t
+4. pass in no file to execute interactive mode ./turtle
