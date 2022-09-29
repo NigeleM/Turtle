@@ -23,12 +23,16 @@ func show(tokens string) {
 
 	//fmt.Println(tokens)
 	checktoken := strings.Split(tokens, " ")
-	showSet := strings.Split(tokens, "show")
+	showSet := strings.Split(tokens, "show ")
 	if "show" == checktoken[0] && contains(checktoken, ".") == true {
 		// String logic
 		//fmt.Println(showSet)
 		for i := range showSet {
-			fmt.Println("set:", i, showSet[i])
+			if showSet[i] == " " {
+				continue
+			} else {
+				fmt.Println("set:", i, showSet[i])
+			}
 		}
 	} else {
 
