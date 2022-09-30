@@ -15,7 +15,6 @@ func contains(s []string, str string) bool {
 			return true
 		}
 	}
-
 	return false
 }
 
@@ -28,7 +27,7 @@ func show(tokens string) {
 		// String logic
 		//fmt.Println(showSet)
 		for i := range showSet {
-			if showSet[i] == " " {
+			if showSet[i] == "" {
 				continue
 			} else {
 				fmt.Println("set:", i, showSet[i])
