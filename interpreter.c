@@ -1,4 +1,4 @@
-
+//go:build interpreter.go
 /*
   ---- Nigele McCoy
  Developer and Creator of the turtle interpreter
