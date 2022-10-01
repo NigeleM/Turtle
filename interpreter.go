@@ -18,19 +18,55 @@ func contains(s []string, str string) bool {
 	return false
 }
 
+func containsStr(s string, str string) bool {
+	for i := range s {
+		if string(s[i]) == str {
+			return true
+		}
+	}
+	return false
+}
+
 func show(tokens string) {
 
-	//fmt.Println(tokens)
 	checktoken := strings.Split(tokens, " ")
-	showSet := strings.Split(tokens, "show ")
 	if "show" == checktoken[0] && contains(checktoken, ".") == true {
-		// String logic
-		//fmt.Println(showSet)
+		showSet := strings.SplitAfterN(tokens, "show", 2)
 		for i := range showSet {
-			if showSet[i] == "" {
+			if i == 0 && showSet[i] == "show" {
 				continue
 			} else {
-				fmt.Println("set:", i, showSet[i])
+				//fmt.Println("my set : ", showSet)
+				newtok := ""
+				if showSet[i] == "show" {
+					continue
+				} else if containsStr(showSet[i], "show") == true || containsStr(showSet[i], "show ") == true {
+					continue
+				} else if containsStr(showSet[i], ".") {
+					if strings.LastIndex(showSet[i], ".") > 0 {
+						newShow := showSet[i]
+						inString := 0
+						for count := 0; count < strings.LastIndex(showSet[i], "."); count++ {
+							// fmt.Println("old token -->", newtok)
+							if string(newShow[count]) == "\"" {
+								inString += 1
+								if inString > 1 {
+									inString = 0
+								}
+								continue
+							} else if string(newShow[count]) == "+" && inString == 0 {
+								continue
+
+							} else if string(newShow[count]) == " " && inString == 0 {
+								continue
+
+							} else {
+								newtok += string(newShow[count])
+							}
+						}
+					}
+					fmt.Println(newtok)
+				}
 			}
 		}
 	} else {
@@ -45,7 +81,6 @@ func show(tokens string) {
 		println("token : ", tv.Value.String())
 
 	}
-
 }
 
 func check(err error) {
