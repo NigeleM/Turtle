@@ -1,0 +1,25 @@
+show 1 + 2 * (1 + 2)
+show "hello world ." .
+show "Nigele McCoy" .
+show " show show show+ + Nigele McCoy" + "  " + "hello" . 
+show 1 + 6.5 * (1 + 2.9)
+show "1 + 2 * (1 + 2)" .
+show " show ,show, show+ + Nigele McCoy", " " , "hello" . 
+show "My name is Nigele McCoy and I am ", 29.5 + 1.8 , " years old"  .
+show "My name is Nigele McCoy and I am "," years old"  .
+show 29 + 1 , " is Nigele's age ", "he is a grown man \n , \n great day" .
+show " " .
+
+show 29 + 1 , " is Nigele's age ", "he is a grown man ", 28 + 3 , " is Nigele's age " , 27 + 5 , .
+show "hello" .  //
+    // This code is for me
+
+// show "My name is Nigele McCoy and I am "," years old"  .
+// show 1 + 2 
+show " show show show+ + Nigele McCoy" + "  " + "hello" + " food" . 
+a = 100
+b = 50
+c = 25
+d = 0
+e = "1 + (2*5)"
+f = 2 + 8
