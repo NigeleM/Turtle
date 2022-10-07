@@ -21,5 +21,11 @@ a = 100
 b = 50
 c = 25
 d = 0
-e = "1 + (2*5)"
+e = "1 + (2*5)" 
 f = 2 + 8
+g = 1.5 + 6.9 * (5.7*2)
+first_Name = "Nigele "
+last_Name = "McCoy"
+cos = "Nigele McCoy" + "  " + "hello" + " food"
+ful_Name = first_Name + last_Name 
+

@@ -36,15 +36,56 @@ func eval(s string) string {
 
 }
 
+func evalType(s string) string {
+
+	fs := token.NewFileSet()
+	tv, err := types.Eval(fs, nil, token.NoPos, s)
+	if err != nil {
+		return "Var"
+	}
+
+	return tv.Value.Kind().String()
+
+}
+
 var variableDict = make(map[string]string)
 
 func insertVariable(variableToken string) {
 	newtoken := variableToken
 	varToken := strings.Split(newtoken, "=")
-	variableDict[string(varToken[0])] = eval(varToken[1])
-	fmt.Println(varToken, newtoken, variableDict, eval(varToken[1]))
+	fmt.Println("Variable type : ", evalType(varToken[1]), "  : variable value : ", varToken[1])
+	varToken[0] = strings.ReplaceAll(varToken[0], " ", "")
+	if evalType(varToken[1]) == "String" {
+		variableDict[string(varToken[0])] = eval(varToken[1])
+	} else if evalType(varToken[1]) == "Int" {
+		variableDict[string(varToken[0])] = eval(varToken[1])
+	} else if evalType(varToken[1]) == "Float" {
+		variableDict[string(varToken[0])] = eval(varToken[1])
+	} else if evalType(varToken[1]) == "Var" {
+
+		fmt.Println("----->", varToken[1])
+		// variable := ""
+		oldvar := varToken[1]
+		newVarTok := strings.Split(oldvar, " ")
+		for v := range newVarTok {
+			fmt.Println(newVarTok[v])
+
+			_, isPresent := variableDict[newVarTok[v]]
+			fmt.Println(isPresent)
+			if isPresent {
+				fmt.Println(variableDict[newVarTok[v]])
+				//variable += variableDict[newVarTok[v]]
+				newVarTok[v] = variableDict[newVarTok[v]]
+			}
+		}
+		VarTok := strings.Join(newVarTok, " ")
+		variableDict[string(varToken[0])] = eval(VarTok)
+	}
+	fmt.Println("Dictionary --->", variableDict)
 
 }
+
+// variableDict[string(varToken[0])] = eval(varToken[1])
 
 func indexList(s []int, str string) []int {
 	for i := range str {
