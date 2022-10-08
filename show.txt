@@ -1,10 +1,10 @@
 show 1 + 2 * (1 + 2)
 show "hello world ." .
 show "Nigele McCoy" .
-show " show show show+ + Nigele McCoy" + "  " + "hello" . 
-show 1 + 6.5 * (1 + 2.9)
+show " show show show+ + Nigele McCoy\n\n" + "  " + "hello" . 
+show 1 + 6.5 * (1 + 2.9) 
 show "1 + 2 * (1 + 2)" .
-show " show ,show, show+ + Nigele McCoy", " " , "hello" . 
+show " show ,show, show+ + Nigele McCoy ", " " , "hello" . 
 show "My name is Nigele McCoy and I am ", 29.5 + 1.8 , " years old"  .
 show "My name is Nigele McCoy and I am "," years old"  .
 show 29 + 1 , " is Nigele's age ", "he is a grown man \n , \n great day" .
@@ -24,8 +24,15 @@ d = 0
 e = "1 + (2*5)" 
 f = 2 + 8
 g = 1.5 + 6.9 * (5.7*2)
+c = g + 1
+
 first_Name = "Nigele "
 last_Name = "McCoy"
 cos = "Nigele McCoy" + "  " + "hello" + " food"
-ful_Name = first_Name + last_Name 
-
+ful_Name = first_Name + last_Name
+show a .
+show "a" .
+show "A" .
+show a + 1 .
+show c .
+show 1+4*8 .
