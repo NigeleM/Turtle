@@ -19,19 +19,6 @@ func eval(s string) string {
 	if err != nil {
 		panic(err)
 	}
-	//println("token---:", tv.Value.String())
-	// println("token---:", tv.Value.String())
-	// println("token---type:", tv.Value.Kind().String())
-	// newInt, err := strconv.Atoi(tv.Value.String())
-
-	// intVar := 0
-	// for i := 0; i <= newInt; i++ {
-	// 	if i == newInt {
-	// 		intVar = i
-	// 	}
-	// }
-	//fmt.Println("intVar : ", intVar, "string version : ", string(intVar))
-	// return strconv.FormatInt(int64(intVar), 10)
 	return tv.Value.String()
 
 }
@@ -53,7 +40,7 @@ var variableDict = make(map[string]string)
 func insertVariable(variableToken string) {
 	newtoken := variableToken
 	varToken := strings.Split(newtoken, "=")
-	fmt.Println("Variable type : ", evalType(varToken[1]), "  : variable value : ", varToken[1])
+	// fmt.Println("Variable type : ", evalType(varToken[1]), "  : variable value : ", varToken[1])
 	varToken[0] = strings.ReplaceAll(varToken[0], " ", "")
 	if evalType(varToken[1]) == "String" {
 		variableDict[string(varToken[0])] = eval(varToken[1])
@@ -63,17 +50,17 @@ func insertVariable(variableToken string) {
 		variableDict[string(varToken[0])] = eval(varToken[1])
 	} else if evalType(varToken[1]) == "Var" {
 
-		fmt.Println("----->", varToken[1])
+		// fmt.Println("----->", varToken[1])
 		// variable := ""
 		oldvar := varToken[1]
 		newVarTok := strings.Split(oldvar, " ")
 		for v := range newVarTok {
-			fmt.Println(newVarTok[v])
+			// fmt.Println(newVarTok[v])
 
 			_, isPresent := variableDict[newVarTok[v]]
-			fmt.Println(isPresent)
+			// fmt.Println(isPresent)
 			if isPresent {
-				fmt.Println(variableDict[newVarTok[v]])
+				// fmt.Println(variableDict[newVarTok[v]])
 				//variable += variableDict[newVarTok[v]]
 				newVarTok[v] = variableDict[newVarTok[v]]
 			}
@@ -81,7 +68,7 @@ func insertVariable(variableToken string) {
 		VarTok := strings.Join(newVarTok, " ")
 		variableDict[string(varToken[0])] = eval(VarTok)
 	}
-	fmt.Println("Dictionary --->", variableDict)
+	// fmt.Println("Dictionary --->", variableDict)
 
 }
 
@@ -117,75 +104,113 @@ func containsStr(s string, str string) bool {
 	return false
 }
 
-func show(tokens string) {
-
-	checktoken := strings.Split(tokens, " ")
-	if "show" == checktoken[0] && contains(checktoken, ".") == true {
-		showSet := strings.SplitAfterN(tokens, "show", 2)
-		for i := range showSet {
-			if i == 0 && showSet[i] == "show" {
-				continue
-			} else {
-				//fmt.Println("my set : ", showSet)
-				newtok := ""
-				expression := ""
-				if showSet[i] == "show" {
-					continue
-				} else if containsStr(showSet[i], "show") == true || containsStr(showSet[i], "show ") == true {
-					continue
-				} else if containsStr(showSet[i], ".") {
-					if strings.LastIndex(showSet[i], ".") > 0 {
-						newShow := showSet[i]
-						inString := 0
-						for count := 0; count < strings.LastIndex(showSet[i], "."); count++ {
-							if string(newShow[count]) == "\"" {
-								inString += 1
-								if inString > 1 {
-									inString = 0
-								}
-								continue
-							} else if string(newShow[count]) == " " && inString == 0 {
-								continue
-
-							} else if string(newShow[count]) == "+" && inString == 0 {
-								expression += string(newShow[count])
-								continue
-
-							} else if string(newShow[count]) == "," && inString == 0 {
-								if len(expression) > 0 {
-									newtok += eval(expression)
-									expression = ""
-
-								} else {
-									continue
-								}
-								//continue
-
-							} else if inString == 0 {
-								expression += string(newShow[count])
-							} else if inString == 1 {
-								newtok += string(newShow[count])
-							} else {
-								newtok += string(newShow[count])
-							}
-
-						}
+func show(str string) {
+	//fmt.Println(str)
+	showTok := strings.SplitAfterN(str, "show", 2)
+	//fmt.Println(showTok[1])
+	if strings.LastIndex(showTok[1], ".") > -1 && strings.Index(showTok[1], "\"") > -1 {
+		newShow := showTok[1]
+		newShowCheck := showTok[1][0:strings.LastIndex(showTok[1], ".")]
+		// Strings and Concatenation
+		if evalType(newShowCheck) == "String" {
+			expression := ""
+			newtok := ""
+			inString := 0
+			for count := 0; count < strings.LastIndex(showTok[1], "."); count++ {
+				if string(newShow[count]) == "\"" {
+					inString += 1
+					if inString > 1 {
+						inString = 0
 					}
-					newtok = strings.ReplaceAll(newtok, "\\n", "\n")
-					fmt.Println(newtok)
+					continue
+				} else if string(newShow[count]) == " " && inString == 0 {
+					continue
+
+				} else if string(newShow[count]) == "+" && inString == 0 {
+					expression += string(newShow[count])
+					continue
+				} else if inString == 0 {
+					expression += string(newShow[count])
+				} else if inString == 1 {
+					newtok += string(newShow[count])
+				} else {
+					newtok += string(newShow[count])
 				}
+
+			}
+
+			newtok = strings.ReplaceAll(newtok, "\\n", "\n")
+			fmt.Println(newtok)
+		} else {
+			expression := ""
+			newtok := ""
+			inString := 0
+			for count := 0; count <= strings.LastIndex(showTok[1], "."); count++ {
+				if string(newShow[count]) == "\"" {
+					inString += 1
+					if inString > 1 {
+						inString = 0
+					}
+					continue
+
+				} else if count <= strings.LastIndex(showTok[1], ".") && string(newShow[count]) == "." {
+					if len(expression) > 0 {
+						newtok += eval(expression)
+						expression = ""
+					}
+				} else if string(newShow[count]) == " " && inString == 0 {
+					continue
+
+				} else if string(newShow[count]) == "+" && inString == 0 {
+					expression += string(newShow[count])
+					continue
+				} else if string(newShow[count]) == "," && inString == 0 {
+					if len(expression) > 0 {
+						newtok += eval(expression)
+						expression = ""
+					} else {
+						continue
+					}
+				} else if inString == 0 {
+					expression += string(newShow[count])
+				} else if inString == 1 {
+					newtok += string(newShow[count])
+				} else if count <= strings.LastIndex(showTok[1], ".") {
+					if len(expression) > 0 {
+						newtok += eval(expression)
+						expression = ""
+					}
+				} else {
+					newtok += string(newShow[count])
+				}
+
+			}
+
+			newtok = strings.ReplaceAll(newtok, "\\n", "\n")
+			fmt.Println(newtok)
+
+		}
+
+	} else if evalType(showTok[1]) == "Int" {
+		fmt.Println(eval(showTok[1]))
+	} else if evalType(showTok[1]) == "Float" {
+		fmt.Println(eval(showTok[1]))
+	} else if evalType(showTok[1]) == "Var" {
+		vars := strings.Split(showTok[1], " ")
+		for v := range vars {
+			// fmt.Println(newVarTok[v])
+
+			_, isPresent := variableDict[vars[v]]
+			// fmt.Println(isPresent)
+			if isPresent {
+				// fmt.Println(variableDict[newVarTok[v]])
+				//variable += variableDict[newVarTok[v]]
+				vars[v] = variableDict[vars[v]]
 			}
 		}
-	} else {
-
-		//fmt.Println(checktoken)
-		tokens = strings.Trim(tokens, "show")
-		fs := token.NewFileSet()
-		tv, err := types.Eval(fs, nil, token.NoPos, tokens)
-		if err != nil {
-			panic(err)
-		}
-		println(tv.Value.String())
+		newVar := strings.Join(vars, " ")
+		newVar = newVar[0:strings.LastIndex(newVar, ".")]
+		fmt.Println(eval(newVar))
 
 	}
 }
