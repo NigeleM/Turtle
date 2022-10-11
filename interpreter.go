@@ -12,6 +12,13 @@ import (
 // eval function
 // used for evaluation expression
 
+const (
+	plus     = "+"
+	minus    = "-"
+	divide   = "/"
+	multiply = "*"
+)
+
 func eval(s string) string {
 
 	fs := token.NewFileSet()
@@ -20,7 +27,6 @@ func eval(s string) string {
 		panic(err)
 	}
 	return tv.Value.String()
-
 }
 
 func evalType(s string) string {
@@ -30,9 +36,7 @@ func evalType(s string) string {
 	if err != nil {
 		return "Var"
 	}
-
 	return tv.Value.Kind().String()
-
 }
 
 var variableDict = make(map[string]string)
@@ -50,40 +54,41 @@ func insertVariable(variableToken string) {
 		variableDict[string(varToken[0])] = eval(varToken[1])
 	} else if evalType(varToken[1]) == "Var" {
 
-		// fmt.Println("----->", varToken[1])
-		// variable := ""
 		oldvar := varToken[1]
-		newVarTok := strings.Split(oldvar, " ")
-		for v := range newVarTok {
-			// fmt.Println(newVarTok[v])
+		hold := ""
+		for v := range oldvar {
+			if string(oldvar[v]) == plus || string(oldvar[v]) == minus || string(oldvar[v]) == multiply || string(oldvar[v]) == divide {
+				hold += " "
+				hold += string(oldvar[v])
+				hold += " "
 
+			} else {
+				hold += string(oldvar[v])
+
+			}
+
+		}
+
+		newVarTok := strings.Split(hold, " ")
+		for v := range newVarTok {
 			_, isPresent := variableDict[newVarTok[v]]
-			// fmt.Println(isPresent)
 			if isPresent {
-				// fmt.Println(variableDict[newVarTok[v]])
-				//variable += variableDict[newVarTok[v]]
 				newVarTok[v] = variableDict[newVarTok[v]]
 			}
 		}
 		VarTok := strings.Join(newVarTok, " ")
 		variableDict[string(varToken[0])] = eval(VarTok)
+
 	}
-	// fmt.Println("Dictionary --->", variableDict)
-
 }
-
-// variableDict[string(varToken[0])] = eval(varToken[1])
 
 func indexList(s []int, str string) []int {
 	for i := range str {
 		if string(str[i]) == "," {
 			s = append(s, i)
 		}
-
 	}
-
 	return s
-
 }
 
 func contains(s []string, str string) bool {
@@ -136,9 +141,7 @@ func show(str string) {
 				} else {
 					newtok += string(newShow[count])
 				}
-
 			}
-
 			newtok = strings.ReplaceAll(newtok, "\\n", "\n")
 			fmt.Println(newtok)
 		} else {
@@ -152,13 +155,54 @@ func show(str string) {
 						inString = 0
 					}
 					continue
-
 				} else if count <= strings.LastIndex(showTok[1], ".") && string(newShow[count]) == "." {
 					if len(expression) > 0 {
-						newtok += eval(expression)
-						expression = ""
+						if evalType(expression) == "Var" {
+							vars := ""
+							if len(expression) > 1 {
+								// turn this into a function
+								for v := range expression {
+									if string(expression[v]) == plus || string(expression[v]) == minus || string(expression[v]) == multiply || string(expression[v]) == divide || v <= strings.LastIndex(expression, ".") && string(expression[v]) == "." || string(expression[v]) == " " {
+										_, isPresent := variableDict[vars]
+										//fmt.Println(vars)
+										if isPresent {
+											vars += strings.Replace(vars, vars, variableDict[vars], 1)
+											vars += string(expression[v])
+										}
+									} else {
+										if string(expression[v]) == " " {
+											continue
+										} else {
+											vars += string(expression[v])
+										}
+									}
+								}
+								// fmt.Println(evalType(variableDict[vars]))
+								if evalType(variableDict[vars]) == "String" {
+									newtok += variableDict[vars][strings.Index(variableDict[vars], "\"")+1 : strings.LastIndex(variableDict[vars], "\"")]
+									expression = ""
+								} else if evalType(variableDict[vars]) == "Int" {
+									newtok += eval(variableDict[vars])
+								} else if evalType(variableDict[vars]) == "Float" {
+									newtok += eval(variableDict[vars])
+								}
+
+								expression = ""
+							} else {
+								_, isPresent := variableDict[expression]
+								if isPresent {
+									fmt.Println(variableDict[expression])
+									vars = strings.Replace(expression, expression, variableDict[expression], 1)
+								}
+								newtok += eval(vars)
+								expression = ""
+							}
+
+						}
 					}
+
 				} else if string(newShow[count]) == " " && inString == 0 {
+					//expression += string(newShow[count])
 					continue
 
 				} else if string(newShow[count]) == "+" && inString == 0 {
@@ -166,8 +210,48 @@ func show(str string) {
 					continue
 				} else if string(newShow[count]) == "," && inString == 0 {
 					if len(expression) > 0 {
-						newtok += eval(expression)
-						expression = ""
+						//fmt.Println("code : ", expression)
+						// fmt.Println(evalType(expression))
+						if evalType(expression) == "Var" {
+							vars := ""
+							if len(expression) > 1 {
+								for v := range expression {
+									if string(expression[v]) == plus || string(expression[v]) == minus || string(expression[v]) == multiply || string(expression[v]) == divide {
+										_, isPresent := variableDict[vars]
+										// fmt.Println(isPresent)
+										if isPresent {
+											// fmt.Println(variableDict[newVarTok[v]])
+											//variable += variableDict[newVarTok[v]]
+											fmt.Println(variableDict[vars])
+											vars = strings.Replace(vars, vars, variableDict[vars], 1)
+
+										}
+										vars += string(expression[v])
+									} else {
+										vars += string(expression[v])
+										//fmt.Println("vars : ", string(expression[v]), vars)
+									}
+
+								}
+
+								expression = vars
+								// fmt.Println("EVAL: ")
+								newtok += eval(expression)
+								expression = ""
+							} else {
+
+								_, isPresent := variableDict[expression]
+								// fmt.Println(isPresent)
+								if isPresent {
+									// fmt.Println(variableDict[newVarTok[v]])
+									//variable += variableDict[newVarTok[v]]
+									fmt.Println(variableDict[expression])
+									vars = strings.Replace(expression, expression, variableDict[expression], 1)
+								}
+								newtok += eval(vars)
+								expression = ""
+							}
+						}
 					} else {
 						continue
 					}
@@ -196,9 +280,26 @@ func show(str string) {
 	} else if evalType(showTok[1]) == "Float" {
 		fmt.Println(eval(showTok[1]))
 	} else if evalType(showTok[1]) == "Var" {
-		vars := strings.Split(showTok[1], " ")
+
+		token := showTok[1]
+		hold := ""
+		for v := range token {
+			if string(token[v]) == plus || string(token[v]) == minus || string(token[v]) == multiply || string(token[v]) == divide {
+				hold += " "
+				hold += string(token[v])
+				hold += " "
+
+			} else {
+				hold += string(token[v])
+
+			}
+
+		}
+
+		vars := strings.Split(hold, " ")
+		// fmt.Println(" Count : ", strings.Count(showTok[1], " "))
+		// fmt.Println("var", vars)
 		for v := range vars {
-			// fmt.Println(newVarTok[v])
 
 			_, isPresent := variableDict[vars[v]]
 			// fmt.Println(isPresent)
@@ -206,8 +307,11 @@ func show(str string) {
 				// fmt.Println(variableDict[newVarTok[v]])
 				//variable += variableDict[newVarTok[v]]
 				vars[v] = variableDict[vars[v]]
+
 			}
 		}
+
+		//token = eval(token)
 		newVar := strings.Join(vars, " ")
 		newVar = newVar[0:strings.LastIndex(newVar, ".")]
 		fmt.Println(eval(newVar))
