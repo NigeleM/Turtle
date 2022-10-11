@@ -22,9 +22,11 @@ b = 50
 c = 25
 d = 0
 e = "1 + (2*5)" 
-f = 2 + 8
+f = 2+8
+show "value of f " , f + 1, " value of e ", e .
 g = 1.5 + 6.9 * (5.7*2)
-c = g + 1
+show g .
+c = g+1
 
 first_Name = "Nigele "
 last_Name = "McCoy"
@@ -36,3 +38,8 @@ show "A" .
 show a + 1 .
 show c .
 show 1+4*8 .
+// fix variable dictionary that way it's not dependent on spaces
+show "Nigele " + last_Name .
+show first_Name + last_Name .
+show 7+10 .
+show ful_Name , "code" .
