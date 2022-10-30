@@ -9,8 +9,8 @@ show "My name is Nigele McCoy and I am ", 29.5 + 1.8 , " years old"  .
 //show "My name is Nigele McCoy and I am "," years old"  .
 show 29 + 1 , " is Nigele's age ", "he is a grown man \n , \n great day" .
 show " " .
-
-show 29 + 1 , " is Nigele's age ", "he is a grown man ", 28 + 3 , " is Nigele's age " , 27 + 5 , .
+show 29 + 1 , " is Nigele's age ", "he is a grown man ", 28 + 3 , " is Nigele's age " , 27 + 5 .
+show " " .
 show "hello" .  //
     // This code is for me
 
@@ -27,6 +27,7 @@ show "value of f " , f + 1, " value of e ", e .
 g = 1.5 + 6.9 * (5.7*2)
 show g .
 c = g+1+b
+age = 30
 
 first_Name = "Nigele "
 last_Name = "McCoy "
@@ -40,6 +41,8 @@ show c .
 show 1+4*8 .
 // fix variable dictionary that way it's not dependent on spaces
 show "Nigele " + last_Name .
+show " " .
 show first_Name + last_Name .
 show 7+10 .
 show "code " , ful_Name , "hello , world" .
+show " show show show+ + Nigele McCoy" + "  " + "hello" + " food ", 28 + 7 . 
