@@ -46,3 +46,5 @@ show first_Name + last_Name .
 show 7+10 .
 show "code " , ful_Name , "hello , world" .
 show " show show show+ + Nigele McCoy" + "  " + "hello" + " food ", 28 + 7 . 
+show g + c * b .
+show " " .

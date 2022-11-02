@@ -131,21 +131,9 @@ func evalExpression(str string) string {
 	newShow := str
 	newString := ""
 	// check if the string has any commas outside string or if it's a concat
-	isConcat := true
-	for count := 0; count < strings.LastIndex(str, "."); count++ {
-		if string(newShow[count]) == "\"" {
-			inString += 1
-			if inString > 1 {
-				inString = 0
-			}
-			continue
-		} else if inString == 0 && string(newShow[count]) == "," {
-			isConcat = false
-		} else {
-			continue
-		}
-	}
 
+	isConcat := isConcatExp(str)
+	// fmt.Println("str coming into function : ", str)
 	if isConcat == true {
 		parseToken := str[0:strings.LastIndex(str, ".")]
 		// parseToken = strings.ReplaceAll(parseToken, "\\n", "\n")
@@ -219,12 +207,10 @@ func getVariable(str string) string {
 	return varTok
 }
 
-func evalVarExpression(str string) string {
+func isOneVariable(str string) bool {
 	inString := 0
 	newShow := str
-	newString := ""
-	// check if the string has any commas outside string or if it's a concat
-	isConcat := true
+	oneStatement := true
 	for count := 0; count < strings.LastIndex(str, "."); count++ {
 		if string(newShow[count]) == "\"" {
 			inString += 1
@@ -232,24 +218,62 @@ func evalVarExpression(str string) string {
 				inString = 0
 			}
 			continue
-		} else if inString == 0 && string(newShow[count]) == "," {
-			isConcat = false
+		} else if inString == 0 && string(newShow[count]) == "," || string(str[count]) == plus || string(str[count]) == minus || string(str[count]) == divide || string(str[count]) == multiply {
+			oneStatement = false
+			break
 		} else {
 			continue
 		}
 	}
+	return oneStatement
+}
+
+func isConcatExp(str string) bool {
+	inString := 0
+	newShow := str
+	isConcat := false
+	for count := 0; count < strings.LastIndex(str, "."); count++ {
+		if string(newShow[count]) == "\"" {
+			inString += 1
+			if inString > 1 {
+				inString = 0
+			}
+			continue
+		} else if inString == 0 && string(newShow[count]) == "," || string(str[count]) == minus || string(str[count]) == divide || string(str[count]) == multiply {
+			isConcat = false
+			break
+		} else if inString == 0 && string(str[count]) == plus {
+			isConcat = true
+		} else {
+			continue
+		}
+	}
+	return isConcat
+}
+
+func evalVarExpression(str string) string {
+	inString := 0
+	newShow := str
+	newString := ""
+	// check if the string has any commas outside string or if it's a concat
+	isConcat := false
+	oneStatement := true
+	// fmt.Println(str, " STR : ")
+
+	oneStatement = isOneVariable(str)
+	isConcat = isConcatExp(str)
 
 	if isConcat == true {
-		parseToken := str[0:strings.LastIndex(str, ".")]
+		parseToken := str
 		place := 0
-		for count := 0; count < strings.LastIndex(str, "."); count++ {
+		for count := 0; count <= strings.LastIndex(str, "."); count++ {
 			if string(str[count]) == "\"" {
 				inString += 1
 				if inString > 1 {
 					inString = 0
 				}
 				continue
-			} else if string(str[count]) == "+" && inString == 0 {
+			} else if string(str[count]) == plus && inString == 0 {
 				variable := getVariable(parseToken[place:count])
 				parseToken = strings.ReplaceAll(parseToken, variable, variableDict[variable])
 				place = count + 1
@@ -258,16 +282,19 @@ func evalVarExpression(str string) string {
 				parseToken = strings.ReplaceAll(parseToken, variable, variableDict[variable])
 			}
 		}
-		variable := getVariable(parseToken)
-		parseToken = strings.ReplaceAll(parseToken, variable, variableDict[variable])
+		parseToken = parseToken[0:strings.LastIndex(parseToken, ".")]
 		return strings.ReplaceAll(eval(parseToken), "\\n", "\n")
-		// return eval(parseToken)
+	} else if oneStatement == true {
+		variable := getVariable(str[0:strings.LastIndex(str, ".")])
+		return variableDict[variable]
 	} else {
-		// Edit where variables can be added together within different arguments
+
 		place := 0
 		arg := ""
+		newExp := ""
 		for count := 0; count <= strings.LastIndex(str, "."); count++ {
 			arg = ""
+			newExp = ""
 			if string(newShow[count]) == "\"" {
 				inString += 1
 				if inString > 1 {
@@ -275,35 +302,101 @@ func evalVarExpression(str string) string {
 				}
 				continue
 			} else if string(newShow[count]) == "," && inString == 0 {
-				argument := newShow[place:count]
-				variable := getVariable(newShow[place:count])
-				newExp := strings.ReplaceAll(argument, variable, variableDict[variable])
-
-				arg += string(eval(newExp))
-				for i := range arg {
-					if string(arg[i]) == "\"" {
-						continue
+				arg = ""
+				newExp = ""
+				if evalType(newShow[place:count]) == "Var" {
+					oneVar := isOneVariable(newShow[place:count])
+					if oneVar == true {
+						variable := getVariable(newShow[place:count])
+						arg = variableDict[variable]
+						newString += parseString(arg)
 					} else {
-						newString += string(arg[i])
-					}
-				}
-				place = count + 1
-			} else if count == strings.LastIndex(str, ".") {
-				if newShow[place:count] == " " {
-					continue
-				} else {
-					argument := newShow[place:count]
-					variable := getVariable(newShow[place:count])
-					newExp := strings.ReplaceAll(argument, variable, variableDict[variable])
-					arg += string(eval(newExp))
-					for i := range arg {
-						if string(arg[i]) == "\"" {
-							continue
-						} else {
-							newString += string(arg[i])
+						newPlace := 0
+						InnerinString := 0
+						anotherPlace := place
+						newExp = newShow[place:count]
+						for newPlace = place; newPlace < count; newPlace++ {
+							if string(newShow[count]) == "\"" {
+								InnerinString += 1
+								if InnerinString > 1 {
+									InnerinString = 0
+								}
+								continue
+							} else if InnerinString == 0 && string(str[newPlace]) == plus || string(str[newPlace]) == minus || string(str[newPlace]) == divide || string(str[newPlace]) == multiply {
+								variable := getVariable(newShow[anotherPlace:newPlace])
+								arg = variableDict[variable]
+								newExp = strings.ReplaceAll(newExp, variable, arg)
+								anotherPlace = newPlace
+							} else {
+								continue
+							}
 						}
+						arg = eval(newExp)
+						newString += parseString(arg)
+						place = count + 1
+					}
+
+				} else {
+					if evalType(newShow[place:count]) == "Exp" {
+						arg = evalExpression(newShow[place:count])
+						newString += parseString(arg)
+					} else {
+						arg = eval(newShow[place:count])
+						newString += parseString(arg)
 					}
 				}
+
+			} else if count == strings.LastIndex(str, ".") {
+				arg = ""
+				newExp = ""
+				if evalType(newShow[place:count]) == "Var" {
+					oneVar := isOneVariable(newShow[place:count])
+					if oneVar == true {
+						variable := getVariable(newShow[place:count])
+						arg = variableDict[variable]
+						newString += parseString(arg)
+					} else {
+						newPlace := 0
+						InnerinString := 0
+						anotherPlace := place
+						newExp = newShow[place:count]
+						for newPlace = place; newPlace <= count; newPlace++ {
+							if string(newShow[count]) == "\"" {
+								InnerinString += 1
+								if InnerinString > 1 {
+									InnerinString = 0
+								}
+								continue
+							} else if InnerinString == 0 && string(str[newPlace]) == plus || string(str[newPlace]) == minus || string(str[newPlace]) == divide || string(str[newPlace]) == multiply {
+								variable := getVariable(newShow[anotherPlace:newPlace])
+								arg = variableDict[variable]
+								newExp = strings.ReplaceAll(newExp, variable, arg)
+								anotherPlace = newPlace
+							} else if InnerinString == 0 && count == strings.LastIndex(str, ".") {
+								variable := getVariable(newShow[anotherPlace:newPlace])
+								arg = variableDict[variable]
+								newExp = strings.ReplaceAll(newExp, variable, arg)
+								anotherPlace = newPlace
+
+							} else {
+								continue
+							}
+
+						}
+						arg = eval(newExp)
+						newString += parseString(arg)
+					}
+
+				} else {
+					if evalType(newShow[place:count]) == "Exp" {
+						arg = evalExpression(newShow[place:count])
+						newString += parseString(arg)
+					} else {
+						arg = eval(newShow[place:count])
+						newString += parseString(arg)
+					}
+				}
+
 			}
 		}
 	}
@@ -353,27 +446,20 @@ func main() {
 	check(err)
 
 	defer file.Close()
-
 	scanner := bufio.NewScanner(file)
-
 	for scanner.Scan() {
 
-		//fmt.Println(scanner.Text())
 		tok := scanner.Text()
-		//fmt.Println(tok)
 		if len(tok) == 0 {
 			continue
 		}
 
 		if strings.Contains(tok, "//") && strings.Contains(tok, "\"") && strings.Index(tok, "//") < strings.Index(tok, "\"") {
-			//comments := strings.SplitAfter(tok, "//")
-			//fmt.Println(comments)
 			continue
 		}
 
 		if strings.Contains(tok, "//") {
 			comments := strings.SplitAfter(tok, "//")
-			//fmt.Println(comments)
 			if strings.Contains(comments[0], "//") {
 				continue
 			}
@@ -382,7 +468,6 @@ func main() {
 		if strings.Contains(tok, "show") {
 			showTok := strings.SplitAfter(tok, "show")
 			if strings.Contains(showTok[0], "show") {
-				// fmt.Println("show : ", showTok)
 				showReal(tok)
 			}
 		}
@@ -395,9 +480,4 @@ func main() {
 		}
 
 	}
-
-	// fmt.Println("hello world")
-	// show("hello world")
-	// show("1 + 2")
-
 }
