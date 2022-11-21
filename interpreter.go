@@ -29,6 +29,7 @@ func eval(s string) string {
 	return tv.Value.String()
 }
 
+// Eval different types of data in order to parser data easier
 func evalType(s string) string {
 
 	instring := 0
@@ -81,8 +82,12 @@ func evalType(s string) string {
 	return tv.Value.Kind().String()
 }
 
+// global variable dictionary
+// There will be a template dictionary for functions as well
 var variableDict = make(map[string]string)
 
+// Insert variable into the variable dictionary
+// may change this functionality but so far it works well
 func insertVariable(variableToken string) {
 	// fmt.Println(variableDict, variableToken, "<---->")
 	newtoken := variableToken
@@ -125,6 +130,8 @@ func insertVariable(variableToken string) {
 	}
 }
 
+// Used to evaluate expression and different expression cases
+// This is used only for non variable expression
 func evalExpression(str string) string {
 
 	inString := 0
@@ -151,6 +158,7 @@ func evalExpression(str string) string {
 				}
 				continue
 			} else if string(newShow[count]) == "," && inString == 0 {
+
 				arg += string(eval(newShow[place:count]))
 				for i := range arg {
 					if string(arg[i]) == "\"" {
@@ -180,6 +188,7 @@ func evalExpression(str string) string {
 	return strings.ReplaceAll(newString, "\\n", "\n")
 }
 
+// Parses out variables from variable expression
 func getVariable(str string) string {
 	s := str
 	instring := 0
@@ -207,27 +216,27 @@ func getVariable(str string) string {
 	return varTok
 }
 
+// check and see if a statement only has one variable
 func isOneVariable(str string) bool {
 	inString := 0
-	newShow := str
-	oneStatement := true
-	for count := 0; count < strings.LastIndex(str, "."); count++ {
-		if string(newShow[count]) == "\"" {
+	Statement := true
+	// fmt.Println(len(str), "--STR--->")
+	for count := 0; count <= len(str)-1; count++ {
+		if string(str[count]) == "\"" {
 			inString += 1
 			if inString > 1 {
 				inString = 0
 			}
-			continue
-		} else if inString == 0 && string(newShow[count]) == "," || string(str[count]) == plus || string(str[count]) == minus || string(str[count]) == divide || string(str[count]) == multiply {
-			oneStatement = false
+		} else if inString == 0 && string(str[count]) == plus || string(str[count]) == minus || string(str[count]) == divide || string(str[count]) == multiply {
+			Statement = false
 			break
-		} else {
-			continue
 		}
 	}
-	return oneStatement
+
+	return Statement
 }
 
+// Check and see if a concatExpression is there
 func isConcatExp(str string) bool {
 	inString := 0
 	newShow := str
@@ -251,18 +260,103 @@ func isConcatExp(str string) bool {
 	return isConcat
 }
 
+// Evaluate variable expressions by getting variables and changing
+// variable expressions into non variable expressions
+func getevalVar(str string) string {
+	arg := ""
+	newExp := ""
+	newString := ""
+	place := 0
+
+	newPlace := 0
+	InnerinString := 0
+	anotherPlace := place
+	newExp = str
+	// fmt.Println(str, "----eval comma----")
+	for newPlace = place; newPlace < len(str)-1; newPlace++ {
+		if string(str[newPlace]) == "\"" {
+			InnerinString += 1
+			if InnerinString > 1 {
+				InnerinString = 0
+			}
+			continue
+		} else if InnerinString == 0 && string(str[newPlace]) == plus || string(str[newPlace]) == minus || string(str[newPlace]) == divide || string(str[newPlace]) == multiply {
+			variable := getVariable(str[anotherPlace:newPlace])
+			arg = variableDict[variable]
+			newExp = strings.ReplaceAll(newExp, variable, arg)
+			anotherPlace = newPlace
+		} else {
+			continue
+		}
+	}
+	// fmt.Println("---", newExp, "---", "NEW EXP")
+	arg = eval(newExp)
+	// fmt.Println("---", arg, "---", "NEW EVAL")
+	newString += parseString(arg)
+	return newString
+
+}
+
+// Evaluate variable expressions by getting variables and changing
+// variable expressions into non variable expressions
+// Evaluate variable expression at end of a statement before period
+func getevalVarPeriod(str string) string {
+	arg := ""
+	newExp := ""
+	newString := ""
+	place := 0
+
+	newPlace := 0
+	InnerinString := 0
+	anotherPlace := place
+	newExp = str
+	for newPlace = place; newPlace <= len(str)-1; newPlace++ {
+		arg = ""
+		if string(str[newPlace]) == "\"" {
+			InnerinString += 1
+			if InnerinString > 1 {
+				InnerinString = 0
+			}
+			continue
+		} else if InnerinString == 0 && string(str[newPlace]) == plus || string(str[newPlace]) == minus || string(str[newPlace]) == divide || string(str[newPlace]) == multiply {
+			variable := getVariable(str[anotherPlace:newPlace])
+			arg = variableDict[variable]
+			// fmt.Println(variable, arg)
+			newExp = strings.ReplaceAll(newExp, variable, arg)
+			anotherPlace = newPlace
+		} else if InnerinString == 0 && newPlace == len(str)-1 {
+			variable := getVariable(str[anotherPlace:newPlace])
+			arg = variableDict[variable]
+			// fmt.Println(variable, arg)
+			newExp = strings.ReplaceAll(newExp, variable, arg)
+			anotherPlace = newPlace
+
+		} else {
+			continue
+		}
+
+	}
+	// fmt.Println(arg, "--------->>>>>>>>>>>", newExp)
+
+	arg = eval(newExp)
+	newString += parseString(arg)
+	return newString
+
+}
+
+// parse and evaluate variable functions
 func evalVarExpression(str string) string {
 	inString := 0
 	newShow := str
 	newString := ""
 	// check if the string has any commas outside string or if it's a concat
-	isConcat := false
-	oneStatement := true
+	var isConcat bool
+	var oneStatement bool
 	// fmt.Println(str, " STR : ")
 
 	oneStatement = isOneVariable(str)
 	isConcat = isConcatExp(str)
-
+	// fmt.Println(str, oneStatement, isConcat, "----eval something")
 	if isConcat == true {
 		parseToken := str
 		place := 0
@@ -283,18 +377,16 @@ func evalVarExpression(str string) string {
 			}
 		}
 		parseToken = parseToken[0:strings.LastIndex(parseToken, ".")]
-		return strings.ReplaceAll(eval(parseToken), "\\n", "\n")
+		return parseString(strings.ReplaceAll(eval(parseToken), "\\n", "\n"))
 	} else if oneStatement == true {
 		variable := getVariable(str[0:strings.LastIndex(str, ".")])
 		return variableDict[variable]
 	} else {
-
+		// fmt.Println(str, "-------------------->>>>>>>>>>>>>>>>>>>>>>>>>>")
 		place := 0
 		arg := ""
-		newExp := ""
 		for count := 0; count <= strings.LastIndex(str, "."); count++ {
 			arg = ""
-			newExp = ""
 			if string(newShow[count]) == "\"" {
 				inString += 1
 				if inString > 1 {
@@ -303,7 +395,6 @@ func evalVarExpression(str string) string {
 				continue
 			} else if string(newShow[count]) == "," && inString == 0 {
 				arg = ""
-				newExp = ""
 				if evalType(newShow[place:count]) == "Var" {
 					oneVar := isOneVariable(newShow[place:count])
 					if oneVar == true {
@@ -311,29 +402,9 @@ func evalVarExpression(str string) string {
 						arg = variableDict[variable]
 						newString += parseString(arg)
 					} else {
-						newPlace := 0
-						InnerinString := 0
-						anotherPlace := place
-						newExp = newShow[place:count]
-						for newPlace = place; newPlace < count; newPlace++ {
-							if string(newShow[count]) == "\"" {
-								InnerinString += 1
-								if InnerinString > 1 {
-									InnerinString = 0
-								}
-								continue
-							} else if InnerinString == 0 && string(str[newPlace]) == plus || string(str[newPlace]) == minus || string(str[newPlace]) == divide || string(str[newPlace]) == multiply {
-								variable := getVariable(newShow[anotherPlace:newPlace])
-								arg = variableDict[variable]
-								newExp = strings.ReplaceAll(newExp, variable, arg)
-								anotherPlace = newPlace
-							} else {
-								continue
-							}
-						}
-						arg = eval(newExp)
-						newString += parseString(arg)
-						place = count + 1
+						// fmt.Println(newShow[place:count], "((((((((((((((((((((((((((")
+						newString += getevalVar(newShow[place:count])
+						// fmt.Println(newString, "))))))))))))))))))))))))))))))))))))")
 					}
 
 				} else {
@@ -344,49 +415,22 @@ func evalVarExpression(str string) string {
 						arg = eval(newShow[place:count])
 						newString += parseString(arg)
 					}
-				}
 
+				}
+				place = count + 1
 			} else if count == strings.LastIndex(str, ".") {
 				arg = ""
-				newExp = ""
 				if evalType(newShow[place:count]) == "Var" {
+					// fmt.Println(place, "<------", count, "------>")
 					oneVar := isOneVariable(newShow[place:count])
+					// fmt.Println(isOneVariable(newShow[place:count]), newShow[place:count], "-----------", isOneVariable(newShow), "here----->")
 					if oneVar == true {
 						variable := getVariable(newShow[place:count])
 						arg = variableDict[variable]
 						newString += parseString(arg)
 					} else {
-						newPlace := 0
-						InnerinString := 0
-						anotherPlace := place
-						newExp = newShow[place:count]
-						for newPlace = place; newPlace <= count; newPlace++ {
-							if string(newShow[count]) == "\"" {
-								InnerinString += 1
-								if InnerinString > 1 {
-									InnerinString = 0
-								}
-								continue
-							} else if InnerinString == 0 && string(str[newPlace]) == plus || string(str[newPlace]) == minus || string(str[newPlace]) == divide || string(str[newPlace]) == multiply {
-								variable := getVariable(newShow[anotherPlace:newPlace])
-								arg = variableDict[variable]
-								newExp = strings.ReplaceAll(newExp, variable, arg)
-								anotherPlace = newPlace
-							} else if InnerinString == 0 && count == strings.LastIndex(str, ".") {
-								variable := getVariable(newShow[anotherPlace:newPlace])
-								arg = variableDict[variable]
-								newExp = strings.ReplaceAll(newExp, variable, arg)
-								anotherPlace = newPlace
-
-							} else {
-								continue
-							}
-
-						}
-						arg = eval(newExp)
-						newString += parseString(arg)
+						newString += getevalVarPeriod(newShow[place:count])
 					}
-
 				} else {
 					if evalType(newShow[place:count]) == "Exp" {
 						arg = evalExpression(newShow[place:count])
@@ -396,13 +440,13 @@ func evalVarExpression(str string) string {
 						newString += parseString(arg)
 					}
 				}
-
 			}
 		}
 	}
 	return strings.ReplaceAll(newString, "\\n", "\n")
 }
 
+// Parse string and put it in the proper format
 func parseString(str string) string {
 	newString := ""
 	for v := range str {
@@ -415,6 +459,8 @@ func parseString(str string) string {
 	return newString
 }
 
+// show function
+// use evalType to show eval expressions
 func showReal(str string) {
 
 	showTok := strings.SplitAfterN(str, "show", 2)
@@ -440,6 +486,7 @@ func check(err error) {
 	}
 }
 
+// Main function
 func main() {
 
 	file, err := os.Open(os.Args[1])
