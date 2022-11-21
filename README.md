@@ -1,5 +1,12 @@
 # Turtle Is Under Update and rewriting
 Turtle Programming Language
+# Where I am Currently
+1. Re-writing interpreter in go
+2. Output establsihed
+3. Variable and non variable expressions can be evaluated
+4. Display different data to the screen.
+
+
 
 # The Turtle Programming Language
 Turtle was my side project during community college and university. 
