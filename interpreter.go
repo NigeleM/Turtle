@@ -486,17 +486,36 @@ func check(err error) {
 	}
 }
 
+// function dictionary
+var functionDict = make(map[string]function)
+
+type function struct {
+	funcVariableDict map[string]string
+	argumentState    bool
+	argumentDict     map[string]string
+	argumentCount    int
+	content          []string
+	name             string
+	contentLen       int
+}
+
 // Main function
 func main() {
 
 	file, err := os.Open(os.Args[1])
 	check(err)
-
+	definitionState := false
+	definitionName := ""
+	//conditionState := false
+	CallFunction := false
+	callCount := 0
+	callName := ""
 	defer file.Close()
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 
 		tok := scanner.Text()
+		// fmt.Println(tok)
 		if len(tok) == 0 {
 			continue
 		}
@@ -509,6 +528,84 @@ func main() {
 			comments := strings.SplitAfter(tok, "//")
 			if strings.Contains(comments[0], "//") {
 				continue
+			}
+		}
+
+		if strings.Contains(tok, "def") && strings.Contains(tok, "[") && strings.Contains(tok, "[") && definitionState == false {
+			definitionState = true
+			var Newfunction function
+			nameSet := strings.SplitAfter(tok, "def ")
+			name := nameSet[1]
+			name = name[0:strings.Index(name, "[")]
+			name = strings.ReplaceAll(name, " ", "")
+			Newfunction.name = name
+			// fmt.Println(name, "--name of function")
+			variables := nameSet[1][strings.Index(nameSet[1], "[")+1 : strings.Index(nameSet[1], "]")]
+			variablesSet := strings.Split(variables, ",")
+			// fmt.Println(variables, "-- variables of function", variablesSet)
+			Newfunction.argumentCount = len(variablesSet)
+			Newfunction.argumentDict = make(map[string]string)
+			Newfunction.funcVariableDict = make(map[string]string)
+			if Newfunction.argumentCount > 0 {
+				Newfunction.argumentState = true
+			}
+			for v := range variablesSet {
+				// fmt.Println(variablesSet[v], "v-set----")
+				Newfunction.argumentDict[variablesSet[v]] = variablesSet[v]
+				Newfunction.funcVariableDict[variablesSet[v]] = variablesSet[v]
+			}
+			// fmt.Println(Newfunction, "-- data code")
+			functionDict[Newfunction.name] = Newfunction
+			definitionName = Newfunction.name
+			Newfunction.content = make([]string, 0)
+			continue
+
+		}
+
+		if definitionState == true {
+			// fmt.Println(tok, "--def state---")
+			if strings.Contains(tok, "def") && strings.Contains(tok, "[end]") {
+				definitionState = false
+				contentDef := functionDict[definitionName]
+				contentDef.content = append(functionDict[definitionName].content, tok)
+				contentDef.contentLen = len(contentDef.content)
+				functionDict[definitionName] = contentDef
+
+			} else {
+				contentDef := functionDict[definitionName]
+				contentDef.content = append(functionDict[definitionName].content, tok)
+				functionDict[definitionName] = contentDef
+			}
+			// fmt.Println(functionDict[definitionName], "--------- FUNC CODE")
+			continue
+
+		}
+
+		if callName != "" && CallFunction == true {
+			fmt.Println(tok, "HERE---> 2")
+			if callCount < functionDict[callName].contentLen-1 {
+				functionCall := functionDict[callName]
+				tok = functionCall.content[callCount]
+				//fmt.Println(tok)
+				callCount += 1
+			} else {
+				CallFunction = false
+				callName = ""
+			}
+
+		}
+
+		if strings.Contains(tok, "[") && strings.Contains(tok, "]") && CallFunction == false {
+			fmt.Println(tok, "HERE---> 1")
+			CallFunction = true
+			name := tok[0:strings.Index(tok, "[")]
+			name = strings.ReplaceAll(name, " ", "")
+			callName = name
+			if callCount < functionDict[name].contentLen-1 {
+				functionCall := functionDict[name]
+				tok = functionCall.content[callCount]
+				callCount += 1
+				//fmt.Println(tok)
 			}
 		}
 
