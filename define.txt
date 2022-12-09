@@ -1,0 +1,7 @@
+
+def hello [a,b]
+show a .
+show b .
+def [end]
+
+hello ["good","day"]
