@@ -489,14 +489,75 @@ func check(err error) {
 // function dictionary
 var functionDict = make(map[string]function)
 
+// function Struct
 type function struct {
 	funcVariableDict map[string]string
 	argumentState    bool
-	argumentDict     map[string]string
+	argumentDict     []string
 	argumentCount    int
 	content          []string
 	name             string
 	contentLen       int
+}
+
+func functionProtocol(str string) {
+
+	name := str
+	name = name[0:strings.Index(name, "[")]
+	name = strings.ReplaceAll(name, " ", "")
+	Calledfunction := functionDict[name]
+
+	if Calledfunction.name != name {
+		fmt.Println("function Error")
+	}
+	// change the variables in scope
+	variables := str[strings.Index(str, "[")+1 : strings.Index(str, "]")]
+	fmt.Println(variables)
+	variablesSet := strings.Split(variables, ",")
+	fmt.Println(variablesSet)
+	// fmt.Println(Calledfunction, "<--- Called Function --->")
+	count := 0
+	for _, vars := range Calledfunction.argumentDict {
+		Calledfunction.funcVariableDict[vars] = variablesSet[count]
+		count += 1
+	}
+	fmt.Println(Calledfunction, "<--- Called Function --->")
+
+	for _, tok := range Calledfunction.content {
+		if len(tok) == 0 {
+			continue
+		}
+
+		if strings.Contains(tok, "//") && strings.Contains(tok, "\"") && strings.Index(tok, "//") < strings.Index(tok, "\"") {
+			continue
+		}
+
+		if strings.Contains(tok, "//") {
+			comments := strings.SplitAfter(tok, "//")
+			if strings.Contains(comments[0], "//") {
+				continue
+			}
+		}
+
+		// if strings.Contains(tok, "[") && strings.Contains(tok, "]") {
+
+		// }
+
+		if strings.Contains(tok, "show") {
+			showTok := strings.SplitAfter(tok, "show")
+			if strings.Contains(showTok[0], "show") {
+				showReal(tok)
+			}
+		}
+
+		if strings.Contains(tok, "=") {
+			varTok := strings.SplitAfter(tok, "=")
+			if strings.Contains(varTok[0], "=") {
+				insertVariable(tok)
+			}
+		}
+	}
+
 }
 
 // Main function
@@ -507,9 +568,6 @@ func main() {
 	definitionState := false
 	definitionName := ""
 	//conditionState := false
-	CallFunction := false
-	callCount := 0
-	callName := ""
 	defer file.Close()
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
@@ -544,14 +602,14 @@ func main() {
 			variablesSet := strings.Split(variables, ",")
 			// fmt.Println(variables, "-- variables of function", variablesSet)
 			Newfunction.argumentCount = len(variablesSet)
-			Newfunction.argumentDict = make(map[string]string)
+			Newfunction.argumentDict = variablesSet
 			Newfunction.funcVariableDict = make(map[string]string)
 			if Newfunction.argumentCount > 0 {
 				Newfunction.argumentState = true
 			}
 			for v := range variablesSet {
 				// fmt.Println(variablesSet[v], "v-set----")
-				Newfunction.argumentDict[variablesSet[v]] = variablesSet[v]
+				// Newfunction.argumentDict[variablesSet[v]] = variablesSet[v]
 				Newfunction.funcVariableDict[variablesSet[v]] = variablesSet[v]
 			}
 			// fmt.Println(Newfunction, "-- data code")
@@ -581,32 +639,9 @@ func main() {
 
 		}
 
-		if callName != "" && CallFunction == true {
-			fmt.Println(tok, "HERE---> 2")
-			if callCount < functionDict[callName].contentLen-1 {
-				functionCall := functionDict[callName]
-				tok = functionCall.content[callCount]
-				//fmt.Println(tok)
-				callCount += 1
-			} else {
-				CallFunction = false
-				callName = ""
-			}
+		if strings.Contains(tok, "[") && strings.Contains(tok, "]") {
+			functionProtocol(tok)
 
-		}
-
-		if strings.Contains(tok, "[") && strings.Contains(tok, "]") && CallFunction == false {
-			fmt.Println(tok, "HERE---> 1")
-			CallFunction = true
-			name := tok[0:strings.Index(tok, "[")]
-			name = strings.ReplaceAll(name, " ", "")
-			callName = name
-			if callCount < functionDict[name].contentLen-1 {
-				functionCall := functionDict[name]
-				tok = functionCall.content[callCount]
-				callCount += 1
-				//fmt.Println(tok)
-			}
 		}
 
 		if strings.Contains(tok, "show") {
