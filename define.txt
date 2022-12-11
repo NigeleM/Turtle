@@ -1,7 +1,16 @@
 
+def good []
+show "It worked" .
+def [end]
+
 def hello [a,b]
 show a .
 show b .
+c = 10
+show c .
+good []
 def [end]
 
-hello ["good","day"]
+
+
+hello ["Nigele McCoy","is Nice"]

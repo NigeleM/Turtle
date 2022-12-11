@@ -486,7 +486,12 @@ func check(err error) {
 	}
 }
 
+// ------------------------------------------------------------
+// Function section
+// This area for the function ability of the interpreter
+// ------------------------------------------------------------
 // function dictionary
+
 var functionDict = make(map[string]function)
 
 // function Struct
@@ -500,6 +505,258 @@ type function struct {
 	contentLen       int
 }
 
+// Evaluate variable expressions by getting variables and changing
+// variable expressions into non variable expressions
+func getevalVarFunc(str string, name string) string {
+	arg := ""
+	newExp := ""
+	newString := ""
+	place := 0
+
+	newPlace := 0
+	InnerinString := 0
+	anotherPlace := place
+	newExp = str
+	// fmt.Println(str, "----eval comma----")
+	for newPlace = place; newPlace < len(str)-1; newPlace++ {
+		if string(str[newPlace]) == "\"" {
+			InnerinString += 1
+			if InnerinString > 1 {
+				InnerinString = 0
+			}
+			continue
+		} else if InnerinString == 0 && string(str[newPlace]) == plus || string(str[newPlace]) == minus || string(str[newPlace]) == divide || string(str[newPlace]) == multiply {
+			variable := getVariable(str[anotherPlace:newPlace])
+			arg = functionDict[name].funcVariableDict[variable]
+			newExp = strings.ReplaceAll(newExp, variable, arg)
+			anotherPlace = newPlace
+		} else {
+			continue
+		}
+	}
+	// fmt.Println("---", newExp, "---", "NEW EXP")
+	arg = eval(newExp)
+	// fmt.Println("---", arg, "---", "NEW EVAL")
+	newString += parseString(arg)
+	return newString
+
+}
+
+// Evaluate variable expressions by getting variables and changing
+// variable expressions into non variable expressions
+// Evaluate variable expression at end of a statement before period
+func getevalVarPeriodFunc(str string, name string) string {
+	arg := ""
+	newExp := ""
+	newString := ""
+	place := 0
+
+	newPlace := 0
+	InnerinString := 0
+	anotherPlace := place
+	newExp = str
+	for newPlace = place; newPlace <= len(str)-1; newPlace++ {
+		arg = ""
+		if string(str[newPlace]) == "\"" {
+			InnerinString += 1
+			if InnerinString > 1 {
+				InnerinString = 0
+			}
+			continue
+		} else if InnerinString == 0 && string(str[newPlace]) == plus || string(str[newPlace]) == minus || string(str[newPlace]) == divide || string(str[newPlace]) == multiply {
+			variable := getVariable(str[anotherPlace:newPlace])
+			arg = functionDict[name].funcVariableDict[variable]
+			// fmt.Println(variable, arg)
+			newExp = strings.ReplaceAll(newExp, variable, arg)
+			anotherPlace = newPlace
+		} else if InnerinString == 0 && newPlace == len(str)-1 {
+			variable := getVariable(str[anotherPlace:newPlace])
+			arg = functionDict[name].funcVariableDict[variable]
+			// fmt.Println(variable, arg)
+			newExp = strings.ReplaceAll(newExp, variable, arg)
+			anotherPlace = newPlace
+
+		} else {
+			continue
+		}
+
+	}
+	// fmt.Println(arg, "--------->>>>>>>>>>>", newExp)
+
+	arg = eval(newExp)
+	newString += parseString(arg)
+	return newString
+
+}
+
+// Insert variable into the variable dictionary
+// may change this functionality but so far it works well
+func insertVariableFunc(variableToken string, name string) {
+	// fmt.Println(variableDict, variableToken, "<---->")
+	newtoken := variableToken
+	varToken := strings.Split(newtoken, "=")
+	//fmt.Println("Variable type : ", evalType(varToken[1]), "  : variable value : ", varToken[1])
+	varToken[0] = strings.ReplaceAll(varToken[0], " ", "")
+	if evalType(varToken[1]) == "String" {
+		functionDict[name].funcVariableDict[string(varToken[0])] = eval(varToken[1])
+	} else if evalType(varToken[1]) == "Int" {
+		functionDict[name].funcVariableDict[string(varToken[0])] = eval(varToken[1])
+	} else if evalType(varToken[1]) == "Float" {
+		functionDict[name].funcVariableDict[string(varToken[0])] = eval(varToken[1])
+	} else if evalType(varToken[1]) == "Var" {
+
+		oldvar := varToken[1]
+		hold := ""
+		for v := range oldvar {
+			if string(oldvar[v]) == plus || string(oldvar[v]) == minus || string(oldvar[v]) == multiply || string(oldvar[v]) == divide {
+				hold += " "
+				hold += string(oldvar[v])
+				hold += " "
+
+			} else {
+				hold += string(oldvar[v])
+
+			}
+
+		}
+
+		newVarTok := strings.Split(hold, " ")
+		for v := range newVarTok {
+			_, isPresent := functionDict[name].funcVariableDict[newVarTok[v]]
+			if isPresent {
+				newVarTok[v] = functionDict[name].funcVariableDict[newVarTok[v]]
+			}
+		}
+		VarTok := strings.Join(newVarTok, " ")
+		functionDict[name].funcVariableDict[string(varToken[0])] = eval(VarTok)
+
+	}
+}
+
+// parse and evaluate variable functions
+func evalVarExpressionFunc(str string, name string) string {
+	inString := 0
+	newShow := str
+	newString := ""
+	// check if the string has any commas outside string or if it's a concat
+	var isConcat bool
+	var oneStatement bool
+	// fmt.Println(str, " STR : ")
+
+	oneStatement = isOneVariable(str)
+	isConcat = isConcatExp(str)
+	// fmt.Println(str, oneStatement, isConcat, "----eval something")
+	if isConcat == true {
+		parseToken := str
+		place := 0
+		for count := 0; count <= strings.LastIndex(str, "."); count++ {
+			if string(str[count]) == "\"" {
+				inString += 1
+				if inString > 1 {
+					inString = 0
+				}
+				continue
+			} else if string(str[count]) == plus && inString == 0 {
+				variable := getVariable(parseToken[place:count])
+				parseToken = strings.ReplaceAll(parseToken, variable, functionDict[name].funcVariableDict[variable])
+				place = count + 1
+			} else if count == strings.LastIndex(str, ".") {
+				variable := getVariable(parseToken[place:count])
+				parseToken = strings.ReplaceAll(parseToken, variable, functionDict[name].funcVariableDict[variable])
+			}
+		}
+		parseToken = parseToken[0:strings.LastIndex(parseToken, ".")]
+		return parseString(strings.ReplaceAll(eval(parseToken), "\\n", "\n"))
+	} else if oneStatement == true {
+		variable := getVariable(str[0:strings.LastIndex(str, ".")])
+		return functionDict[name].funcVariableDict[variable]
+	} else {
+		// fmt.Println(str, "-------------------->>>>>>>>>>>>>>>>>>>>>>>>>>")
+		place := 0
+		arg := ""
+		for count := 0; count <= strings.LastIndex(str, "."); count++ {
+			arg = ""
+			if string(newShow[count]) == "\"" {
+				inString += 1
+				if inString > 1 {
+					inString = 0
+				}
+				continue
+			} else if string(newShow[count]) == "," && inString == 0 {
+				arg = ""
+				if evalType(newShow[place:count]) == "Var" {
+					oneVar := isOneVariable(newShow[place:count])
+					if oneVar == true {
+						variable := getVariable(newShow[place:count])
+						arg = functionDict[name].funcVariableDict[variable]
+						newString += parseString(arg)
+					} else {
+						// fmt.Println(newShow[place:count], "((((((((((((((((((((((((((")
+						newString += getevalVarFunc(newShow[place:count], name)
+						// fmt.Println(newString, "))))))))))))))))))))))))))))))))))))")
+					}
+
+				} else {
+					if evalType(newShow[place:count]) == "Exp" {
+						arg = evalExpression(newShow[place:count])
+						newString += parseString(arg)
+					} else {
+						arg = eval(newShow[place:count])
+						newString += parseString(arg)
+					}
+
+				}
+				place = count + 1
+			} else if count == strings.LastIndex(str, ".") {
+				arg = ""
+				if evalType(newShow[place:count]) == "Var" {
+					// fmt.Println(place, "<------", count, "------>")
+					oneVar := isOneVariable(newShow[place:count])
+					// fmt.Println(isOneVariable(newShow[place:count]), newShow[place:count], "-----------", isOneVariable(newShow), "here----->")
+					if oneVar == true {
+						variable := getVariable(newShow[place:count])
+						arg = functionDict[name].funcVariableDict[variable]
+						newString += parseString(arg)
+					} else {
+						newString += getevalVarPeriodFunc(newShow[place:count], name)
+					}
+				} else {
+					if evalType(newShow[place:count]) == "Exp" {
+						arg = evalExpression(newShow[place:count])
+						newString += parseString(arg)
+					} else {
+						arg = eval(newShow[place:count])
+						newString += parseString(arg)
+					}
+				}
+			}
+		}
+	}
+	return strings.ReplaceAll(newString, "\\n", "\n")
+}
+
+// show function
+// use evalType to show eval expressions
+func showRealFunc(str string, name string) {
+
+	showTok := strings.SplitAfterN(str, "show", 2)
+	parseToken := showTok[1][0:strings.LastIndex(showTok[1], ".")]
+	parseToken = strings.ReplaceAll(parseToken, "\\n", "\n")
+	if evalType(parseToken) == "Int" {
+		fmt.Println(eval(parseToken))
+	} else if evalType(parseToken) == "Float" {
+		fmt.Println(eval(parseToken))
+	} else if evalType(parseToken) == "String" {
+		fmt.Println(parseString(eval(parseToken)))
+	} else if evalType(parseToken) == "Var" {
+		fmt.Println(evalVarExpressionFunc(showTok[1], name))
+	} else if evalType(parseToken) == "Exp" {
+		fmt.Println(evalExpression(showTok[1]))
+	}
+}
+
+// Function protocol for when functions are called
+
 func functionProtocol(str string) {
 
 	name := str
@@ -512,16 +769,16 @@ func functionProtocol(str string) {
 	}
 	// change the variables in scope
 	variables := str[strings.Index(str, "[")+1 : strings.Index(str, "]")]
-	fmt.Println(variables)
+	// fmt.Println(variables)
 	variablesSet := strings.Split(variables, ",")
-	fmt.Println(variablesSet)
+	// fmt.Println(variablesSet)
 	// fmt.Println(Calledfunction, "<--- Called Function --->")
 	count := 0
 	for _, vars := range Calledfunction.argumentDict {
 		Calledfunction.funcVariableDict[vars] = variablesSet[count]
 		count += 1
 	}
-	fmt.Println(Calledfunction, "<--- Called Function --->")
+	// fmt.Println(Calledfunction, "<--- Called Function --->")
 
 	for _, tok := range Calledfunction.content {
 		if len(tok) == 0 {
@@ -539,21 +796,27 @@ func functionProtocol(str string) {
 			}
 		}
 
-		// if strings.Contains(tok, "[") && strings.Contains(tok, "]") {
+		if strings.Contains(tok, "def") && strings.Contains(tok, "[end]") {
+			continue
 
-		// }
+		}
+
+		if strings.Contains(tok, "[") && strings.Contains(tok, "]") {
+			functionProtocol(tok)
+
+		}
 
 		if strings.Contains(tok, "show") {
 			showTok := strings.SplitAfter(tok, "show")
 			if strings.Contains(showTok[0], "show") {
-				showReal(tok)
+				showRealFunc(tok, name)
 			}
 		}
 
 		if strings.Contains(tok, "=") {
 			varTok := strings.SplitAfter(tok, "=")
 			if strings.Contains(varTok[0], "=") {
-				insertVariable(tok)
+				insertVariableFunc(tok, name)
 			}
 		}
 	}
