@@ -756,7 +756,6 @@ func showRealFunc(str string, name string) {
 }
 
 // Function protocol for when functions are called
-
 func functionProtocol(str string) {
 
 	name := str

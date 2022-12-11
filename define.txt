@@ -6,9 +6,9 @@ def [end]
 def hello [a,b]
 show a .
 show b .
+good []
 c = 10
 show c .
-good []
 def [end]
 
 
