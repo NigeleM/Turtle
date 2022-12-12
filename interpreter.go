@@ -774,7 +774,20 @@ func functionProtocol(str string) {
 	// fmt.Println(Calledfunction, "<--- Called Function --->")
 	count := 0
 	for _, vars := range Calledfunction.argumentDict {
-		Calledfunction.funcVariableDict[vars] = variablesSet[count]
+
+		// Calledfunction.funcVariableDict[vars] = variablesSet[count]
+		if isOneVariable(variablesSet[count]) {
+			// fmt.Println(getVariable(variablesSet[count]), "----", variableDict[getVariable(variablesSet[count])])
+			_, isPresent := variableDict[getVariable(variablesSet[count])]
+			if isPresent {
+				// add getVariable to clean up spaces on vars
+				Calledfunction.funcVariableDict[vars] = variableDict[getVariable(variablesSet[count])]
+			} else {
+				Calledfunction.funcVariableDict[vars] = variablesSet[count]
+			}
+
+		}
+
 		count += 1
 	}
 	// fmt.Println(Calledfunction, "<--- Called Function --->")

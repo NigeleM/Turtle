@@ -12,5 +12,5 @@ show c .
 def [end]
 
 
-
-hello ["Nigele McCoy","is Nice"]
+name = "Nigele McCoy"
+hello [ name , "is Nice" ]
