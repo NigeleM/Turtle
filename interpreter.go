@@ -100,6 +100,8 @@ func insertVariable(variableToken string) {
 		variableDict[string(varToken[0])] = eval(varToken[1])
 	} else if evalType(varToken[1]) == "Float" {
 		variableDict[string(varToken[0])] = eval(varToken[1])
+	} else if evalType(varToken[1]) == "Bool" {
+		variableDict[string(varToken[0])] = eval(varToken[1])
 	} else if evalType(varToken[1]) == "Var" {
 
 		oldvar := varToken[1]
@@ -476,6 +478,8 @@ func showReal(str string) {
 		fmt.Println(evalVarExpression(showTok[1]))
 	} else if evalType(parseToken) == "Exp" {
 		fmt.Println(evalExpression(showTok[1]))
+	} else if evalType(parseToken) == "Bool" {
+		fmt.Println(evalExpression(showTok[1]))
 	}
 }
 
@@ -602,6 +606,8 @@ func insertVariableFunc(variableToken string, name string) {
 	} else if evalType(varToken[1]) == "Int" {
 		functionDict[name].funcVariableDict[string(varToken[0])] = eval(varToken[1])
 	} else if evalType(varToken[1]) == "Float" {
+		functionDict[name].funcVariableDict[string(varToken[0])] = eval(varToken[1])
+	} else if evalType(varToken[1]) == "Bool" {
 		functionDict[name].funcVariableDict[string(varToken[0])] = eval(varToken[1])
 	} else if evalType(varToken[1]) == "Var" {
 
@@ -752,12 +758,14 @@ func showRealFunc(str string, name string) {
 		fmt.Println(evalVarExpressionFunc(showTok[1], name))
 	} else if evalType(parseToken) == "Exp" {
 		fmt.Println(evalExpression(showTok[1]))
+	} else if evalType(parseToken) == "Bool" {
+		fmt.Println(evalExpression(showTok[1]))
 	}
 }
 
 // Function protocol for when functions are called
-func functionProtocol(str string) {
-
+func functionProtocol(str string, state string) {
+	// fmt.Println(str, "<------>", state)
 	name := str
 	name = name[0:strings.Index(name, "[")]
 	name = strings.ReplaceAll(name, " ", "")
@@ -778,12 +786,26 @@ func functionProtocol(str string) {
 		// Calledfunction.funcVariableDict[vars] = variablesSet[count]
 		if isOneVariable(variablesSet[count]) {
 			// fmt.Println(getVariable(variablesSet[count]), "----", variableDict[getVariable(variablesSet[count])])
-			_, isPresent := variableDict[getVariable(variablesSet[count])]
-			if isPresent {
-				// add getVariable to clean up spaces on vars
-				Calledfunction.funcVariableDict[vars] = variableDict[getVariable(variablesSet[count])]
+			if state == "isMain" {
+				_, isPresent := variableDict[getVariable(variablesSet[count])]
+
+				if isPresent {
+					// add getVariable to clean up spaces on vars
+					Calledfunction.funcVariableDict[vars] = variableDict[getVariable(variablesSet[count])]
+
+				} else {
+					Calledfunction.funcVariableDict[vars] = variablesSet[count]
+				}
 			} else {
-				Calledfunction.funcVariableDict[vars] = variablesSet[count]
+				_, isPresent := functionDict[state].funcVariableDict[getVariable(variablesSet[count])]
+
+				if isPresent {
+					// add getVariable to clean up spaces on vars
+					Calledfunction.funcVariableDict[vars] = functionDict[state].funcVariableDict[getVariable(variablesSet[count])]
+				} else {
+					Calledfunction.funcVariableDict[vars] = variablesSet[count]
+				}
+
 			}
 
 		}
@@ -814,7 +836,7 @@ func functionProtocol(str string) {
 		}
 
 		if strings.Contains(tok, "[") && strings.Contains(tok, "]") {
-			functionProtocol(tok)
+			functionProtocol(tok, name)
 
 		}
 
@@ -915,7 +937,7 @@ func main() {
 		}
 
 		if strings.Contains(tok, "[") && strings.Contains(tok, "]") {
-			functionProtocol(tok)
+			functionProtocol(tok, "isMain")
 
 		}
 

@@ -3,14 +3,22 @@ def good []
 show "It worked" .
 def [end]
 
+def definition [a]
+show a .
+show a + 1 .
+def [end]
+
 def hello [a,b]
 show a .
 show b .
 good []
 c = 10
+good []
+good []
+definition [c]
 show c .
 def [end]
 
 
-name = "Nigele McCoy"
+name = 100 > 50
 hello [ name , "is Nice" ]
