@@ -5,7 +5,8 @@ Turtle Programming Language
 2. Output establsihed
 3. Variable and non variable expressions can be evaluated
 4. Display different data to the screen.
-5. See Issues tab for upcoming updates
+5. define and call functions
+6. See Issues tab for upcoming updates
 
 
 
