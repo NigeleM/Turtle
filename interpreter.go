@@ -857,6 +857,69 @@ func functionProtocol(str string, state string) {
 
 }
 
+// ------------------------------------------------------------
+// IF Else logic
+// ------------------------------------------------------------
+func ifelse(tok string) {
+	for v := range tok {
+		conditionState := false
+		conditionMet := false
+		conditionExcuted := false
+		conditionExcuting := 0
+		tok = string(v)
+		if strings.Contains(tok, "if") && false == strings.Contains(tok, "else") && conditionMet == false &&
+			conditionState == false {
+			expression := tok[strings.Index(tok, "]")+1 : strings.LastIndex(tok, "[")]
+			// fmt.Println(expression)
+			if "true" == eval(expression) {
+				// fmt.Println(eval(expression),"first if here----------->", )
+				conditionState = true
+				conditionMet = true
+			} else {
+				conditionState = true
+				conditionMet = false
+			}
+			continue
+		} else if strings.Contains(tok, "if") && strings.Contains(tok, "else") && conditionState == true && conditionMet == false {
+			expression := tok[strings.Index(tok, "]")+1 : strings.LastIndex(tok, "[")]
+			// fmt.Println(expression)
+			if "true" == eval(expression) {
+				// fmt.Println(eval(expression),"else if here----------->")
+				conditionState = true
+				conditionMet = true
+			} else {
+				conditionState = true
+				conditionMet = false
+			}
+			continue
+		} else if strings.Contains(tok, "if [end]") {
+			conditionState = false
+			conditionMet = false
+			conditionExcuted = false
+
+		} else if conditionState == true && conditionMet == true && conditionExcuted == false && conditionExcuting > 0 &&
+			false == strings.Contains(tok, "if") && strings.Contains(tok, "else") {
+			conditionState = true
+			conditionMet = false
+
+		} else if conditionState == true && conditionMet == true && conditionExcuted == false && conditionExcuting > 0 &&
+			strings.Contains(tok, "if") && strings.Contains(tok, "else") {
+			conditionState = true
+			conditionMet = false
+
+		} else if conditionState == true && conditionMet == false && conditionExcuted == false && conditionExcuting == 0 &&
+			false == strings.Contains(tok, "if") && strings.Contains(tok, "else") {
+			conditionState = true
+			conditionMet = true
+
+		} else if conditionState == true && conditionMet == true && conditionExcuted == false {
+			conditionExcuting += 1
+			fmt.Println(tok)
+			// fmt.Println(conditionExcuting)
+		}
+	}
+}
+
 // Main function
 func main() {
 
@@ -946,6 +1009,21 @@ func main() {
 			if strings.Contains(showTok[0], "show") {
 				showReal(tok)
 			}
+		}
+
+		// Add check for question Mark that isn't in quotes
+		if strings.Contains(tok, "?") && strings.Contains(tok, "=") {
+			input := strings.Split(tok, "=")
+			// fmt.Println(input)
+			var variable string = ""
+
+			scanIn := bufio.NewScanner(os.Stdin)
+			scanIn.Scan()
+			variable = scanIn.Text()
+			vars := strings.ReplaceAll(input[0], " ", "")
+			// fmt.Println(variable)
+			variableDict[vars] = variable
+			// fmt.Println(variableDict)
 		}
 
 		if strings.Contains(tok, "=") {

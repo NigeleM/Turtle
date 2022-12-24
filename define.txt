@@ -11,14 +11,12 @@ def [end]
 def hello [a,b]
 show a .
 show b .
-good []
-c = 10
-good []
-good []
-definition [c]
-show c .
 def [end]
 
 
 name = 100 > 50
 hello [ name , "is Nice" ]
+show "enter a number" .
+b = ?
+show b .
+show "hello world" .
