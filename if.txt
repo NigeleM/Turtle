@@ -1,0 +1,8 @@
+if ] 11 > 11 && 10 > 6 [
+show "hello world" .
+else if ] 10 < 12 && 11 > 9 [
+show "hello 11" .
+show "mama" .
+else ]
+show "hello Nigele" .
+if [end]
