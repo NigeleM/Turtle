@@ -1,0 +1,3 @@
+- add return function ability
+- add if else condition parser for variables and etc. 
+- add proper input prompt that provides prompt for user
