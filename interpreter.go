@@ -766,6 +766,8 @@ func showRealFunc(str string, name string) {
 // Function protocol for when functions are called
 func functionProtocol(str string, state string) {
 	// fmt.Println(str, "<------>", state)
+	conditionState := false
+	conditionName := ""
 	name := str
 	name = name[0:strings.Index(name, "[")]
 	name = strings.ReplaceAll(name, " ", "")
@@ -835,6 +837,33 @@ func functionProtocol(str string, state string) {
 
 		}
 
+		if strings.Contains(tok, "if") && strings.Contains(tok, "]") && strings.Contains(tok, "[") && conditionState == false {
+			conditionState = true
+			var ifElse ifelseCondition
+			ifElse.head = tok
+			conditionName = tok
+			ifElse.content = append(ifElse.content, tok)
+			ifElseDict[ifElse.head] = ifElse
+			continue
+		}
+
+		if conditionState {
+			if strings.Contains(tok, "[end]") && strings.Contains(tok, "if") {
+				ifelseCopy := ifElseDict[conditionName]
+				ifelseCopy.content = append(ifElseDict[conditionName].content, tok)
+				ifElseDict[conditionName] = ifelseCopy
+				ifelse(ifElseDict[conditionName].content)
+				conditionState = false
+				// ifElseDict[conditionName].content = append(ifElseDict[conditionName].content, tok)
+			} else {
+				ifelseCopy := ifElseDict[conditionName]
+				ifelseCopy.content = append(ifElseDict[conditionName].content, tok)
+				ifElseDict[conditionName] = ifelseCopy
+
+			}
+			continue
+		}
+
 		if strings.Contains(tok, "[") && strings.Contains(tok, "]") {
 			functionProtocol(tok, name)
 
@@ -860,13 +889,22 @@ func functionProtocol(str string, state string) {
 // ------------------------------------------------------------
 // IF Else logic
 // ------------------------------------------------------------
-func ifelse(tok string) {
-	for v := range tok {
-		conditionState := false
-		conditionMet := false
-		conditionExcuted := false
-		conditionExcuting := 0
-		tok = string(v)
+// take a struct that has a slice to hold contents.
+// ifelse function used to loop through structure to execute proper actions.
+type ifelseCondition struct {
+	head    string
+	content []string
+}
+
+var ifElseDict = make(map[string]ifelseCondition)
+
+func ifelse(token []string) {
+	conditionState := false
+	conditionMet := false
+	conditionExcuted := false
+	conditionExcuting := 0
+	for _, tok := range token {
+
 		if strings.Contains(tok, "if") && false == strings.Contains(tok, "else") && conditionMet == false &&
 			conditionState == false {
 			expression := tok[strings.Index(tok, "]")+1 : strings.LastIndex(tok, "[")]
@@ -914,10 +952,123 @@ func ifelse(tok string) {
 
 		} else if conditionState == true && conditionMet == true && conditionExcuted == false {
 			conditionExcuting += 1
-			fmt.Println(tok)
-			// fmt.Println(conditionExcuting)
+			// fmt.Println(tok)
+			callCode(tok)
 		}
 	}
+}
+
+// independent code execution without use of main or function dependency
+func callCode(tok string) {
+	definitionState := false
+	definitionName := ""
+	//conditionState := false
+	conditionState := false
+	conditionName := ""
+	if len(tok) == 0 {
+
+	} else if strings.Contains(tok, "//") && strings.Contains(tok, "\"") && strings.Index(tok, "//") < strings.Index(tok, "\"") {
+
+	} else if strings.Contains(tok, "//") {
+		comments := strings.SplitAfter(tok, "//")
+		if strings.Contains(comments[0], "//") {
+
+		}
+	} else if strings.Contains(tok, "def ") && strings.Contains(tok, "[") && strings.Contains(tok, "[") && definitionState == false {
+		definitionState = true
+		var Newfunction function
+		nameSet := strings.SplitAfter(tok, "def ")
+		name := nameSet[1]
+		name = name[0:strings.Index(name, "[")]
+		name = strings.ReplaceAll(name, " ", "")
+		Newfunction.name = name
+		// fmt.Println(name, "--name of function")
+		variables := nameSet[1][strings.Index(nameSet[1], "[")+1 : strings.Index(nameSet[1], "]")]
+		variablesSet := strings.Split(variables, ",")
+		// fmt.Println(variables, "-- variables of function", variablesSet)
+		Newfunction.argumentCount = len(variablesSet)
+		Newfunction.argumentDict = variablesSet
+		Newfunction.funcVariableDict = make(map[string]string)
+		if Newfunction.argumentCount > 0 {
+			Newfunction.argumentState = true
+		}
+		for v := range variablesSet {
+			// fmt.Println(variablesSet[v], "v-set----")
+			// Newfunction.argumentDict[variablesSet[v]] = variablesSet[v]
+			Newfunction.funcVariableDict[variablesSet[v]] = variablesSet[v]
+		}
+		// fmt.Println(Newfunction, "-- data code")
+		functionDict[Newfunction.name] = Newfunction
+		definitionName = Newfunction.name
+		Newfunction.content = make([]string, 0)
+
+	} else if definitionState == true {
+		// fmt.Println(tok, "--def state---")
+		if strings.Contains(tok, "def ") && strings.Contains(tok, "[end]") {
+			definitionState = false
+			contentDef := functionDict[definitionName]
+			contentDef.content = append(functionDict[definitionName].content, tok)
+			contentDef.contentLen = len(contentDef.content)
+			functionDict[definitionName] = contentDef
+
+		} else {
+			contentDef := functionDict[definitionName]
+			contentDef.content = append(functionDict[definitionName].content, tok)
+			functionDict[definitionName] = contentDef
+		}
+		// fmt.Println(functionDict[definitionName], "--------- FUNC CODE")
+
+	} else if strings.Contains(tok, "if") && strings.Contains(tok, "]") && strings.Contains(tok, "[") && conditionState == false {
+		conditionState = true
+		var ifElse ifelseCondition
+		ifElse.head = tok
+		conditionName = tok
+		ifElse.content = append(ifElse.content, tok)
+		ifElseDict[ifElse.head] = ifElse
+		// continue
+	} else if conditionState {
+		if strings.Contains(tok, "[end]") && strings.Contains(tok, "if") {
+			ifelseCopy := ifElseDict[conditionName]
+			ifelseCopy.content = append(ifElseDict[conditionName].content, tok)
+			ifElseDict[conditionName] = ifelseCopy
+			ifelse(ifElseDict[conditionName].content)
+			conditionState = false
+			// ifElseDict[conditionName].content = append(ifElseDict[conditionName].content, tok)
+		} else {
+			ifelseCopy := ifElseDict[conditionName]
+			ifelseCopy.content = append(ifElseDict[conditionName].content, tok)
+			ifElseDict[conditionName] = ifelseCopy
+
+		}
+		// continue
+	} else if strings.Contains(tok, "[") && strings.Contains(tok, "]") {
+		functionProtocol(tok, "isMain")
+
+	} else if strings.Contains(tok, "show") {
+		showTok := strings.SplitAfter(tok, "show")
+		if strings.Contains(showTok[0], "show") {
+			showReal(tok)
+		}
+	} else if strings.Contains(tok, "?") && strings.Contains(tok, "=") {
+		// Add check for question Mark that isn't in quotes
+		input := strings.Split(tok, "=")
+		// fmt.Println(input)
+		var variable string = ""
+
+		scanIn := bufio.NewScanner(os.Stdin)
+		scanIn.Scan()
+		variable = scanIn.Text()
+		vars := strings.ReplaceAll(input[0], " ", "")
+		// fmt.Println(variable)
+		variableDict[vars] = variable
+		// fmt.Println(variableDict)
+	} else if strings.Contains(tok, "=") {
+		varTok := strings.SplitAfter(tok, "=")
+		if strings.Contains(varTok[0], "=") {
+			insertVariable(tok)
+		}
+	}
+
 }
 
 // Main function
@@ -927,7 +1078,8 @@ func main() {
 	check(err)
 	definitionState := false
 	definitionName := ""
-	//conditionState := false
+	conditionState := false
+	conditionName := ""
 	defer file.Close()
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
@@ -949,7 +1101,7 @@ func main() {
 			}
 		}
 
-		if strings.Contains(tok, "def") && strings.Contains(tok, "[") && strings.Contains(tok, "[") && definitionState == false {
+		if strings.Contains(tok, "def ") && strings.Contains(tok, "[") && strings.Contains(tok, "[") && definitionState == false {
 			definitionState = true
 			var Newfunction function
 			nameSet := strings.SplitAfter(tok, "def ")
@@ -982,7 +1134,7 @@ func main() {
 
 		if definitionState == true {
 			// fmt.Println(tok, "--def state---")
-			if strings.Contains(tok, "def") && strings.Contains(tok, "[end]") {
+			if strings.Contains(tok, "def ") && strings.Contains(tok, "[end]") {
 				definitionState = false
 				contentDef := functionDict[definitionName]
 				contentDef.content = append(functionDict[definitionName].content, tok)
@@ -997,6 +1149,33 @@ func main() {
 			// fmt.Println(functionDict[definitionName], "--------- FUNC CODE")
 			continue
 
+		}
+
+		if strings.Contains(tok, "if") && strings.Contains(tok, "]") && strings.Contains(tok, "[") && conditionState == false {
+			conditionState = true
+			var ifElse ifelseCondition
+			ifElse.head = tok
+			conditionName = tok
+			ifElse.content = append(ifElse.content, tok)
+			ifElseDict[ifElse.head] = ifElse
+			continue
+		}
+
+		if conditionState {
+			if strings.Contains(tok, "[end]") && strings.Contains(tok, "if") {
+				ifelseCopy := ifElseDict[conditionName]
+				ifelseCopy.content = append(ifElseDict[conditionName].content, tok)
+				ifElseDict[conditionName] = ifelseCopy
+				ifelse(ifElseDict[conditionName].content)
+				conditionState = false
+				// ifElseDict[conditionName].content = append(ifElseDict[conditionName].content, tok)
+			} else {
+				ifelseCopy := ifElseDict[conditionName]
+				ifelseCopy.content = append(ifElseDict[conditionName].content, tok)
+				ifElseDict[conditionName] = ifelseCopy
+
+			}
+			continue
 		}
 
 		if strings.Contains(tok, "[") && strings.Contains(tok, "]") {
