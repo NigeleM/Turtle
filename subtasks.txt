@@ -1,3 +1,4 @@
 - add return function ability
 - add if else condition parser for variables and etc. 
-- add proper input prompt that provides prompt for user
+completed - add proper input prompt that provides prompt for user
+- add state for callCode and conditional statements or add to the parser

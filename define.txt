@@ -14,6 +14,8 @@ show "mama" .
 else ]
 show "hello Nigele" .
 if [end]
+b = ? "enter value for b : "
+show b . 
 def [end]
 
 def hello [a,b]
@@ -23,3 +25,5 @@ def [end]
 
 
 definition [10]
+b = ? "enter value for b : "
+show b .
