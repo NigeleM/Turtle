@@ -866,13 +866,29 @@ func functionProtocol(str string, state string) {
 
 		if strings.Contains(tok, "[") && strings.Contains(tok, "]") {
 			functionProtocol(tok, name)
-
 		}
 
 		if strings.Contains(tok, "show") {
 			showTok := strings.SplitAfter(tok, "show")
 			if strings.Contains(showTok[0], "show") {
 				showRealFunc(tok, name)
+			}
+		}
+
+		if strings.Contains(tok, "?") && strings.Contains(tok, "=") {
+			if strings.Index(tok, "?") < strings.Index(tok, "\"") {
+				input := strings.Split(tok, "=")
+				// fmt.Println(input)
+				var variable string = ""
+				fmt.Print(getPrompt(tok))
+				scanIn := bufio.NewScanner(os.Stdin)
+				scanIn.Scan()
+				variable = scanIn.Text()
+				vars := strings.ReplaceAll(input[0], " ", "")
+				// fmt.Println(variable)
+				Calledfunction.funcVariableDict[vars] = variable
+				//variableDict[vars] = variable
+				// fmt.Println(variableDict)
 			}
 		}
 
@@ -905,7 +921,7 @@ func ifelse(token []string) {
 	conditionExcuting := 0
 	for _, tok := range token {
 
-		if strings.Contains(tok, "if") && false == strings.Contains(tok, "else") && conditionMet == false &&
+		if strings.Contains(tok, "if") && !strings.Contains(tok, "else") && conditionMet == false &&
 			conditionState == false {
 			expression := tok[strings.Index(tok, "]")+1 : strings.LastIndex(tok, "[")]
 			// fmt.Println(expression)
@@ -1050,18 +1066,19 @@ func callCode(tok string) {
 			showReal(tok)
 		}
 	} else if strings.Contains(tok, "?") && strings.Contains(tok, "=") {
-		// Add check for question Mark that isn't in quotes
-		input := strings.Split(tok, "=")
-		// fmt.Println(input)
-		var variable string = ""
-
-		scanIn := bufio.NewScanner(os.Stdin)
-		scanIn.Scan()
-		variable = scanIn.Text()
-		vars := strings.ReplaceAll(input[0], " ", "")
-		// fmt.Println(variable)
-		variableDict[vars] = variable
-		// fmt.Println(variableDict)
+		if strings.Index(tok, "?") < strings.Index(tok, "\"") {
+			input := strings.Split(tok, "=")
+			// fmt.Println(input)
+			var variable string = ""
+			fmt.Print(getPrompt(tok))
+			scanIn := bufio.NewScanner(os.Stdin)
+			scanIn.Scan()
+			variable = scanIn.Text()
+			vars := strings.ReplaceAll(input[0], " ", "")
+			// fmt.Println(variable)
+			variableDict[vars] = variable
+			// fmt.Println(variableDict)
+		}
 	} else if strings.Contains(tok, "=") {
 		varTok := strings.SplitAfter(tok, "=")
 		if strings.Contains(varTok[0], "=") {
@@ -1069,6 +1086,24 @@ func callCode(tok string) {
 		}
 	}
 
+}
+
+// Get phrase from prompt
+
+func getPrompt(prompt string) string {
+	start := strings.Index(prompt, "\"")
+	end := strings.LastIndex(prompt, "\"")
+	phrase := ""
+	if start < 0 {
+
+	} else if start > 0 && end > 0 {
+		start += 1
+		for ; start < end; start++ {
+			phrase += string(prompt[start])
+		}
+	}
+
+	return phrase
 }
 
 // Main function
@@ -1088,20 +1123,14 @@ func main() {
 		// fmt.Println(tok)
 		if len(tok) == 0 {
 			continue
-		}
-
-		if strings.Contains(tok, "//") && strings.Contains(tok, "\"") && strings.Index(tok, "//") < strings.Index(tok, "\"") {
+		} else if strings.Contains(tok, "//") && strings.Contains(tok, "\"") && strings.Index(tok, "//") < strings.Index(tok, "\"") {
 			continue
-		}
-
-		if strings.Contains(tok, "//") {
+		} else if strings.Contains(tok, "//") {
 			comments := strings.SplitAfter(tok, "//")
 			if strings.Contains(comments[0], "//") {
 				continue
 			}
-		}
-
-		if strings.Contains(tok, "def ") && strings.Contains(tok, "[") && strings.Contains(tok, "[") && definitionState == false {
+		} else if strings.Contains(tok, "def ") && strings.Contains(tok, "[") && strings.Contains(tok, "[") && definitionState == false {
 			definitionState = true
 			var Newfunction function
 			nameSet := strings.SplitAfter(tok, "def ")
@@ -1130,9 +1159,7 @@ func main() {
 			Newfunction.content = make([]string, 0)
 			continue
 
-		}
-
-		if definitionState == true {
+		} else if definitionState == true {
 			// fmt.Println(tok, "--def state---")
 			if strings.Contains(tok, "def ") && strings.Contains(tok, "[end]") {
 				definitionState = false
@@ -1149,9 +1176,7 @@ func main() {
 			// fmt.Println(functionDict[definitionName], "--------- FUNC CODE")
 			continue
 
-		}
-
-		if strings.Contains(tok, "if") && strings.Contains(tok, "]") && strings.Contains(tok, "[") && conditionState == false {
+		} else if strings.Contains(tok, "if") && strings.Contains(tok, "]") && strings.Contains(tok, "[") && conditionState == false {
 			conditionState = true
 			var ifElse ifelseCondition
 			ifElse.head = tok
@@ -1159,9 +1184,7 @@ func main() {
 			ifElse.content = append(ifElse.content, tok)
 			ifElseDict[ifElse.head] = ifElse
 			continue
-		}
-
-		if conditionState {
+		} else if conditionState {
 			if strings.Contains(tok, "[end]") && strings.Contains(tok, "if") {
 				ifelseCopy := ifElseDict[conditionName]
 				ifelseCopy.content = append(ifElseDict[conditionName].content, tok)
@@ -1176,36 +1199,29 @@ func main() {
 
 			}
 			continue
-		}
-
-		if strings.Contains(tok, "[") && strings.Contains(tok, "]") {
+		} else if strings.Contains(tok, "[") && strings.Contains(tok, "]") {
 			functionProtocol(tok, "isMain")
 
-		}
-
-		if strings.Contains(tok, "show") {
+		} else if strings.Contains(tok, "show") {
 			showTok := strings.SplitAfter(tok, "show")
 			if strings.Contains(showTok[0], "show") {
 				showReal(tok)
 			}
-		}
-
-		// Add check for question Mark that isn't in quotes
-		if strings.Contains(tok, "?") && strings.Contains(tok, "=") {
-			input := strings.Split(tok, "=")
-			// fmt.Println(input)
-			var variable string = ""
-
-			scanIn := bufio.NewScanner(os.Stdin)
-			scanIn.Scan()
-			variable = scanIn.Text()
-			vars := strings.ReplaceAll(input[0], " ", "")
-			// fmt.Println(variable)
-			variableDict[vars] = variable
-			// fmt.Println(variableDict)
-		}
-
-		if strings.Contains(tok, "=") {
+		} else if strings.Contains(tok, "?") && strings.Contains(tok, "=") {
+			if strings.Index(tok, "?") < strings.Index(tok, "\"") {
+				input := strings.Split(tok, "=")
+				// fmt.Println(input)
+				var variable string = ""
+				fmt.Print(getPrompt(tok))
+				scanIn := bufio.NewScanner(os.Stdin)
+				scanIn.Scan()
+				variable = scanIn.Text()
+				vars := strings.ReplaceAll(input[0], " ", "")
+				// fmt.Println(variable)
+				variableDict[vars] = variable
+				// fmt.Println(variableDict)
+			}
+		} else if strings.Contains(tok, "=") {
 			varTok := strings.SplitAfter(tok, "=")
 			if strings.Contains(varTok[0], "=") {
 				insertVariable(tok)
