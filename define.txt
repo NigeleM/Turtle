@@ -1,29 +1,35 @@
 
-def good []
-show "It worked" .
-def [end]
+// def good []
+// show "It worked" .
+// def [end]
 
-def definition [a]
-show a .
-show a + 1 .
-if ] 11 > 11 && 10 > 6 [
-show "hello world" .
-else if ] 10 < 12 && 11 > 9 [
-show "hello 11" .
-show "mama" .
-else ]
-show "hello Nigele" .
-if [end]
-b = ? "enter value for b : "
-show b . 
-def [end]
+// def definition [a]
+// show a .
+// show a + 1 .
+// if ] 11 > 11 && 10 > 6 [
+// show "hello world" .
+// else if ] 10 < 12 && 11 > 9 [
+// show "hello 11" .
+// show "mama" .
+// else ]
+// show "hello Nigele" .
+// if [end]
+// b = ? "enter value for b : "
+// show b . 
+// def [end]
 
 def hello [a,b]
 show a .
 show b .
+c = multiply[10,50]
+show c .
 def [end]
 
+def multiply[a,b]
+c = a * b
+return c
+def [end]
 
-definition [10]
-b = ? "enter value for b : "
-show b .
+a = multiply[10,10]
+show a .
+hello [10,60]

@@ -2,3 +2,5 @@
 - add if else condition parser for variables and etc. 
 completed - add proper input prompt that provides prompt for user
 - add state for callCode and conditional statements or add to the parser
+- working to fix retun function in other functions outside of main 
+- fix insertVariableFunc , functionProtocol
