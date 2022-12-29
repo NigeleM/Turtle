@@ -134,6 +134,7 @@ func insertVariable(variableToken string) {
 
 // call when variable is assigned to a function
 func insertFunction(function string, state string) {
+	// fmt.Println(state, "state is")
 	if state == "isMain" {
 		funcVar := strings.SplitAfter(function, "=")
 		variableDict[getVariable(funcVar[0])] = funcVar[1]
@@ -141,6 +142,10 @@ func insertFunction(function string, state string) {
 	} else {
 		funcVar := strings.SplitAfter(function, "=")
 		functionDict[state].funcVariableDict[getVariable(funcVar[0])] = funcVar[1]
+		// fmt.Println(functionDict, "-- FUNCTION DICT \n\n")
+		// fmt.Println(function, "function ---------->\n\n", state)
+		// fmt.Println(funcVar[1], " ---------->\n\n", funcVar[0])
+		// fmt.Println(functionDict[state].funcVariableDict[getVariable(funcVar[0])])
 		functionProtocol(function, state)
 
 	}
@@ -841,20 +846,14 @@ func functionProtocol(str string, state string) {
 	for _, tok := range Calledfunction.content {
 		if len(tok) == 0 {
 			continue
-		}
-
-		if strings.Contains(tok, "//") && strings.Contains(tok, "\"") && strings.Index(tok, "//") < strings.Index(tok, "\"") {
+		} else if strings.Contains(tok, "//") && strings.Contains(tok, "\"") && strings.Index(tok, "//") < strings.Index(tok, "\"") {
 			continue
-		}
-
-		if strings.Contains(tok, "//") {
+		} else if strings.Contains(tok, "//") {
 			comments := strings.SplitAfter(tok, "//")
 			if strings.Contains(comments[0], "//") {
 				continue
 			}
-		}
-
-		if strings.Contains(tok, "return") {
+		} else if strings.Contains(tok, "return") {
 			returnCode := strings.Split(tok, "return ")
 			varState := false
 			// fmt.Println("RETURN : ", returnCode[1])
@@ -878,13 +877,19 @@ func functionProtocol(str string, state string) {
 				}
 
 			} else {
-				fmt.Println(functionDict)
-				for key, element := range functionDict[name].funcVariableDict {
-					fmt.Println("Key:", key, "=>", "Element:", element)
-					if strings.Contains(element, name) {
-						functionDict[name].funcVariableDict[key] = Calledfunction.funcVariableDict[getVariable(returnCode[1])]
+				// fmt.Println(state, Calledfunction.name)
+				// fmt.Println(functionDict, "Function Dictionary", "\n", "\n")
+				// fmt.Println(Calledfunction, "Called Function ", "\n", "\n")
+				for key, element := range functionDict[state].funcVariableDict {
+					// fmt.Println("Key:", key, "=>", "Element:", element)
+
+					if strings.Contains(element, Calledfunction.name) {
+						// fmt.Println("found element")
+						functionDict[state].funcVariableDict[key] = Calledfunction.funcVariableDict[getVariable(returnCode[1])]
 						varState = true
+						// fmt.Println(functionDict, "Function Dictionary", "\n", "\n")
 						break
+
 					}
 				}
 				if varState == false {
@@ -895,14 +900,10 @@ func functionProtocol(str string, state string) {
 
 			continue
 
-		}
-
-		if strings.Contains(tok, "def") && strings.Contains(tok, "[end]") {
+		} else if strings.Contains(tok, "def") && strings.Contains(tok, "[end]") {
 			continue
 
-		}
-
-		if strings.Contains(tok, "if") && strings.Contains(tok, "]") && strings.Contains(tok, "[") && conditionState == false {
+		} else if strings.Contains(tok, "if") && strings.Contains(tok, "]") && strings.Contains(tok, "[") && conditionState == false {
 			conditionState = true
 			var ifElse ifelseCondition
 			ifElse.head = tok
@@ -910,9 +911,7 @@ func functionProtocol(str string, state string) {
 			ifElse.content = append(ifElse.content, tok)
 			ifElseDict[ifElse.head] = ifElse
 			continue
-		}
-
-		if conditionState {
+		} else if conditionState {
 			if strings.Contains(tok, "[end]") && strings.Contains(tok, "if") {
 				ifelseCopy := ifElseDict[conditionName]
 				ifelseCopy.content = append(ifElseDict[conditionName].content, tok)
@@ -927,26 +926,18 @@ func functionProtocol(str string, state string) {
 
 			}
 			continue
-		}
+		} else if strings.Contains(tok, "[") && strings.Contains(tok, "]") && strings.Contains(tok, "=") && strings.Index(tok, "=") < strings.Index(tok, "[") {
+			// fmt.Println("here --->", name)
+			insertFunction(tok, Calledfunction.name)
 
-		if strings.Contains(tok, "[") && strings.Contains(tok, "]") && strings.Contains(tok, "=") && strings.Index(tok, "=") < strings.Index(tok, "[") {
-			fmt.Println("here --->", name)
-			insertFunction(tok, state)
-
-		}
-
-		if strings.Contains(tok, "[") && strings.Contains(tok, "]") {
+		} else if strings.Contains(tok, "[") && strings.Contains(tok, "]") {
 			functionProtocol(tok, name)
-		}
-
-		if strings.Contains(tok, "show") {
+		} else if strings.Contains(tok, "show") {
 			showTok := strings.SplitAfter(tok, "show")
 			if strings.Contains(showTok[0], "show") {
 				showRealFunc(tok, name)
 			}
-		}
-
-		if strings.Contains(tok, "?") && strings.Contains(tok, "=") {
+		} else if strings.Contains(tok, "?") && strings.Contains(tok, "=") {
 			if strings.Index(tok, "?") < strings.Index(tok, "\"") {
 				input := strings.Split(tok, "=")
 				// fmt.Println(input)
@@ -961,9 +952,7 @@ func functionProtocol(str string, state string) {
 				//variableDict[vars] = variable
 				// fmt.Println(variableDict)
 			}
-		}
-
-		if strings.Contains(tok, "=") {
+		} else if strings.Contains(tok, "=") {
 			varTok := strings.SplitAfter(tok, "=")
 			if strings.Contains(varTok[0], "=") {
 				insertVariableFunc(tok, name)

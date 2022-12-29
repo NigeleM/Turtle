@@ -1,7 +1,7 @@
 
-// def good []
-// show "It worked" .
-// def [end]
+  def good []
+show "It worked" .
+ def [end]
 
 // def definition [a]
 // show a .
@@ -33,3 +33,4 @@ def [end]
 a = multiply[10,10]
 show a .
 hello [10,60]
+ good []
