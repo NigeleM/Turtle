@@ -916,7 +916,7 @@ func functionProtocol(str string, state string) {
 				ifelseCopy := ifElseDict[conditionName]
 				ifelseCopy.content = append(ifElseDict[conditionName].content, tok)
 				ifElseDict[conditionName] = ifelseCopy
-				ifelse(ifElseDict[conditionName].content)
+				ifelse(ifElseDict[conditionName].content, Calledfunction.name)
 				conditionState = false
 				// ifElseDict[conditionName].content = append(ifElseDict[conditionName].content, tok)
 			} else {
@@ -974,16 +974,19 @@ type ifelseCondition struct {
 
 var ifElseDict = make(map[string]ifelseCondition)
 
-func ifelse(token []string) {
+func ifelse(token []string, state string) {
 	conditionState := false
 	conditionMet := false
 	conditionExcuted := false
 	conditionExcuting := 0
+
 	for _, tok := range token {
 
+		// ifelseParser(tok, "isMain")
 		if strings.Contains(tok, "if") && !strings.Contains(tok, "else") && conditionMet == false &&
 			conditionState == false {
-			expression := tok[strings.Index(tok, "]")+1 : strings.LastIndex(tok, "[")]
+			// fmt.Println(evalType(tok[strings.Index(tok, "]")+1:strings.LastIndex(tok, "[")]), tok[strings.Index(tok, "]")+1:strings.LastIndex(tok, "[")], "<--->", tok)
+			expression := ifelseParser(tok, state)
 			// fmt.Println(expression)
 			if "true" == eval(expression) {
 				// fmt.Println(eval(expression),"first if here----------->", )
@@ -995,7 +998,7 @@ func ifelse(token []string) {
 			}
 			continue
 		} else if strings.Contains(tok, "if") && strings.Contains(tok, "else") && conditionState == true && conditionMet == false {
-			expression := tok[strings.Index(tok, "]")+1 : strings.LastIndex(tok, "[")]
+			expression := ifelseParser(tok, state)
 			// fmt.Println(expression)
 			if "true" == eval(expression) {
 				// fmt.Println(eval(expression),"else if here----------->")
@@ -1029,13 +1032,42 @@ func ifelse(token []string) {
 		} else if conditionState == true && conditionMet == true && conditionExcuted == false {
 			conditionExcuting += 1
 			// fmt.Println(tok)
-			callCode(tok)
+			callCode(tok, state)
 		}
 	}
 }
 
+func ifelseParser(tok string, state string) string {
+
+	newExpression := ""
+	expression := tok[strings.Index(tok, "]")+1 : strings.LastIndex(tok, "[")]
+	for _, word := range expression {
+		// fmt.Println(string(word))
+		if string(word) == ">" || string(word) == "<" || string(word) == "=" || string(word) == "&" || string(word) == "|" || string(word) == "!" {
+			newExpression += string(word)
+			variable := getVariable(newExpression)
+			if state == "isMain" && variable != "" {
+				newExpression = strings.ReplaceAll(newExpression, variable, variableDict[variable])
+			} else if state != "isMain" && variable != "" {
+				newExpression = strings.ReplaceAll(newExpression, variable, functionDict[state].funcVariableDict[variable])
+			}
+		} else {
+			newExpression += string(word)
+		}
+	}
+	variable := getVariable(newExpression)
+	if state == "isMain" && variable != "" {
+		newExpression = strings.ReplaceAll(newExpression, variable, variableDict[variable])
+	} else if state != "isMain" && variable != "" {
+		newExpression = strings.ReplaceAll(newExpression, variable, functionDict[state].funcVariableDict[variable])
+	}
+	// def definition [a]
+
+	return newExpression
+}
+
 // independent code execution without use of main or function dependency
-func callCode(tok string) {
+func callCode(tok string, state string) {
 	definitionState := false
 	definitionName := ""
 	//conditionState := false
@@ -1107,7 +1139,7 @@ func callCode(tok string) {
 			ifelseCopy := ifElseDict[conditionName]
 			ifelseCopy.content = append(ifElseDict[conditionName].content, tok)
 			ifElseDict[conditionName] = ifelseCopy
-			ifelse(ifElseDict[conditionName].content)
+			ifelse(ifElseDict[conditionName].content, state)
 			conditionState = false
 			// ifElseDict[conditionName].content = append(ifElseDict[conditionName].content, tok)
 		} else {
@@ -1117,8 +1149,11 @@ func callCode(tok string) {
 
 		}
 		// continue
+	} else if strings.Contains(tok, "[") && strings.Contains(tok, "]") && strings.Contains(tok, "=") && strings.Index(tok, "=") < strings.Index(tok, "[") {
+		// fmt.Println("here --->")
+		insertFunction(tok, state)
 	} else if strings.Contains(tok, "[") && strings.Contains(tok, "]") {
-		functionProtocol(tok, "isMain")
+		functionProtocol(tok, state)
 
 	} else if strings.Contains(tok, "show") {
 		showTok := strings.SplitAfter(tok, "show")
@@ -1249,7 +1284,7 @@ func main() {
 				ifelseCopy := ifElseDict[conditionName]
 				ifelseCopy.content = append(ifElseDict[conditionName].content, tok)
 				ifElseDict[conditionName] = ifelseCopy
-				ifelse(ifElseDict[conditionName].content)
+				ifelse(ifElseDict[conditionName].content, "isMain")
 				conditionState = false
 				// ifElseDict[conditionName].content = append(ifElseDict[conditionName].content, tok)
 			} else {
