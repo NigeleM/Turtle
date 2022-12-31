@@ -1183,8 +1183,7 @@ func callCode(tok string, state string) {
 
 }
 
-// Get phrase from prompt
-
+// Get phrase from prompt for input for variables
 func getPrompt(prompt string) string {
 	start := strings.Index(prompt, "\"")
 	end := strings.LastIndex(prompt, "\"")
@@ -1201,6 +1200,40 @@ func getPrompt(prompt string) string {
 	return phrase
 }
 
+// ------------------------------------------------------------
+// loop logic
+// ------------------------------------------------------------
+// [loop][7]
+// [loop][counter = 0; counter < a; counter++]
+// [loop][counter < 5]
+type loop struct {
+	counter     int
+	content     []string
+	nestedState bool
+	nested      map[string][]string
+	name        string
+}
+
+var loopDict = make(map[string]loop)
+
+func loopStructure(loop []string, state string) {
+	// add logic to parse out the conditions of the loop
+	// fix the outer loop logic
+	for i := 0; i <= 4; i++ {
+		// perfect logic below
+		for _, tok := range loop {
+			if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+				continue
+			} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
+				continue
+			} else {
+				// fmt.Println(tok)
+				callCode(tok, state)
+			}
+		}
+	}
+}
+
 // Main function
 func main() {
 
@@ -1210,6 +1243,9 @@ func main() {
 	definitionName := ""
 	conditionState := false
 	conditionName := ""
+	loopState := false
+	loopName := ""
+
 	defer file.Close()
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
@@ -1294,6 +1330,23 @@ func main() {
 
 			}
 			continue
+		} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+			// fmt.Println("here")
+			loopState = true
+			loopName = tok
+			var Newloop loop
+			Newloop.name = loopName
+			Newloop.content = append(Newloop.content, tok)
+			loopDict[loopName] = Newloop
+		} else if loopState == true {
+			Newloop := loopDict[loopName]
+			Newloop.content = append(Newloop.content, tok)
+			loopDict[loopName] = Newloop
+			if strings.Contains(tok, "[loop]") && strings.Contains(tok, "[end]") {
+				loopState = false
+				loopStructure(loopDict[loopName].content, "isMain")
+			}
+
 		} else if strings.Contains(tok, "[") && strings.Contains(tok, "]") && strings.Contains(tok, "=") && strings.Index(tok, "=") < strings.Index(tok, "[") {
 			// fmt.Println("here --->")
 			insertFunction(tok, "isMain")
