@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"go/types"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -1073,6 +1074,8 @@ func callCode(tok string, state string) {
 	//conditionState := false
 	conditionState := false
 	conditionName := ""
+	loopState := false
+	loopName := ""
 	if len(tok) == 0 {
 
 	} else if strings.Contains(tok, "//") && strings.Contains(tok, "\"") && strings.Index(tok, "//") < strings.Index(tok, "\"") {
@@ -1149,6 +1152,23 @@ func callCode(tok string, state string) {
 
 		}
 		// continue
+	} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+		// fmt.Println("here")
+		loopState = true
+		loopName = tok
+		var Newloop loop
+		Newloop.name = loopName
+		Newloop.content = append(Newloop.content, tok)
+		loopDict[loopName] = Newloop
+	} else if loopState == true {
+		Newloop := loopDict[loopName]
+		Newloop.content = append(Newloop.content, tok)
+		loopDict[loopName] = Newloop
+		if strings.Contains(tok, "[loop]") && strings.Contains(tok, "[end]") {
+			loopState = false
+			loopStructure(loopDict[loopName].content, state)
+		}
+
 	} else if strings.Contains(tok, "[") && strings.Contains(tok, "]") && strings.Contains(tok, "=") && strings.Index(tok, "=") < strings.Index(tok, "[") {
 		// fmt.Println("here --->")
 		insertFunction(tok, state)
@@ -1219,18 +1239,292 @@ var loopDict = make(map[string]loop)
 func loopStructure(loop []string, state string) {
 	// add logic to parse out the conditions of the loop
 	// fix the outer loop logic
-	for i := 0; i <= 4; i++ {
-		// perfect logic below
-		for _, tok := range loop {
-			if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
-				continue
-			} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
-				continue
-			} else {
-				// fmt.Println(tok)
-				callCode(tok, state)
+	// if state == "isMain" {
+	// 	state = loop[0]
+	// }
+	loopConstruct := loop[0]
+	loopConstruct = strings.ReplaceAll(loopConstruct, "[loop]", "")
+	loopConstruct = strings.ReplaceAll(loopConstruct, "[", "")
+	loopConstruct = strings.ReplaceAll(loopConstruct, "]", "")
+	count := 0
+	expressionV := 0
+	incrementer := ""
+	operator := ""
+
+	if strings.Contains(loopConstruct, ";") {
+		loopParsed := strings.Split(loopConstruct, ";")
+		for _, looptoken := range loopParsed {
+			if strings.Contains(looptoken, ":=") {
+				value := strings.Split(looptoken, ":=")
+				counter, _ := strconv.Atoi(value[1])
+				count = counter
+
+			} else if strings.Contains(looptoken, "<") && !strings.Contains(looptoken, "=") {
+				operator = "<"
+				value := strings.Split(looptoken, operator)
+				expressionValue, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
+				expressionV = expressionValue
+			} else if strings.Contains(looptoken, "<") && strings.Contains(looptoken, "=") {
+				operator = "<="
+				value := strings.Split(looptoken, operator)
+				expressionValue, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
+				expressionV = expressionValue
+			} else if strings.Contains(looptoken, ">") && !strings.Contains(looptoken, "=") {
+				operator = ">"
+				value := strings.Split(looptoken, operator)
+				expressionValue, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
+				expressionV = expressionValue
+			} else if strings.Contains(looptoken, ">") && strings.Contains(looptoken, "=") {
+				operator = ">="
+				value := strings.Split(looptoken, operator)
+				expressionValue, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
+				expressionV = expressionValue
+			} else if strings.Contains(looptoken, "!") && strings.Contains(looptoken, "=") {
+				operator = "!="
+				value := strings.Split(looptoken, operator)
+				expressionValue, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
+				expressionV = expressionValue
+			} else if strings.Contains(looptoken, "++") {
+				incrementer = "++"
+			} else if strings.Contains(looptoken, "--") {
+				incrementer = "--"
+			}
+
+		}
+
+	} else {
+
+	}
+	// fmt.Println("i :=", count, "i", operator, expressionV, "; i", incrementer)
+	if operator == "<" && incrementer == "++" {
+		for i := count; i < expressionV; i++ {
+			// perfect logic below
+			for _, tok := range loop {
+				if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+					continue
+				} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
+					continue
+				} else if strings.Contains(tok, "break") {
+					// add further logic for making sure break is not in a string
+					break
+
+				} else if strings.Contains(tok, "continue") {
+					// add further logic for making sure continue is not in a string
+					continue
+
+				} else {
+					// fmt.Println(tok)
+					callCode(tok, state)
+				}
 			}
 		}
+	} else if operator == "<=" && incrementer == "++" {
+		for i := count; i <= expressionV; i++ {
+			// perfect logic below
+			for _, tok := range loop {
+				if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+					continue
+				} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
+					continue
+				} else if strings.Contains(tok, "break") {
+					// add further logic for making sure break is not in a string
+					break
+
+				} else if strings.Contains(tok, "continue") {
+					// add further logic for making sure continue is not in a string
+					continue
+
+				} else {
+					// fmt.Println(tok)
+					callCode(tok, state)
+				}
+			}
+		}
+
+	} else if operator == "<=" && incrementer == "--" {
+		for i := count; i <= expressionV; i-- {
+			// perfect logic below
+			for _, tok := range loop {
+				if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+					continue
+				} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
+					continue
+				} else if strings.Contains(tok, "break") {
+					// add further logic for making sure break is not in a string
+					break
+
+				} else if strings.Contains(tok, "continue") {
+					// add further logic for making sure continue is not in a string
+					continue
+
+				} else {
+					// fmt.Println(tok)
+					callCode(tok, state)
+				}
+			}
+		}
+
+	} else if operator == "<" && incrementer == "--" {
+		for i := count; i < expressionV; i-- {
+			// perfect logic below
+			for _, tok := range loop {
+				if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+					continue
+				} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
+					continue
+				} else if strings.Contains(tok, "break") {
+					// add further logic for making sure break is not in a string
+					break
+
+				} else if strings.Contains(tok, "continue") {
+					// add further logic for making sure continue is not in a string
+					continue
+
+				} else {
+					// fmt.Println(tok)
+					callCode(tok, state)
+				}
+			}
+		}
+
+	} else if operator == ">" && incrementer == "++" {
+		for i := count; i < expressionV; i++ {
+			// perfect logic below
+			for _, tok := range loop {
+				if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+					continue
+				} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
+					continue
+				} else if strings.Contains(tok, "break") {
+					// add further logic for making sure break is not in a string
+					break
+
+				} else if strings.Contains(tok, "continue") {
+					// add further logic for making sure continue is not in a string
+					continue
+
+				} else {
+					// fmt.Println(tok)
+					callCode(tok, state)
+				}
+			}
+		}
+	} else if operator == ">=" && incrementer == "++" {
+		for i := count; i >= expressionV; i++ {
+			// perfect logic below
+			for _, tok := range loop {
+				if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+					continue
+				} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
+					continue
+				} else if strings.Contains(tok, "break") {
+					// add further logic for making sure break is not in a string
+					break
+
+				} else if strings.Contains(tok, "continue") {
+					// add further logic for making sure continue is not in a string
+					continue
+
+				} else {
+					// fmt.Println(tok)
+					callCode(tok, state)
+				}
+			}
+		}
+
+	} else if operator == ">=" && incrementer == "--" {
+		for i := count; i >= expressionV; i-- {
+			// perfect logic below
+			for _, tok := range loop {
+				if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+					continue
+				} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
+					continue
+				} else if strings.Contains(tok, "break") {
+					// add further logic for making sure break is not in a string
+					break
+
+				} else if strings.Contains(tok, "continue") {
+					// add further logic for making sure continue is not in a string
+					continue
+
+				} else {
+					// fmt.Println(tok)
+					callCode(tok, state)
+				}
+			}
+		}
+
+	} else if operator == ">" && incrementer == "--" {
+		for i := count; i > expressionV; i-- {
+			// perfect logic below
+			for _, tok := range loop {
+				if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+					continue
+				} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
+					continue
+				} else if strings.Contains(tok, "break") {
+					// add further logic for making sure break is not in a string
+					break
+
+				} else if strings.Contains(tok, "continue") {
+					// add further logic for making sure continue is not in a string
+					continue
+
+				} else {
+					// fmt.Println(tok)
+					callCode(tok, state)
+				}
+			}
+		}
+
+	} else if operator == "!=" && incrementer == "--" {
+		for i := count; i != expressionV; i-- {
+			// perfect logic below
+			for _, tok := range loop {
+				if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+					continue
+				} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
+					continue
+				} else if strings.Contains(tok, "break") {
+					// add further logic for making sure break is not in a string
+					break
+
+				} else if strings.Contains(tok, "continue") {
+					// add further logic for making sure continue is not in a string
+					continue
+
+				} else {
+					// fmt.Println(tok)
+					callCode(tok, state)
+				}
+			}
+		}
+
+	} else if operator == "!=" && incrementer == "++" {
+		for i := count; i != expressionV; i-- {
+			// perfect logic below
+			for _, tok := range loop {
+				if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+					state = loop[0]
+					callCode(tok, state)
+				} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
+					continue
+				} else if strings.Contains(tok, "break") {
+					// add further logic for making sure break is not in a string
+					break
+
+				} else if strings.Contains(tok, "continue") {
+					// add further logic for making sure continue is not in a string
+					continue
+
+				} else {
+					// fmt.Println(tok)
+					callCode(tok, state)
+				}
+			}
+		}
+
 	}
 }
 
