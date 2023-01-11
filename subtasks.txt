@@ -1,7 +1,7 @@
-completed - add return function ability
-completed - add if else condition parser for variables and etc. 
-completed - add proper input prompt that provides prompt for user
-completed - add state for callCode and conditional statements or add to the parser
-Completed - working to fix retun function in other functions outside of main 
-Completed - fix insertVariableFunc , functionProtocol
 - incorporate functions into show
+- nested logic for if else statements
+- parser for loops 
+- implementation of loop variables
+- context variable management for loops and if else statement
+- check for errors all through code
+- 
