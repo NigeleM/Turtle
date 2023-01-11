@@ -4,4 +4,4 @@
 - implementation of loop variables
 - context variable management for loops and if else statement
 - check for errors all through code
-- 
+- while loop structure add
