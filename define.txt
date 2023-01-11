@@ -31,9 +31,9 @@ c = a * b
 return c
 def [end]
 
-// a = multiply[10,10]
-// show a .
+ a = multiply[10,10]
+ show a .
 // hello [10,60]
-  good []
+//  good []
 
 //definition[12,9]
