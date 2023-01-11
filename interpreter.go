@@ -1242,6 +1242,7 @@ func loopStructure(loop []string, state string) {
 	// if state == "isMain" {
 	// 	state = loop[0]
 	// }
+	// fmt.Println(loop)
 	loopConstruct := loop[0]
 	loopConstruct = strings.ReplaceAll(loopConstruct, "[loop]", "")
 	loopConstruct = strings.ReplaceAll(loopConstruct, "[", "")
@@ -1254,8 +1255,8 @@ func loopStructure(loop []string, state string) {
 	if strings.Contains(loopConstruct, ";") {
 		loopParsed := strings.Split(loopConstruct, ";")
 		for _, looptoken := range loopParsed {
-			if strings.Contains(looptoken, ":=") {
-				value := strings.Split(looptoken, ":=")
+			if strings.Contains(looptoken, "=") && !strings.Contains(looptoken, "<") && !strings.Contains(looptoken, ">") && !strings.Contains(looptoken, "!") {
+				value := strings.Split(looptoken, "=")
 				counter, _ := strconv.Atoi(value[1])
 				count = counter
 
@@ -1321,11 +1322,26 @@ func loopStructure(loop []string, state string) {
 	} else if operator == "<=" && incrementer == "++" {
 		for i := count; i <= expressionV; i++ {
 			// perfect logic below
+			nested := false
+			loopheaderCount := 0
+			nestedLoop := make([]string, 0)
 			for _, tok := range loop {
 				if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+					loopheaderCount += 1
+					if loopheaderCount > 1 {
+						nested = true
+						nestedLoop = append(nestedLoop, tok)
+					}
 					continue
 				} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
-					continue
+					if nested {
+						nestedLoop = append(nestedLoop, tok)
+						loopStructure(nestedLoop, state)
+
+					} else {
+						continue
+					}
+
 				} else if strings.Contains(tok, "break") {
 					// add further logic for making sure break is not in a string
 					break
@@ -1336,7 +1352,11 @@ func loopStructure(loop []string, state string) {
 
 				} else {
 					// fmt.Println(tok)
-					callCode(tok, state)
+					if nested {
+						nestedLoop = append(nestedLoop, tok)
+					} else {
+						callCode(tok, state)
+					}
 				}
 			}
 		}
@@ -1344,11 +1364,26 @@ func loopStructure(loop []string, state string) {
 	} else if operator == "<=" && incrementer == "--" {
 		for i := count; i <= expressionV; i-- {
 			// perfect logic below
+			nested := false
+			loopheaderCount := 0
+			nestedLoop := make([]string, 0)
 			for _, tok := range loop {
 				if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+					loopheaderCount += 1
+					if loopheaderCount > 1 {
+						nested = true
+						nestedLoop = append(nestedLoop, tok)
+					}
 					continue
 				} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
-					continue
+					if nested {
+						nestedLoop = append(nestedLoop, tok)
+						loopStructure(nestedLoop, state)
+
+					} else {
+						continue
+					}
+
 				} else if strings.Contains(tok, "break") {
 					// add further logic for making sure break is not in a string
 					break
@@ -1359,7 +1394,11 @@ func loopStructure(loop []string, state string) {
 
 				} else {
 					// fmt.Println(tok)
-					callCode(tok, state)
+					if nested {
+						nestedLoop = append(nestedLoop, tok)
+					} else {
+						callCode(tok, state)
+					}
 				}
 			}
 		}
@@ -1367,11 +1406,26 @@ func loopStructure(loop []string, state string) {
 	} else if operator == "<" && incrementer == "--" {
 		for i := count; i < expressionV; i-- {
 			// perfect logic below
+			nested := false
+			loopheaderCount := 0
+			nestedLoop := make([]string, 0)
 			for _, tok := range loop {
 				if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+					loopheaderCount += 1
+					if loopheaderCount > 1 {
+						nested = true
+						nestedLoop = append(nestedLoop, tok)
+					}
 					continue
 				} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
-					continue
+					if nested {
+						nestedLoop = append(nestedLoop, tok)
+						loopStructure(nestedLoop, state)
+
+					} else {
+						continue
+					}
+
 				} else if strings.Contains(tok, "break") {
 					// add further logic for making sure break is not in a string
 					break
@@ -1382,7 +1436,11 @@ func loopStructure(loop []string, state string) {
 
 				} else {
 					// fmt.Println(tok)
-					callCode(tok, state)
+					if nested {
+						nestedLoop = append(nestedLoop, tok)
+					} else {
+						callCode(tok, state)
+					}
 				}
 			}
 		}
@@ -1390,11 +1448,26 @@ func loopStructure(loop []string, state string) {
 	} else if operator == ">" && incrementer == "++" {
 		for i := count; i < expressionV; i++ {
 			// perfect logic below
+			nested := false
+			loopheaderCount := 0
+			nestedLoop := make([]string, 0)
 			for _, tok := range loop {
 				if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+					loopheaderCount += 1
+					if loopheaderCount > 1 {
+						nested = true
+						nestedLoop = append(nestedLoop, tok)
+					}
 					continue
 				} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
-					continue
+					if nested {
+						nestedLoop = append(nestedLoop, tok)
+						loopStructure(nestedLoop, state)
+
+					} else {
+						continue
+					}
+
 				} else if strings.Contains(tok, "break") {
 					// add further logic for making sure break is not in a string
 					break
@@ -1405,18 +1478,37 @@ func loopStructure(loop []string, state string) {
 
 				} else {
 					// fmt.Println(tok)
-					callCode(tok, state)
+					if nested {
+						nestedLoop = append(nestedLoop, tok)
+					} else {
+						callCode(tok, state)
+					}
 				}
 			}
 		}
 	} else if operator == ">=" && incrementer == "++" {
 		for i := count; i >= expressionV; i++ {
 			// perfect logic below
+			nested := false
+			loopheaderCount := 0
+			nestedLoop := make([]string, 0)
 			for _, tok := range loop {
 				if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+					loopheaderCount += 1
+					if loopheaderCount > 1 {
+						nested = true
+						nestedLoop = append(nestedLoop, tok)
+					}
 					continue
 				} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
-					continue
+					if nested {
+						nestedLoop = append(nestedLoop, tok)
+						loopStructure(nestedLoop, state)
+
+					} else {
+						continue
+					}
+
 				} else if strings.Contains(tok, "break") {
 					// add further logic for making sure break is not in a string
 					break
@@ -1427,7 +1519,11 @@ func loopStructure(loop []string, state string) {
 
 				} else {
 					// fmt.Println(tok)
-					callCode(tok, state)
+					if nested {
+						nestedLoop = append(nestedLoop, tok)
+					} else {
+						callCode(tok, state)
+					}
 				}
 			}
 		}
@@ -1435,11 +1531,26 @@ func loopStructure(loop []string, state string) {
 	} else if operator == ">=" && incrementer == "--" {
 		for i := count; i >= expressionV; i-- {
 			// perfect logic below
+			nested := false
+			loopheaderCount := 0
+			nestedLoop := make([]string, 0)
 			for _, tok := range loop {
 				if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+					loopheaderCount += 1
+					if loopheaderCount > 1 {
+						nested = true
+						nestedLoop = append(nestedLoop, tok)
+					}
 					continue
 				} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
-					continue
+					if nested {
+						nestedLoop = append(nestedLoop, tok)
+						loopStructure(nestedLoop, state)
+
+					} else {
+						continue
+					}
+
 				} else if strings.Contains(tok, "break") {
 					// add further logic for making sure break is not in a string
 					break
@@ -1450,7 +1561,11 @@ func loopStructure(loop []string, state string) {
 
 				} else {
 					// fmt.Println(tok)
-					callCode(tok, state)
+					if nested {
+						nestedLoop = append(nestedLoop, tok)
+					} else {
+						callCode(tok, state)
+					}
 				}
 			}
 		}
@@ -1458,11 +1573,26 @@ func loopStructure(loop []string, state string) {
 	} else if operator == ">" && incrementer == "--" {
 		for i := count; i > expressionV; i-- {
 			// perfect logic below
+			nested := false
+			loopheaderCount := 0
+			nestedLoop := make([]string, 0)
 			for _, tok := range loop {
 				if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+					loopheaderCount += 1
+					if loopheaderCount > 1 {
+						nested = true
+						nestedLoop = append(nestedLoop, tok)
+					}
 					continue
 				} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
-					continue
+					if nested {
+						nestedLoop = append(nestedLoop, tok)
+						loopStructure(nestedLoop, state)
+
+					} else {
+						continue
+					}
+
 				} else if strings.Contains(tok, "break") {
 					// add further logic for making sure break is not in a string
 					break
@@ -1473,7 +1603,11 @@ func loopStructure(loop []string, state string) {
 
 				} else {
 					// fmt.Println(tok)
-					callCode(tok, state)
+					if nested {
+						nestedLoop = append(nestedLoop, tok)
+					} else {
+						callCode(tok, state)
+					}
 				}
 			}
 		}
@@ -1481,11 +1615,26 @@ func loopStructure(loop []string, state string) {
 	} else if operator == "!=" && incrementer == "--" {
 		for i := count; i != expressionV; i-- {
 			// perfect logic below
+			nested := false
+			loopheaderCount := 0
+			nestedLoop := make([]string, 0)
 			for _, tok := range loop {
 				if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+					loopheaderCount += 1
+					if loopheaderCount > 1 {
+						nested = true
+						nestedLoop = append(nestedLoop, tok)
+					}
 					continue
 				} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
-					continue
+					if nested {
+						nestedLoop = append(nestedLoop, tok)
+						loopStructure(nestedLoop, state)
+
+					} else {
+						continue
+					}
+
 				} else if strings.Contains(tok, "break") {
 					// add further logic for making sure break is not in a string
 					break
@@ -1496,7 +1645,11 @@ func loopStructure(loop []string, state string) {
 
 				} else {
 					// fmt.Println(tok)
-					callCode(tok, state)
+					if nested {
+						nestedLoop = append(nestedLoop, tok)
+					} else {
+						callCode(tok, state)
+					}
 				}
 			}
 		}
@@ -1504,12 +1657,26 @@ func loopStructure(loop []string, state string) {
 	} else if operator == "!=" && incrementer == "++" {
 		for i := count; i != expressionV; i-- {
 			// perfect logic below
+			nested := false
+			loopheaderCount := 0
+			nestedLoop := make([]string, 0)
 			for _, tok := range loop {
 				if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
-					state = loop[0]
-					callCode(tok, state)
-				} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
+					loopheaderCount += 1
+					if loopheaderCount > 1 {
+						nested = true
+						nestedLoop = append(nestedLoop, tok)
+					}
 					continue
+				} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
+					if nested {
+						nestedLoop = append(nestedLoop, tok)
+						loopStructure(nestedLoop, state)
+
+					} else {
+						continue
+					}
+
 				} else if strings.Contains(tok, "break") {
 					// add further logic for making sure break is not in a string
 					break
@@ -1520,7 +1687,11 @@ func loopStructure(loop []string, state string) {
 
 				} else {
 					// fmt.Println(tok)
-					callCode(tok, state)
+					if nested {
+						nestedLoop = append(nestedLoop, tok)
+					} else {
+						callCode(tok, state)
+					}
 				}
 			}
 		}
@@ -1624,7 +1795,7 @@ func main() {
 
 			}
 			continue
-		} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+		} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") && loopState == false {
 			// fmt.Println("here")
 			loopState = true
 			loopName = tok
