@@ -7,3 +7,11 @@ show "mama" .
 else ]
 show "hello Nigele" .
 if [end]
+
+if ] 100 > 99 [
+[loop][i := 0; i <= 4; i++]
+show "money" .
+[loop][end]
+else ]
+show "life." .
+if [end]
