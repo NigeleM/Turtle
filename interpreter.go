@@ -978,65 +978,218 @@ var ifElseDict = make(map[string]ifelseCondition)
 func ifelse(token []string, state string) {
 	conditionState := false
 	conditionMet := false
-	conditionExcuted := false
-	conditionExcuting := 0
-
+	currentCondition := false
+	nested := false
+	nestedState := false
+	outerCondition := false
+	//outerState := ""
+	// nestedSet := make([]string, 0)
 	for _, tok := range token {
+		// fmt.Println(currentCondition, tok, "------------------------------------->", nested)
+		if strings.Contains(tok, "if") && strings.Contains(tok, "]") && !strings.Contains(tok, "else") && !strings.Contains(tok, "[end]") {
+			// if only check to see if nested
+			if strings.Index(tok, "[") > strings.Index(tok, "if") {
+				// if not nested check expression
+				expression := ifelseParser(tok, state)
+				if "true" == eval(expression) {
+					// if expression is true set true
+					conditionMet = true
+					conditionState = true
+					currentCondition = true
+					// set outer condition true if nested
+					//outerState = "IF"
+					outerCondition = true
+				} else {
+					// set all false
+					conditionMet = false
+					conditionState = false
+					currentCondition = false
+					//outerState = "IF"
+					outerCondition = false
+				}
+			} else {
+				// first if of a nested statement
+				if nested == false && currentCondition == true && outerCondition == true {
+					tok = strings.Replace(tok, "[", "", 1)
 
-		// ifelseParser(tok, "isMain")
-		if strings.Contains(tok, "if") && !strings.Contains(tok, "else") && conditionMet == false &&
-			conditionState == false {
-			// fmt.Println(evalType(tok[strings.Index(tok, "]")+1:strings.LastIndex(tok, "[")]), tok[strings.Index(tok, "]")+1:strings.LastIndex(tok, "[")], "<--->", tok)
-			expression := ifelseParser(tok, state)
-			// fmt.Println(expression)
-			if "true" == eval(expression) {
-				// fmt.Println(eval(expression),"first if here----------->", )
-				conditionState = true
-				conditionMet = true
-			} else {
-				conditionState = true
-				conditionMet = false
+					expression := ifelseParser(tok, state)
+					if "true" == eval(expression) {
+						conditionMet = true
+						conditionState = true
+						currentCondition = true
+						nestedState = true
+						nested = true
+						//outerState = "IF"
+						outerCondition = true
+					} else {
+						//outerState = "IF"
+						outerCondition = true
+						conditionMet = false
+						conditionState = false
+						currentCondition = false
+						nested = true
+						nestedState = false
+					}
+				} else {
+					//
+					nested = true
+					nestedState = false
+					conditionMet = false
+					conditionState = false
+					currentCondition = false
+					outerCondition = false
+				}
 			}
-			continue
-		} else if strings.Contains(tok, "if") && strings.Contains(tok, "else") && conditionState == true && conditionMet == false {
-			expression := ifelseParser(tok, state)
-			// fmt.Println(expression)
-			if "true" == eval(expression) {
-				// fmt.Println(eval(expression),"else if here----------->")
-				conditionState = true
-				conditionMet = true
-			} else {
-				conditionState = true
-				conditionMet = false
+		} else if strings.Contains(tok, "if") && strings.Contains(tok, "else") && strings.Contains(tok, "]") {
+			// else if check
+			if strings.Index(tok, "[") > strings.Index(tok, "else if") && currentCondition == false {
+				// ELSE IF THAT is not nested
+				//outerState = "ELSE IF"
+				nested = false
+				nestedState = false
+				expression := ifelseParser(tok, state)
+				// check ELSE IF
+				if "true" == eval(expression) {
+					conditionMet = true
+					conditionState = true
+					outerCondition = true
+					// nested = false
+					currentCondition = true
+				} else {
+					conditionMet = false
+					conditionState = false
+					outerCondition = false
+					currentCondition = false
+				}
+
+			} else if strings.Index(tok, "[") > strings.Index(tok, "else if") && currentCondition == true {
+				break
+			} else if strings.Index(tok, "[") < strings.Index(tok, "else if") && currentCondition == true {
+				break
+			} else if strings.Index(tok, "[") < strings.Index(tok, "else if") && currentCondition == false && nestedState == false && nested == true {
+				if outerCondition == false {
+					continue
+				} else {
+					tok = strings.Replace(tok, "[", "", 1)
+					expression := ifelseParser(tok, state)
+					if "true" == eval(expression) {
+						conditionMet = true
+						conditionState = true
+						currentCondition = true
+						nestedState = true
+					} else {
+						conditionMet = false
+						conditionState = false
+						currentCondition = false
+						nestedState = false
+					}
+
+				}
 			}
-			continue
+
+		} else if strings.Contains(tok, "]") && strings.Contains(tok, "else") && !strings.Contains(tok, "if") {
+			if strings.Index(tok, "[") > strings.Index(tok, "else") && currentCondition == false {
+				conditionMet = true
+				conditionState = true
+				nested = false
+				nestedState = false
+			} else if strings.Index(tok, "[") > strings.Index(tok, "else") && currentCondition == true {
+				break
+			} else if strings.Index(tok, "[") < strings.Index(tok, "else") && currentCondition == true && outerCondition == true {
+				break
+			} else if strings.Index(tok, "[") < strings.Index(tok, "else") && currentCondition == false && nested == true && nestedState == false {
+				if outerCondition == false {
+					nested = false
+					continue
+				} else {
+					conditionMet = true
+					conditionState = true
+					currentCondition = true
+					nestedState = false
+				}
+
+			} else {
+				conditionMet = true
+				conditionState = true
+			}
+
 		} else if strings.Contains(tok, "if [end]") {
-			conditionState = false
-			conditionMet = false
-			conditionExcuted = false
-
-		} else if conditionState == true && conditionMet == true && conditionExcuted == false && conditionExcuting > 0 &&
-			false == strings.Contains(tok, "if") && strings.Contains(tok, "else") {
-			conditionState = true
-			conditionMet = false
-
-		} else if conditionState == true && conditionMet == true && conditionExcuted == false && conditionExcuting > 0 &&
-			strings.Contains(tok, "if") && strings.Contains(tok, "else") {
-			conditionState = true
-			conditionMet = false
-
-		} else if conditionState == true && conditionMet == false && conditionExcuted == false && conditionExcuting == 0 &&
-			false == strings.Contains(tok, "if") && strings.Contains(tok, "else") {
 			conditionState = true
 			conditionMet = true
-
-		} else if conditionState == true && conditionMet == true && conditionExcuted == false {
-			conditionExcuting += 1
-			// fmt.Println(tok)
+		} else if conditionState == true && conditionMet == true {
 			callCode(tok, state)
+
 		}
 	}
 }
+
+// func ifelseTest(token []string, state string) {
+// 	conditionState := false
+// 	conditionMet := false
+// 	conditionExcuted := false
+// 	conditionExcuting := 0
+// 	nestedState := false
+// 	ifCon := false
+// 	elseifCon := false
+// 	elseCon := false
+// 	nestedSet := make([]string,0)
+
+// 	for _, tok := range token {
+
+// 		// ifelseParser(tok, "isMain")
+// 		// if strings.Contains(tok, "if") && !strings.Contains(tok, "else") && conditionMet == false &&
+// 		// 	conditionState == false {
+// 		// 	// fmt.Println(evalType(tok[strings.Index(tok, "]")+1:strings.LastIndex(tok, "[")]), tok[strings.Index(tok, "]")+1:strings.LastIndex(tok, "[")], "<--->", tok)
+// 		// 	expression := ifelseParser(tok, state)
+// 		// 	// fmt.Println(expression)
+// 		// 	if "true" == eval(expression) {
+// 		// 		// fmt.Println(eval(expression),"first if here----------->", )
+// 		// 		conditionState = true
+// 		// 		conditionMet = true
+// 		// 	} else {
+// 		// 		conditionState = true
+// 		// 		conditionMet = false
+// 		// 	}
+// 		// 	continue
+// 		// } else if strings.Contains(tok, "if") && strings.Contains(tok, "else") && conditionState == true && conditionMet == false {
+// 		// 	expression := ifelseParser(tok, state)
+// 		// 	// fmt.Println(expression)
+// 		// 	if "true" == eval(expression) {
+// 		// 		// fmt.Println(eval(expression),"else if here----------->")
+// 		// 		conditionState = true
+// 		// 		conditionMet = true
+// 		// 	} else {
+// 		// 		conditionState = true
+// 		// 		conditionMet = false
+// 		// 	}
+// 		// 	continue
+// 		// } else if strings.Contains(tok, "if [end]") {
+// 		// 	conditionState = false
+// 		// 	conditionMet = false
+// 		// 	conditionExcuted = false
+
+// 		// } else if conditionState == true && conditionMet == true && conditionExcuted == false && conditionExcuting > 0 &&
+// 		// 	false == strings.Contains(tok, "if") && strings.Contains(tok, "else") {
+// 		// 	conditionState = true
+// 		// 	conditionMet = false
+
+// 		// } else if conditionState == true && conditionMet == true && conditionExcuted == false && conditionExcuting > 0 &&
+// 		// 	strings.Contains(tok, "if") && strings.Contains(tok, "else") {
+// 		// 	conditionState = true
+// 		// 	conditionMet = false
+
+// 		// } else if conditionState == true && conditionMet == false && conditionExcuted == false && conditionExcuting == 0 &&
+// 		// 	false == strings.Contains(tok, "if") && strings.Contains(tok, "else") {
+// 		// 	conditionState = true
+// 		// 	conditionMet = true
+
+// 		// } else if conditionState == true && conditionMet == true && conditionExcuted == false {
+// 		// 	conditionExcuting += 1
+// 		// 	fmt.Println(tok)
+// 		// 	callCode(tok, state)
+// 		// }
+// 	}
+// }
 
 func ifelseParser(tok string, state string) string {
 
@@ -1152,7 +1305,7 @@ func callCode(tok string, state string) {
 
 		}
 		// continue
-	} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+	} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") && loopState == false {
 		// fmt.Println("here")
 		loopState = true
 		loopName = tok
