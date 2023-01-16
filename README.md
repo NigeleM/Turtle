@@ -26,4 +26,4 @@ Currently I am rewriting the Turtle interpreter in GO (Golang)
 Once I am able to publish a stable release I will make available for use and consumption.
 I'm working currently to add all the basics of a language before writing a standard library.
 The goal of this project or language is to be able to write simplified and easy statement with very
-few key strokes. Later this year I will add offical Documentation in order to explain how everything works. 
+few key strokes. Later this year I will add offical Documentation in order to explain how everything works.
