@@ -788,6 +788,8 @@ func functionProtocol(str string, state string) {
 	// fmt.Println(str, "<------>", state)
 	conditionState := false
 	conditionName := ""
+	loopState := false
+	loopName := ""
 	name := str
 	if strings.Contains(name, "=") && strings.Index(name, "[") > strings.Index(name, "=") {
 		variable := getVariable(name[0:strings.Index(name, "=")])
@@ -927,6 +929,23 @@ func functionProtocol(str string, state string) {
 
 			}
 			continue
+		} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") && loopState == false {
+			// fmt.Println("here")
+			loopState = true
+			loopName = tok
+			var Newloop loop
+			Newloop.name = loopName
+			Newloop.content = append(Newloop.content, tok)
+			loopDict[loopName] = Newloop
+		} else if loopState == true {
+			Newloop := loopDict[loopName]
+			Newloop.content = append(Newloop.content, tok)
+			loopDict[loopName] = Newloop
+			if strings.Contains(tok, "[loop]") && strings.Contains(tok, "[end]") {
+				loopState = false
+				loopStructure(loopDict[loopName].content, Calledfunction.name)
+			}
+
 		} else if strings.Contains(tok, "[") && strings.Contains(tok, "]") && strings.Contains(tok, "=") && strings.Index(tok, "=") < strings.Index(tok, "[") {
 			// fmt.Println("here --->", name)
 			insertFunction(tok, Calledfunction.name)
@@ -1122,74 +1141,6 @@ func ifelse(token []string, state string) {
 		}
 	}
 }
-
-// func ifelseTest(token []string, state string) {
-// 	conditionState := false
-// 	conditionMet := false
-// 	conditionExcuted := false
-// 	conditionExcuting := 0
-// 	nestedState := false
-// 	ifCon := false
-// 	elseifCon := false
-// 	elseCon := false
-// 	nestedSet := make([]string,0)
-
-// 	for _, tok := range token {
-
-// 		// ifelseParser(tok, "isMain")
-// 		// if strings.Contains(tok, "if") && !strings.Contains(tok, "else") && conditionMet == false &&
-// 		// 	conditionState == false {
-// 		// 	// fmt.Println(evalType(tok[strings.Index(tok, "]")+1:strings.LastIndex(tok, "[")]), tok[strings.Index(tok, "]")+1:strings.LastIndex(tok, "[")], "<--->", tok)
-// 		// 	expression := ifelseParser(tok, state)
-// 		// 	// fmt.Println(expression)
-// 		// 	if "true" == eval(expression) {
-// 		// 		// fmt.Println(eval(expression),"first if here----------->", )
-// 		// 		conditionState = true
-// 		// 		conditionMet = true
-// 		// 	} else {
-// 		// 		conditionState = true
-// 		// 		conditionMet = false
-// 		// 	}
-// 		// 	continue
-// 		// } else if strings.Contains(tok, "if") && strings.Contains(tok, "else") && conditionState == true && conditionMet == false {
-// 		// 	expression := ifelseParser(tok, state)
-// 		// 	// fmt.Println(expression)
-// 		// 	if "true" == eval(expression) {
-// 		// 		// fmt.Println(eval(expression),"else if here----------->")
-// 		// 		conditionState = true
-// 		// 		conditionMet = true
-// 		// 	} else {
-// 		// 		conditionState = true
-// 		// 		conditionMet = false
-// 		// 	}
-// 		// 	continue
-// 		// } else if strings.Contains(tok, "if [end]") {
-// 		// 	conditionState = false
-// 		// 	conditionMet = false
-// 		// 	conditionExcuted = false
-
-// 		// } else if conditionState == true && conditionMet == true && conditionExcuted == false && conditionExcuting > 0 &&
-// 		// 	false == strings.Contains(tok, "if") && strings.Contains(tok, "else") {
-// 		// 	conditionState = true
-// 		// 	conditionMet = false
-
-// 		// } else if conditionState == true && conditionMet == true && conditionExcuted == false && conditionExcuting > 0 &&
-// 		// 	strings.Contains(tok, "if") && strings.Contains(tok, "else") {
-// 		// 	conditionState = true
-// 		// 	conditionMet = false
-
-// 		// } else if conditionState == true && conditionMet == false && conditionExcuted == false && conditionExcuting == 0 &&
-// 		// 	false == strings.Contains(tok, "if") && strings.Contains(tok, "else") {
-// 		// 	conditionState = true
-// 		// 	conditionMet = true
-
-// 		// } else if conditionState == true && conditionMet == true && conditionExcuted == false {
-// 		// 	conditionExcuting += 1
-// 		// 	fmt.Println(tok)
-// 		// 	callCode(tok, state)
-// 		// }
-// 	}
-// }
 
 func ifelseParser(tok string, state string) string {
 

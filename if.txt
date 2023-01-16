@@ -16,7 +16,8 @@
 // show "life." .
 // if [end]
 
- if ] 89 > 99 [
+ if ] 189 > 99 [
+    show "hello nigele" .
     [if ] 187 > 89 [
         show "cold weather" .
     [else if ] 69 > 89 [
