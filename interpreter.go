@@ -311,6 +311,11 @@ func getevalVar(str string) string {
 			continue
 		}
 	}
+
+	variable := getVariable(newExp)
+	arg = variableDict[variable]
+	newExp = strings.ReplaceAll(newExp, variable, arg)
+	anotherPlace = newPlace
 	// fmt.Println("---", newExp, "---", "NEW EXP")
 	arg = eval(newExp)
 	// fmt.Println("---", arg, "---", "NEW EVAL")
@@ -559,6 +564,11 @@ func getevalVarFunc(str string, name string) string {
 		}
 	}
 	// fmt.Println("---", newExp, "---", "NEW EXP")
+	variable := getVariable(newExp)
+	arg = functionDict[name].funcVariableDict[variable]
+	newExp = strings.ReplaceAll(newExp, variable, arg)
+	anotherPlace = newPlace
+	// fmt.Println("---", arg, "---", "NEW EVAL")
 	arg = eval(newExp)
 	// fmt.Println("---", arg, "---", "NEW EVAL")
 	newString += parseString(arg)
@@ -691,6 +701,10 @@ func evalVarExpressionFunc(str string, name string) string {
 				parseToken = strings.ReplaceAll(parseToken, variable, functionDict[name].funcVariableDict[variable])
 			}
 		}
+		// fmt.Println(parseToken)
+		variable := getVariable(parseToken)
+		parseToken = strings.ReplaceAll(parseToken, variable, functionDict[name].funcVariableDict[variable])
+		// fmt.Println(parseToken)
 		parseToken = parseToken[0:strings.LastIndex(parseToken, ".")]
 		return parseString(strings.ReplaceAll(eval(parseToken), "\\n", "\n"))
 	} else if oneStatement == true {

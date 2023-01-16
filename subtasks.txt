@@ -1,5 +1,5 @@
 - incorporate functions into show
-- fixing show variable issues. 
+fixed - fixing show variable issues. 
 implemented - nested logic for if else statements
 implemented - nested variable parser
 - parser for loops 
