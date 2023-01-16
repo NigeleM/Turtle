@@ -1,5 +1,5 @@
 - incorporate functions into show
-- nested logic for if else statements
+implemented - nested logic for if else statements
 - parser for loops 
 - implementation of loop variables
 - context variable management for loops and if else statement
