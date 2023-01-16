@@ -23,7 +23,7 @@
         show "99 > 89" . 
     [else ]
         show "cold life" .
-else if ] 289 > 99 [
+else if ] 89 > 99 [
     [if ] 80 > 89 [
         show "cold weather on the easy" .
     [else if ] 69 > 89 [
