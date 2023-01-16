@@ -1137,13 +1137,12 @@ func ifelse(token []string, state string) {
 			conditionMet = true
 		} else if conditionState == true && conditionMet == true {
 			callCode(tok, state)
-
 		}
 	}
 }
 
 func ifelseParser(tok string, state string) string {
-
+	// Add state for functions
 	newExpression := ""
 	expression := tok[strings.Index(tok, "]")+1 : strings.LastIndex(tok, "[")]
 	for _, word := range expression {
@@ -1281,8 +1280,10 @@ func callCode(tok string, state string) {
 
 	} else if strings.Contains(tok, "show") {
 		showTok := strings.SplitAfter(tok, "show")
-		if strings.Contains(showTok[0], "show") {
+		if strings.Contains(showTok[0], "show") && state == "isMain" {
 			showReal(tok)
+		} else {
+			showRealFunc(tok, state)
 		}
 	} else if strings.Contains(tok, "?") && strings.Contains(tok, "=") {
 		if strings.Index(tok, "?") < strings.Index(tok, "\"") {
@@ -1300,8 +1301,10 @@ func callCode(tok string, state string) {
 		}
 	} else if strings.Contains(tok, "=") {
 		varTok := strings.SplitAfter(tok, "=")
-		if strings.Contains(varTok[0], "=") {
+		if strings.Contains(varTok[0], "=") && state == "isMain" {
 			insertVariable(tok)
+		} else {
+			insertVariableFunc(tok, state)
 		}
 	}
 

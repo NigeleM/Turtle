@@ -1,7 +1,9 @@
 - incorporate functions into show
+- fixing show variable issues. 
 implemented - nested logic for if else statements
+implemented - nested variable parser
 - parser for loops 
 - implementation of loop variables
-- context variable management for loops and if else statement
+50 % implemented - context variable management for loops and if else statement
 - check for errors all through code
 - while loop structure add
