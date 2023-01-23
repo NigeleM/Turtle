@@ -1,0 +1,30 @@
+a = 100 
+b = 200
+show a .
+show b .
+show a + b, . 
+
+def good []
+    a = 100
+    b = 999
+    if ] a > b [
+        show "hello nigele" .
+        [if ] 187 > 89 [
+            show "cold weather" .
+        [else if ] 69 > 89 [
+            show "99 > 89" . 
+        [else ]
+            show "cold life" .
+    else if ] 89 > 99 [
+        [if ] 80 > 89 [
+            show "cold weather on the easy" .
+        [else if ] 69 > 89 [
+            show "99 > 89 on the water" . 
+        [else ]
+            show "cold life" .
+    else ]
+        show a + b .
+    if [end]
+def [end]
+
+good[]

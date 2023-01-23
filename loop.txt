@@ -1,0 +1,14 @@
+c = 1
+a = 0
+b = 0
+z = 6
+[loop][i = b; i <= z; i++]
+    a = a + 1
+    [loop][i = 0; i <= 4; i++]
+    c = a 
+    c = a * c 
+
+[loop][end]
+show a .
+show b .
+show c .
