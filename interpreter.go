@@ -1378,34 +1378,100 @@ func loopStructure(loop []string, state string) {
 		for _, looptoken := range loopParsed {
 			if strings.Contains(looptoken, "=") && !strings.Contains(looptoken, "<") && !strings.Contains(looptoken, ">") && !strings.Contains(looptoken, "!") {
 				value := strings.Split(looptoken, "=")
-				counter, _ := strconv.Atoi(value[1])
-				count = counter
+				if getVariable(value[1]) != "" {
+					if state == "isMain" {
+						counter, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+						count = counter
+					} else {
+						counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+						count = counter
+					}
+
+				} else {
+					counter, _ := strconv.Atoi(value[1])
+					count = counter
+				}
 
 			} else if strings.Contains(looptoken, "<") && !strings.Contains(looptoken, "=") {
 				operator = "<"
 				value := strings.Split(looptoken, operator)
-				expressionValue, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
-				expressionV = expressionValue
+				if getVariable(value[1]) != "" {
+					if state == "isMain" {
+						expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+						expressionV = expressionValue
+					} else {
+						expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+						expressionV = expressionValue
+					}
+
+				} else {
+					expressionValue, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
+					expressionV = expressionValue
+				}
 			} else if strings.Contains(looptoken, "<") && strings.Contains(looptoken, "=") {
 				operator = "<="
 				value := strings.Split(looptoken, operator)
-				expressionValue, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
-				expressionV = expressionValue
+				if getVariable(value[1]) != "" {
+					if state == "isMain" {
+						expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+						expressionV = expressionValue
+					} else {
+						expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+						expressionV = expressionValue
+					}
+
+				} else {
+					expressionValue, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
+					expressionV = expressionValue
+				}
 			} else if strings.Contains(looptoken, ">") && !strings.Contains(looptoken, "=") {
 				operator = ">"
 				value := strings.Split(looptoken, operator)
-				expressionValue, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
-				expressionV = expressionValue
+				if getVariable(value[1]) != "" {
+					if state == "isMain" {
+						expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+						expressionV = expressionValue
+					} else {
+						expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+						expressionV = expressionValue
+					}
+
+				} else {
+					expressionValue, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
+					expressionV = expressionValue
+				}
 			} else if strings.Contains(looptoken, ">") && strings.Contains(looptoken, "=") {
 				operator = ">="
 				value := strings.Split(looptoken, operator)
-				expressionValue, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
-				expressionV = expressionValue
+				if getVariable(value[1]) != "" {
+					if state == "isMain" {
+						expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+						expressionV = expressionValue
+					} else {
+						expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+						expressionV = expressionValue
+					}
+
+				} else {
+					expressionValue, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
+					expressionV = expressionValue
+				}
 			} else if strings.Contains(looptoken, "!") && strings.Contains(looptoken, "=") {
 				operator = "!="
 				value := strings.Split(looptoken, operator)
-				expressionValue, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
-				expressionV = expressionValue
+				if getVariable(value[1]) != "" {
+					if state == "isMain" {
+						expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+						expressionV = expressionValue
+					} else {
+						expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+						expressionV = expressionValue
+					}
+
+				} else {
+					expressionValue, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
+					expressionV = expressionValue
+				}
 			} else if strings.Contains(looptoken, "++") {
 				incrementer = "++"
 			} else if strings.Contains(looptoken, "--") {
