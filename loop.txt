@@ -7,8 +7,9 @@ z = 6
     [loop][i = 0; i <= 4; i++]
     c = a 
     c = a * c 
-
+    show c , " C value".
 [loop][end]
 show a .
 show b .
-show c .
+show c , " C is " .
+show "hello nigele " .

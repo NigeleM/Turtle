@@ -406,8 +406,73 @@ func evalVarExpression(str string) string {
 		parseToken = parseToken[0:strings.LastIndex(parseToken, ".")]
 		return parseString(strings.ReplaceAll(eval(parseToken), "\\n", "\n"))
 	} else if oneStatement == true {
+		// fmt.Println("here -------->")
 		variable := getVariable(str[0:strings.LastIndex(str, ".")])
-		return variableDict[variable]
+		if !strings.Contains(str, ",") {
+			return variableDict[variable]
+		} else {
+			place := 0
+			arg := ""
+			for count := 0; count <= strings.LastIndex(str, "."); count++ {
+				arg = ""
+				if string(newShow[count]) == "\"" {
+					inString += 1
+					if inString > 1 {
+						inString = 0
+					}
+					continue
+				} else if string(newShow[count]) == "," && inString == 0 {
+					arg = ""
+					if evalType(newShow[place:count]) == "Var" {
+						oneVar := isOneVariable(newShow[place:count])
+						if oneVar == true {
+							variable := getVariable(newShow[place:count])
+							arg = variableDict[variable]
+							newString += parseString(arg)
+						} else {
+							// fmt.Println(newShow[place:count], "((((((((((((((((((((((((((")
+							newString += getevalVar(newShow[place:count])
+							// fmt.Println(newString, "))))))))))))))))))))))))))))))))))))")
+						}
+
+					} else {
+						if evalType(newShow[place:count]) == "Exp" {
+							arg = evalExpression(newShow[place:count])
+							newString += parseString(arg)
+						} else {
+							arg = eval(newShow[place:count])
+							newString += parseString(arg)
+						}
+
+					}
+					place = count + 1
+				} else if count == strings.LastIndex(str, ".") {
+					arg = ""
+					if evalType(newShow[place:count]) == "Var" {
+						// fmt.Println(place, "<------", count, "------>")
+						oneVar := isOneVariable(newShow[place:count])
+						// fmt.Println(isOneVariable(newShow[place:count]), newShow[place:count], "-----------", isOneVariable(newShow), "here----->")
+						if oneVar == true {
+							variable := getVariable(newShow[place:count])
+							arg = variableDict[variable]
+							newString += parseString(arg)
+						} else {
+							newString += getevalVarPeriod(newShow[place:count])
+						}
+					} else {
+						if evalType(newShow[place:count]) == "Exp" {
+							arg = evalExpression(newShow[place:count])
+							newString += parseString(arg)
+						} else {
+							arg = eval(newShow[place:count])
+							newString += parseString(arg)
+						}
+					}
+				}
+			}
+			return strings.ReplaceAll(newString, "\\n", "\n")
+		}
+
 	} else {
 		// fmt.Println(str, "-------------------->>>>>>>>>>>>>>>>>>>>>>>>>>")
 		place := 0
@@ -500,6 +565,7 @@ func showReal(str string) {
 	} else if evalType(parseToken) == "String" {
 		fmt.Println(parseString(eval(parseToken)))
 	} else if evalType(parseToken) == "Var" {
+		// fmt.Println(showTok[1])
 		fmt.Println(evalVarExpression(showTok[1]))
 	} else if evalType(parseToken) == "Exp" {
 		fmt.Println(evalExpression(showTok[1]))
@@ -709,7 +775,71 @@ func evalVarExpressionFunc(str string, name string) string {
 		return parseString(strings.ReplaceAll(eval(parseToken), "\\n", "\n"))
 	} else if oneStatement == true {
 		variable := getVariable(str[0:strings.LastIndex(str, ".")])
-		return functionDict[name].funcVariableDict[variable]
+		if !strings.Contains(str, ",") {
+			return functionDict[name].funcVariableDict[variable]
+		} else {
+			place := 0
+			arg := ""
+			for count := 0; count <= strings.LastIndex(str, "."); count++ {
+				arg = ""
+				if string(newShow[count]) == "\"" {
+					inString += 1
+					if inString > 1 {
+						inString = 0
+					}
+					continue
+				} else if string(newShow[count]) == "," && inString == 0 {
+					arg = ""
+					if evalType(newShow[place:count]) == "Var" {
+						oneVar := isOneVariable(newShow[place:count])
+						if oneVar == true {
+							variable := getVariable(newShow[place:count])
+							arg = functionDict[name].funcVariableDict[variable]
+							newString += parseString(arg)
+						} else {
+							// fmt.Println(newShow[place:count], "((((((((((((((((((((((((((")
+							newString += getevalVarFunc(newShow[place:count], name)
+							// fmt.Println(newString, "))))))))))))))))))))))))))))))))))))")
+						}
+
+					} else {
+						if evalType(newShow[place:count]) == "Exp" {
+							arg = evalExpression(newShow[place:count])
+							newString += parseString(arg)
+						} else {
+							arg = eval(newShow[place:count])
+							newString += parseString(arg)
+						}
+
+					}
+					place = count + 1
+				} else if count == strings.LastIndex(str, ".") {
+					arg = ""
+					if evalType(newShow[place:count]) == "Var" {
+						// fmt.Println(place, "<------", count, "------>")
+						oneVar := isOneVariable(newShow[place:count])
+						// fmt.Println(isOneVariable(newShow[place:count]), newShow[place:count], "-----------", isOneVariable(newShow), "here----->")
+						if oneVar == true {
+							variable := getVariable(newShow[place:count])
+							arg = functionDict[name].funcVariableDict[variable]
+							newString += parseString(arg)
+						} else {
+							newString += getevalVarPeriodFunc(newShow[place:count], name)
+						}
+					} else {
+						if evalType(newShow[place:count]) == "Exp" {
+							arg = evalExpression(newShow[place:count])
+							newString += parseString(arg)
+						} else {
+							arg = eval(newShow[place:count])
+							newString += parseString(arg)
+						}
+					}
+				}
+			}
+			return strings.ReplaceAll(newString, "\\n", "\n")
+		}
+
 	} else {
 		// fmt.Println(str, "-------------------->>>>>>>>>>>>>>>>>>>>>>>>>>")
 		place := 0
