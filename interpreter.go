@@ -555,6 +555,7 @@ func parseString(str string) string {
 // use evalType to show eval expressions
 func showReal(str string) {
 
+	// fmt.Println(str)
 	showTok := strings.SplitAfterN(str, "show", 2)
 	parseToken := showTok[1][0:strings.LastIndex(showTok[1], ".")]
 	parseToken = strings.ReplaceAll(parseToken, "\\n", "\n")
@@ -927,6 +928,9 @@ func showRealFunc(str string, name string) {
 	}
 }
 
+// show function state
+var funcshowState = false
+
 // Function protocol for when functions are called
 func functionProtocol(str string, state string) {
 	// fmt.Println(str, "<------>", state)
@@ -948,6 +952,7 @@ func functionProtocol(str string, state string) {
 	Calledfunction := functionDict[name]
 
 	if Calledfunction.name != name {
+		fmt.Println(name)
 		fmt.Println("function Error")
 	}
 	// change the variables in scope
@@ -1020,7 +1025,13 @@ func functionProtocol(str string, state string) {
 					}
 				}
 				if varState == false {
-					fmt.Println("variable error :")
+
+					if funcshowState {
+						fmt.Print(Calledfunction.funcVariableDict[getVariable(returnCode[1])])
+					} else {
+						fmt.Println("variable error :")
+					}
+
 				}
 
 			} else {
@@ -1040,7 +1051,11 @@ func functionProtocol(str string, state string) {
 					}
 				}
 				if varState == false {
-					fmt.Println("Called function variable error :")
+					if funcshowState {
+						fmt.Print(Calledfunction.funcVariableDict[getVariable(returnCode[1])])
+					} else {
+						fmt.Println("variable error :")
+					}
 				}
 
 			}
@@ -1095,7 +1110,17 @@ func functionProtocol(str string, state string) {
 			insertFunction(tok, Calledfunction.name)
 
 		} else if strings.Contains(tok, "[") && strings.Contains(tok, "]") {
-			functionProtocol(tok, name)
+			if strings.Contains(tok, "show ") && strings.Contains(tok, ".") && strings.Index(tok, "show ") < strings.Index(tok, "[") && strings.LastIndex(tok, "]") < strings.LastIndex(tok, ".") {
+				tok = strings.Replace(tok, "show ", "", 1)
+				tok = tok[0 : strings.LastIndex(tok, ".")-1]
+				// fmt.Println(tok)
+				funcshowState = true
+				functionProtocol(tok, name)
+				funcshowState = false
+			} else {
+				functionProtocol(tok, name)
+			}
+
 		} else if strings.Contains(tok, "show") {
 			showTok := strings.SplitAfter(tok, "show")
 			if strings.Contains(showTok[0], "show") {
@@ -1420,8 +1445,17 @@ func callCode(tok string, state string) {
 		// fmt.Println("here --->")
 		insertFunction(tok, state)
 	} else if strings.Contains(tok, "[") && strings.Contains(tok, "]") {
-		functionProtocol(tok, state)
+		if strings.Contains(tok, "show ") && strings.Contains(tok, ".") && strings.Index(tok, "show ") < strings.Index(tok, "[") && strings.LastIndex(tok, "]") < strings.LastIndex(tok, ".") {
+			tok = strings.Replace(tok, "show ", "", 1)
+			tok = tok[0 : strings.LastIndex(tok, ".")-1]
+			// fmt.Println(tok)
+			funcshowState = true
+			functionProtocol(tok, state)
+			funcshowState = false
 
+		} else {
+			functionProtocol(tok, state)
+		}
 	} else if strings.Contains(tok, "show") {
 		showTok := strings.SplitAfter(tok, "show")
 		if strings.Contains(showTok[0], "show") && state == "isMain" {
@@ -2133,7 +2167,16 @@ func main() {
 			// fmt.Println("here --->")
 			insertFunction(tok, "isMain")
 		} else if strings.Contains(tok, "[") && strings.Contains(tok, "]") {
-			functionProtocol(tok, "isMain")
+			if strings.Contains(tok, "show ") && strings.Contains(tok, ".") && strings.Index(tok, "show ") < strings.Index(tok, "[") && strings.LastIndex(tok, "]") < strings.LastIndex(tok, ".") {
+				tok = strings.Replace(tok, "show ", "", 1)
+				tok = tok[0 : strings.LastIndex(tok, ".")-1]
+				// fmt.Println(tok)
+				funcshowState = true
+				functionProtocol(tok, "isMain")
+				funcshowState = false
+			} else {
+				functionProtocol(tok, "isMain")
+			}
 
 		} else if strings.Contains(tok, "show") {
 			showTok := strings.SplitAfter(tok, "show")

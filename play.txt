@@ -3,8 +3,16 @@ b = 200
 show a .
 show b .
 show a , "hello world", " good bye ". 
+ // c = a / 10
+// show c .
+def hello [a]
+    b = a/10.6
+     show b .
+    // return b 
+def [end]
 
-def good []
+
+def show []
     a = 100
     b = 999
     show a + b , " HELLO WORLD " .
@@ -30,6 +38,7 @@ def good []
     if [end]
 def [end]
 
-good[]
+// good[]
 
-
+fix // the string issue
+show  "play hello []" .
