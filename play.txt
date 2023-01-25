@@ -2,11 +2,14 @@ a = 100
 b = 200
 show a .
 show b .
-show a + b, . 
+show a , "hello world", " good bye ". 
 
 def good []
     a = 100
     b = 999
+    show a + b , " HELLO WORLD " .
+    show a , " A HELLO WORLD " .
+    show b , " B HELLO WORLD " .
     if ] a > b [
         show "hello nigele" .
         [if ] 187 > 89 [
@@ -28,3 +31,5 @@ def good []
 def [end]
 
 good[]
+
+
