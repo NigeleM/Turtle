@@ -2,13 +2,13 @@ a = 100
 b = 200
 show a .
 show b .
-show a , "hello world", " good bye ". 
+show a , " hello world", " good bye ". 
  // c = a / 10
 // show c .
 def hello [a]
     b = a/10.6
-     show b .
-    // return b 
+    // show b .
+     return b 
 def [end]
 
 
@@ -40,5 +40,10 @@ def [end]
 
 // good[]
 
-fix // the string issue
-show  "play hello []" .
+show " hello [] " .
+show hello [212] .
+a = 30
+b = 50
+show b + hello [106] +  hello [318] + 10 + hello [212] + a .
+show b , " ", hello [106] , " ",  hello [318] ," ", 10 ,  " ",hello [212] , " ", a , hello [318] + 10 .
+show "good day " .
