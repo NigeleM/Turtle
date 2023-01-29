@@ -1,14 +1,20 @@
 a = 100 
 b = 200
-show a .
-show b .
-show a , " hello world", " good bye ". 
+// show a .
+// show b .
+// show a , " hello world", " good bye ". 
  // c = a / 10
 // show c .
+
 def hello [a]
     b = a/10.6
     // show b .
      return b 
+def [end]
+
+def run[C]
+    a = hello[C]
+    show a + 1. 
 def [end]
 
 
@@ -40,10 +46,12 @@ def [end]
 
 // good[]
 
-show " hello [] " .
-show hello [212] .
+// show " hello [] " .
+// show hello [212] .
 a = 30
 b = 50
-show b + hello [106] +  hello [318] + 10 + hello [212] + a .
-show b , " ", hello [106] , " ",  hello [318] ," ", 10 ,  " ",hello [212] , " ", a , hello [318] + 10 .
-show "good day " .
+// show b + hello [106] +  hello [318] + 10 + hello [212] + a .
+ show b , " ", hello [106] + 10, " ",  hello [318] ," ", 10 ,  " ",hello [212] , " ", a ," " ,hello [318] + a .
+// show "good day " .
+run [30]
+show b  + hello [106] , .

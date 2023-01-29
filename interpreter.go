@@ -303,19 +303,68 @@ func getevalVar(str string) string {
 			}
 			continue
 		} else if InnerinString == 0 && string(str[newPlace]) == plus || string(str[newPlace]) == minus || string(str[newPlace]) == divide || string(str[newPlace]) == multiply {
-			variable := getVariable(str[anotherPlace:newPlace])
-			arg = variableDict[variable]
-			newExp = strings.ReplaceAll(newExp, variable, arg)
-			anotherPlace = newPlace
+
+			// variable := getVariable(str[anotherPlace:newPlace])
+			// arg = variableDict[variable]
+			// newExp = strings.ReplaceAll(newExp, variable, arg)
+			// anotherPlace = newPlace
+			if strings.Contains(newExp, "[") && strings.Contains(newExp, "]") && strings.Contains(str[anotherPlace:newPlace], "[") && strings.Contains(str[anotherPlace:newPlace], "]") {
+				funcshowState = true
+				funcParsed := getVariable(str[anotherPlace:newPlace])
+				functionProtocol(str[strings.Index(str, string(funcParsed[0])):newPlace], "isMain")
+				newExp = strings.ReplaceAll(newExp, str[strings.Index(str, string(funcParsed[0])):newPlace], funcShowReturn)
+				// functionProtocol(str[anotherPlace:newPlace], "isMain")
+				// newExp = strings.ReplaceAll(newExp, string(str[anotherPlace:newPlace]), funcShowReturn)
+				funcshowState = false
+				funcShowReturn = ""
+				anotherPlace = newPlace
+			} else {
+				variable := getVariable(str[anotherPlace:newPlace])
+				// fmt.Println(variable, "var")
+				if variable == "" {
+					anotherPlace = newPlace
+				} else {
+					arg = variableDict[variable]
+					newExp = strings.ReplaceAll(newExp, variable, arg)
+					// fmt.Println(string(str[placeAfter:count-1]), "here")
+					anotherPlace = newPlace
+				}
+
+			}
+
 		} else {
 			continue
 		}
 	}
 
-	variable := getVariable(newExp)
-	arg = variableDict[variable]
-	newExp = strings.ReplaceAll(newExp, variable, arg)
-	anotherPlace = newPlace
+	// variable := getVariable(newExp)
+	// arg = variableDict[variable]
+	// newExp = strings.ReplaceAll(newExp, variable, arg)
+	// anotherPlace = newPlace
+	if strings.Contains(newExp, "[") && strings.Contains(newExp, "]") && strings.Contains(str[anotherPlace:newPlace], "[") && strings.Contains(str[anotherPlace:newPlace], "]") {
+		funcshowState = true
+		//fmt.Println(str[anotherPlace:newPlace])
+		funcParsed := getVariable(str[anotherPlace:newPlace])
+		// fmt.Println(funcParsed, "parse")
+		// fmt.Println(str[strings.Index(str, string(funcParsed[0])):newPlace])
+		functionProtocol(str[strings.Index(str, string(funcParsed[0])):newPlace], "isMain")
+		newExp = strings.ReplaceAll(newExp, str[strings.Index(str, string(funcParsed[0])):newPlace], funcShowReturn)
+		funcshowState = false
+		funcShowReturn = ""
+		anotherPlace = newPlace
+	} else {
+		variable := getVariable(str[anotherPlace:newPlace])
+		// fmt.Println(variable, "var")
+		if variable == "" {
+			anotherPlace = newPlace
+		} else {
+			arg = variableDict[variable]
+			newExp = strings.ReplaceAll(newExp, variable, arg)
+			// fmt.Println(string(str[placeAfter:count-1]), "here")
+			anotherPlace = newPlace
+		}
+
+	}
 	// fmt.Println("---", newExp, "---", "NEW EXP")
 	arg = eval(newExp)
 	// fmt.Println("---", arg, "---", "NEW EVAL")
@@ -346,17 +395,47 @@ func getevalVarPeriod(str string) string {
 			}
 			continue
 		} else if InnerinString == 0 && string(str[newPlace]) == plus || string(str[newPlace]) == minus || string(str[newPlace]) == divide || string(str[newPlace]) == multiply {
-			variable := getVariable(str[anotherPlace:newPlace])
-			arg = variableDict[variable]
-			// fmt.Println(variable, arg)
-			newExp = strings.ReplaceAll(newExp, variable, arg)
-			anotherPlace = newPlace
+			if strings.Contains(newExp, "[") && strings.Contains(newExp, "]") && strings.Contains(str[anotherPlace:newPlace], "[") && strings.Contains(str[anotherPlace:newPlace], "]") {
+				funcshowState = true
+				functionProtocol(str[anotherPlace:newPlace], "isMain")
+				newExp = strings.ReplaceAll(newExp, string(str[anotherPlace:newPlace]), funcShowReturn)
+				funcshowState = false
+				funcShowReturn = ""
+				anotherPlace = newPlace
+			} else {
+				variable := getVariable(str[anotherPlace:newPlace])
+				// fmt.Println(variable, "var")
+				if variable == "" {
+					anotherPlace = newPlace
+				} else {
+					arg = variableDict[variable]
+					newExp = strings.ReplaceAll(newExp, variable, arg)
+					// fmt.Println(string(str[placeAfter:count-1]), "here")
+					anotherPlace = newPlace
+				}
+
+			}
 		} else if InnerinString == 0 && newPlace == len(str)-1 {
-			variable := getVariable(str[anotherPlace:newPlace])
-			arg = variableDict[variable]
-			// fmt.Println(variable, arg)
-			newExp = strings.ReplaceAll(newExp, variable, arg)
-			anotherPlace = newPlace
+			if strings.Contains(newExp, "[") && strings.Contains(newExp, "]") && strings.Contains(str[anotherPlace:newPlace], "[") && strings.Contains(str[anotherPlace:newPlace], "]") {
+				funcshowState = true
+				functionProtocol(str[anotherPlace:newPlace], "isMain")
+				newExp = strings.ReplaceAll(newExp, string(str[anotherPlace:newPlace]), funcShowReturn)
+				funcshowState = false
+				funcShowReturn = ""
+				anotherPlace = newPlace
+			} else {
+				variable := getVariable(str[anotherPlace:newPlace])
+				// fmt.Println(variable, "var")
+				if variable == "" {
+					anotherPlace = newPlace
+				} else {
+					arg = variableDict[variable]
+					newExp = strings.ReplaceAll(newExp, variable, arg)
+					// fmt.Println(string(str[placeAfter:count-1]), "here")
+					anotherPlace = newPlace
+				}
+
+			}
 
 		} else {
 			continue
@@ -703,6 +782,7 @@ func getevalVarFunc(str string, name string) string {
 	InnerinString := 0
 	anotherPlace := place
 	newExp = str
+	// fmt.Println(str)
 	// fmt.Println(str, "----eval comma----")
 	for newPlace = place; newPlace < len(str)-1; newPlace++ {
 		if string(str[newPlace]) == "\"" {
@@ -712,20 +792,58 @@ func getevalVarFunc(str string, name string) string {
 			}
 			continue
 		} else if InnerinString == 0 && string(str[newPlace]) == plus || string(str[newPlace]) == minus || string(str[newPlace]) == divide || string(str[newPlace]) == multiply {
-			variable := getVariable(str[anotherPlace:newPlace])
-			arg = functionDict[name].funcVariableDict[variable]
-			newExp = strings.ReplaceAll(newExp, variable, arg)
-			anotherPlace = newPlace
+
+			if strings.Contains(newExp, "[") && strings.Contains(newExp, "]") && strings.Contains(str[anotherPlace:newPlace], "[") && strings.Contains(str[anotherPlace:newPlace], "]") {
+				funcshowState = true
+				// fmt.Println(str[anotherPlace:newPlace])
+				// fmt.Println(str[anotherPlace:newPlace])
+				functionProtocol(str[anotherPlace:newPlace], name)
+				newExp = strings.ReplaceAll(newExp, string(str[anotherPlace:newPlace]), funcShowReturn)
+				funcshowState = false
+				funcShowReturn = ""
+				anotherPlace = newPlace
+			} else {
+				variable := getVariable(str[anotherPlace:newPlace])
+				// fmt.Println(variable, "var")
+				if variable == "" {
+					anotherPlace = newPlace
+				} else {
+					arg = functionDict[name].funcVariableDict[variable]
+					newExp = strings.ReplaceAll(newExp, variable, arg)
+					anotherPlace = newPlace
+				}
+
+			}
 		} else {
 			continue
 		}
 	}
 	// fmt.Println("---", newExp, "---", "NEW EXP")
-	variable := getVariable(newExp)
-	arg = functionDict[name].funcVariableDict[variable]
-	newExp = strings.ReplaceAll(newExp, variable, arg)
-	anotherPlace = newPlace
+	if strings.Contains(newExp, "[") && strings.Contains(newExp, "]") && strings.Contains(str[anotherPlace:newPlace], "[") && strings.Contains(str[anotherPlace:newPlace], "]") {
+		funcshowState = true
+		//fmt.Println(str[anotherPlace:newPlace])
+		funcParsed := getVariable(str[anotherPlace:newPlace])
+		// fmt.Println(funcParsed, "parse")
+		// fmt.Println(str[strings.Index(str, string(funcParsed[0])):newPlace])
+		functionProtocol(str[strings.Index(str, string(funcParsed[0])):newPlace], name)
+		newExp = strings.ReplaceAll(newExp, str[strings.Index(str, string(funcParsed[0])):newPlace], funcShowReturn)
+		funcshowState = false
+		funcShowReturn = ""
+		anotherPlace = newPlace
+	} else {
+		variable := getVariable(str[anotherPlace:newPlace])
+		// fmt.Println(variable, "var")
+		if variable == "" {
+			anotherPlace = newPlace
+		} else {
+			arg = functionDict[name].funcVariableDict[variable]
+			newExp = strings.ReplaceAll(newExp, variable, arg)
+			anotherPlace = newPlace
+		}
+
+	}
 	// fmt.Println("---", arg, "---", "NEW EVAL")
+	// fmt.Println(newExp)
 	arg = eval(newExp)
 	// fmt.Println("---", arg, "---", "NEW EVAL")
 	newString += parseString(arg)
@@ -755,17 +873,45 @@ func getevalVarPeriodFunc(str string, name string) string {
 			}
 			continue
 		} else if InnerinString == 0 && string(str[newPlace]) == plus || string(str[newPlace]) == minus || string(str[newPlace]) == divide || string(str[newPlace]) == multiply {
-			variable := getVariable(str[anotherPlace:newPlace])
-			arg = functionDict[name].funcVariableDict[variable]
-			// fmt.Println(variable, arg)
-			newExp = strings.ReplaceAll(newExp, variable, arg)
-			anotherPlace = newPlace
+			if strings.Contains(newExp, "[") && strings.Contains(newExp, "]") && strings.Contains(str[anotherPlace:newPlace], "[") && strings.Contains(str[anotherPlace:newPlace], "]") {
+				funcshowState = true
+				functionProtocol(str[anotherPlace:newPlace], name)
+				newExp = strings.ReplaceAll(newExp, string(str[anotherPlace:newPlace]), funcShowReturn)
+				funcshowState = false
+				funcShowReturn = ""
+				anotherPlace = newPlace
+			} else {
+				variable := getVariable(str[anotherPlace:newPlace])
+				// fmt.Println(variable, "var")
+				if variable == "" {
+					anotherPlace = newPlace
+				} else {
+					arg = functionDict[name].funcVariableDict[variable]
+					newExp = strings.ReplaceAll(newExp, variable, arg)
+					anotherPlace = newPlace
+				}
+
+			}
 		} else if InnerinString == 0 && newPlace == len(str)-1 {
-			variable := getVariable(str[anotherPlace:newPlace])
-			arg = functionDict[name].funcVariableDict[variable]
-			// fmt.Println(variable, arg)
-			newExp = strings.ReplaceAll(newExp, variable, arg)
-			anotherPlace = newPlace
+			if strings.Contains(newExp, "[") && strings.Contains(newExp, "]") && strings.Contains(str[anotherPlace:newPlace], "[") && strings.Contains(str[anotherPlace:newPlace], "]") {
+				funcshowState = true
+				functionProtocol(str[anotherPlace:newPlace], name)
+				newExp = strings.ReplaceAll(newExp, string(str[anotherPlace:newPlace]), funcShowReturn)
+				funcshowState = false
+				funcShowReturn = ""
+				anotherPlace = newPlace
+			} else {
+				variable := getVariable(str[anotherPlace:newPlace])
+				// fmt.Println(variable, "var")
+				if variable == "" {
+					anotherPlace = newPlace
+				} else {
+					arg = functionDict[name].funcVariableDict[variable]
+					newExp = strings.ReplaceAll(newExp, variable, arg)
+					anotherPlace = newPlace
+				}
+
+			}
 
 		} else {
 			continue
@@ -842,6 +988,7 @@ func evalVarExpressionFunc(str string, name string) string {
 	if isConcat == true {
 		parseToken := str
 		place := 0
+		placeAfter := 0
 		for count := 0; count <= strings.LastIndex(str, "."); count++ {
 			if string(str[count]) == "\"" {
 				inString += 1
@@ -850,24 +997,124 @@ func evalVarExpressionFunc(str string, name string) string {
 				}
 				continue
 			} else if string(str[count]) == plus && inString == 0 {
-				variable := getVariable(parseToken[place:count])
-				parseToken = strings.ReplaceAll(parseToken, variable, functionDict[name].funcVariableDict[variable])
-				place = count + 1
+				// variable := getVariable(parseToken[place:count])
+				// parseToken = strings.ReplaceAll(parseToken, variable, functionDict[name].funcVariableDict[variable])
+				// place = count + 1
+				if placeAfter == 0 {
+					if strings.Contains(parseToken, "[") && strings.Contains(parseToken, "]") && strings.Contains(str[placeAfter:count-1], "[") && strings.Contains(str[placeAfter:count-1], "]") {
+						funcshowState = true
+						functionProtocol(str[0:count-1], name)
+						//funcShowReturn = strings.ReplaceAll(funcShowReturn, "\n", "")
+						// fmt.Println(funcShowReturn, "value + ")
+						parseToken = strings.ReplaceAll(parseToken, string(str[0:count-1]), funcShowReturn)
+						// fmt.Println(parseToken, "PARSE TOKEN PLUS")
+						funcshowState = false
+						funcShowReturn = ""
+					} else {
+						variable := getVariable(parseToken[place:count])
+						if variable == "" {
+							//parseToken = strings.ReplaceAll(parseToken, string(str[placeAfter:count-1]), variableDict[variable])
+							place = count + 1
+						} else {
+							parseToken = strings.ReplaceAll(parseToken, variable, functionDict[name].funcVariableDict[variable])
+							place = count + 1
+						}
+					}
+					placeAfter = count + 1
+
+				} else {
+					if strings.Contains(parseToken, "[") && strings.Contains(parseToken, "]") && strings.Contains(str[placeAfter:count-1], "[") && strings.Contains(str[placeAfter:count-1], "]") {
+						funcshowState = true
+						functionProtocol(str[placeAfter:count-1], name)
+						//funcShowReturn = strings.ReplaceAll(funcShowReturn, "\n", "")
+						// fmt.Println(funcShowReturn, "value + ")
+						parseToken = strings.ReplaceAll(parseToken, string(str[placeAfter:count-1]), funcShowReturn)
+						// fmt.Println(parseToken, "PARSE TOKEN PLUS")
+						funcshowState = false
+						funcShowReturn = ""
+					} else {
+						variable := getVariable(str[placeAfter : count-1])
+						if variable == "" {
+							// parseToken = strings.ReplaceAll(parseToken, string(str[placeAfter:count-1]), funcShowReturn)
+							place = count + 1
+						} else {
+
+							parseToken = strings.ReplaceAll(parseToken, variable, functionDict[name].funcVariableDict[variable])
+							// fmt.Println(string(str[placeAfter:count-1]), "here"
+							place = count + 1
+						}
+					}
+					placeAfter = count + 1
+
+				}
 			} else if count == strings.LastIndex(str, ".") {
-				variable := getVariable(parseToken[place:count])
-				parseToken = strings.ReplaceAll(parseToken, variable, functionDict[name].funcVariableDict[variable])
+				if placeAfter == 0 {
+					if strings.Contains(str, "[") && strings.Contains(str, "]") && strings.Contains(str[placeAfter:count-1], "[") && strings.Contains(str[placeAfter:count-1], "]") {
+						funcshowState = true
+						functionProtocol(str[0:count-1], name)
+						//funcShowReturn = strings.ReplaceAll(funcShowReturn, "\n", "")
+						// fmt.Println(funcShowReturn, "value + ")
+						parseToken = strings.ReplaceAll(parseToken, string(str[0:count-1]), funcShowReturn)
+						// fmt.Println(parseToken, "PARSE TOKEN PLUS")
+						funcshowState = false
+						funcShowReturn = ""
+					} else {
+						variable := getVariable(parseToken[place:count])
+						if variable == "" {
+							//parseToken = strings.ReplaceAll(parseToken, string(str[placeAfter:count-1]), variableDict[variable])
+							place = count + 1
+						} else {
+							parseToken = strings.ReplaceAll(parseToken, variable, functionDict[name].funcVariableDict[variable])
+							place = count + 1
+						}
+					}
+					placeAfter = count + 1
+
+				} else {
+					if strings.Contains(parseToken, "[") && strings.Contains(parseToken, "]") && strings.Contains(str[placeAfter:count-1], "[") && strings.Contains(str[placeAfter:count-1], "]") {
+						funcshowState = true
+						functionProtocol(str[placeAfter:count-1], name)
+						//funcShowReturn = strings.ReplaceAll(funcShowReturn, "\n", "")
+						// fmt.Println(funcShowReturn, "value + ")
+						parseToken = strings.ReplaceAll(parseToken, string(str[placeAfter:count-1]), funcShowReturn)
+						// fmt.Println(parseToken, "PARSE TOKEN PLUS")
+						funcshowState = false
+						funcShowReturn = ""
+					} else {
+						variable := getVariable(str[placeAfter : count-1])
+						if variable == "" {
+							// parseToken = strings.ReplaceAll(parseToken, string(str[placeAfter:count-1]), funcShowReturn)
+							place = count + 1
+						} else {
+
+							parseToken = strings.ReplaceAll(parseToken, variable, functionDict[name].funcVariableDict[variable])
+							// fmt.Println(string(str[placeAfter:count-1]), "here"
+							place = count + 1
+						}
+					}
+					placeAfter = count + 1
+
+				}
 			}
 		}
 		// fmt.Println(parseToken)
-		variable := getVariable(parseToken)
-		parseToken = strings.ReplaceAll(parseToken, variable, functionDict[name].funcVariableDict[variable])
+		// variable := getVariable(parseToken)
+		// parseToken = strings.ReplaceAll(parseToken, variable, functionDict[name].funcVariableDict[variable])
 		// fmt.Println(parseToken)
 		parseToken = parseToken[0:strings.LastIndex(parseToken, ".")]
 		return parseString(strings.ReplaceAll(eval(parseToken), "\\n", "\n"))
 	} else if oneStatement == true {
 		variable := getVariable(str[0:strings.LastIndex(str, ".")])
 		if !strings.Contains(str, ",") {
-			return functionDict[name].funcVariableDict[variable]
+			if strings.Contains(str, "[") && strings.Contains(str, "]") {
+				funcshowState = true
+				functionProtocol(str, name)
+				funcshowState = false
+				return funcShowReturn
+			} else {
+				return functionDict[name].funcVariableDict[variable]
+			}
+
 		} else {
 			place := 0
 			arg := ""
@@ -884,14 +1131,31 @@ func evalVarExpressionFunc(str string, name string) string {
 					if evalType(newShow[place:count]) == "Var" {
 						oneVar := isOneVariable(newShow[place:count])
 						if oneVar == true {
-							variable := getVariable(newShow[place:count])
-							arg = functionDict[name].funcVariableDict[variable]
-							newString += parseString(arg)
+							if strings.Contains(newShow[place:count], "[") && strings.Contains(newShow[place:count], "]") {
+								funcshowState = true
+								functionProtocol(newShow[place:count], name)
+								newString += funcShowReturn
+
+							} else {
+								variable := getVariable(newShow[place:count])
+								arg = functionDict[name].funcVariableDict[variable]
+								newString += parseString(arg)
+							}
+
 						} else {
 							// fmt.Println(newShow[place:count], "((((((((((((((((((((((((((")
 							newString += getevalVarFunc(newShow[place:count], name)
 							// fmt.Println(newString, "))))))))))))))))))))))))))))))))))))")
 						}
+						// if oneVar == true {
+						// 	variable := getVariable(newShow[place:count])
+						// 	arg = functionDict[name].funcVariableDict[variable]
+						// 	newString += parseString(arg)
+						// } else {
+						// 	// fmt.Println(newShow[place:count], "((((((((((((((((((((((((((")
+						// 	newString += getevalVarFunc(newShow[place:count], name)
+						// 	// fmt.Println(newString, "))))))))))))))))))))))))))))))))))))")
+						// }
 
 					} else {
 						if evalType(newShow[place:count]) == "Exp" {
@@ -911,11 +1175,21 @@ func evalVarExpressionFunc(str string, name string) string {
 						oneVar := isOneVariable(newShow[place:count])
 						// fmt.Println(isOneVariable(newShow[place:count]), newShow[place:count], "-----------", isOneVariable(newShow), "here----->")
 						if oneVar == true {
-							variable := getVariable(newShow[place:count])
-							arg = functionDict[name].funcVariableDict[variable]
-							newString += parseString(arg)
+							if strings.Contains(newShow[place:count], "[") && strings.Contains(newShow[place:count], "]") {
+								funcshowState = true
+								functionProtocol(newShow[place:count], name)
+								newString += funcShowReturn
+
+							} else {
+								variable := getVariable(newShow[place:count])
+								arg = functionDict[name].funcVariableDict[variable]
+								newString += parseString(arg)
+							}
+
 						} else {
+							// fmt.Println(newShow[place:count], "((((((((((((((((((((((((((")
 							newString += getevalVarPeriodFunc(newShow[place:count], name)
+							// fmt.Println(newString, "))))))))))))))))))))))))))))))))))))")
 						}
 					} else {
 						if evalType(newShow[place:count]) == "Exp" {
@@ -948,9 +1222,17 @@ func evalVarExpressionFunc(str string, name string) string {
 				if evalType(newShow[place:count]) == "Var" {
 					oneVar := isOneVariable(newShow[place:count])
 					if oneVar == true {
-						variable := getVariable(newShow[place:count])
-						arg = functionDict[name].funcVariableDict[variable]
-						newString += parseString(arg)
+						if strings.Contains(newShow[place:count], "[") && strings.Contains(newShow[place:count], "]") {
+							funcshowState = true
+							fmt.Println(newShow[place:count], ",")
+							functionProtocol(newShow[place:count], name)
+							newString += funcShowReturn
+
+						} else {
+							variable := getVariable(newShow[place:count])
+							arg = functionDict[name].funcVariableDict[variable]
+							newString += parseString(arg)
+						}
 					} else {
 						// fmt.Println(newShow[place:count], "((((((((((((((((((((((((((")
 						newString += getevalVarFunc(newShow[place:count], name)
@@ -975,11 +1257,21 @@ func evalVarExpressionFunc(str string, name string) string {
 					oneVar := isOneVariable(newShow[place:count])
 					// fmt.Println(isOneVariable(newShow[place:count]), newShow[place:count], "-----------", isOneVariable(newShow), "here----->")
 					if oneVar == true {
-						variable := getVariable(newShow[place:count])
-						arg = functionDict[name].funcVariableDict[variable]
-						newString += parseString(arg)
+						if strings.Contains(newShow[place:count], "[") && strings.Contains(newShow[place:count], "]") {
+							funcshowState = true
+							fmt.Println(newShow[place:count], ".")
+							functionProtocol(newShow[place:count], name)
+							newString += funcShowReturn
+
+						} else {
+							variable := getVariable(newShow[place:count])
+							arg = functionDict[name].funcVariableDict[variable]
+							newString += parseString(arg)
+						}
 					} else {
+						// fmt.Println(newShow[place:count], "((((((((((((((((((((((((((")
 						newString += getevalVarPeriodFunc(newShow[place:count], name)
+						// fmt.Println(newString, "))))))))))))))))))))))))))))))))))))")
 					}
 				} else {
 					if evalType(newShow[place:count]) == "Exp" {
@@ -1119,10 +1411,9 @@ func functionProtocol(str string, state string) {
 				}
 				if varState == false {
 					if funcshowState {
-
 						funcShowReturn = Calledfunction.funcVariableDict[getVariable(returnCode[1])]
 					} else {
-						fmt.Println("variable error :")
+						fmt.Println("variable error, or return error :")
 					}
 				}
 
@@ -1146,7 +1437,7 @@ func functionProtocol(str string, state string) {
 					if funcshowState {
 						funcShowReturn = Calledfunction.funcVariableDict[getVariable(returnCode[1])]
 					} else {
-						fmt.Println("variable error :")
+						fmt.Println("variable error, or return error :")
 					}
 				}
 
