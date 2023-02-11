@@ -11,5 +11,6 @@ implemented - context variable management for loops and if else statement
 working - check for errors all through code
 working - while loop structure add
 implemented - add more show functionality
-working -  add to if else parser return function capability for variables 
+50 % working -  add to if else parser return function capability for variables 
+% note : further context is needed for function implementation
 working -  add to loop parser return function capability for variables 

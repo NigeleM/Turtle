@@ -22,7 +22,7 @@ const (
 
 // Evaluate operations and expressions
 func eval(s string) string {
-
+	// fmt.Println(s)
 	fs := token.NewFileSet()
 	tv, err := types.Eval(fs, nil, token.NoPos, s)
 	if err != nil {
@@ -86,7 +86,6 @@ var variableDict = make(map[string]string)
 // Insert variable into the variable dictionary
 // may change this functionality but so far it works well
 func insertVariable(variableToken string) {
-	// fmt.Println(variableDict, variableToken, "<---->")
 	newtoken := variableToken
 	varToken := strings.Split(newtoken, "=")
 
@@ -100,7 +99,7 @@ func insertVariable(variableToken string) {
 	} else if evalType(varToken[1]) == "Bool" {
 		variableDict[string(varToken[0])] = eval(varToken[1])
 	} else if evalType(varToken[1]) == "Var" {
-
+		fmt.Println("isMain", varToken)
 		oldvar := varToken[1]
 		hold := ""
 		for v := range oldvar {
@@ -442,10 +441,7 @@ func evalVarExpression(str string) string {
 					if strings.Contains(str, "[") && strings.Contains(str, "]") && strings.Contains(str[placeAfter:count-1], "[") && strings.Contains(str[placeAfter:count-1], "]") {
 						funcshowState = true
 						functionProtocol(str[0:count-1], "isMain")
-						//funcShowReturn = strings.ReplaceAll(funcShowReturn, "\n", "")
-						// fmt.Println(funcShowReturn, "value + ")
 						parseToken = strings.ReplaceAll(parseToken, string(str[0:count-1]), funcShowReturn)
-						// fmt.Println(parseToken, "PARSE TOKEN PLUS")
 						funcshowState = false
 						funcShowReturn = ""
 					} else {
@@ -863,7 +859,6 @@ func insertVariableFunc(variableToken string, name string) {
 	} else if evalType(varToken[1]) == "Bool" {
 		functionDict[name].funcVariableDict[string(varToken[0])] = eval(varToken[1])
 	} else if evalType(varToken[1]) == "Var" {
-
 		oldvar := varToken[1]
 		hold := ""
 		for v := range oldvar {
@@ -1237,10 +1232,11 @@ func functionProtocol(str string, state string) {
 				}
 			} else {
 				_, isPresent := functionDict[state].funcVariableDict[getVariable(variablesSet[count])]
-
 				if isPresent {
+
 					Calledfunction.funcVariableDict[vars] = functionDict[state].funcVariableDict[getVariable(variablesSet[count])]
 				} else {
+
 					Calledfunction.funcVariableDict[vars] = variablesSet[count]
 				}
 
@@ -1278,6 +1274,7 @@ func functionProtocol(str string, state string) {
 				if varState == false {
 					if funcshowState {
 						funcShowReturn = Calledfunction.funcVariableDict[getVariable(returnCode[1])]
+						break
 					} else {
 						fmt.Println("variable error, or return error :")
 					}
@@ -1297,6 +1294,7 @@ func functionProtocol(str string, state string) {
 				if varState == false {
 					if funcshowState {
 						funcShowReturn = Calledfunction.funcVariableDict[getVariable(returnCode[1])]
+						break
 					} else {
 						fmt.Println("variable error, or return error :")
 					}
@@ -1538,6 +1536,9 @@ func ifelse(token []string, state string) {
 	}
 }
 
+// Add further context logic to if else statement and etc
+// not all functions need to have the context of the scope it's calling
+// if it does then reference context if it doesn't then set context to isMain or itself
 func ifelseParser(tok string, state string) string {
 	newExpression := ""
 	expression := tok[strings.Index(tok, "]")+1 : strings.LastIndex(tok, "[")]
@@ -1548,10 +1549,34 @@ func ifelseParser(tok string, state string) string {
 			variable := getVariable(newExpression)
 			if state == "isMain" && variable != "" {
 				// add logic in for functions here
-				newExpression = strings.ReplaceAll(newExpression, variable, variableDict[variable])
+				if strings.Contains(newExpression, "[") && strings.Contains(newExpression, "]") {
+					funcshowState = true
+					funcParsed := getVariable(newExpression)
+					// with getVariable it will only get function name and not arguments have to parse out the rest of the function .
+					// code below to get the other part of the function
+					// fmt.Println(state, "state", newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1])
+					functionProtocol(newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1], "isMain")
+					newExpression = strings.ReplaceAll(newExpression, newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1], funcShowReturn)
+					funcshowState = false
+					funcShowReturn = ""
+				} else {
+					newExpression = strings.ReplaceAll(newExpression, variable, variableDict[variable])
+				}
 			} else if state != "isMain" && variable != "" {
 				// add logic in for functions here
-				newExpression = strings.ReplaceAll(newExpression, variable, functionDict[state].funcVariableDict[variable])
+				if strings.Contains(newExpression, "[") && strings.Contains(newExpression, "]") {
+					funcshowState = true
+					funcParsed := getVariable(newExpression)
+					// with getVariable it will only get function name and not arguments have to parse out the rest of the function .
+					// code below to get the other part of the function
+					// fmt.Println(state, "state", newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1])
+					functionProtocol(newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1], funcParsed)
+					newExpression = strings.ReplaceAll(newExpression, newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1], funcShowReturn)
+					funcshowState = false
+					funcShowReturn = ""
+				} else {
+					newExpression = strings.ReplaceAll(newExpression, variable, functionDict[state].funcVariableDict[variable])
+				}
 			}
 		} else {
 			newExpression += string(word)
@@ -1559,9 +1584,31 @@ func ifelseParser(tok string, state string) string {
 	}
 	variable := getVariable(newExpression)
 	if state == "isMain" && variable != "" {
-		newExpression = strings.ReplaceAll(newExpression, variable, variableDict[variable])
+		if strings.Contains(newExpression, "[") && strings.Contains(newExpression, "]") {
+			funcshowState = true
+			funcParsed := getVariable(newExpression)
+			// with getVariable it will only get function name and not arguments have to parse out the rest of the function .
+			// code below to get the other part of the function
+			functionProtocol(newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1], "isMain")
+			newExpression = strings.ReplaceAll(newExpression, newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1], funcShowReturn)
+			funcshowState = false
+			funcShowReturn = ""
+		} else {
+			newExpression = strings.ReplaceAll(newExpression, variable, variableDict[variable])
+		}
 	} else if state != "isMain" && variable != "" {
-		newExpression = strings.ReplaceAll(newExpression, variable, functionDict[state].funcVariableDict[variable])
+		if strings.Contains(newExpression, "[") && strings.Contains(newExpression, "]") {
+			funcshowState = true
+			funcParsed := getVariable(newExpression)
+			// with getVariable it will only get function name and not arguments have to parse out the rest of the function .
+			// code below to get the other part of the function
+			functionProtocol(newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1], funcParsed)
+			newExpression = strings.ReplaceAll(newExpression, newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1], funcShowReturn)
+			funcshowState = false
+			funcShowReturn = ""
+		} else {
+			newExpression = strings.ReplaceAll(newExpression, variable, functionDict[state].funcVariableDict[variable])
+		}
 	}
 
 	return newExpression
