@@ -1,7 +1,6 @@
 implemented - for void and returning functions - incorporate functions into show
-% note : you can't do multiple show arguments with functions 
-% note : further fixes in the works
-- fixed variable expression show functionality 
+fixed - % note : you can't do multiple show arguments with functions 
+fixed - variable expression show functionality 
 fixed - fixing show variable issues. 
 implemented - nested logic for if else statements
 % note : nested loops can't be called recursive , need to further enhance nested ability 
@@ -9,6 +8,8 @@ implemented - nested variable parser
 implemented - parser for loops 
 working - implementation of using the counter in the loop
 implemented - context variable management for loops and if else statement
-- check for errors all through code
+working - check for errors all through code
 working - while loop structure add
-- add more show functionality
+implemented - add more show functionality
+working -  add to if else parser return function capability for variables 
+working -  add to loop parser return function capability for variables 

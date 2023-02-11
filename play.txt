@@ -14,7 +14,7 @@ def [end]
 
 def run[C]
     a = hello[C]
-    show a + 1. 
+    show 1 + a . 
 def [end]
 
 
