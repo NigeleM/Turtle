@@ -6,10 +6,10 @@ b = 200
  // c = a / 10
 // show c .
 
-def hello [a]
-    b = a/10.6
+def hello [a,b]
+    c = a/b
     // show b .
-     return b 
+     return c 
 def [end]
 
 def run[C]
@@ -51,7 +51,31 @@ def [end]
 a = 30
 b = 50
 // show b + hello [106] +  hello [318] + 10 + hello [212] + a .
- show b , " ", hello [106] + 10, " ",  hello [318] ," ", 10 ,  " ",hello [212] , " ", a ," " ,hello [318] + a .
+// show b , " ", hello [106] + 10, " ",  hello [318] ," ", 10 ,  " ",hello [212] , " ", a ," " ,hello [318] + a .
 // show "good day " .
-run [30]
-show b  + hello [106] , .
+// run [30]
+// show b  + hello [106] , .
+
+ass = 1890000
+show "in parser test isMain" .
+ if ] hello[10000000,2] > 89 [
+    show "cold weather" .
+else if ] 69 > 89 [
+    show "99 > 89" . 
+else ]
+    show "cold life" .
+if [end]
+
+def parserTest[]
+ show "in parser test function" .
+ if ] hello[106,106] > 89 [
+    show "cold weather" .
+else if ] 69 > 89 [
+    show "99 > 89" . 
+else ]
+    show "cold life" .
+if [end]
+
+def [end]
+
+parserTest[]
