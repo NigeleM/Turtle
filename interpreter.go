@@ -1914,6 +1914,300 @@ func loopStructure(loop []string, state string) {
 
 	} else {
 		// while loop logic add here
+		// add variable state for while loops
+		// if either of the expression is a variable check the increment or deincrement option before calling code
+		counterState := false
+		expressionVState := false
+		var counterValue string
+		var expressionVarValue string
+		if strings.Contains(loopConstruct, "<") {
+			value := strings.Split(loopConstruct, "<")
+			if getVariable(value[0]) != "" {
+				if state == "isMain" {
+					counter, _ := strconv.Atoi(variableDict[getVariable(value[0])])
+					count = counter
+					counterState = true
+					counterValue = value[0]
+				} else {
+					counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[0])])
+					count = counter
+					counterState = true
+					counterValue = value[0]
+				}
+
+			} else {
+				counter, _ := strconv.Atoi(value[1])
+				count = counter
+			}
+
+			if getVariable(value[1]) != "" {
+				if state == "isMain" {
+					expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+					expressionV = expressionValue
+					expressionVState = true
+					expressionVarValue = value[1]
+				} else {
+					expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+					expressionV = expressionValue
+					expressionVState = true
+					expressionVarValue = value[1]
+				}
+
+			} else {
+				expressionValue, _ := strconv.Atoi(value[1])
+				expressionV = expressionValue
+			}
+
+			for count < expressionV {
+				// perfect logic below
+				for _, tok := range loop {
+					if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+						continue
+					} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
+						continue
+					} else if strings.Contains(tok, "break") {
+						// add further logic for making sure break is not in a string
+						break
+
+					} else if strings.Contains(tok, "continue") {
+						// add further logic for making sure continue is not in a string
+						continue
+
+					} else {
+						if counterState == true && expressionVState == true {
+							if state == "isMain" {
+								if getVariable(tok) == getVariable(counterValue) {
+									//variableDict[getVariable(tok)]
+
+								}
+
+								if getVariable(tok) == getVariable(expressionVarValue) {
+									//variableDict[getVariable(tok)]
+
+								}
+
+							} else {
+								//functionDict[state].funcVariableDict[getVariable(value[1])]
+
+							}
+							callCode(tok, state)
+
+						} else if counterState == true && expressionVState == false {
+							callCode(tok, state)
+
+						} else if counterState == false && expressionVState == true {
+							callCode(tok, state)
+
+						}
+					}
+				}
+			}
+
+		} else if strings.Contains(loopConstruct, ">") {
+			value := strings.Split(loopConstruct, ">")
+			if getVariable(value[0]) != "" {
+				if state == "isMain" {
+					counter, _ := strconv.Atoi(variableDict[getVariable(value[0])])
+					count = counter
+				} else {
+					counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[0])])
+					count = counter
+				}
+
+			} else {
+				counter, _ := strconv.Atoi(value[1])
+				count = counter
+			}
+
+			if getVariable(value[1]) != "" {
+				if state == "isMain" {
+					expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+					expressionV = expressionValue
+				} else {
+					expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+					expressionV = expressionValue
+				}
+
+			} else {
+				expressionValue, _ := strconv.Atoi(value[1])
+				expressionV = expressionValue
+			}
+
+			for count > expressionV {
+				// perfect logic below
+				for _, tok := range loop {
+					if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+						continue
+					} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
+						continue
+					} else if strings.Contains(tok, "break") {
+						// add further logic for making sure break is not in a string
+						break
+
+					} else if strings.Contains(tok, "continue") {
+						// add further logic for making sure continue is not in a string
+						continue
+
+					} else {
+						callCode(tok, state)
+					}
+				}
+			}
+
+		} else if strings.Contains(loopConstruct, "<=") {
+			value := strings.Split(loopConstruct, "<=")
+			if getVariable(value[0]) != "" {
+				if state == "isMain" {
+					counter, _ := strconv.Atoi(variableDict[getVariable(value[0])])
+					count = counter
+				} else {
+					counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[0])])
+					count = counter
+				}
+
+			} else {
+				counter, _ := strconv.Atoi(value[1])
+				count = counter
+			}
+
+			if getVariable(value[1]) != "" {
+				if state == "isMain" {
+					expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+					expressionV = expressionValue
+				} else {
+					expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+					expressionV = expressionValue
+				}
+
+			} else {
+				expressionValue, _ := strconv.Atoi(value[1])
+				expressionV = expressionValue
+			}
+
+			for count <= expressionV {
+				// perfect logic below
+				for _, tok := range loop {
+					if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+						continue
+					} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
+						continue
+					} else if strings.Contains(tok, "break") {
+						// add further logic for making sure break is not in a string
+						break
+
+					} else if strings.Contains(tok, "continue") {
+						// add further logic for making sure continue is not in a string
+						continue
+
+					} else {
+						callCode(tok, state)
+					}
+				}
+			}
+
+		} else if strings.Contains(loopConstruct, ">=") {
+			value := strings.Split(loopConstruct, ">=")
+			if getVariable(value[0]) != "" {
+				if state == "isMain" {
+					counter, _ := strconv.Atoi(variableDict[getVariable(value[0])])
+					count = counter
+				} else {
+					counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[0])])
+					count = counter
+				}
+
+			} else {
+				counter, _ := strconv.Atoi(value[1])
+				count = counter
+			}
+
+			if getVariable(value[1]) != "" {
+				if state == "isMain" {
+					expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+					expressionV = expressionValue
+				} else {
+					expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+					expressionV = expressionValue
+				}
+
+			} else {
+				expressionValue, _ := strconv.Atoi(value[1])
+				expressionV = expressionValue
+			}
+
+			for count >= expressionV {
+				// perfect logic below
+				for _, tok := range loop {
+					if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+						continue
+					} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
+						continue
+					} else if strings.Contains(tok, "break") {
+						// add further logic for making sure break is not in a string
+						break
+
+					} else if strings.Contains(tok, "continue") {
+						// add further logic for making sure continue is not in a string
+						continue
+
+					} else {
+						callCode(tok, state)
+					}
+				}
+			}
+
+		} else if strings.Contains(loopConstruct, "!=") {
+			value := strings.Split(loopConstruct, "!=")
+			if getVariable(value[0]) != "" {
+				if state == "isMain" {
+					counter, _ := strconv.Atoi(variableDict[getVariable(value[0])])
+					count = counter
+				} else {
+					counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[0])])
+					count = counter
+				}
+
+			} else {
+				counter, _ := strconv.Atoi(value[1])
+				count = counter
+			}
+
+			if getVariable(value[1]) != "" {
+				if state == "isMain" {
+					expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+					expressionV = expressionValue
+				} else {
+					expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+					expressionV = expressionValue
+				}
+
+			} else {
+				expressionValue, _ := strconv.Atoi(value[1])
+				expressionV = expressionValue
+			}
+
+			for count != expressionV {
+				// perfect logic below
+				for _, tok := range loop {
+					if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") {
+						continue
+					} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && strings.Contains(tok, "[end]") {
+						continue
+					} else if strings.Contains(tok, "break") {
+						// add further logic for making sure break is not in a string
+						break
+
+					} else if strings.Contains(tok, "continue") {
+						// add further logic for making sure continue is not in a string
+						continue
+
+					} else {
+						callCode(tok, state)
+					}
+				}
+			}
+
+		}
 	}
 
 	// cases for loop to run

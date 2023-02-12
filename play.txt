@@ -1,6 +1,6 @@
 
 def hello [b]
-    c = b/10
+    c = b/10.0
     // show c .
      return c 
 def [end]
@@ -11,8 +11,10 @@ def run[C]
     show "call here" .
     // a = hello[C]
     show "expression here" .
-    show 1 + a . 
-    show hello[a] , hello[80] .
+    // show 1.0 + a . 
+    a = a + 1.00
+    show a .
+    show hello[a] ," ", hello[80] .
     show "completed" .
 def [end]
 
@@ -53,7 +55,7 @@ b = 50
 show b + hello [106] +  hello [318] + 10 + hello [212] + a .
 // show b , " ", hello [b] + 10, " ",  hello [318] ," ", 10 ,  " ",hello [212] , " ", a ," " ,hello [318] + a .
 // show "good day " .
-// run [30]
+ run [30]
 // show b  + hello [106] , .
 
 ass = 1890000
@@ -79,4 +81,4 @@ if [end]
 
 def [end]
 // show []
- parserTest[]
+// parserTest[]
