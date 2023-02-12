@@ -1,20 +1,19 @@
-a = 100 
-b = 200
-// show a .
-// show b .
-// show a , " hello world", " good bye ". 
- // c = a / 10
-// show c .
 
-def hello [a,b]
-    c = a/b
-    // show b .
+def hello [b]
+    c = b/10
+    // show c .
      return c 
 def [end]
 
 def run[C]
+    show "running run function" .
     a = hello[C]
+    show "call here" .
+    // a = hello[C]
+    show "expression here" .
     show 1 + a . 
+    show hello[a] , hello[80] .
+    show "completed" .
 def [end]
 
 
@@ -50,16 +49,17 @@ def [end]
 // show hello [212] .
 a = 30
 b = 50
-// show b + hello [106] +  hello [318] + 10 + hello [212] + a .
-// show b , " ", hello [106] + 10, " ",  hello [318] ," ", 10 ,  " ",hello [212] , " ", a ," " ,hello [318] + a .
+// show 4*12 .
+show b + hello [106] +  hello [318] + 10 + hello [212] + a .
+// show b , " ", hello [b] + 10, " ",  hello [318] ," ", 10 ,  " ",hello [212] , " ", a ," " ,hello [318] + a .
 // show "good day " .
 // run [30]
 // show b  + hello [106] , .
 
 ass = 1890000
-show "in parser test isMain" .
- if ] hello[10000000,2] > 89 [
-    show "cold weather" .
+// show "in parser test isMain" .
+ if ] hello[ass] > 89 [
+    show "cold weather isMain" .
 else if ] 69 > 89 [
     show "99 > 89" . 
 else ]
@@ -67,9 +67,10 @@ else ]
 if [end]
 
 def parserTest[]
- show "in parser test function" .
- if ] hello[106,106] > 89 [
-    show "cold weather" .
+ a = 100000
+ // show "in parser test function" .
+ if ] hello[1000000] > 89 [
+    show "cold weather not Main" .
 else if ] 69 > 89 [
     show "99 > 89" . 
 else ]
@@ -77,5 +78,5 @@ else ]
 if [end]
 
 def [end]
-
-parserTest[]
+// show []
+ parserTest[]

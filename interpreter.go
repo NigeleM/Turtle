@@ -22,7 +22,6 @@ const (
 
 // Evaluate operations and expressions
 func eval(s string) string {
-	// fmt.Println(s)
 	fs := token.NewFileSet()
 	tv, err := types.Eval(fs, nil, token.NoPos, s)
 	if err != nil {
@@ -99,7 +98,6 @@ func insertVariable(variableToken string) {
 	} else if evalType(varToken[1]) == "Bool" {
 		variableDict[string(varToken[0])] = eval(varToken[1])
 	} else if evalType(varToken[1]) == "Var" {
-		fmt.Println("isMain", varToken)
 		oldvar := varToken[1]
 		hold := ""
 		for v := range oldvar {
@@ -222,6 +220,9 @@ func getVariable(str string) string {
 			varTok += string(s[i])
 		} else if s[i] >= 97 && s[i] <= 122 && instring == 0 || s[i] == 95 && instring == 0 {
 			varTok += string(s[i])
+
+		} else if s[i] == 91 && instring == 0 {
+			return varTok
 		} else {
 			continue
 		}
@@ -979,7 +980,6 @@ func evalVarExpressionFunc(str string, name string) string {
 						if variable == "" {
 							place = count + 1
 						} else {
-
 							parseToken = strings.ReplaceAll(parseToken, variable, functionDict[name].funcVariableDict[variable])
 							place = count + 1
 						}
@@ -987,9 +987,12 @@ func evalVarExpressionFunc(str string, name string) string {
 					placeAfter = count + 1
 
 				}
+
 			}
 		}
+
 		parseToken = parseToken[0:strings.LastIndex(parseToken, ".")]
+
 		return parseString(strings.ReplaceAll(eval(parseToken), "\\n", "\n"))
 	} else if oneStatement == true {
 		variable := getVariable(str[0:strings.LastIndex(str, ".")])
@@ -1096,7 +1099,6 @@ func evalVarExpressionFunc(str string, name string) string {
 					if oneVar == true {
 						if strings.Contains(newShow[place:count], "[") && strings.Contains(newShow[place:count], "]") {
 							funcshowState = true
-							fmt.Println(newShow[place:count], ",")
 							functionProtocol(newShow[place:count], name)
 							newString += funcShowReturn
 
@@ -1127,7 +1129,6 @@ func evalVarExpressionFunc(str string, name string) string {
 					if oneVar == true {
 						if strings.Contains(newShow[place:count], "[") && strings.Contains(newShow[place:count], "]") {
 							funcshowState = true
-							fmt.Println(newShow[place:count], ".")
 							functionProtocol(newShow[place:count], name)
 							newString += funcShowReturn
 
@@ -1246,7 +1247,6 @@ func functionProtocol(str string, state string) {
 
 		count += 1
 	}
-
 	// loop through the function statements
 	for _, tok := range Calledfunction.content {
 		if len(tok) == 0 {
@@ -1536,14 +1536,12 @@ func ifelse(token []string, state string) {
 	}
 }
 
-// Add further context logic to if else statement and etc
-// not all functions need to have the context of the scope it's calling
-// if it does then reference context if it doesn't then set context to isMain or itself
+// If else parser function is able to parse variables , functions , and literals
+// makes if else statements ready for execution...
 func ifelseParser(tok string, state string) string {
 	newExpression := ""
 	expression := tok[strings.Index(tok, "]")+1 : strings.LastIndex(tok, "[")]
 	for _, word := range expression {
-		// fmt.Println(string(word))
 		if string(word) == ">" || string(word) == "<" || string(word) == "=" || string(word) == "&" || string(word) == "|" || string(word) == "!" {
 			newExpression += string(word)
 			variable := getVariable(newExpression)
@@ -1554,7 +1552,6 @@ func ifelseParser(tok string, state string) string {
 					funcParsed := getVariable(newExpression)
 					// with getVariable it will only get function name and not arguments have to parse out the rest of the function .
 					// code below to get the other part of the function
-					// fmt.Println(state, "state", newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1])
 					functionProtocol(newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1], "isMain")
 					newExpression = strings.ReplaceAll(newExpression, newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1], funcShowReturn)
 					funcshowState = false
@@ -1569,11 +1566,20 @@ func ifelseParser(tok string, state string) string {
 					funcParsed := getVariable(newExpression)
 					// with getVariable it will only get function name and not arguments have to parse out the rest of the function .
 					// code below to get the other part of the function
-					// fmt.Println(state, "state", newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1])
-					functionProtocol(newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1], funcParsed)
-					newExpression = strings.ReplaceAll(newExpression, newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1], funcShowReturn)
-					funcshowState = false
-					funcShowReturn = ""
+					if "" != getVariable(newExpression[strings.Index(newExpression, "[")+1:strings.Index(newExpression, "]")]) {
+						functionProtocol(newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1], state)
+						newExpression = strings.ReplaceAll(newExpression, newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1], funcShowReturn)
+						funcshowState = false
+						funcShowReturn = ""
+
+					} else {
+						functionProtocol(newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1], "isMain")
+						newExpression = strings.ReplaceAll(newExpression, newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1], funcShowReturn)
+						funcshowState = false
+						funcShowReturn = ""
+
+					}
+
 				} else {
 					newExpression = strings.ReplaceAll(newExpression, variable, functionDict[state].funcVariableDict[variable])
 				}
@@ -1602,10 +1608,20 @@ func ifelseParser(tok string, state string) string {
 			funcParsed := getVariable(newExpression)
 			// with getVariable it will only get function name and not arguments have to parse out the rest of the function .
 			// code below to get the other part of the function
-			functionProtocol(newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1], funcParsed)
-			newExpression = strings.ReplaceAll(newExpression, newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1], funcShowReturn)
-			funcshowState = false
-			funcShowReturn = ""
+			// Learned also that the scope doesn't have to reference another functions scope if it has a literal value.
+			if "" != getVariable(newExpression[strings.Index(newExpression, "[")+1:strings.Index(newExpression, "]")]) {
+				functionProtocol(newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1], state)
+				newExpression = strings.ReplaceAll(newExpression, newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1], funcShowReturn)
+				funcshowState = false
+				funcShowReturn = ""
+
+			} else {
+				functionProtocol(newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1], "isMain")
+				newExpression = strings.ReplaceAll(newExpression, newExpression[strings.Index(newExpression, funcParsed):strings.Index(newExpression, "]")+1], funcShowReturn)
+				funcshowState = false
+				funcShowReturn = ""
+
+			}
 		} else {
 			newExpression = strings.ReplaceAll(newExpression, variable, functionDict[state].funcVariableDict[variable])
 		}
@@ -1919,7 +1935,6 @@ func loopStructure(loop []string, state string) {
 					continue
 
 				} else {
-					// fmt.Println(tok)
 					callCode(tok, state)
 				}
 			}
@@ -1997,7 +2012,6 @@ func loopStructure(loop []string, state string) {
 					continue
 
 				} else {
-					// fmt.Println(tok)
 					if nested {
 						nestedLoop = append(nestedLoop, tok)
 					} else {
@@ -2039,7 +2053,6 @@ func loopStructure(loop []string, state string) {
 					continue
 
 				} else {
-					// fmt.Println(tok)
 					if nested {
 						nestedLoop = append(nestedLoop, tok)
 					} else {
@@ -2081,7 +2094,6 @@ func loopStructure(loop []string, state string) {
 					continue
 
 				} else {
-					// fmt.Println(tok)
 					if nested {
 						nestedLoop = append(nestedLoop, tok)
 					} else {
@@ -2122,7 +2134,6 @@ func loopStructure(loop []string, state string) {
 					continue
 
 				} else {
-					// fmt.Println(tok)
 					if nested {
 						nestedLoop = append(nestedLoop, tok)
 					} else {
@@ -2164,7 +2175,6 @@ func loopStructure(loop []string, state string) {
 					continue
 
 				} else {
-					// fmt.Println(tok)
 					if nested {
 						nestedLoop = append(nestedLoop, tok)
 					} else {
@@ -2206,7 +2216,6 @@ func loopStructure(loop []string, state string) {
 					continue
 
 				} else {
-					// fmt.Println(tok)
 					if nested {
 						nestedLoop = append(nestedLoop, tok)
 					} else {
@@ -2248,7 +2257,6 @@ func loopStructure(loop []string, state string) {
 					continue
 
 				} else {
-					// fmt.Println(tok)
 					if nested {
 						nestedLoop = append(nestedLoop, tok)
 					} else {
@@ -2290,7 +2298,6 @@ func loopStructure(loop []string, state string) {
 					continue
 
 				} else {
-					// fmt.Println(tok)
 					if nested {
 						nestedLoop = append(nestedLoop, tok)
 					} else {
