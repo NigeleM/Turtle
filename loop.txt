@@ -15,9 +15,10 @@ z = 6
 // show c , " C is " .
 // show "hello nigele " .
 
-i = 0
-[loop][i < 7]
+i = 12
+a = 10
+[loop][i != a]
     show " Hello World" . 
-    i = i + 1
+    a = a + 1
 
 [loop][end]

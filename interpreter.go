@@ -1800,7 +1800,7 @@ func loopStructure(loop []string, state string) {
 	loopConstruct = strings.ReplaceAll(loopConstruct, "[", "")
 	loopConstruct = strings.ReplaceAll(loopConstruct, "]", "")
 	count := 0
-	expressionV := 0
+	var expressionV int
 	incrementer := ""
 	operator := ""
 	// get the loop structure first
@@ -1936,17 +1936,20 @@ func loopStructure(loop []string, state string) {
 				}
 
 			} else {
-				counter, _ := strconv.Atoi(value[1])
+				// fuzzy logic here will have to fix later as i think on it
+				counter, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
 				count = counter
 			}
-
+			// fmt.Println(value[1], "===", getVariable(value[1]))
 			if getVariable(value[1]) != "" {
+
 				if state == "isMain" {
 					expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
 					expressionV = expressionValue
 					expressionVState = true
 					expressionVarValue = value[1]
 				} else {
+
 					expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
 					expressionV = expressionValue
 					expressionVState = true
@@ -1954,10 +1957,10 @@ func loopStructure(loop []string, state string) {
 				}
 
 			} else {
-				expressionValue, _ := strconv.Atoi(value[1])
+				expressionValue, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
 				expressionV = expressionValue
+				// fmt.Println(expressionValue)
 			}
-
 			for count < expressionV {
 				// perfect logic below
 				for _, tok := range loop {
@@ -1976,27 +1979,94 @@ func loopStructure(loop []string, state string) {
 					} else {
 						if counterState == true && expressionVState == true {
 							if state == "isMain" {
-								if getVariable(tok) == getVariable(counterValue) {
-									//variableDict[getVariable(tok)]
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)])
+									}
+									if getVariable(countContext) == getVariable(expressionVarValue) {
+										callCode(tok, state)
+										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)])
+									}
+								} else {
 
-								}
-
-								if getVariable(tok) == getVariable(expressionVarValue) {
-									//variableDict[getVariable(tok)]
-
+									callCode(tok, state)
 								}
 
 							} else {
-								//functionDict[state].funcVariableDict[getVariable(value[1])]
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+									}
+									if getVariable(tok) == getVariable(expressionVarValue) {
+										callCode(tok, state)
+										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)])
+									}
+								} else {
 
+									callCode(tok, state)
+								}
 							}
-							callCode(tok, state)
 
 						} else if counterState == true && expressionVState == false {
-							callCode(tok, state)
+							// fmt.Println(counterValue, expressionVarValue)
+							if state == "isMain" {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)])
+									}
+								} else {
+
+									callCode(tok, state)
+								}
+
+							} else {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+									}
+								} else {
+									callCode(tok, state)
+								}
+							}
 
 						} else if counterState == false && expressionVState == true {
-							callCode(tok, state)
+							if state == "isMain" {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+
+									if getVariable(countContext) == getVariable(expressionVarValue) {
+										callCode(tok, state)
+										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)])
+									}
+								} else {
+
+									callCode(tok, state)
+								}
+
+							} else {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+									}
+									if getVariable(tok) == getVariable(expressionVarValue) {
+										callCode(tok, state)
+										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)])
+									}
+								} else {
+
+									callCode(tok, state)
+								}
+							}
 
 						}
 					}
@@ -2009,30 +2079,42 @@ func loopStructure(loop []string, state string) {
 				if state == "isMain" {
 					counter, _ := strconv.Atoi(variableDict[getVariable(value[0])])
 					count = counter
+					counterState = true
+					counterValue = value[0]
 				} else {
 					counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[0])])
 					count = counter
+					counterState = true
+					counterValue = value[0]
 				}
 
 			} else {
-				counter, _ := strconv.Atoi(value[1])
+				// fuzzy logic here will have to fix later as i think on it
+				counter, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
 				count = counter
 			}
-
+			// fmt.Println(value[1], "===", getVariable(value[1]))
 			if getVariable(value[1]) != "" {
+
 				if state == "isMain" {
 					expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
 					expressionV = expressionValue
+					expressionVState = true
+					expressionVarValue = value[1]
 				} else {
+
 					expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
 					expressionV = expressionValue
+					expressionVState = true
+					expressionVarValue = value[1]
 				}
 
 			} else {
-				expressionValue, _ := strconv.Atoi(value[1])
+				expressionValue, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
 				expressionV = expressionValue
+				// fmt.Println(expressionValue)
 			}
-
+			// fmt.Println(count, expressionV, counterState, expressionVState)
 			for count > expressionV {
 				// perfect logic below
 				for _, tok := range loop {
@@ -2049,7 +2131,99 @@ func loopStructure(loop []string, state string) {
 						continue
 
 					} else {
-						callCode(tok, state)
+						if counterState == true && expressionVState == true {
+							if state == "isMain" {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)])
+									}
+									if getVariable(countContext) == getVariable(expressionVarValue) {
+										callCode(tok, state)
+										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)])
+										// fmt.Println(expressionV)
+									}
+								} else {
+
+									callCode(tok, state)
+								}
+
+							} else {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+									}
+									if getVariable(countContext) == getVariable(expressionVarValue) {
+										callCode(tok, state)
+										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)])
+									}
+								} else {
+
+									callCode(tok, state)
+								}
+							}
+
+						} else if counterState == true && expressionVState == false {
+							// fmt.Println(counterValue, expressionVarValue)
+							if state == "isMain" {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)])
+									}
+								} else {
+
+									callCode(tok, state)
+								}
+
+							} else {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+									}
+								} else {
+									callCode(tok, state)
+								}
+							}
+
+						} else if counterState == false && expressionVState == true {
+							if state == "isMain" {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+
+									if getVariable(countContext) == getVariable(expressionVarValue) {
+										callCode(tok, state)
+										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)])
+									}
+								} else {
+
+									callCode(tok, state)
+								}
+
+							} else {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+									}
+									if getVariable(countContext) == getVariable(expressionVarValue) {
+										callCode(tok, state)
+										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)])
+									}
+								} else {
+
+									callCode(tok, state)
+								}
+							}
+
+						}
 					}
 				}
 			}
@@ -2060,28 +2234,40 @@ func loopStructure(loop []string, state string) {
 				if state == "isMain" {
 					counter, _ := strconv.Atoi(variableDict[getVariable(value[0])])
 					count = counter
+					counterState = true
+					counterValue = value[0]
 				} else {
 					counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[0])])
 					count = counter
+					counterState = true
+					counterValue = value[0]
 				}
 
 			} else {
-				counter, _ := strconv.Atoi(value[1])
+				// fuzzy logic here will have to fix later as i think on it
+				counter, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
 				count = counter
 			}
-
+			// fmt.Println(value[1], "===", getVariable(value[1]))
 			if getVariable(value[1]) != "" {
+
 				if state == "isMain" {
 					expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
 					expressionV = expressionValue
+					expressionVState = true
+					expressionVarValue = value[1]
 				} else {
+
 					expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
 					expressionV = expressionValue
+					expressionVState = true
+					expressionVarValue = value[1]
 				}
 
 			} else {
-				expressionValue, _ := strconv.Atoi(value[1])
+				expressionValue, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
 				expressionV = expressionValue
+				// fmt.Println(expressionValue)
 			}
 
 			for count <= expressionV {
@@ -2100,7 +2286,98 @@ func loopStructure(loop []string, state string) {
 						continue
 
 					} else {
-						callCode(tok, state)
+						if counterState == true && expressionVState == true {
+							if state == "isMain" {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)])
+									}
+									if getVariable(countContext) == getVariable(expressionVarValue) {
+										callCode(tok, state)
+										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)])
+									}
+								} else {
+
+									callCode(tok, state)
+								}
+
+							} else {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+									}
+									if getVariable(tok) == getVariable(expressionVarValue) {
+										callCode(tok, state)
+										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)])
+									}
+								} else {
+
+									callCode(tok, state)
+								}
+							}
+
+						} else if counterState == true && expressionVState == false {
+							// fmt.Println(counterValue, expressionVarValue)
+							if state == "isMain" {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)])
+									}
+								} else {
+
+									callCode(tok, state)
+								}
+
+							} else {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+									}
+								} else {
+									callCode(tok, state)
+								}
+							}
+
+						} else if counterState == false && expressionVState == true {
+							if state == "isMain" {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+
+									if getVariable(countContext) == getVariable(expressionVarValue) {
+										callCode(tok, state)
+										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)])
+									}
+								} else {
+
+									callCode(tok, state)
+								}
+
+							} else {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+									}
+									if getVariable(tok) == getVariable(expressionVarValue) {
+										callCode(tok, state)
+										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)])
+									}
+								} else {
+
+									callCode(tok, state)
+								}
+							}
+
+						}
 					}
 				}
 			}
@@ -2111,28 +2388,40 @@ func loopStructure(loop []string, state string) {
 				if state == "isMain" {
 					counter, _ := strconv.Atoi(variableDict[getVariable(value[0])])
 					count = counter
+					counterState = true
+					counterValue = value[0]
 				} else {
 					counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[0])])
 					count = counter
+					counterState = true
+					counterValue = value[0]
 				}
 
 			} else {
-				counter, _ := strconv.Atoi(value[1])
+				// fuzzy logic here will have to fix later as i think on it
+				counter, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
 				count = counter
 			}
-
+			// fmt.Println(value[1], "===", getVariable(value[1]))
 			if getVariable(value[1]) != "" {
+
 				if state == "isMain" {
 					expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
 					expressionV = expressionValue
+					expressionVState = true
+					expressionVarValue = value[1]
 				} else {
+
 					expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
 					expressionV = expressionValue
+					expressionVState = true
+					expressionVarValue = value[1]
 				}
 
 			} else {
-				expressionValue, _ := strconv.Atoi(value[1])
+				expressionValue, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
 				expressionV = expressionValue
+				// fmt.Println(expressionValue)
 			}
 
 			for count >= expressionV {
@@ -2151,7 +2440,98 @@ func loopStructure(loop []string, state string) {
 						continue
 
 					} else {
-						callCode(tok, state)
+						if counterState == true && expressionVState == true {
+							if state == "isMain" {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)])
+									}
+									if getVariable(countContext) == getVariable(expressionVarValue) {
+										callCode(tok, state)
+										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)])
+									}
+								} else {
+
+									callCode(tok, state)
+								}
+
+							} else {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+									}
+									if getVariable(tok) == getVariable(expressionVarValue) {
+										callCode(tok, state)
+										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)])
+									}
+								} else {
+
+									callCode(tok, state)
+								}
+							}
+
+						} else if counterState == true && expressionVState == false {
+							// fmt.Println(counterValue, expressionVarValue)
+							if state == "isMain" {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)])
+									}
+								} else {
+
+									callCode(tok, state)
+								}
+
+							} else {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+									}
+								} else {
+									callCode(tok, state)
+								}
+							}
+
+						} else if counterState == false && expressionVState == true {
+							if state == "isMain" {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+
+									if getVariable(countContext) == getVariable(expressionVarValue) {
+										callCode(tok, state)
+										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)])
+									}
+								} else {
+
+									callCode(tok, state)
+								}
+
+							} else {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+									}
+									if getVariable(tok) == getVariable(expressionVarValue) {
+										callCode(tok, state)
+										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)])
+									}
+								} else {
+
+									callCode(tok, state)
+								}
+							}
+
+						}
 					}
 				}
 			}
@@ -2162,28 +2542,40 @@ func loopStructure(loop []string, state string) {
 				if state == "isMain" {
 					counter, _ := strconv.Atoi(variableDict[getVariable(value[0])])
 					count = counter
+					counterState = true
+					counterValue = value[0]
 				} else {
 					counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[0])])
 					count = counter
+					counterState = true
+					counterValue = value[0]
 				}
 
 			} else {
-				counter, _ := strconv.Atoi(value[1])
+				// fuzzy logic here will have to fix later as i think on it
+				counter, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
 				count = counter
 			}
-
+			// fmt.Println(value[1], "===", getVariable(value[1]))
 			if getVariable(value[1]) != "" {
+
 				if state == "isMain" {
 					expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
 					expressionV = expressionValue
+					expressionVState = true
+					expressionVarValue = value[1]
 				} else {
+
 					expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
 					expressionV = expressionValue
+					expressionVState = true
+					expressionVarValue = value[1]
 				}
 
 			} else {
-				expressionValue, _ := strconv.Atoi(value[1])
+				expressionValue, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
 				expressionV = expressionValue
+				// fmt.Println(expressionValue)
 			}
 
 			for count != expressionV {
@@ -2202,7 +2594,98 @@ func loopStructure(loop []string, state string) {
 						continue
 
 					} else {
-						callCode(tok, state)
+						if counterState == true && expressionVState == true {
+							if state == "isMain" {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)])
+									}
+									if getVariable(countContext) == getVariable(expressionVarValue) {
+										callCode(tok, state)
+										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)])
+									}
+								} else {
+
+									callCode(tok, state)
+								}
+
+							} else {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+									}
+									if getVariable(tok) == getVariable(expressionVarValue) {
+										callCode(tok, state)
+										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)])
+									}
+								} else {
+
+									callCode(tok, state)
+								}
+							}
+
+						} else if counterState == true && expressionVState == false {
+							// fmt.Println(counterValue, expressionVarValue)
+							if state == "isMain" {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)])
+									}
+								} else {
+
+									callCode(tok, state)
+								}
+
+							} else {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+									}
+								} else {
+									callCode(tok, state)
+								}
+							}
+
+						} else if counterState == false && expressionVState == true {
+							if state == "isMain" {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+
+									if getVariable(countContext) == getVariable(expressionVarValue) {
+										callCode(tok, state)
+										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)])
+									}
+								} else {
+
+									callCode(tok, state)
+								}
+
+							} else {
+								if strings.Contains(tok, "=") && strings.Contains(tok, "+") || strings.Contains(tok, "-") {
+									countContext := getVariable(strings.Split(tok, "=")[0])
+									if getVariable(countContext) == getVariable(counterValue) {
+										callCode(tok, state)
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+									}
+									if getVariable(tok) == getVariable(expressionVarValue) {
+										callCode(tok, state)
+										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)])
+									}
+								} else {
+
+									callCode(tok, state)
+								}
+							}
+
+						}
 					}
 				}
 			}
