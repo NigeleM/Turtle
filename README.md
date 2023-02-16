@@ -5,9 +5,10 @@ Turtle Programming Language
 2. Output establsihed
 3. Variable and non variable expressions can be evaluated
 4. Display different data to the screen.
-5. define and call functions
-6. if else statements implemented
-7. See Issues tab for upcoming updates
+5. define and call functions , Function expressions can be evaluated with implementation of return functions 
+6. if else statements implemented (nested functionality as well)
+7. For and conditional loops implemented (nested functionality as well) 
+8. See Issues tab for upcoming updates
 
 
 # The Turtle Programming Language ⓒ 2017
