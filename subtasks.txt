@@ -6,11 +6,16 @@ implemented - nested logic for if else statements
 % note : nested loops can't be called recursive , need to further enhance nested ability 
 implemented - nested variable parser
 implemented - parser for loops 
-70 % working  - implementation of using the counter in the loop
+100 % working  - implementation of using the counter in the loop
 implemented - context variable management for loops and if else statement
 working - check for errors all through code
-97 % working - while loop structure add
+100 % working - while loop structure add
 implemented - add more show functionality
 100 % working -  add to if else parser return function capability for variables 
 % note : further context is needed for function implementation
-working -  add to loop parser return function capability for variables 
+decided that it is not currently needed % working -  add to loop parser return function capability for variables 
+- - - - - - - - -
+New Tasks
+Standard Library
+Error handling 
+Data structures 
