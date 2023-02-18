@@ -1813,15 +1813,24 @@ func loopStructure(loop []string, state string) {
 				if getVariable(value[1]) != "" {
 					if state == "isMain" {
 						counter, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+						variableDict[getVariable(value[0])] = variableDict[getVariable(value[1])]
 						count = counter
 					} else {
 						counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+						functionDict[state].funcVariableDict[getVariable(value[0])] = functionDict[state].funcVariableDict[getVariable(value[1])]
 						count = counter
 					}
 
 				} else {
-					counter, _ := strconv.Atoi(value[1])
-					count = counter
+					if state == "isMain" {
+						counter, _ := strconv.Atoi(strings.ReplaceAll(value[1], " ", ""))
+						variableDict[getVariable(value[0])] = eval(value[1])
+						count = counter
+					} else {
+						counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+						functionDict[state].funcVariableDict[getVariable(value[0])] = eval(value[1])
+						count = counter
+					}
 				}
 
 			} else if strings.Contains(looptoken, "<") && !strings.Contains(looptoken, "=") {
@@ -1830,9 +1839,11 @@ func loopStructure(loop []string, state string) {
 				if getVariable(value[1]) != "" {
 					if state == "isMain" {
 						expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+						variableDict[getVariable(value[0])] = variableDict[getVariable(value[1])]
 						expressionV = expressionValue
 					} else {
 						expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+						functionDict[state].funcVariableDict[getVariable(value[0])] = functionDict[state].funcVariableDict[getVariable(value[1])]
 						expressionV = expressionValue
 					}
 
@@ -1846,9 +1857,11 @@ func loopStructure(loop []string, state string) {
 				if getVariable(value[1]) != "" {
 					if state == "isMain" {
 						expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+						variableDict[getVariable(value[0])] = variableDict[getVariable(value[1])]
 						expressionV = expressionValue
 					} else {
 						expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+						functionDict[state].funcVariableDict[getVariable(value[0])] = functionDict[state].funcVariableDict[getVariable(value[1])]
 						expressionV = expressionValue
 					}
 
@@ -1862,9 +1875,11 @@ func loopStructure(loop []string, state string) {
 				if getVariable(value[1]) != "" {
 					if state == "isMain" {
 						expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+						variableDict[getVariable(value[0])] = variableDict[getVariable(value[1])]
 						expressionV = expressionValue
 					} else {
 						expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+						functionDict[state].funcVariableDict[getVariable(value[0])] = functionDict[state].funcVariableDict[getVariable(value[1])]
 						expressionV = expressionValue
 					}
 
@@ -1878,9 +1893,11 @@ func loopStructure(loop []string, state string) {
 				if getVariable(value[1]) != "" {
 					if state == "isMain" {
 						expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+						variableDict[getVariable(value[0])] = variableDict[getVariable(value[1])]
 						expressionV = expressionValue
 					} else {
 						expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+						functionDict[state].funcVariableDict[getVariable(value[0])] = functionDict[state].funcVariableDict[getVariable(value[1])]
 						expressionV = expressionValue
 					}
 
@@ -1894,9 +1911,11 @@ func loopStructure(loop []string, state string) {
 				if getVariable(value[1]) != "" {
 					if state == "isMain" {
 						expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+						variableDict[getVariable(value[0])] = variableDict[getVariable(value[1])]
 						expressionV = expressionValue
 					} else {
 						expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+						functionDict[state].funcVariableDict[getVariable(value[0])] = functionDict[state].funcVariableDict[getVariable(value[1])]
 						expressionV = expressionValue
 					}
 
