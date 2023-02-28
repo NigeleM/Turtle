@@ -6,8 +6,11 @@ import (
 	"go/token"
 	"go/types"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
 )
 
 // eval function
@@ -3106,20 +3109,88 @@ func loopStructure(loop []string, state string) {
 	}
 }
 
+// Function is used if no argument is passed into the interperter
+// It runs the most recent modified program in the /Users/* directory
+// Further updates may follow in the future.
+func OpenLatestFile() string {
+	path, err := os.Getwd()
+	check(err)
+	fileToRead := make(map[string]int64)
+	var file string
+	smallT, err := filepath.Glob("*.t")
+	bigT, err := filepath.Glob("*.T")
+	wholeList := make([]string, 0)
+	wholeList = append(wholeList, bigT...)
+	wholeList = append(wholeList, smallT...)
+	if len(wholeList) == 1 {
+		return path + "/" + wholeList[0]
+	} else if len(wholeList) == 0 {
+		return ""
+	} else {
+		var seconds int64
+		var newestTime int64 = 0
+		for _, item := range wholeList {
+			var st syscall.Stat_t
+			fileStat := syscall.Stat(item, &st)
+			check(fileStat)
+			// fmt.Println(item, fileStat)
+			fileToRead[item] = st.Ctimespec.Sec
+			// fmt.Println(item, fileToRead[item], st.Ctimespec.Sec)
+			seconds = st.Ctimespec.Sec
+			if seconds > newestTime {
+				newestTime = seconds
+				file = item
+			}
+
+		}
+
+	}
+
+	return path + "/" + file
+
+}
+
 // Main function
 func main() {
+	var Lastfile string
+	var LastfileState bool
+	var file *os.File
+	var err error
+	if len(os.Args) == 2 {
+		file, err = os.Open(os.Args[1])
+	} else {
+		Lastfile = OpenLatestFile()
+		if Lastfile == "" {
+			fmt.Println("No file to run")
+			time.Sleep(10 * time.Second)
+			os.Exit(3)
+		} else {
+			LastfileState = true
+		}
+	}
 
-	file, err := os.Open(os.Args[1])
-	check(err)
 	definitionState := false
 	definitionName := ""
 	conditionState := false
 	conditionName := ""
 	loopState := false
 	loopName := ""
+	var scanner *bufio.Scanner
+	if LastfileState == true {
+		if strings.Contains(Lastfile, ".t") || strings.Contains(Lastfile, ".T") {
+			file, err = os.Open(Lastfile)
+			check(err)
+			scanner = bufio.NewScanner(file)
+		} else {
+			fmt.Println("No file found")
+			time.Sleep(2 * time.Second)
+			os.Exit(1)
+		}
 
+	} else {
+		scanner = bufio.NewScanner(file)
+	}
 	defer file.Close()
-	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 
 		tok := scanner.Text()
