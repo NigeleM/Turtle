@@ -83,7 +83,7 @@ func evalType(s string) string {
 // variable dictionary
 // used for variables that will be used for isMain scope
 // depending on the scope of the variable variableDict will be used
-var variableDict = make(map[string]string)
+var variableDict = make(map[string]interface{})
 
 // Insert variable into the variable dictionary
 // may change this functionality but so far it works well
@@ -120,7 +120,7 @@ func insertVariable(variableToken string) {
 		for v := range newVarTok {
 			_, isPresent := variableDict[newVarTok[v]]
 			if isPresent {
-				newVarTok[v] = variableDict[newVarTok[v]]
+				newVarTok[v] = variableDict[newVarTok[v]].(string)
 			}
 		}
 		VarTok := strings.Join(newVarTok, " ")
@@ -311,7 +311,7 @@ func getevalVar(str string) string {
 				if variable == "" {
 					anotherPlace = newPlace
 				} else {
-					arg = variableDict[variable]
+					arg = variableDict[variable].(string)
 					newExp = strings.ReplaceAll(newExp, variable, arg)
 					anotherPlace = newPlace
 				}
@@ -336,7 +336,7 @@ func getevalVar(str string) string {
 		if variable == "" {
 			anotherPlace = newPlace
 		} else {
-			arg = variableDict[variable]
+			arg = variableDict[variable].(string)
 			newExp = strings.ReplaceAll(newExp, variable, arg)
 			anotherPlace = newPlace
 		}
@@ -381,7 +381,7 @@ func getevalVarPeriod(str string) string {
 				if variable == "" {
 					anotherPlace = newPlace
 				} else {
-					arg = variableDict[variable]
+					arg = variableDict[variable].(string)
 					newExp = strings.ReplaceAll(newExp, variable, arg)
 					anotherPlace = newPlace
 				}
@@ -400,7 +400,7 @@ func getevalVarPeriod(str string) string {
 				if variable == "" {
 					anotherPlace = newPlace
 				} else {
-					arg = variableDict[variable]
+					arg = variableDict[variable].(string)
 					newExp = strings.ReplaceAll(newExp, variable, arg)
 					anotherPlace = newPlace
 				}
@@ -453,7 +453,7 @@ func evalVarExpression(str string) string {
 						if variable == "" {
 							place = count + 1
 						} else {
-							parseToken = strings.ReplaceAll(parseToken, variable, variableDict[variable])
+							parseToken = strings.ReplaceAll(parseToken, variable, variableDict[variable].(string))
 							place = count + 1
 						}
 					}
@@ -472,7 +472,7 @@ func evalVarExpression(str string) string {
 							place = count + 1
 						} else {
 
-							parseToken = strings.ReplaceAll(parseToken, variable, variableDict[variable])
+							parseToken = strings.ReplaceAll(parseToken, variable, variableDict[variable].(string))
 							place = count + 1
 						}
 					}
@@ -493,7 +493,7 @@ func evalVarExpression(str string) string {
 					if variable == "" {
 						place = count + 1
 					} else {
-						parseToken = strings.ReplaceAll(parseToken, variable, variableDict[variable])
+						parseToken = strings.ReplaceAll(parseToken, variable, variableDict[variable].(string))
 						place = count + 1
 					}
 
@@ -511,7 +511,7 @@ func evalVarExpression(str string) string {
 				funcshowState = false
 				return funcShowReturn
 			} else {
-				return variableDict[variable]
+				return variableDict[variable].(string)
 			}
 		} else {
 			place := 0
@@ -536,7 +536,7 @@ func evalVarExpression(str string) string {
 
 							} else {
 								variable := getVariable(newShow[place:count])
-								arg = variableDict[variable]
+								arg = variableDict[variable].(string)
 								newString += parseString(arg)
 
 							}
@@ -567,7 +567,7 @@ func evalVarExpression(str string) string {
 								newString += funcShowReturn
 							} else {
 								variable := getVariable(newShow[place:count])
-								arg = variableDict[variable]
+								arg = variableDict[variable].(string)
 								newString += parseString(arg)
 							}
 						} else {
@@ -604,7 +604,7 @@ func evalVarExpression(str string) string {
 					oneVar := isOneVariable(newShow[place:count])
 					if oneVar == true {
 						variable := getVariable(newShow[place:count])
-						arg = variableDict[variable]
+						arg = variableDict[variable].(string)
 						newString += parseString(arg)
 					} else {
 						newString += getevalVar(newShow[place:count])
@@ -627,7 +627,7 @@ func evalVarExpression(str string) string {
 					oneVar := isOneVariable(newShow[place:count])
 					if oneVar == true {
 						variable := getVariable(newShow[place:count])
-						arg = variableDict[variable]
+						arg = variableDict[variable].(string)
 						newString += parseString(arg)
 					} else {
 						newString += getevalVarPeriod(newShow[place:count])
@@ -702,7 +702,7 @@ var functionDict = make(map[string]function)
 
 // function Struct
 type function struct {
-	funcVariableDict map[string]string
+	funcVariableDict map[string]interface{}
 	argumentState    bool
 	argumentDict     []string
 	argumentCount    int
@@ -743,7 +743,7 @@ func getevalVarFunc(str string, name string) string {
 				if variable == "" {
 					anotherPlace = newPlace
 				} else {
-					arg = functionDict[name].funcVariableDict[variable]
+					arg = functionDict[name].funcVariableDict[variable].(string)
 					newExp = strings.ReplaceAll(newExp, variable, arg)
 					anotherPlace = newPlace
 				}
@@ -766,7 +766,7 @@ func getevalVarFunc(str string, name string) string {
 		if variable == "" {
 			anotherPlace = newPlace
 		} else {
-			arg = functionDict[name].funcVariableDict[variable]
+			arg = functionDict[name].funcVariableDict[variable].(string)
 			newExp = strings.ReplaceAll(newExp, variable, arg)
 			anotherPlace = newPlace
 		}
@@ -810,7 +810,7 @@ func getevalVarPeriodFunc(str string, name string) string {
 				if variable == "" {
 					anotherPlace = newPlace
 				} else {
-					arg = functionDict[name].funcVariableDict[variable]
+					arg = functionDict[name].funcVariableDict[variable].(string)
 					newExp = strings.ReplaceAll(newExp, variable, arg)
 					anotherPlace = newPlace
 				}
@@ -829,7 +829,7 @@ func getevalVarPeriodFunc(str string, name string) string {
 				if variable == "" {
 					anotherPlace = newPlace
 				} else {
-					arg = functionDict[name].funcVariableDict[variable]
+					arg = functionDict[name].funcVariableDict[variable].(string)
 					newExp = strings.ReplaceAll(newExp, variable, arg)
 					anotherPlace = newPlace
 				}
@@ -882,7 +882,7 @@ func insertVariableFunc(variableToken string, name string) {
 		for v := range newVarTok {
 			_, isPresent := functionDict[name].funcVariableDict[newVarTok[v]]
 			if isPresent {
-				newVarTok[v] = functionDict[name].funcVariableDict[newVarTok[v]]
+				newVarTok[v] = functionDict[name].funcVariableDict[newVarTok[v]].(string)
 			}
 		}
 		VarTok := strings.Join(newVarTok, " ")
@@ -926,7 +926,7 @@ func evalVarExpressionFunc(str string, name string) string {
 						if variable == "" {
 							place = count + 1
 						} else {
-							parseToken = strings.ReplaceAll(parseToken, variable, functionDict[name].funcVariableDict[variable])
+							parseToken = strings.ReplaceAll(parseToken, variable, functionDict[name].funcVariableDict[variable].(string))
 							place = count + 1
 						}
 					}
@@ -945,7 +945,7 @@ func evalVarExpressionFunc(str string, name string) string {
 							place = count + 1
 						} else {
 
-							parseToken = strings.ReplaceAll(parseToken, variable, functionDict[name].funcVariableDict[variable])
+							parseToken = strings.ReplaceAll(parseToken, variable, functionDict[name].funcVariableDict[variable].(string))
 							place = count + 1
 						}
 					}
@@ -965,7 +965,7 @@ func evalVarExpressionFunc(str string, name string) string {
 						if variable == "" {
 							place = count + 1
 						} else {
-							parseToken = strings.ReplaceAll(parseToken, variable, functionDict[name].funcVariableDict[variable])
+							parseToken = strings.ReplaceAll(parseToken, variable, functionDict[name].funcVariableDict[variable].(string))
 							place = count + 1
 						}
 					}
@@ -983,7 +983,7 @@ func evalVarExpressionFunc(str string, name string) string {
 						if variable == "" {
 							place = count + 1
 						} else {
-							parseToken = strings.ReplaceAll(parseToken, variable, functionDict[name].funcVariableDict[variable])
+							parseToken = strings.ReplaceAll(parseToken, variable, functionDict[name].funcVariableDict[variable].(string))
 							place = count + 1
 						}
 					}
@@ -1006,7 +1006,7 @@ func evalVarExpressionFunc(str string, name string) string {
 				funcshowState = false
 				return funcShowReturn
 			} else {
-				return functionDict[name].funcVariableDict[variable]
+				return functionDict[name].funcVariableDict[variable].(string)
 			}
 
 		} else {
@@ -1032,7 +1032,7 @@ func evalVarExpressionFunc(str string, name string) string {
 
 							} else {
 								variable := getVariable(newShow[place:count])
-								arg = functionDict[name].funcVariableDict[variable]
+								arg = functionDict[name].funcVariableDict[variable].(string)
 								newString += parseString(arg)
 							}
 
@@ -1063,7 +1063,7 @@ func evalVarExpressionFunc(str string, name string) string {
 
 							} else {
 								variable := getVariable(newShow[place:count])
-								arg = functionDict[name].funcVariableDict[variable]
+								arg = functionDict[name].funcVariableDict[variable].(string)
 								newString += parseString(arg)
 							}
 
@@ -1107,7 +1107,7 @@ func evalVarExpressionFunc(str string, name string) string {
 
 						} else {
 							variable := getVariable(newShow[place:count])
-							arg = functionDict[name].funcVariableDict[variable]
+							arg = functionDict[name].funcVariableDict[variable].(string)
 							newString += parseString(arg)
 						}
 					} else {
@@ -1137,7 +1137,7 @@ func evalVarExpressionFunc(str string, name string) string {
 
 						} else {
 							variable := getVariable(newShow[place:count])
-							arg = functionDict[name].funcVariableDict[variable]
+							arg = functionDict[name].funcVariableDict[variable].(string)
 							newString += parseString(arg)
 						}
 					} else {
@@ -1229,7 +1229,7 @@ func functionProtocol(str string, state string) {
 				_, isPresent := variableDict[getVariable(variablesSet[count])]
 
 				if isPresent {
-					Calledfunction.funcVariableDict[vars] = variableDict[getVariable(variablesSet[count])]
+					Calledfunction.funcVariableDict[vars] = variableDict[getVariable(variablesSet[count])].(string)
 
 				} else {
 					Calledfunction.funcVariableDict[vars] = variablesSet[count]
@@ -1268,7 +1268,7 @@ func functionProtocol(str string, state string) {
 			if state == "isMain" {
 				// variableDict[]
 				for key, element := range variableDict {
-					if strings.Contains(element, name) {
+					if strings.Contains(element.(string), name) {
 						variableDict[key] = Calledfunction.funcVariableDict[getVariable(returnCode[1])]
 						varState = true
 						break
@@ -1276,7 +1276,7 @@ func functionProtocol(str string, state string) {
 				}
 				if varState == false {
 					if funcshowState {
-						funcShowReturn = Calledfunction.funcVariableDict[getVariable(returnCode[1])]
+						funcShowReturn = Calledfunction.funcVariableDict[getVariable(returnCode[1])].(string)
 						break
 					} else {
 						fmt.Println("variable error, or return error :")
@@ -1287,7 +1287,7 @@ func functionProtocol(str string, state string) {
 				// functVariableDict
 				for key, element := range functionDict[state].funcVariableDict {
 
-					if strings.Contains(element, Calledfunction.name) {
+					if strings.Contains(element.(string), Calledfunction.name) {
 						functionDict[state].funcVariableDict[key] = Calledfunction.funcVariableDict[getVariable(returnCode[1])]
 						varState = true
 						break
@@ -1296,7 +1296,7 @@ func functionProtocol(str string, state string) {
 				}
 				if varState == false {
 					if funcshowState {
-						funcShowReturn = Calledfunction.funcVariableDict[getVariable(returnCode[1])]
+						funcShowReturn = Calledfunction.funcVariableDict[getVariable(returnCode[1])].(string)
 						break
 					} else {
 						fmt.Println("variable error, or return error :")
@@ -1560,7 +1560,7 @@ func ifelseParser(tok string, state string) string {
 					funcshowState = false
 					funcShowReturn = ""
 				} else {
-					newExpression = strings.ReplaceAll(newExpression, variable, variableDict[variable])
+					newExpression = strings.ReplaceAll(newExpression, variable, variableDict[variable].(string))
 				}
 			} else if state != "isMain" && variable != "" {
 				// add logic in for functions here
@@ -1584,7 +1584,7 @@ func ifelseParser(tok string, state string) string {
 					}
 
 				} else {
-					newExpression = strings.ReplaceAll(newExpression, variable, functionDict[state].funcVariableDict[variable])
+					newExpression = strings.ReplaceAll(newExpression, variable, functionDict[state].funcVariableDict[variable].(string))
 				}
 			}
 		} else {
@@ -1603,7 +1603,7 @@ func ifelseParser(tok string, state string) string {
 			funcshowState = false
 			funcShowReturn = ""
 		} else {
-			newExpression = strings.ReplaceAll(newExpression, variable, variableDict[variable])
+			newExpression = strings.ReplaceAll(newExpression, variable, variableDict[variable].(string))
 		}
 	} else if state != "isMain" && variable != "" {
 		if strings.Contains(newExpression, "[") && strings.Contains(newExpression, "]") {
@@ -1626,7 +1626,7 @@ func ifelseParser(tok string, state string) string {
 
 			}
 		} else {
-			newExpression = strings.ReplaceAll(newExpression, variable, functionDict[state].funcVariableDict[variable])
+			newExpression = strings.ReplaceAll(newExpression, variable, functionDict[state].funcVariableDict[variable].(string))
 		}
 	}
 
@@ -1664,7 +1664,7 @@ func callCode(tok string, state string) {
 		variablesSet := strings.Split(variables, ",")
 		Newfunction.argumentCount = len(variablesSet)
 		Newfunction.argumentDict = variablesSet
-		Newfunction.funcVariableDict = make(map[string]string)
+		Newfunction.funcVariableDict = make(map[string]interface{})
 		if Newfunction.argumentCount > 0 {
 			Newfunction.argumentState = true
 		}
@@ -1815,11 +1815,11 @@ func loopStructure(loop []string, state string) {
 				// logic need for functions
 				if getVariable(value[1]) != "" {
 					if state == "isMain" {
-						counter, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+						counter, _ := strconv.Atoi(variableDict[getVariable(value[1])].(string))
 						variableDict[getVariable(value[0])] = variableDict[getVariable(value[1])]
 						count = counter
 					} else {
-						counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+						counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])].(string))
 						functionDict[state].funcVariableDict[getVariable(value[0])] = functionDict[state].funcVariableDict[getVariable(value[1])]
 						count = counter
 					}
@@ -1830,7 +1830,7 @@ func loopStructure(loop []string, state string) {
 						variableDict[getVariable(value[0])] = eval(value[1])
 						count = counter
 					} else {
-						counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+						counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])].(string))
 						functionDict[state].funcVariableDict[getVariable(value[0])] = eval(value[1])
 						count = counter
 					}
@@ -1841,11 +1841,11 @@ func loopStructure(loop []string, state string) {
 				value := strings.Split(looptoken, operator)
 				if getVariable(value[1]) != "" {
 					if state == "isMain" {
-						expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+						expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])].(string))
 						variableDict[getVariable(value[0])] = variableDict[getVariable(value[1])]
 						expressionV = expressionValue
 					} else {
-						expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+						expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])].(string))
 						functionDict[state].funcVariableDict[getVariable(value[0])] = functionDict[state].funcVariableDict[getVariable(value[1])]
 						expressionV = expressionValue
 					}
@@ -1859,11 +1859,11 @@ func loopStructure(loop []string, state string) {
 				value := strings.Split(looptoken, operator)
 				if getVariable(value[1]) != "" {
 					if state == "isMain" {
-						expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+						expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])].(string))
 						variableDict[getVariable(value[0])] = variableDict[getVariable(value[1])]
 						expressionV = expressionValue
 					} else {
-						expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+						expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])].(string))
 						functionDict[state].funcVariableDict[getVariable(value[0])] = functionDict[state].funcVariableDict[getVariable(value[1])]
 						expressionV = expressionValue
 					}
@@ -1877,11 +1877,11 @@ func loopStructure(loop []string, state string) {
 				value := strings.Split(looptoken, operator)
 				if getVariable(value[1]) != "" {
 					if state == "isMain" {
-						expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+						expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])].(string))
 						variableDict[getVariable(value[0])] = variableDict[getVariable(value[1])]
 						expressionV = expressionValue
 					} else {
-						expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+						expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])].(string))
 						functionDict[state].funcVariableDict[getVariable(value[0])] = functionDict[state].funcVariableDict[getVariable(value[1])]
 						expressionV = expressionValue
 					}
@@ -1895,11 +1895,11 @@ func loopStructure(loop []string, state string) {
 				value := strings.Split(looptoken, operator)
 				if getVariable(value[1]) != "" {
 					if state == "isMain" {
-						expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+						expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])].(string))
 						variableDict[getVariable(value[0])] = variableDict[getVariable(value[1])]
 						expressionV = expressionValue
 					} else {
-						expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+						expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])].(string))
 						functionDict[state].funcVariableDict[getVariable(value[0])] = functionDict[state].funcVariableDict[getVariable(value[1])]
 						expressionV = expressionValue
 					}
@@ -1913,11 +1913,11 @@ func loopStructure(loop []string, state string) {
 				value := strings.Split(looptoken, operator)
 				if getVariable(value[1]) != "" {
 					if state == "isMain" {
-						expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+						expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])].(string))
 						variableDict[getVariable(value[0])] = variableDict[getVariable(value[1])]
 						expressionV = expressionValue
 					} else {
-						expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+						expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])].(string))
 						functionDict[state].funcVariableDict[getVariable(value[0])] = functionDict[state].funcVariableDict[getVariable(value[1])]
 						expressionV = expressionValue
 					}
@@ -1946,12 +1946,12 @@ func loopStructure(loop []string, state string) {
 			value := strings.Split(loopConstruct, "<")
 			if getVariable(value[0]) != "" {
 				if state == "isMain" {
-					counter, _ := strconv.Atoi(variableDict[getVariable(value[0])])
+					counter, _ := strconv.Atoi(variableDict[getVariable(value[0])].(string))
 					count = counter
 					counterState = true
 					counterValue = value[0]
 				} else {
-					counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[0])])
+					counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[0])].(string))
 					count = counter
 					counterState = true
 					counterValue = value[0]
@@ -1966,13 +1966,13 @@ func loopStructure(loop []string, state string) {
 			if getVariable(value[1]) != "" {
 
 				if state == "isMain" {
-					expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+					expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])].(string))
 					expressionV = expressionValue
 					expressionVState = true
 					expressionVarValue = value[1]
 				} else {
 
-					expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+					expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])].(string))
 					expressionV = expressionValue
 					expressionVState = true
 					expressionVarValue = value[1]
@@ -2005,11 +2005,11 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)].(string))
 									}
 									if getVariable(countContext) == getVariable(expressionVarValue) {
 										callCode(tok, state)
-										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)])
+										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)].(string))
 									}
 								} else {
 
@@ -2021,11 +2021,11 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)].(string))
 									}
 									if getVariable(tok) == getVariable(expressionVarValue) {
 										callCode(tok, state)
-										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)])
+										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)].(string))
 									}
 								} else {
 
@@ -2040,7 +2040,7 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)].(string))
 									}
 								} else {
 
@@ -2052,7 +2052,7 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)].(string))
 									}
 								} else {
 									callCode(tok, state)
@@ -2066,7 +2066,7 @@ func loopStructure(loop []string, state string) {
 
 									if getVariable(countContext) == getVariable(expressionVarValue) {
 										callCode(tok, state)
-										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)])
+										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)].(string))
 									}
 								} else {
 
@@ -2078,11 +2078,11 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)].(string))
 									}
 									if getVariable(tok) == getVariable(expressionVarValue) {
 										callCode(tok, state)
-										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)])
+										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)].(string))
 									}
 								} else {
 
@@ -2099,12 +2099,12 @@ func loopStructure(loop []string, state string) {
 			value := strings.Split(loopConstruct, ">")
 			if getVariable(value[0]) != "" {
 				if state == "isMain" {
-					counter, _ := strconv.Atoi(variableDict[getVariable(value[0])])
+					counter, _ := strconv.Atoi(variableDict[getVariable(value[0])].(string))
 					count = counter
 					counterState = true
 					counterValue = value[0]
 				} else {
-					counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[0])])
+					counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[0])].(string))
 					count = counter
 					counterState = true
 					counterValue = value[0]
@@ -2119,13 +2119,13 @@ func loopStructure(loop []string, state string) {
 			if getVariable(value[1]) != "" {
 
 				if state == "isMain" {
-					expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+					expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])].(string))
 					expressionV = expressionValue
 					expressionVState = true
 					expressionVarValue = value[1]
 				} else {
 
-					expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+					expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])].(string))
 					expressionV = expressionValue
 					expressionVState = true
 					expressionVarValue = value[1]
@@ -2159,11 +2159,11 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)].(string))
 									}
 									if getVariable(countContext) == getVariable(expressionVarValue) {
 										callCode(tok, state)
-										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)])
+										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)].(string))
 										// fmt.Println(expressionV)
 									}
 								} else {
@@ -2176,11 +2176,11 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)].(string))
 									}
 									if getVariable(countContext) == getVariable(expressionVarValue) {
 										callCode(tok, state)
-										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)])
+										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)].(string))
 									}
 								} else {
 
@@ -2195,7 +2195,7 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)].(string))
 									}
 								} else {
 
@@ -2207,7 +2207,7 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)].(string))
 									}
 								} else {
 									callCode(tok, state)
@@ -2221,7 +2221,7 @@ func loopStructure(loop []string, state string) {
 
 									if getVariable(countContext) == getVariable(expressionVarValue) {
 										callCode(tok, state)
-										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)])
+										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)].(string))
 									}
 								} else {
 
@@ -2233,11 +2233,11 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)].(string))
 									}
 									if getVariable(countContext) == getVariable(expressionVarValue) {
 										callCode(tok, state)
-										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)])
+										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)].(string))
 									}
 								} else {
 
@@ -2254,12 +2254,12 @@ func loopStructure(loop []string, state string) {
 			value := strings.Split(loopConstruct, "<=")
 			if getVariable(value[0]) != "" {
 				if state == "isMain" {
-					counter, _ := strconv.Atoi(variableDict[getVariable(value[0])])
+					counter, _ := strconv.Atoi(variableDict[getVariable(value[0])].(string))
 					count = counter
 					counterState = true
 					counterValue = value[0]
 				} else {
-					counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[0])])
+					counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[0])].(string))
 					count = counter
 					counterState = true
 					counterValue = value[0]
@@ -2274,13 +2274,13 @@ func loopStructure(loop []string, state string) {
 			if getVariable(value[1]) != "" {
 
 				if state == "isMain" {
-					expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+					expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])].(string))
 					expressionV = expressionValue
 					expressionVState = true
 					expressionVarValue = value[1]
 				} else {
 
-					expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+					expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])].(string))
 					expressionV = expressionValue
 					expressionVState = true
 					expressionVarValue = value[1]
@@ -2314,11 +2314,11 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)].(string))
 									}
 									if getVariable(countContext) == getVariable(expressionVarValue) {
 										callCode(tok, state)
-										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)])
+										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)].(string))
 									}
 								} else {
 
@@ -2330,11 +2330,11 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)].(string))
 									}
 									if getVariable(tok) == getVariable(expressionVarValue) {
 										callCode(tok, state)
-										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)])
+										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)].(string))
 									}
 								} else {
 
@@ -2349,7 +2349,7 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)].(string))
 									}
 								} else {
 
@@ -2361,7 +2361,7 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)].(string))
 									}
 								} else {
 									callCode(tok, state)
@@ -2375,7 +2375,7 @@ func loopStructure(loop []string, state string) {
 
 									if getVariable(countContext) == getVariable(expressionVarValue) {
 										callCode(tok, state)
-										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)])
+										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)].(string))
 									}
 								} else {
 
@@ -2387,11 +2387,11 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)].(string))
 									}
 									if getVariable(tok) == getVariable(expressionVarValue) {
 										callCode(tok, state)
-										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)])
+										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)].(string))
 									}
 								} else {
 
@@ -2408,12 +2408,12 @@ func loopStructure(loop []string, state string) {
 			value := strings.Split(loopConstruct, ">=")
 			if getVariable(value[0]) != "" {
 				if state == "isMain" {
-					counter, _ := strconv.Atoi(variableDict[getVariable(value[0])])
+					counter, _ := strconv.Atoi(variableDict[getVariable(value[0])].(string))
 					count = counter
 					counterState = true
 					counterValue = value[0]
 				} else {
-					counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[0])])
+					counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[0])].(string))
 					count = counter
 					counterState = true
 					counterValue = value[0]
@@ -2428,13 +2428,13 @@ func loopStructure(loop []string, state string) {
 			if getVariable(value[1]) != "" {
 
 				if state == "isMain" {
-					expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+					expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])].(string))
 					expressionV = expressionValue
 					expressionVState = true
 					expressionVarValue = value[1]
 				} else {
 
-					expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+					expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])].(string))
 					expressionV = expressionValue
 					expressionVState = true
 					expressionVarValue = value[1]
@@ -2468,11 +2468,11 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)].(string))
 									}
 									if getVariable(countContext) == getVariable(expressionVarValue) {
 										callCode(tok, state)
-										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)])
+										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)].(string))
 									}
 								} else {
 
@@ -2484,11 +2484,11 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)].(string))
 									}
 									if getVariable(tok) == getVariable(expressionVarValue) {
 										callCode(tok, state)
-										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)])
+										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)].(string))
 									}
 								} else {
 
@@ -2503,7 +2503,7 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)].(string))
 									}
 								} else {
 
@@ -2515,7 +2515,7 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)].(string))
 									}
 								} else {
 									callCode(tok, state)
@@ -2529,7 +2529,7 @@ func loopStructure(loop []string, state string) {
 
 									if getVariable(countContext) == getVariable(expressionVarValue) {
 										callCode(tok, state)
-										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)])
+										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)].(string))
 									}
 								} else {
 
@@ -2541,11 +2541,11 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)].(string))
 									}
 									if getVariable(tok) == getVariable(expressionVarValue) {
 										callCode(tok, state)
-										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)])
+										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)].(string))
 									}
 								} else {
 
@@ -2562,12 +2562,12 @@ func loopStructure(loop []string, state string) {
 			value := strings.Split(loopConstruct, "!=")
 			if getVariable(value[0]) != "" {
 				if state == "isMain" {
-					counter, _ := strconv.Atoi(variableDict[getVariable(value[0])])
+					counter, _ := strconv.Atoi(variableDict[getVariable(value[0])].(string))
 					count = counter
 					counterState = true
 					counterValue = value[0]
 				} else {
-					counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[0])])
+					counter, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[0])].(string))
 					count = counter
 					counterState = true
 					counterValue = value[0]
@@ -2582,13 +2582,13 @@ func loopStructure(loop []string, state string) {
 			if getVariable(value[1]) != "" {
 
 				if state == "isMain" {
-					expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])])
+					expressionValue, _ := strconv.Atoi(variableDict[getVariable(value[1])].(string))
 					expressionV = expressionValue
 					expressionVState = true
 					expressionVarValue = value[1]
 				} else {
 
-					expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])])
+					expressionValue, _ := strconv.Atoi(functionDict[state].funcVariableDict[getVariable(value[1])].(string))
 					expressionV = expressionValue
 					expressionVState = true
 					expressionVarValue = value[1]
@@ -2622,11 +2622,11 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)].(string))
 									}
 									if getVariable(countContext) == getVariable(expressionVarValue) {
 										callCode(tok, state)
-										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)])
+										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)].(string))
 									}
 								} else {
 
@@ -2638,11 +2638,11 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)].(string))
 									}
 									if getVariable(tok) == getVariable(expressionVarValue) {
 										callCode(tok, state)
-										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)])
+										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)].(string))
 									}
 								} else {
 
@@ -2657,7 +2657,7 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(variableDict[getVariable(counterValue)].(string))
 									}
 								} else {
 
@@ -2669,7 +2669,7 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)].(string))
 									}
 								} else {
 									callCode(tok, state)
@@ -2683,7 +2683,7 @@ func loopStructure(loop []string, state string) {
 
 									if getVariable(countContext) == getVariable(expressionVarValue) {
 										callCode(tok, state)
-										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)])
+										expressionV, _ = strconv.Atoi(variableDict[getVariable(expressionVarValue)].(string))
 									}
 								} else {
 
@@ -2695,11 +2695,11 @@ func loopStructure(loop []string, state string) {
 									countContext := getVariable(strings.Split(tok, "=")[0])
 									if getVariable(countContext) == getVariable(counterValue) {
 										callCode(tok, state)
-										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)])
+										count, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(counterValue)].(string))
 									}
 									if getVariable(tok) == getVariable(expressionVarValue) {
 										callCode(tok, state)
-										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)])
+										expressionV, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(expressionVarValue)].(string))
 									}
 								} else {
 
@@ -3109,8 +3109,74 @@ func loopStructure(loop []string, state string) {
 	}
 }
 
+func dataStructureListParser(list string) []string {
+	newStructure := make([]string, 0)
+	newlist := list[strings.Index(list, "[")+1 : strings.LastIndex(list, "]")]
+	stringStatus := 0
+	var element string
+	fmt.Println(newlist)
+	for _, value := range newlist {
+		fmt.Println(string(value))
+		if string(value) == "\"" {
+
+			if stringStatus == 0 {
+				stringStatus += 1
+				element += string(value)
+			} else {
+				stringStatus = 0
+				element += string(value)
+				newStructure = append(newStructure, element)
+				element = ""
+			}
+		} else if string(value) == "," && stringStatus == 0 {
+			newStructure = append(newStructure, element)
+			element = ""
+		} else {
+			element += string(value)
+		}
+
+	}
+
+	if element != "" {
+		newStructure = append(newStructure, element)
+		element = ""
+	}
+
+	return newStructure
+}
+
 // data Structure Protocol used to intialize and setup data structures
 func dataStructureProtocol(isType string, state string, tok string) {
+
+	if isType == "list" {
+		if state == "isMain" {
+			// parese list structure
+			list := strings.Split(tok, "=")[1]
+			list = strings.Replace(list, "list", "", 1)
+			fmt.Println(list)
+			newlist := dataStructureListParser(list)
+			fmt.Println(newlist)
+			variableDict[getVariable(strings.Split(tok, "=")[0])] = getVariable(strings.Split(tok, "=")[0]) + ":list"
+			// check to see if list is empty
+			fmt.Println(variableDict[getVariable(strings.Split(tok, "=")[0])])
+		} else {
+
+		}
+	} else if isType == "set" {
+		if state == "isMain" {
+
+		} else {
+
+		}
+
+	} else if isType == "map" {
+		if state == "isMain" {
+
+		} else {
+
+		}
+
+	}
 
 }
 
@@ -3225,7 +3291,7 @@ func main() {
 			variablesSet := strings.Split(variables, ",")
 			Newfunction.argumentCount = len(variablesSet)
 			Newfunction.argumentDict = variablesSet
-			Newfunction.funcVariableDict = make(map[string]string)
+			Newfunction.funcVariableDict = make(map[string]interface{})
 			if Newfunction.argumentCount > 0 {
 				Newfunction.argumentState = true
 			}
@@ -3293,11 +3359,11 @@ func main() {
 		} else if strings.Contains(tok, "[") && strings.Contains(tok, "]") && strings.Contains(tok, "=") && strings.Index(tok, "=") < strings.Index(tok, "[") {
 
 			if strings.Contains(tok, "list") && getVariable(strings.Split(tok, "=")[1]) == "list" {
-				fmt.Println("Data Structure is list")
+				dataStructureProtocol("list", "isMain", tok)
 			} else if strings.Contains(tok, "map") && getVariable(strings.Split(tok, "=")[1]) == "map" {
-				fmt.Println("Data Structure is map")
+				dataStructureProtocol("map", "isMain", tok)
 			} else if strings.Contains(tok, "set") && getVariable(strings.Split(tok, "=")[1]) == "set" {
-				fmt.Println("Data Structure is set")
+				dataStructureProtocol("set", "isMain", tok)
 			} else {
 				insertFunction(tok, "isMain")
 			}

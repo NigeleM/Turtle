@@ -1,6 +1,6 @@
 
 
 
-a = list [1,2,3]
+a = list [1,2,3,"Hello World",1]
 b = map []
 c = set []
