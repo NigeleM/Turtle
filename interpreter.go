@@ -3109,6 +3109,16 @@ func loopStructure(loop []string, state string) {
 	}
 }
 
+// data Structure Protocol used to intialize and setup data structures
+func dataStructureProtocol(isType string, state string, tok string) {
+
+}
+
+// data Structure operations
+func dataStructureOperations(isType string, state string, tok string) {
+
+}
+
 // Function is used if no argument is passed into the interperter
 // It runs the most recent modified program in the /Users/* directory
 // Further updates may follow in the future.
@@ -3281,7 +3291,16 @@ func main() {
 			}
 
 		} else if strings.Contains(tok, "[") && strings.Contains(tok, "]") && strings.Contains(tok, "=") && strings.Index(tok, "=") < strings.Index(tok, "[") {
-			insertFunction(tok, "isMain")
+
+			if strings.Contains(tok, "list") && getVariable(strings.Split(tok, "=")[1]) == "list" {
+				fmt.Println("Data Structure is list")
+			} else if strings.Contains(tok, "map") && getVariable(strings.Split(tok, "=")[1]) == "map" {
+				fmt.Println("Data Structure is map")
+			} else if strings.Contains(tok, "set") && getVariable(strings.Split(tok, "=")[1]) == "set" {
+				fmt.Println("Data Structure is set")
+			} else {
+				insertFunction(tok, "isMain")
+			}
 		} else if strings.Contains(tok, "[") && strings.Contains(tok, "]") && strings.LastIndex(tok, "]") > strings.LastIndex(tok, ".") {
 			functionProtocol(tok, "isMain")
 		} else if strings.Contains(tok, "show") {
