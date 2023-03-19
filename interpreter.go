@@ -7,6 +7,7 @@ import (
 	"go/types"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"syscall"
@@ -36,7 +37,7 @@ func eval(s string) string {
 // Eval different types of data in order to parser data easier
 // determines the type of data that needs to be evaluated
 // types are int, string, bool, var , expression
-func evalType(s string) string {
+func evalType(s string, state string) string {
 
 	instring := 0
 	variable := -1
@@ -71,7 +72,30 @@ func evalType(s string) string {
 		}
 
 		if variable == 1 {
-			return "Var"
+			if state == "isMain" {
+				// fmt.Println(reflect.TypeOf(variableDict[varTok]).Name())
+
+				if reflect.TypeOf(variableDict[varTok]).Name() == "list" {
+					return "List"
+				} else if reflect.TypeOf(variableDict[varTok]).Name() == "set" {
+					return "Set"
+				} else if reflect.TypeOf(variableDict[varTok]).Name() == "maps" {
+					return "Map"
+				} else {
+					return "Var"
+				}
+			} else {
+				if reflect.TypeOf(functionDict[state].funcVariableDict[varTok]).Name() == "list" {
+					return "List"
+				} else if reflect.TypeOf(functionDict[state].funcVariableDict[varTok]).Name() == "set" {
+					return "Set"
+				} else if reflect.TypeOf(functionDict[state].funcVariableDict[varTok]).Name() == "maps" {
+					return "Map"
+				} else {
+					return "Var"
+				}
+			}
+
 		}
 		return "Exp"
 
@@ -87,20 +111,20 @@ var variableDict = make(map[string]interface{})
 
 // Insert variable into the variable dictionary
 // may change this functionality but so far it works well
-func insertVariable(variableToken string) {
+func insertVariable(variableToken string, state string) {
 	newtoken := variableToken
 	varToken := strings.Split(newtoken, "=")
 
 	varToken[0] = strings.ReplaceAll(varToken[0], " ", "")
-	if evalType(varToken[1]) == "String" {
+	if evalType(varToken[1], state) == "String" {
 		variableDict[string(varToken[0])] = eval(varToken[1])
-	} else if evalType(varToken[1]) == "Int" {
+	} else if evalType(varToken[1], state) == "Int" {
 		variableDict[string(varToken[0])] = eval(varToken[1])
-	} else if evalType(varToken[1]) == "Float" {
+	} else if evalType(varToken[1], state) == "Float" {
 		variableDict[string(varToken[0])] = eval(varToken[1])
-	} else if evalType(varToken[1]) == "Bool" {
+	} else if evalType(varToken[1], state) == "Bool" {
 		variableDict[string(varToken[0])] = eval(varToken[1])
-	} else if evalType(varToken[1]) == "Var" {
+	} else if evalType(varToken[1], state) == "Var" {
 		oldvar := varToken[1]
 		hold := ""
 		for v := range oldvar {
@@ -511,6 +535,7 @@ func evalVarExpression(str string) string {
 				funcshowState = false
 				return funcShowReturn
 			} else {
+
 				return variableDict[variable].(string)
 			}
 		} else {
@@ -526,7 +551,7 @@ func evalVarExpression(str string) string {
 					continue
 				} else if string(newShow[count]) == "," && inString == 0 {
 					arg = ""
-					if evalType(newShow[place:count]) == "Var" {
+					if evalType(newShow[place:count], "isMain") == "Var" {
 						oneVar := isOneVariable(newShow[place:count])
 						if oneVar == true {
 							if strings.Contains(newShow[place:count], "[") && strings.Contains(newShow[place:count], "]") {
@@ -546,7 +571,7 @@ func evalVarExpression(str string) string {
 						}
 
 					} else {
-						if evalType(newShow[place:count]) == "Exp" {
+						if evalType(newShow[place:count], "isMain") == "Exp" {
 							arg = evalExpression(newShow[place:count])
 							newString += parseString(arg)
 						} else {
@@ -558,7 +583,7 @@ func evalVarExpression(str string) string {
 					place = count + 1
 				} else if count == strings.LastIndex(str, ".") {
 					arg = ""
-					if evalType(newShow[place:count]) == "Var" {
+					if evalType(newShow[place:count], "isMain") == "Var" {
 						oneVar := isOneVariable(newShow[place:count])
 						if oneVar == true {
 							if strings.Contains(newShow[place:count], "[") && strings.Contains(newShow[place:count], "]") {
@@ -574,7 +599,7 @@ func evalVarExpression(str string) string {
 							newString += getevalVarPeriod(newShow[place:count])
 						}
 					} else {
-						if evalType(newShow[place:count]) == "Exp" {
+						if evalType(newShow[place:count], "isMain") == "Exp" {
 							arg = evalExpression(newShow[place:count])
 							newString += parseString(arg)
 						} else {
@@ -600,7 +625,7 @@ func evalVarExpression(str string) string {
 				continue
 			} else if string(newShow[count]) == "," && inString == 0 {
 				arg = ""
-				if evalType(newShow[place:count]) == "Var" {
+				if evalType(newShow[place:count], "isMain") == "Var" {
 					oneVar := isOneVariable(newShow[place:count])
 					if oneVar == true {
 						variable := getVariable(newShow[place:count])
@@ -611,7 +636,7 @@ func evalVarExpression(str string) string {
 					}
 
 				} else {
-					if evalType(newShow[place:count]) == "Exp" {
+					if evalType(newShow[place:count], "isMain") == "Exp" {
 						arg = evalExpression(newShow[place:count])
 						newString += parseString(arg)
 					} else {
@@ -623,7 +648,7 @@ func evalVarExpression(str string) string {
 				place = count + 1
 			} else if count == strings.LastIndex(str, ".") {
 				arg = ""
-				if evalType(newShow[place:count]) == "Var" {
+				if evalType(newShow[place:count], "isMain") == "Var" {
 					oneVar := isOneVariable(newShow[place:count])
 					if oneVar == true {
 						variable := getVariable(newShow[place:count])
@@ -633,7 +658,7 @@ func evalVarExpression(str string) string {
 						newString += getevalVarPeriod(newShow[place:count])
 					}
 				} else {
-					if evalType(newShow[place:count]) == "Exp" {
+					if evalType(newShow[place:count], "isMain") == "Exp" {
 						arg = evalExpression(newShow[place:count])
 						newString += parseString(arg)
 					} else {
@@ -664,23 +689,30 @@ func parseString(str string) string {
 // show function
 // uses evalType func to show eval expression types
 // then for each case sends to proper showing mechanism
-func showReal(str string) {
+func showReal(str string, state string) {
 
 	showTok := strings.SplitAfterN(str, "show", 2)
 	parseToken := showTok[1][0:strings.LastIndex(showTok[1], ".")]
 	parseToken = strings.ReplaceAll(parseToken, "\\n", "\n")
-	if evalType(parseToken) == "Int" {
+	if evalType(parseToken, state) == "Int" {
 		fmt.Println(eval(parseToken))
-	} else if evalType(parseToken) == "Float" {
+	} else if evalType(parseToken, state) == "Float" {
 		fmt.Println(eval(parseToken))
-	} else if evalType(parseToken) == "String" {
+	} else if evalType(parseToken, state) == "String" {
 		fmt.Println(parseString(eval(parseToken)))
-	} else if evalType(parseToken) == "Var" {
+	} else if evalType(parseToken, state) == "Var" {
 		fmt.Println(evalVarExpression(showTok[1]))
-	} else if evalType(parseToken) == "Exp" {
+	} else if evalType(parseToken, state) == "Exp" {
 		fmt.Println(evalExpression(showTok[1]))
-	} else if evalType(parseToken) == "Bool" {
+	} else if evalType(parseToken, state) == "Bool" {
 		fmt.Println(evalExpression(showTok[1]))
+	} else if evalType(parseToken, state) == "List" {
+		fmt.Println(evalListExpressions(parseToken)...)
+	} else if evalType(parseToken, state) == "Set" {
+		fmt.Println(evalSetExpressions(parseToken)...)
+	} else if evalType(parseToken, state) == "Map" {
+		fmt.Println(evalMapSExpressions(parseToken))
+
 	}
 }
 
@@ -854,15 +886,15 @@ func insertVariableFunc(variableToken string, name string) {
 	newtoken := variableToken
 	varToken := strings.Split(newtoken, "=")
 	varToken[0] = strings.ReplaceAll(varToken[0], " ", "")
-	if evalType(varToken[1]) == "String" {
+	if evalType(varToken[1], name) == "String" {
 		functionDict[name].funcVariableDict[string(varToken[0])] = eval(varToken[1])
-	} else if evalType(varToken[1]) == "Int" {
+	} else if evalType(varToken[1], name) == "Int" {
 		functionDict[name].funcVariableDict[string(varToken[0])] = eval(varToken[1])
-	} else if evalType(varToken[1]) == "Float" {
+	} else if evalType(varToken[1], name) == "Float" {
 		functionDict[name].funcVariableDict[string(varToken[0])] = eval(varToken[1])
-	} else if evalType(varToken[1]) == "Bool" {
+	} else if evalType(varToken[1], name) == "Bool" {
 		functionDict[name].funcVariableDict[string(varToken[0])] = eval(varToken[1])
-	} else if evalType(varToken[1]) == "Var" {
+	} else if evalType(varToken[1], name) == "Var" {
 		oldvar := varToken[1]
 		hold := ""
 		for v := range oldvar {
@@ -1022,7 +1054,7 @@ func evalVarExpressionFunc(str string, name string) string {
 					continue
 				} else if string(newShow[count]) == "," && inString == 0 {
 					arg = ""
-					if evalType(newShow[place:count]) == "Var" {
+					if evalType(newShow[place:count], name) == "Var" {
 						oneVar := isOneVariable(newShow[place:count])
 						if oneVar == true {
 							if strings.Contains(newShow[place:count], "[") && strings.Contains(newShow[place:count], "]") {
@@ -1041,7 +1073,7 @@ func evalVarExpressionFunc(str string, name string) string {
 						}
 
 					} else {
-						if evalType(newShow[place:count]) == "Exp" {
+						if evalType(newShow[place:count], name) == "Exp" {
 							arg = evalExpression(newShow[place:count])
 							newString += parseString(arg)
 						} else {
@@ -1053,7 +1085,7 @@ func evalVarExpressionFunc(str string, name string) string {
 					place = count + 1
 				} else if count == strings.LastIndex(str, ".") {
 					arg = ""
-					if evalType(newShow[place:count]) == "Var" {
+					if evalType(newShow[place:count], name) == "Var" {
 						oneVar := isOneVariable(newShow[place:count])
 						if oneVar == true {
 							if strings.Contains(newShow[place:count], "[") && strings.Contains(newShow[place:count], "]") {
@@ -1071,7 +1103,7 @@ func evalVarExpressionFunc(str string, name string) string {
 							newString += getevalVarPeriodFunc(newShow[place:count], name)
 						}
 					} else {
-						if evalType(newShow[place:count]) == "Exp" {
+						if evalType(newShow[place:count], name) == "Exp" {
 							arg = evalExpression(newShow[place:count])
 							newString += parseString(arg)
 						} else {
@@ -1097,7 +1129,7 @@ func evalVarExpressionFunc(str string, name string) string {
 				continue
 			} else if string(newShow[count]) == "," && inString == 0 {
 				arg = ""
-				if evalType(newShow[place:count]) == "Var" {
+				if evalType(newShow[place:count], name) == "Var" {
 					oneVar := isOneVariable(newShow[place:count])
 					if oneVar == true {
 						if strings.Contains(newShow[place:count], "[") && strings.Contains(newShow[place:count], "]") {
@@ -1115,7 +1147,7 @@ func evalVarExpressionFunc(str string, name string) string {
 					}
 
 				} else {
-					if evalType(newShow[place:count]) == "Exp" {
+					if evalType(newShow[place:count], name) == "Exp" {
 						arg = evalExpression(newShow[place:count])
 						newString += parseString(arg)
 					} else {
@@ -1127,7 +1159,7 @@ func evalVarExpressionFunc(str string, name string) string {
 				place = count + 1
 			} else if count == strings.LastIndex(str, ".") {
 				arg = ""
-				if evalType(newShow[place:count]) == "Var" {
+				if evalType(newShow[place:count], name) == "Var" {
 					oneVar := isOneVariable(newShow[place:count])
 					if oneVar == true {
 						if strings.Contains(newShow[place:count], "[") && strings.Contains(newShow[place:count], "]") {
@@ -1144,7 +1176,7 @@ func evalVarExpressionFunc(str string, name string) string {
 						newString += getevalVarPeriodFunc(newShow[place:count], name)
 					}
 				} else {
-					if evalType(newShow[place:count]) == "Exp" {
+					if evalType(newShow[place:count], name) == "Exp" {
 						arg = evalExpression(newShow[place:count])
 						newString += parseString(arg)
 					} else {
@@ -1164,18 +1196,26 @@ func showRealFunc(str string, name string) {
 	showTok := strings.SplitAfterN(str, "show", 2)
 	parseToken := showTok[1][0:strings.LastIndex(showTok[1], ".")]
 	parseToken = strings.ReplaceAll(parseToken, "\\n", "\n")
-	if evalType(parseToken) == "Int" {
+	if evalType(parseToken, name) == "Int" {
 		fmt.Println(eval(parseToken))
-	} else if evalType(parseToken) == "Float" {
+	} else if evalType(parseToken, name) == "Float" {
 		fmt.Println(eval(parseToken))
-	} else if evalType(parseToken) == "String" {
+	} else if evalType(parseToken, name) == "String" {
 		fmt.Println(parseString(eval(parseToken)))
-	} else if evalType(parseToken) == "Var" {
+	} else if evalType(parseToken, name) == "Var" {
 		fmt.Println(evalVarExpressionFunc(showTok[1], name))
-	} else if evalType(parseToken) == "Exp" {
+	} else if evalType(parseToken, name) == "Exp" {
 		fmt.Println(evalExpression(showTok[1]))
-	} else if evalType(parseToken) == "Bool" {
+	} else if evalType(parseToken, name) == "Bool" {
 		fmt.Println(evalExpression(showTok[1]))
+	} else if evalType(parseToken, name) == "List" {
+		fmt.Println(parseToken)
+	} else if evalType(parseToken, name) == "Set" {
+		fmt.Println(parseToken)
+
+	} else if evalType(parseToken, name) == "Map" {
+		fmt.Println(parseToken)
+
 	}
 }
 
@@ -1732,7 +1772,7 @@ func callCode(tok string, state string) {
 	} else if strings.Contains(tok, "show") {
 		showTok := strings.SplitAfter(tok, "show")
 		if strings.Contains(showTok[0], "show") && state == "isMain" {
-			showReal(tok)
+			showReal(tok, state)
 		} else {
 			showRealFunc(tok, state)
 		}
@@ -1750,7 +1790,7 @@ func callCode(tok string, state string) {
 	} else if strings.Contains(tok, "=") {
 		varTok := strings.SplitAfter(tok, "=")
 		if strings.Contains(varTok[0], "=") && state == "isMain" {
-			insertVariable(tok)
+			insertVariable(tok, state)
 		} else {
 			insertVariableFunc(tok, state)
 		}
@@ -3109,14 +3149,15 @@ func loopStructure(loop []string, state string) {
 	}
 }
 
-func dataStructureListParser(list string) []string {
-	newStructure := make([]string, 0)
-	newlist := list[strings.Index(list, "[")+1 : strings.LastIndex(list, "]")]
+// Adds data to a list data struture , takes string data and does the proper mapping
+func dataStructureListParser(strlist string) list {
+	var newStructure list
+	newlist := strlist[strings.Index(strlist, "[")+1 : strings.LastIndex(strlist, "]")]
 	stringStatus := 0
 	var element string
-	fmt.Println(newlist)
+	// fmt.Println(newlist)
 	for _, value := range newlist {
-		fmt.Println(string(value))
+		// fmt.Println(string(value))
 		if string(value) == "\"" {
 
 			if stringStatus == 0 {
@@ -3125,11 +3166,11 @@ func dataStructureListParser(list string) []string {
 			} else {
 				stringStatus = 0
 				element += string(value)
-				newStructure = append(newStructure, element)
+				newStructure.add(element)
 				element = ""
 			}
 		} else if string(value) == "," && stringStatus == 0 {
-			newStructure = append(newStructure, element)
+			newStructure.add(element)
 			element = ""
 		} else {
 			element += string(value)
@@ -3138,11 +3179,94 @@ func dataStructureListParser(list string) []string {
 	}
 
 	if element != "" {
-		newStructure = append(newStructure, element)
+		newStructure.add(element)
 		element = ""
 	}
 
 	return newStructure
+}
+
+// Adds data to a set data struture , takes string data and does the proper mapping
+func dataStructureSetParser(list string) set {
+	var newStructure set
+	newlist := list[strings.Index(list, "[")+1 : strings.LastIndex(list, "]")]
+	stringStatus := 0
+	var element string
+	// fmt.Println(newlist)
+	for _, value := range newlist {
+		// fmt.Println(string(value))
+		if string(value) == "\"" {
+
+			if stringStatus == 0 {
+				stringStatus += 1
+				element += string(value)
+			} else {
+				stringStatus = 0
+				element += string(value)
+				newStructure.add(element)
+				element = ""
+			}
+		} else if string(value) == "," && stringStatus == 0 {
+			newStructure.add(element)
+			element = ""
+
+		} else {
+			element += string(value)
+		}
+
+	}
+
+	if element != "" {
+		newStructure.add(element)
+		element = ""
+	}
+
+	return newStructure
+}
+
+type maps struct {
+	maps   map[string]interface{}
+	length int
+}
+
+func (Amap *maps) delete(data string) {
+	delete(Amap.maps, data)
+}
+
+type set struct {
+	set    []interface{}
+	length int
+}
+
+type list struct {
+	list   []interface{}
+	length int
+}
+
+func (Alist *list) add(data string) {
+	Alist.list = append(Alist.list, data)
+	// fmt.Println(Alist.list...)
+}
+func (Alist *list) len() {
+	Alist.length = len(Alist.list)
+}
+
+func (Aset *set) add(data string) {
+	var isThere bool
+	for _, v := range Aset.set {
+		if data == v {
+			break
+			isThere = true
+		}
+	}
+	if isThere == false {
+		Aset.set = append(Aset.set, data)
+	}
+
+}
+
+func (Aset *set) len() {
+	Aset.length = len(Aset.set)
 }
 
 // data Structure Protocol used to intialize and setup data structures
@@ -3150,23 +3274,29 @@ func dataStructureProtocol(isType string, state string, tok string) {
 
 	if isType == "list" {
 		if state == "isMain" {
+			// Parse list Structure
+			list := strings.Split(tok, "=")[1]
+			list = strings.Replace(list, "list", "", 1)
+			variableDict[getVariable(strings.Split(tok, "=")[0])] = dataStructureListParser(list)
+		} else {
 			// parese list structure
 			list := strings.Split(tok, "=")[1]
 			list = strings.Replace(list, "list", "", 1)
-			fmt.Println(list)
-			newlist := dataStructureListParser(list)
-			fmt.Println(newlist)
-			variableDict[getVariable(strings.Split(tok, "=")[0])] = getVariable(strings.Split(tok, "=")[0]) + ":list"
-			// check to see if list is empty
-			fmt.Println(variableDict[getVariable(strings.Split(tok, "=")[0])])
-		} else {
+			functionDict[state].funcVariableDict[getVariable(strings.Split(tok, "=")[0])] = dataStructureListParser(list)
 
 		}
 	} else if isType == "set" {
 		if state == "isMain" {
-
+			// Parse Set Structure
+			set := strings.Split(tok, "=")[1]
+			set = strings.Replace(set, "set", "", 1)
+			variableDict[getVariable(strings.Split(tok, "=")[0])] = dataStructureSetParser(set)
+			//fmt.Println(variableDict[getVariable(strings.Split(tok, "=")[0])]., "here")
 		} else {
-
+			// Parse Set Structure
+			set := strings.Split(tok, "=")[1]
+			set = strings.Replace(set, "set", "", 1)
+			functionDict[state].funcVariableDict[getVariable(strings.Split(tok, "=")[0])] = dataStructureSetParser(set)
 		}
 
 	} else if isType == "map" {
@@ -3182,6 +3312,29 @@ func dataStructureProtocol(isType string, state string, tok string) {
 
 // data Structure operations
 func dataStructureOperations(isType string, state string, tok string) {
+
+}
+
+// Evaluating data structures with possible other data types
+// --------------------------------------------------------------------------------
+func evalSetExpressions(tok string) []interface{} {
+
+	var newSet = variableDict[getVariable(tok)].(set)
+	return newSet.set
+
+}
+
+func evalListExpressions(tok string) []interface{} {
+
+	var newlist = variableDict[getVariable(tok)].(list)
+	return newlist.list
+
+}
+
+func evalMapSExpressions(tok string) map[string]interface{} {
+
+	var newmaps = variableDict[getVariable(tok)].(maps)
+	return newmaps.maps
 
 }
 
@@ -3372,7 +3525,7 @@ func main() {
 		} else if strings.Contains(tok, "show") {
 			showTok := strings.SplitAfter(tok, "show")
 			if strings.Contains(showTok[0], "show") {
-				showReal(tok)
+				showReal(tok, "isMain")
 			}
 		} else if strings.Contains(tok, "?") && strings.Contains(tok, "=") {
 			if strings.Index(tok, "?") < strings.Index(tok, "\"") {
@@ -3388,7 +3541,7 @@ func main() {
 		} else if strings.Contains(tok, "=") {
 			varTok := strings.SplitAfter(tok, "=")
 			if strings.Contains(varTok[0], "=") {
-				insertVariable(tok)
+				insertVariable(tok, "isMain")
 			}
 		}
 
