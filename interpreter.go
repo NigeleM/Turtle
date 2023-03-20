@@ -707,11 +707,11 @@ func showReal(str string, state string) {
 	} else if evalType(parseToken, state) == "Bool" {
 		fmt.Println(evalExpression(showTok[1]))
 	} else if evalType(parseToken, state) == "List" {
-		fmt.Println(evalListExpressions(parseToken)...)
+		fmt.Println(evalListExpressions(parseToken, state)...)
 	} else if evalType(parseToken, state) == "Set" {
-		fmt.Println(evalSetExpressions(parseToken)...)
+		fmt.Println(evalSetExpressions(parseToken, state)...)
 	} else if evalType(parseToken, state) == "Map" {
-		fmt.Println(evalMapSExpressions(parseToken))
+		fmt.Println(evalMapSExpressions(parseToken, state))
 
 	}
 }
@@ -1209,12 +1209,11 @@ func showRealFunc(str string, name string) {
 	} else if evalType(parseToken, name) == "Bool" {
 		fmt.Println(evalExpression(showTok[1]))
 	} else if evalType(parseToken, name) == "List" {
-		fmt.Println(parseToken)
+		fmt.Println(evalListExpressions(parseToken, name)...)
 	} else if evalType(parseToken, name) == "Set" {
-		fmt.Println(parseToken)
-
+		fmt.Println(evalSetExpressions(parseToken, name)...)
 	} else if evalType(parseToken, name) == "Map" {
-		fmt.Println(parseToken)
+		fmt.Println(evalMapSExpressions(parseToken, name))
 
 	}
 }
@@ -1389,8 +1388,16 @@ func functionProtocol(str string, state string) {
 			}
 
 		} else if strings.Contains(tok, "[") && strings.Contains(tok, "]") && strings.Contains(tok, "=") && strings.Index(tok, "=") < strings.Index(tok, "[") {
-			insertFunction(tok, Calledfunction.name)
 
+			if strings.Contains(tok, "list") && getVariable(strings.Split(tok, "=")[1]) == "list" {
+				dataStructureProtocol("list", name, tok)
+			} else if strings.Contains(tok, "map") && getVariable(strings.Split(tok, "=")[1]) == "map" {
+				dataStructureProtocol("map", name, tok)
+			} else if strings.Contains(tok, "set") && getVariable(strings.Split(tok, "=")[1]) == "set" {
+				dataStructureProtocol("set", name, tok)
+			} else {
+				insertFunction(tok, name)
+			}
 		} else if strings.Contains(tok, "[") && strings.Contains(tok, "]") && strings.LastIndex(tok, "]") > strings.LastIndex(tok, ".") {
 			functionProtocol(tok, name)
 		} else if strings.Contains(tok, "show") {
@@ -1766,7 +1773,16 @@ func callCode(tok string, state string) {
 		}
 
 	} else if strings.Contains(tok, "[") && strings.Contains(tok, "]") && strings.Contains(tok, "=") && strings.Index(tok, "=") < strings.Index(tok, "[") {
-		insertFunction(tok, state)
+
+		if strings.Contains(tok, "list") && getVariable(strings.Split(tok, "=")[1]) == "list" {
+			dataStructureProtocol("list", state, tok)
+		} else if strings.Contains(tok, "map") && getVariable(strings.Split(tok, "=")[1]) == "map" {
+			dataStructureProtocol("map", state, tok)
+		} else if strings.Contains(tok, "set") && getVariable(strings.Split(tok, "=")[1]) == "set" {
+			dataStructureProtocol("set", state, tok)
+		} else {
+			insertFunction(tok, state)
+		}
 	} else if strings.Contains(tok, "[") && strings.Contains(tok, "]") && strings.LastIndex(tok, "]") > strings.LastIndex(tok, ".") {
 		functionProtocol(tok, state)
 	} else if strings.Contains(tok, "show") {
@@ -3224,6 +3240,76 @@ func dataStructureSetParser(list string) set {
 	return newStructure
 }
 
+func dataStructureMapsParser(list string) maps {
+	var newStructure maps
+	newStructure.maps = make(map[string]interface{})
+	newlist := list[strings.Index(list, "[")+1 : strings.LastIndex(list, "]")]
+	stringStatus := 0
+	var element string
+	// fmt.Println(newlist)
+	for _, value := range newlist {
+		// fmt.Println(string(value))
+		if string(value) == "\"" {
+
+			if stringStatus == 0 {
+				stringStatus += 1
+				element += string(value)
+			} else {
+				stringStatus = 0
+				element += string(value)
+			}
+		} else if string(value) == "," && stringStatus == 0 {
+			stringStat := 0
+			for Index, value := range element {
+				if string(value) == "\"" {
+					if stringStat == 0 {
+						stringStat += 1
+						element += string(value)
+					} else {
+						stringStat = 0
+						element += string(value)
+					}
+				} else if string(value) == ":" && stringStatus == 0 {
+					// fmt.Println(element)
+					key := element[0 : Index-1]
+					value := element[Index+1 : len(element)-1]
+					newStructure.add(parseString(key), parseString(value))
+					element = ""
+				}
+
+			}
+
+		} else {
+			element += string(value)
+		}
+
+	}
+
+	if element != "" {
+		stringStat := 0
+		for Index, value := range element {
+			if string(value) == "\"" {
+				if stringStat == 0 {
+					stringStat += 1
+					element += string(value)
+				} else {
+					stringStat = 0
+					element += string(value)
+				}
+			} else if string(value) == ":" && stringStatus == 0 {
+				key := element[0 : Index-1]
+				value := element[Index+1 : len(element)-1]
+				newStructure.add(parseString(key), parseString(value))
+				element = ""
+			}
+
+		}
+	}
+
+	return newStructure
+
+}
+
 type maps struct {
 	maps   map[string]interface{}
 	length int
@@ -3231,6 +3317,12 @@ type maps struct {
 
 func (Amap *maps) delete(data string) {
 	delete(Amap.maps, data)
+}
+
+func (maper *maps) add(key string, value string) {
+	// fmt.Println(key, value, "in map")
+	maper.maps[key] = value
+	// fmt.Println(maper)
 }
 
 type set struct {
@@ -3301,9 +3393,14 @@ func dataStructureProtocol(isType string, state string, tok string) {
 
 	} else if isType == "map" {
 		if state == "isMain" {
+			mapss := strings.Split(tok, "=")[1]
+			mapss = strings.Replace(mapss, "map", "", 1)
+			variableDict[getVariable(strings.Split(tok, "=")[0])] = dataStructureMapsParser(mapss)
 
 		} else {
-
+			mapss := strings.Split(tok, "=")[1]
+			mapss = strings.Replace(mapss, "map", "", 1)
+			functionDict[state].funcVariableDict[getVariable(strings.Split(tok, "=")[0])] = dataStructureMapsParser(mapss)
 		}
 
 	}
@@ -3317,23 +3414,36 @@ func dataStructureOperations(isType string, state string, tok string) {
 
 // Evaluating data structures with possible other data types
 // --------------------------------------------------------------------------------
-func evalSetExpressions(tok string) []interface{} {
+func evalSetExpressions(tok string, state string) []interface{} {
 
-	var newSet = variableDict[getVariable(tok)].(set)
+	if state == "isMain" {
+		var newSet = variableDict[getVariable(tok)].(set)
+		return newSet.set
+	}
+	var newSet = functionDict[state].funcVariableDict[getVariable(tok)].(set)
 	return newSet.set
-
 }
 
-func evalListExpressions(tok string) []interface{} {
+func evalListExpressions(tok string, state string) []interface{} {
 
-	var newlist = variableDict[getVariable(tok)].(list)
+	if state == "isMain" {
+		var newlist = variableDict[getVariable(tok)].(list)
+		return newlist.list
+
+	}
+	var newlist = functionDict[state].funcVariableDict[getVariable(tok)].(list)
 	return newlist.list
 
 }
 
-func evalMapSExpressions(tok string) map[string]interface{} {
+func evalMapSExpressions(tok string, state string) map[string]interface{} {
 
-	var newmaps = variableDict[getVariable(tok)].(maps)
+	if state == "isMain" {
+		var newmaps = variableDict[getVariable(tok)].(maps)
+		return newmaps.maps
+
+	}
+	var newmaps = functionDict[state].funcVariableDict[getVariable(tok)].(maps)
 	return newmaps.maps
 
 }
