@@ -7,7 +7,6 @@ import (
 	"go/types"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strconv"
 	"strings"
 	"syscall"
@@ -43,7 +42,7 @@ func evalType(s string, state string) string {
 	variable := -1
 	varStat := ""
 	varTok := ""
-
+	// fmt.Println(s)
 	fs := token.NewFileSet()
 	s = strings.ReplaceAll(s, "\\n", "\n")
 	tv, err := types.Eval(fs, nil, token.NoPos, s)
@@ -73,27 +72,11 @@ func evalType(s string, state string) string {
 
 		if variable == 1 {
 			if state == "isMain" {
+				// fmt.Println(varTok)
 				// fmt.Println(reflect.TypeOf(variableDict[varTok]).Name())
-
-				if reflect.TypeOf(variableDict[varTok]).Name() == "list" {
-					return "List"
-				} else if reflect.TypeOf(variableDict[varTok]).Name() == "set" {
-					return "Set"
-				} else if reflect.TypeOf(variableDict[varTok]).Name() == "maps" {
-					return "Map"
-				} else {
-					return "Var"
-				}
+				return "Var"
 			} else {
-				if reflect.TypeOf(functionDict[state].funcVariableDict[varTok]).Name() == "list" {
-					return "List"
-				} else if reflect.TypeOf(functionDict[state].funcVariableDict[varTok]).Name() == "set" {
-					return "Set"
-				} else if reflect.TypeOf(functionDict[state].funcVariableDict[varTok]).Name() == "maps" {
-					return "Map"
-				} else {
-					return "Var"
-				}
+				return "Var"
 			}
 
 		}
@@ -701,17 +684,17 @@ func showReal(str string, state string) {
 	} else if evalType(parseToken, state) == "String" {
 		fmt.Println(parseString(eval(parseToken)))
 	} else if evalType(parseToken, state) == "Var" {
-		fmt.Println(evalVarExpression(showTok[1]))
+		fmt.Println(evalDataExpressions(showTok[1], state))
 	} else if evalType(parseToken, state) == "Exp" {
 		fmt.Println(evalExpression(showTok[1]))
 	} else if evalType(parseToken, state) == "Bool" {
 		fmt.Println(evalExpression(showTok[1]))
 	} else if evalType(parseToken, state) == "List" {
-		fmt.Println(evalListExpressions(parseToken, state)...)
+		fmt.Println(evalDataExpressions(showTok[1], state))
 	} else if evalType(parseToken, state) == "Set" {
-		fmt.Println(evalSetExpressions(parseToken, state)...)
+		fmt.Println(evalDataExpressions(showTok[1], state))
 	} else if evalType(parseToken, state) == "Map" {
-		fmt.Println(evalMapSExpressions(parseToken, state))
+		fmt.Println(evalDataExpressions(showTok[1], state))
 
 	}
 }
@@ -1209,11 +1192,11 @@ func showRealFunc(str string, name string) {
 	} else if evalType(parseToken, name) == "Bool" {
 		fmt.Println(evalExpression(showTok[1]))
 	} else if evalType(parseToken, name) == "List" {
-		fmt.Println(evalListExpressions(parseToken, name)...)
+		fmt.Println(evalDataExpressions(parseToken, name))
 	} else if evalType(parseToken, name) == "Set" {
-		fmt.Println(evalSetExpressions(parseToken, name)...)
+		fmt.Println(evalDataExpressions(parseToken, name))
 	} else if evalType(parseToken, name) == "Map" {
-		fmt.Println(evalMapSExpressions(parseToken, name))
+		fmt.Println(evalDataExpressions(parseToken, name))
 
 	}
 }
@@ -3347,8 +3330,8 @@ func (Aset *set) add(data string) {
 	var isThere bool
 	for _, v := range Aset.set {
 		if data == v {
-			break
 			isThere = true
+			break
 		}
 	}
 	if isThere == false {
@@ -3359,6 +3342,54 @@ func (Aset *set) add(data string) {
 
 func (Aset *set) len() {
 	Aset.length = len(Aset.set)
+}
+
+// convert data structures to strings
+// convert list of data into a string
+func (Alist *list) toString() string {
+	list := "[ "
+	for _, v := range Alist.list {
+		if data, errors := v.([]string); errors {
+			list += "[ "
+			for _, d := range data {
+				list = list + d + " , "
+			}
+			list += " ]"
+		} else {
+			list = list + v.(string) + " , "
+		}
+
+	}
+	list += " ]"
+	return list
+}
+
+// convert set of data into a string
+func (Aset *set) toString() string {
+	set := "[ "
+	for _, v := range Aset.set {
+		if data, errors := v.([]string); errors {
+			set += "[ "
+			for _, d := range data {
+				set = set + d + " , "
+			}
+			set += " ]"
+		} else {
+			set = set + v.(string) + " , "
+		}
+
+	}
+	set += " ]"
+	return set
+}
+
+func (Amap maps) toString() string {
+	maper := "[ "
+	for key, value := range Amap.maps {
+		maper = maper + key + ":" + value.(string) + ","
+	}
+	maper += " ]"
+	return maper
 }
 
 // data Structure Protocol used to intialize and setup data structures
@@ -3414,38 +3445,333 @@ func dataStructureOperations(isType string, state string, tok string) {
 
 // Evaluating data structures with possible other data types
 // --------------------------------------------------------------------------------
-func evalSetExpressions(tok string, state string) []interface{} {
+func evalDataExpressions(str string, state string) string {
 
-	if state == "isMain" {
-		var newSet = variableDict[getVariable(tok)].(set)
-		return newSet.set
+	// if state == "isMain" {
+	// 	var newSet = variableDict[getVariable(tok)].(set)
+	// 	return newSet.set
+	// }
+	// var newSet = functionDict[state].funcVariableDict[getVariable(tok)].(set)
+	// return newSet.set
+	// fmt.Println(str, "here===>")
+	inString := 0
+	newShow := str
+	newString := ""
+	// check if the string has any commas outside string or if it's a concat
+	var isConcat bool
+	var oneStatement bool
+	oneStatement = isOneVariable(str)
+	isConcat = isConcatExp(str)
+	if isConcat == true {
+		parseToken := str
+		place := 0
+		placeAfter := 0
+		for count := 0; count <= strings.LastIndex(str, "."); count++ {
+			if string(str[count]) == "\"" {
+				inString += 1
+				if inString > 1 {
+					inString = 0
+				}
+				continue
+			} else if string(str[count]) == plus && inString == 0 {
+				if placeAfter == 0 {
+					if strings.Contains(str, "[") && strings.Contains(str, "]") && strings.Contains(str[placeAfter:count-1], "[") && strings.Contains(str[placeAfter:count-1], "]") {
+						funcshowState = true
+						functionProtocol(str[0:count-1], "isMain")
+						parseToken = strings.ReplaceAll(parseToken, string(str[0:count-1]), funcShowReturn)
+						funcshowState = false
+						funcShowReturn = ""
+					} else {
+						variable := getVariable(parseToken[place:count])
+						if variable == "" {
+							place = count + 1
+						} else {
+							if Aset, errors := variableDict[variable].(set); errors {
+								parseToken = strings.ReplaceAll(parseToken, variable, Aset.toString())
+								place = count + 1
+							} else if Alist, errors := variableDict[variable].(list); errors {
+								parseToken = strings.ReplaceAll(parseToken, variable, Alist.toString())
+								place = count + 1
+							} else if Amap, errors := variableDict[variable].(maps); errors {
+								parseToken = strings.ReplaceAll(parseToken, variable, Amap.toString())
+								place = count + 1
+							} else {
+								parseToken = strings.ReplaceAll(parseToken, variable, variableDict[variable].(string))
+								place = count + 1
+							}
+
+						}
+					}
+					placeAfter = count + 1
+
+				} else {
+					if strings.Contains(parseToken, "[") && strings.Contains(parseToken, "]") && strings.Contains(str[placeAfter:count-1], "[") && strings.Contains(str[placeAfter:count-1], "]") {
+						funcshowState = true
+						functionProtocol(str[placeAfter:count-1], "isMain")
+						parseToken = strings.ReplaceAll(parseToken, string(str[placeAfter:count-1]), funcShowReturn)
+						funcshowState = false
+						funcShowReturn = ""
+					} else {
+						variable := getVariable(str[placeAfter : count-1])
+						if variable == "" {
+							place = count + 1
+						} else {
+
+							if Aset, errors := variableDict[variable].(set); errors {
+								parseToken = strings.ReplaceAll(parseToken, variable, Aset.toString())
+								place = count + 1
+							} else if Alist, errors := variableDict[variable].(list); errors {
+								parseToken = strings.ReplaceAll(parseToken, variable, Alist.toString())
+								place = count + 1
+							} else if Amap, errors := variableDict[variable].(maps); errors {
+								parseToken = strings.ReplaceAll(parseToken, variable, Amap.toString())
+								place = count + 1
+							} else {
+								parseToken = strings.ReplaceAll(parseToken, variable, variableDict[variable].(string))
+								place = count + 1
+							}
+						}
+					}
+					placeAfter = count + 1
+
+				}
+
+			} else if count == strings.LastIndex(str, ".") {
+				if strings.Contains(parseToken, "[") && strings.Contains(parseToken, "]") && strings.Contains(str[placeAfter:count-1], "[") && strings.Contains(str[placeAfter:count-1], "]") {
+					funcshowState = true
+					functionProtocol(str[placeAfter:count-1], "isMain")
+					parseToken = strings.ReplaceAll(parseToken, string(str[placeAfter:count-1]), funcShowReturn)
+					funcshowState = false
+					funcShowReturn = ""
+
+				} else {
+					variable := getVariable(str[placeAfter:count])
+					if variable == "" {
+						place = count + 1
+					} else {
+						if Aset, errors := variableDict[variable].(set); errors {
+							parseToken = strings.ReplaceAll(parseToken, variable, Aset.toString())
+							place = count + 1
+						} else if Alist, errors := variableDict[variable].(list); errors {
+							parseToken = strings.ReplaceAll(parseToken, variable, Alist.toString())
+							place = count + 1
+						} else if Amap, errors := variableDict[variable].(maps); errors {
+							parseToken = strings.ReplaceAll(parseToken, variable, Amap.toString())
+							place = count + 1
+						} else {
+							parseToken = strings.ReplaceAll(parseToken, variable, variableDict[variable].(string))
+							place = count + 1
+						}
+					}
+
+				}
+			}
+		}
+		parseToken = parseToken[0:strings.LastIndex(parseToken, ".")]
+		return parseString(strings.ReplaceAll(eval(parseToken), "\\n", "\n"))
+	} else if oneStatement == true {
+		// fmt.Println(oneStatement)
+		// fmt.Println(str)
+		// fmt.Println(str[0:strings.LastIndex(str, ".")])
+		// fmt.Println(getVariable(str[0:strings.LastIndex(str, ".")]))
+		variable := getVariable(str[0:strings.LastIndex(str, ".")])
+		if !strings.Contains(str, ",") {
+			if strings.Contains(str, "[") && strings.Contains(str, "]") {
+				funcshowState = true
+				functionProtocol(str, "isMain")
+				funcshowState = false
+				return funcShowReturn
+			} else {
+				if Aset, errors := variableDict[variable].(set); errors {
+					return Aset.toString()
+				} else if Alist, errors := variableDict[variable].(list); errors {
+					return Alist.toString()
+				} else if Amap, errors := variableDict[variable].(maps); errors {
+					return Amap.toString()
+				} else {
+					return variableDict[variable].(string)
+				}
+
+			}
+		} else {
+			place := 0
+			arg := ""
+			for count := 0; count <= strings.LastIndex(str, "."); count++ {
+				arg = ""
+				if string(newShow[count]) == "\"" {
+					inString += 1
+					if inString > 1 {
+						inString = 0
+					}
+					continue
+				} else if string(newShow[count]) == "," && inString == 0 {
+					arg = ""
+					if evalType(newShow[place:count], "isMain") == "Var" {
+						oneVar := isOneVariable(newShow[place:count])
+						if oneVar == true {
+							if strings.Contains(newShow[place:count], "[") && strings.Contains(newShow[place:count], "]") {
+								funcshowState = true
+								functionProtocol(newShow[place:count], "isMain")
+								newString += funcShowReturn
+
+							} else {
+								variable := getVariable(newShow[place:count])
+								if Aset, errors := variableDict[variable].(set); errors {
+									arg = Aset.toString()
+									newString += parseString(arg)
+								} else if Alist, errors := variableDict[variable].(list); errors {
+									arg = Alist.toString()
+									newString += parseString(arg)
+								} else if Amap, errors := variableDict[variable].(maps); errors {
+									arg = Amap.toString()
+									newString += parseString(arg)
+								} else {
+									arg = variableDict[variable].(string)
+									newString += parseString(arg)
+								}
+							}
+
+						} else {
+							newString += getevalVar(newShow[place:count])
+						}
+
+					} else {
+						if evalType(newShow[place:count], "isMain") == "Exp" {
+							arg = evalExpression(newShow[place:count])
+							newString += parseString(arg)
+						} else {
+							arg = eval(newShow[place:count])
+							newString += parseString(arg)
+						}
+
+					}
+					place = count + 1
+				} else if count == strings.LastIndex(str, ".") {
+					arg = ""
+					if evalType(newShow[place:count], "isMain") == "Var" {
+						oneVar := isOneVariable(newShow[place:count])
+						if oneVar == true {
+							if strings.Contains(newShow[place:count], "[") && strings.Contains(newShow[place:count], "]") {
+								funcshowState = true
+								functionProtocol(newShow[place:count], "isMain")
+								newString += funcShowReturn
+							} else {
+								variable := getVariable(newShow[place:count])
+								if Aset, errors := variableDict[variable].(set); errors {
+									arg = Aset.toString()
+									newString += parseString(arg)
+								} else if Alist, errors := variableDict[variable].(list); errors {
+									arg = Alist.toString()
+									newString += parseString(arg)
+								} else if Amap, errors := variableDict[variable].(maps); errors {
+									arg = Amap.toString()
+									newString += parseString(arg)
+								} else {
+									arg = variableDict[variable].(string)
+									newString += parseString(arg)
+								}
+
+							}
+						} else {
+							newString += getevalVarPeriod(newShow[place:count])
+						}
+					} else {
+						if evalType(newShow[place:count], "isMain") == "Exp" {
+							arg = evalExpression(newShow[place:count])
+							newString += parseString(arg)
+						} else {
+							arg = eval(newShow[place:count])
+							newString += parseString(arg)
+						}
+					}
+				}
+			}
+			return strings.ReplaceAll(newString, "\\n", "\n")
+		}
+
+	} else {
+		place := 0
+		arg := ""
+		for count := 0; count <= strings.LastIndex(str, "."); count++ {
+			arg = ""
+			if string(newShow[count]) == "\"" {
+				inString += 1
+				if inString > 1 {
+					inString = 0
+				}
+				continue
+			} else if string(newShow[count]) == "," && inString == 0 {
+				arg = ""
+				if evalType(newShow[place:count], "isMain") == "Var" {
+					oneVar := isOneVariable(newShow[place:count])
+					if oneVar == true {
+						variable := getVariable(newShow[place:count])
+						if Aset, errors := variableDict[variable].(set); errors {
+							arg = Aset.toString()
+							newString += parseString(arg)
+						} else if Alist, errors := variableDict[variable].(list); errors {
+							arg = Alist.toString()
+							newString += parseString(arg)
+						} else if Amap, errors := variableDict[variable].(maps); errors {
+							arg = Amap.toString()
+							newString += parseString(arg)
+						} else {
+							arg = variableDict[variable].(string)
+							newString += parseString(arg)
+						}
+
+					} else {
+						newString += getevalVar(newShow[place:count])
+					}
+
+				} else {
+					if evalType(newShow[place:count], "isMain") == "Exp" {
+						arg = evalExpression(newShow[place:count])
+						newString += parseString(arg)
+					} else {
+						arg = eval(newShow[place:count])
+						newString += parseString(arg)
+					}
+
+				}
+				place = count + 1
+			} else if count == strings.LastIndex(str, ".") {
+				arg = ""
+				if evalType(newShow[place:count], "isMain") == "Var" {
+					oneVar := isOneVariable(newShow[place:count])
+					if oneVar == true {
+						variable := getVariable(newShow[place:count])
+						if Aset, errors := variableDict[variable].(set); errors {
+							arg = Aset.toString()
+							newString += parseString(arg)
+						} else if Alist, errors := variableDict[variable].(list); errors {
+							arg = Alist.toString()
+							newString += parseString(arg)
+						} else if Amap, errors := variableDict[variable].(maps); errors {
+							arg = Amap.toString()
+							newString += parseString(arg)
+						} else {
+							arg = variableDict[variable].(string)
+							newString += parseString(arg)
+						}
+
+					} else {
+						newString += getevalVarPeriod(newShow[place:count])
+					}
+				} else {
+					if evalType(newShow[place:count], "isMain") == "Exp" {
+						arg = evalExpression(newShow[place:count])
+						newString += parseString(arg)
+					} else {
+						arg = eval(newShow[place:count])
+						newString += parseString(arg)
+					}
+				}
+			}
+		}
+
 	}
-	var newSet = functionDict[state].funcVariableDict[getVariable(tok)].(set)
-	return newSet.set
-}
-
-func evalListExpressions(tok string, state string) []interface{} {
-
-	if state == "isMain" {
-		var newlist = variableDict[getVariable(tok)].(list)
-		return newlist.list
-
-	}
-	var newlist = functionDict[state].funcVariableDict[getVariable(tok)].(list)
-	return newlist.list
-
-}
-
-func evalMapSExpressions(tok string, state string) map[string]interface{} {
-
-	if state == "isMain" {
-		var newmaps = variableDict[getVariable(tok)].(maps)
-		return newmaps.maps
-
-	}
-	var newmaps = functionDict[state].funcVariableDict[getVariable(tok)].(maps)
-	return newmaps.maps
-
+	return strings.ReplaceAll(newString, "\\n", "\n")
 }
 
 // Function is used if no argument is passed into the interperter

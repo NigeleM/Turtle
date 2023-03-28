@@ -1,18 +1,11 @@
 
 
 
-// a = list [1,2,3,"Hello World",1]
-// c = set [1,2,3,4,4,5]
-// show a .
-// show " Set C Below " . 
-// show c .
-// b = map ["Nigele" : 2, "Khris":3, "Mom":4]
-// show b .
-def data[]
-a = list [1,2,3,"Hello World",1]
-show a .
-b = map ["Nigele" : 2, "Khris":3, "Mom":4]
-show b .
-def [end]
+ a = list [1,2,3,"Hello World",1]
+ c = set [1,2,3,4,4,5]
+ show a .
+ show " Set C Below " . 
+ show c .
+ b = map ["Nigele" : 2, "Khris":3, "Mom":4]
+ show b , " my map " , c , a .
 
-data[]
