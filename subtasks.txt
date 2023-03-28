@@ -19,4 +19,4 @@ New Tasks
 Standard Library
 Error handling 
 Data structures 
-- rewriting variable and function dictionary with interface. Not sure if that's the right move. 
+100 % - rewriting variable and function dictionary with interface. Not sure if that's the right move. 
