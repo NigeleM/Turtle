@@ -3153,20 +3153,20 @@ func dataStructureListParser(strlist string) list {
 	var newStructure list
 	newlist := strlist[strings.Index(strlist, "[")+1 : strings.LastIndex(strlist, "]")]
 	stringStatus := 0
+	// fmt.Println(newlist)
 	var element string
 	// fmt.Println(newlist)
 	for _, value := range newlist {
 		// fmt.Println(string(value))
 		if string(value) == "\"" {
-
 			if stringStatus == 0 {
 				stringStatus += 1
 				element += string(value)
 			} else {
 				stringStatus = 0
 				element += string(value)
-				newStructure.add(element)
-				element = ""
+				// newStructure.add(element)
+				// element = ""
 			}
 		} else if string(value) == "," && stringStatus == 0 {
 			newStructure.add(element)
