@@ -17,6 +17,8 @@ def run[]
  show c .
  b = map ["Nigele" : 2, "Khris":3, "Mom":4]
  show b , " my map " , c , a , " ", 1+1 .
+ d = []
+ show d .
  def [end]
 
 show "Running function" .

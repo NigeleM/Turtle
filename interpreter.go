@@ -7,6 +7,7 @@ import (
 	"go/types"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -3395,6 +3396,160 @@ func (Amap maps) toString() string {
 	}
 	maper += " ]"
 	return maper
+}
+
+// list functions
+func (Alist *list) clear() {
+	var newlist list
+	Alist.list = newlist.list
+	Alist.length = 0
+
+}
+
+// vars is the variablee copying to and lists is list copying from
+func (Alist *list) copy(vars string, state string) {
+	if state == "isMain" {
+		variable := getVariable(vars)
+		sorc := variableDict[variable].(list)
+		copy(Alist.list, sorc.list)
+
+	} else {
+		variable := getVariable(vars)
+		sorc := functionDict[state].funcVariableDict[variable].(list)
+		copy(Alist.list, sorc.list)
+	}
+
+}
+
+func (Alist *list) count(value interface{}) int {
+	count := 0
+	for _, v := range Alist.list {
+		if v == value {
+			count += 1
+		}
+	}
+	return count
+}
+
+func (Alist *list) index(value interface{}) int {
+	count := 0
+	for _, v := range Alist.list {
+		if v == value {
+			count += 1
+			break
+		}
+	}
+	return count
+
+}
+
+// For sorting values
+func (a *list) Len() int      { return len(a.list) }
+func (a *list) Swap(i, j int) { a.list[i], a.list[j] = a.list[j], a.list[i] }
+
+// Less implements sort.Interface
+func (Alist *list) Less(i int, j int) bool {
+	switch v1 := Alist.list[i].(type) {
+	case string:
+		return strings.Compare(v1, Alist.list[j].(string)) < 0 // import "strings"
+		// return v1 < t2.(string)
+	case int:
+		return v1 < Alist.list[j].(int)
+	case float32:
+		return v1 < Alist.list[j].(float32)
+	case float64:
+		return v1 < Alist.list[j].(float64)
+
+	}
+
+	return false
+}
+
+// Not sure if this will even work
+func (Alist *list) sort(value interface{}) {
+
+	sort.Sort(Alist)
+
+}
+
+func (Alist *list) remove(value interface{}) {
+	index := Alist.index(value)
+	copy(Alist.list[index:], Alist.list[index+1:])
+	Alist.list = Alist.list[:len(Alist.list)-1]
+
+}
+
+// Reverse function for reversing data
+func (Alist *list) reverse() {
+	for i, j := 0, len(Alist.list); i < j; i, j = i+1, j-1 {
+		Alist.list[i], Alist.list[j] = Alist.list[j], Alist.list[i]
+	}
+
+}
+
+// Pop the last index out of list
+func (Alist *list) pop() {
+	if len(Alist.list) > 0 {
+		Alist.list = Alist.list[:len(Alist.list)-1]
+	}
+}
+
+func (Alist *list) find() bool {
+
+	return true
+}
+
+// Set functions
+func (Aset *set) clear() {
+	var newSet set
+	Aset.set = newSet.set
+	Aset.length = 0
+
+}
+
+func (Aset *set) copy() {
+
+}
+
+func (Aset *set) remove() {
+
+}
+
+func (Aset *set) sort() {
+
+}
+
+func (Aset *set) reverse() {
+
+}
+
+func (Aset *set) pop() {
+
+}
+
+func (Aset *set) union() set {
+	return *Aset
+}
+
+func (Aset *set) intersection() set {
+	return *Aset
+}
+
+func (Aset *set) difference() set {
+	return *Aset
+}
+
+func (Aset *set) subset() bool {
+	return true
+}
+
+func (Aset *set) superset() bool {
+	return true
+}
+
+// Maps
+
+func max(data interface{}) interface {
 }
 
 // data Structure Protocol used to intialize and setup data structures
