@@ -3494,9 +3494,15 @@ func (Alist *list) pop() {
 	}
 }
 
-func (Alist *list) find() bool {
-
-	return true
+// find value in list
+func (Alist *list) find(value interface{}) bool {
+	found := false
+	for _, v := range Alist.list {
+		if v == value {
+			found = true
+		}
+	}
+	return found
 }
 
 // Set functions
@@ -3507,7 +3513,17 @@ func (Aset *set) clear() {
 
 }
 
-func (Aset *set) copy() {
+func (Aset *set) copy(vars string, state string) {
+	if state == "isMain" {
+		variable := getVariable(vars)
+		sorc := variableDict[variable].(set)
+		copy(Aset.set, sorc.set)
+
+	} else {
+		variable := getVariable(vars)
+		sorc := functionDict[state].funcVariableDict[variable].(set)
+		copy(Aset.set, sorc.set)
+	}
 
 }
 
@@ -3515,7 +3531,30 @@ func (Aset *set) remove() {
 
 }
 
+// For sorting values
+func (a *set) Len() int      { return len(a.set) }
+func (a *set) Swap(i, j int) { a.set[i], a.set[j] = a.set[j], a.set[i] }
+
+// Less implements sort.Interface
+func (Aset *set) Less(i int, j int) bool {
+	switch v1 := Aset.set[i].(type) {
+	case string:
+		return strings.Compare(v1, Aset.set[j].(string)) < 0 // import "strings"
+		// return v1 < t2.(string)
+	case int:
+		return v1 < Aset.set[j].(int)
+	case float32:
+		return v1 < Aset.set[j].(float32)
+	case float64:
+		return v1 < Aset.set[j].(float64)
+
+	}
+
+	return false
+}
+
 func (Aset *set) sort() {
+	sort.Sort(Aset)
 
 }
 
@@ -3547,9 +3586,178 @@ func (Aset *set) superset() bool {
 	return true
 }
 
-// Maps
+// max function gets the max value out of a list, set, or max key out of a map
+func max(data string, state string) interface{} {
 
-func max(data interface{}) interface {
+	var max interface{}
+	if state == "isMain" {
+		variable := getVariable(data)
+		if data, errors := variableDict[variable].(set); errors {
+			max = data.set[0]
+			for i := 1; i < len(data.set); i++ {
+				if max.(string) < data.set[i].(string) {
+					max = data.set[i]
+				} else if max.(int) < data.set[i].(int) {
+					max = data.set[i]
+				} else if max.(float64) < data.set[i].(float64) {
+					max = data.set[i]
+				} else if max.(float32) < data.set[i].(float32) {
+					max = data.set[i]
+				} else if len(max.(set).set) < len(data.set[i].(set).set) {
+					max = data.set[i]
+				} else if len(max.(list).list) < len(data.set[i].(list).list) {
+					max = data.set[i]
+				}
+			}
+
+		} else if data, errors := variableDict[variable].(list); errors {
+			max = data.list[0]
+			for i := 1; i < len(data.list); i++ {
+				if max.(string) < data.list[i].(string) {
+					max = data.list[i]
+				} else if max.(int) < data.list[i].(int) {
+					max = data.list[i]
+				} else if max.(float64) < data.list[i].(float64) {
+					max = data.list[i]
+				} else if max.(float32) < data.list[i].(float32) {
+					max = data.list[i]
+				} else if len(max.(list).list) < len(data.list[i].(list).list) {
+					max = data.list[i]
+				} else if len(max.(set).set) < len(data.list[i].(set).set) {
+					max = data.list[i]
+				}
+			}
+
+		} else if data, errors := variableDict[variable].(maps); errors {
+			keys := make([]string, 0, len(data.maps))
+			for k := range data.maps {
+				keys = append(keys, k)
+			}
+
+			max = keys[0]
+			for i := 1; i < len(keys); i++ {
+				if max.(string) < keys[i] {
+					max = keys[i]
+				}
+			}
+
+		}
+	} else {
+		variable := getVariable(data)
+		if data, errors := functionDict[state].funcVariableDict[variable].(set); errors {
+			max = data.set[0]
+			for i := 1; i < len(data.set); i++ {
+				if max.(string) < data.set[i].(string) {
+					max = data.set[i]
+				} else if max.(int) < data.set[i].(int) {
+					max = data.set[i]
+				} else if max.(float64) < data.set[i].(float64) {
+					max = data.set[i]
+				} else if max.(float32) < data.set[i].(float32) {
+					max = data.set[i]
+				} else if len(max.(set).set) < len(data.set[i].(set).set) {
+					max = data.set[i]
+				} else if len(max.(list).list) < len(data.set[i].(list).list) {
+					max = data.set[i]
+				}
+			}
+
+		} else if data, errors := functionDict[state].funcVariableDict[variable].(list); errors {
+			max = data.list[0]
+			for i := 1; i < len(data.list); i++ {
+				if max.(string) < data.list[i].(string) {
+					max = data.list[i]
+				} else if max.(int) < data.list[i].(int) {
+					max = data.list[i]
+				} else if max.(float64) < data.list[i].(float64) {
+					max = data.list[i]
+				} else if max.(float32) < data.list[i].(float32) {
+					max = data.list[i]
+				} else if len(max.(list).list) < len(data.list[i].(list).list) {
+					max = data.list[i]
+				} else if len(max.(set).set) < len(data.list[i].(set).set) {
+					max = data.list[i]
+				}
+			}
+
+		} else if data, errors := functionDict[state].funcVariableDict[variable].(maps); errors {
+			keys := make([]string, 0, len(data.maps))
+			for k := range data.maps {
+				keys = append(keys, k)
+			}
+
+			max = keys[0]
+			for i := 1; i < len(keys); i++ {
+				if max.(string) < keys[i] {
+					max = keys[i]
+				}
+			}
+		}
+
+	}
+
+	return max
+}
+
+// get max Value out of a map , max will only get the max key out of a map
+func maxValue(data string, state string) interface{} {
+	var max interface{}
+	if state == "isMain" {
+		variable := getVariable(data)
+		if data, errors := variableDict[variable].(maps); errors {
+			keys := make([]string, 0, len(data.maps))
+			for k := range data.maps {
+				keys = append(keys, k)
+			}
+
+			max = keys[0]
+			for i := 1; i < len(keys); i++ {
+				if data.maps[max.(string)].(string) < data.maps[keys[i]].(string) {
+					max = data.maps[keys[i]]
+				} else if data.maps[max.(string)].(int) < data.maps[keys[i]].(int) {
+					max = data.maps[keys[i]]
+				} else if data.maps[max.(string)].(float32) < data.maps[keys[i]].(float32) {
+					max = data.maps[keys[i]]
+				} else if data.maps[max.(string)].(float64) < data.maps[keys[i]].(float64) {
+					max = data.maps[keys[i]]
+				} else if len(data.maps[max.(string)].(set).set) < len(data.maps[keys[i]].(set).set) {
+					max = data.maps[keys[i]]
+				} else if len(data.maps[max.(string)].(list).list) < len(data.maps[keys[i]].(list).list) {
+					max = data.maps[keys[i]]
+				}
+			}
+
+		}
+	} else {
+		variable := getVariable(data)
+		if data, errors := functionDict[state].funcVariableDict[variable].(maps); errors {
+			keys := make([]string, 0, len(data.maps))
+			for k := range data.maps {
+				keys = append(keys, k)
+			}
+
+			max = keys[0]
+			for i := 1; i < len(keys); i++ {
+				if data.maps[max.(string)].(string) < data.maps[keys[i]].(string) {
+					max = data.maps[keys[i]]
+				} else if data.maps[max.(string)].(int) < data.maps[keys[i]].(int) {
+					max = data.maps[keys[i]]
+				} else if data.maps[max.(string)].(float32) < data.maps[keys[i]].(float32) {
+					max = data.maps[keys[i]]
+				} else if data.maps[max.(string)].(float64) < data.maps[keys[i]].(float64) {
+					max = data.maps[keys[i]]
+				} else if len(data.maps[max.(string)].(set).set) < len(data.maps[keys[i]].(set).set) {
+					max = data.maps[keys[i]]
+				} else if len(data.maps[max.(string)].(list).list) < len(data.maps[keys[i]].(list).list) {
+					max = data.maps[keys[i]]
+				}
+			}
+
+		}
+
+	}
+	// add map application for max value
+	return max
 }
 
 // data Structure Protocol used to intialize and setup data structures
