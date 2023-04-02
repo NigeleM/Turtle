@@ -3563,6 +3563,9 @@ func (Aset *set) reverse() {
 }
 
 func (Aset *set) pop() {
+	if len(Aset.set) > 0 {
+		Aset.set = Aset.set[:len(Aset.set)-1]
+	}
 
 }
 
@@ -3806,8 +3809,42 @@ func dataStructureProtocol(isType string, state string, tok string) {
 
 }
 
-// data Structure operations
-func dataStructureOperations(isType string, state string, tok string) {
+func FindKeyword(tok string, keyword []string) bool {
+	status := false
+	for _, v := range keyword {
+		if tok == v {
+			status = true
+			break
+		}
+	}
+	return status
+}
+
+// data Structure operations function used to handle the various data structure
+// operations , manipulation and etc.
+func dataStructureOperations(state string, tok string) {
+	//
+	keywords := []string{"if", "sort", "in", "remove", "to", "is", "from", "add", "equal", "not", "of", "max",
+		"min", "length", "delete", "sort", "reverse", "insert", "at"}
+
+	if state == "isMain" {
+		token := strings.Split(tok, " ")
+		if FindKeyword(token[0], keywords) == true {
+			fmt.Println(token, tok)
+
+		} else {
+
+		}
+
+	} else {
+		token := strings.Split(tok, " ")
+		if FindKeyword(token[0], keywords) == true {
+
+		} else {
+
+		}
+
+	}
 
 }
 
@@ -4702,6 +4739,8 @@ func main() {
 			if strings.Contains(varTok[0], "=") {
 				insertVariable(tok, "isMain")
 			}
+		} else {
+			dataStructureOperations("isMain", tok)
 		}
 
 	}

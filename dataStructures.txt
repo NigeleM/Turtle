@@ -21,5 +21,4 @@ def run[]
  show d .
  def [end]
 
-show "Running function" .
- run[]
+if a in b
