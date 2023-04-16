@@ -3598,19 +3598,22 @@ func max(data string, state string) interface{} {
 		if data, errors := variableDict[variable].(set); errors {
 			max = data.set[0]
 			for i := 1; i < len(data.set); i++ {
+
 				if max.(string) < data.set[i].(string) {
 					max = data.set[i]
-				} else if max.(int) < data.set[i].(int) {
-					max = data.set[i]
-				} else if max.(float64) < data.set[i].(float64) {
-					max = data.set[i]
-				} else if max.(float32) < data.set[i].(float32) {
-					max = data.set[i]
-				} else if len(max.(set).set) < len(data.set[i].(set).set) {
-					max = data.set[i]
-				} else if len(max.(list).list) < len(data.set[i].(list).list) {
-					max = data.set[i]
 				}
+
+				// else if max.(int) < data.set[i].(int) {
+				// 	max = data.set[i]
+				// } else if max.(float64) < data.set[i].(float64) {
+				// 	max = data.set[i]
+				// } else if max.(float32) < data.set[i].(float32) {
+				// 	max = data.set[i]
+				// } else if len(max.(set).set) < len(data.set[i].(set).set) {
+				// 	max = data.set[i]
+				// } else if len(max.(list).list) < len(data.set[i].(list).list) {
+				// 	max = data.set[i]
+				// }
 			}
 
 		} else if data, errors := variableDict[variable].(list); errors {
@@ -3618,17 +3621,19 @@ func max(data string, state string) interface{} {
 			for i := 1; i < len(data.list); i++ {
 				if max.(string) < data.list[i].(string) {
 					max = data.list[i]
-				} else if max.(int) < data.list[i].(int) {
-					max = data.list[i]
-				} else if max.(float64) < data.list[i].(float64) {
-					max = data.list[i]
-				} else if max.(float32) < data.list[i].(float32) {
-					max = data.list[i]
-				} else if len(max.(list).list) < len(data.list[i].(list).list) {
-					max = data.list[i]
-				} else if len(max.(set).set) < len(data.list[i].(set).set) {
-					max = data.list[i]
 				}
+
+				// else if max.(int) < data.list[i].(int) {
+				// 	max = data.list[i]
+				// } else if max.(float64) < data.list[i].(float64) {
+				// 	max = data.list[i]
+				// } else if max.(float32) < data.list[i].(float32) {
+				// 	max = data.list[i]
+				// } else if len(max.(list).list) < len(data.list[i].(list).list) {
+				// 	max = data.list[i]
+				// } else if len(max.(set).set) < len(data.list[i].(set).set) {
+				// 	max = data.list[i]
+				// }
 			}
 
 		} else if data, errors := variableDict[variable].(maps); errors {
@@ -3652,17 +3657,19 @@ func max(data string, state string) interface{} {
 			for i := 1; i < len(data.set); i++ {
 				if max.(string) < data.set[i].(string) {
 					max = data.set[i]
-				} else if max.(int) < data.set[i].(int) {
-					max = data.set[i]
-				} else if max.(float64) < data.set[i].(float64) {
-					max = data.set[i]
-				} else if max.(float32) < data.set[i].(float32) {
-					max = data.set[i]
-				} else if len(max.(set).set) < len(data.set[i].(set).set) {
-					max = data.set[i]
-				} else if len(max.(list).list) < len(data.set[i].(list).list) {
-					max = data.set[i]
 				}
+
+				// else if max.(int) < data.set[i].(int) {
+				// 	max = data.set[i]
+				// } else if max.(float64) < data.set[i].(float64) {
+				// 	max = data.set[i]
+				// } else if max.(float32) < data.set[i].(float32) {
+				// 	max = data.set[i]
+				// } else if len(max.(set).set) < len(data.set[i].(set).set) {
+				// 	max = data.set[i]
+				// } else if len(max.(list).list) < len(data.set[i].(list).list) {
+				// 	max = data.set[i]
+				// }
 			}
 
 		} else if data, errors := functionDict[state].funcVariableDict[variable].(list); errors {
@@ -3670,17 +3677,19 @@ func max(data string, state string) interface{} {
 			for i := 1; i < len(data.list); i++ {
 				if max.(string) < data.list[i].(string) {
 					max = data.list[i]
-				} else if max.(int) < data.list[i].(int) {
-					max = data.list[i]
-				} else if max.(float64) < data.list[i].(float64) {
-					max = data.list[i]
-				} else if max.(float32) < data.list[i].(float32) {
-					max = data.list[i]
-				} else if len(max.(list).list) < len(data.list[i].(list).list) {
-					max = data.list[i]
-				} else if len(max.(set).set) < len(data.list[i].(set).set) {
-					max = data.list[i]
 				}
+
+				// else if max.(int) < data.list[i].(int) {
+				// 	max = data.list[i]
+				// } else if max.(float64) < data.list[i].(float64) {
+				// 	max = data.list[i]
+				// } else if max.(float32) < data.list[i].(float32) {
+				// 	max = data.list[i]
+				// } else if len(max.(list).list) < len(data.list[i].(list).list) {
+				// 	max = data.list[i]
+				// } else if len(max.(set).set) < len(data.list[i].(set).set) {
+				// 	max = data.list[i]
+				// }
 			}
 
 		} else if data, errors := functionDict[state].funcVariableDict[variable].(maps); errors {
@@ -3717,17 +3726,19 @@ func maxValue(data string, state string) interface{} {
 			for i := 1; i < len(keys); i++ {
 				if data.maps[max.(string)].(string) < data.maps[keys[i]].(string) {
 					max = data.maps[keys[i]]
-				} else if data.maps[max.(string)].(int) < data.maps[keys[i]].(int) {
-					max = data.maps[keys[i]]
-				} else if data.maps[max.(string)].(float32) < data.maps[keys[i]].(float32) {
-					max = data.maps[keys[i]]
-				} else if data.maps[max.(string)].(float64) < data.maps[keys[i]].(float64) {
-					max = data.maps[keys[i]]
-				} else if len(data.maps[max.(string)].(set).set) < len(data.maps[keys[i]].(set).set) {
-					max = data.maps[keys[i]]
-				} else if len(data.maps[max.(string)].(list).list) < len(data.maps[keys[i]].(list).list) {
-					max = data.maps[keys[i]]
 				}
+
+				// else if data.maps[max.(string)].(int) < data.maps[keys[i]].(int) {
+				// 	max = data.maps[keys[i]]
+				// } else if data.maps[max.(string)].(float32) < data.maps[keys[i]].(float32) {
+				// 	max = data.maps[keys[i]]
+				// } else if data.maps[max.(string)].(float64) < data.maps[keys[i]].(float64) {
+				// 	max = data.maps[keys[i]]
+				// } else if len(data.maps[max.(string)].(set).set) < len(data.maps[keys[i]].(set).set) {
+				// 	max = data.maps[keys[i]]
+				// } else if len(data.maps[max.(string)].(list).list) < len(data.maps[keys[i]].(list).list) {
+				// 	max = data.maps[keys[i]]
+				// }
 			}
 
 		}
@@ -3743,17 +3754,206 @@ func maxValue(data string, state string) interface{} {
 			for i := 1; i < len(keys); i++ {
 				if data.maps[max.(string)].(string) < data.maps[keys[i]].(string) {
 					max = data.maps[keys[i]]
-				} else if data.maps[max.(string)].(int) < data.maps[keys[i]].(int) {
-					max = data.maps[keys[i]]
-				} else if data.maps[max.(string)].(float32) < data.maps[keys[i]].(float32) {
-					max = data.maps[keys[i]]
-				} else if data.maps[max.(string)].(float64) < data.maps[keys[i]].(float64) {
-					max = data.maps[keys[i]]
-				} else if len(data.maps[max.(string)].(set).set) < len(data.maps[keys[i]].(set).set) {
-					max = data.maps[keys[i]]
-				} else if len(data.maps[max.(string)].(list).list) < len(data.maps[keys[i]].(list).list) {
+				}
+
+				// else if data.maps[max.(string)].(int) < data.maps[keys[i]].(int) {
+				// 	max = data.maps[keys[i]]
+				// } else if data.maps[max.(string)].(float32) < data.maps[keys[i]].(float32) {
+				// 	max = data.maps[keys[i]]
+				// } else if data.maps[max.(string)].(float64) < data.maps[keys[i]].(float64) {
+				// 	max = data.maps[keys[i]]
+				// } else if len(data.maps[max.(string)].(set).set) < len(data.maps[keys[i]].(set).set) {
+				// 	max = data.maps[keys[i]]
+				// } else if len(data.maps[max.(string)].(list).list) < len(data.maps[keys[i]].(list).list) {
+				// 	max = data.maps[keys[i]]
+				// }
+			}
+
+		}
+
+	}
+	// add map application for max value
+	return max
+}
+
+// min function gets the max value out of a list, set, or max key out of a map
+func min(data string, state string) interface{} {
+
+	var max interface{}
+	if state == "isMain" {
+		variable := getVariable(data)
+		if data, errors := variableDict[variable].(set); errors {
+			max = data.set[0]
+			for i := 1; i < len(data.set); i++ {
+
+				if max.(string) > data.set[i].(string) {
+					max = data.set[i]
+				}
+
+				// else if max.(int) > data.set[i].(int) {
+				// 	max = data.set[i]
+				// } else if max.(float64) > data.set[i].(float64) {
+				// 	max = data.set[i]
+				// } else if max.(float32) > data.set[i].(float32) {
+				// 	max = data.set[i]
+				// } else if len(max.(set).set) > len(data.set[i].(set).set) {
+				// 	max = data.set[i]
+				// } else if len(max.(list).list) > len(data.set[i].(list).list) {
+				// 	max = data.set[i]
+				// }
+			}
+
+		} else if data, errors := variableDict[variable].(list); errors {
+			max = data.list[0]
+			for i := 1; i < len(data.list); i++ {
+				if max.(string) > data.list[i].(string) {
+					max = data.list[i]
+				}
+
+				// else if max.(int) > data.list[i].(int) {
+				// 	max = data.list[i]
+				// } else if max.(float64) > data.list[i].(float64) {
+				// 	max = data.list[i]
+				// } else if max.(float32) > data.list[i].(float32) {
+				// 	max = data.list[i]
+				// } else if len(max.(list).list) > len(data.list[i].(list).list) {
+				// 	max = data.list[i]
+				// } else if len(max.(set).set) > len(data.list[i].(set).set) {
+				// 	max = data.list[i]
+				// }
+			}
+
+		} else if data, errors := variableDict[variable].(maps); errors {
+			keys := make([]string, 0, len(data.maps))
+			for k := range data.maps {
+				keys = append(keys, k)
+			}
+
+			max = keys[0]
+			for i := 1; i < len(keys); i++ {
+				if max.(string) > keys[i] {
+					max = keys[i]
+				}
+			}
+
+		}
+	} else {
+		variable := getVariable(data)
+		if data, errors := functionDict[state].funcVariableDict[variable].(set); errors {
+			max = data.set[0]
+			for i := 1; i < len(data.set); i++ {
+				if max.(string) > data.set[i].(string) {
+					max = data.set[i]
+				}
+
+				// else if max.(int) > data.set[i].(int) {
+				// 	max = data.set[i]
+				// } else if max.(float64) > data.set[i].(float64) {
+				// 	max = data.set[i]
+				// } else if max.(float32) > data.set[i].(float32) {
+				// 	max = data.set[i]
+				// } else if len(max.(set).set) > len(data.set[i].(set).set) {
+				// 	max = data.set[i]
+				// } else if len(max.(list).list) > len(data.set[i].(list).list) {
+				// 	max = data.set[i]
+				// }
+			}
+
+		} else if data, errors := functionDict[state].funcVariableDict[variable].(list); errors {
+			max = data.list[0]
+			for i := 1; i < len(data.list); i++ {
+				if max.(string) > data.list[i].(string) {
+					max = data.list[i]
+				}
+
+				// else if max.(int) > data.list[i].(int) {
+				// 	max = data.list[i]
+				// } else if max.(float64) > data.list[i].(float64) {
+				// 	max = data.list[i]
+				// } else if max.(float32) > data.list[i].(float32) {
+				// 	max = data.list[i]
+				// } else if len(max.(list).list) > len(data.list[i].(list).list) {
+				// 	max = data.list[i]
+				// } else if len(max.(set).set) > len(data.list[i].(set).set) {
+				// 	max = data.list[i]
+				// }
+			}
+
+		} else if data, errors := functionDict[state].funcVariableDict[variable].(maps); errors {
+			keys := make([]string, 0, len(data.maps))
+			for k := range data.maps {
+				keys = append(keys, k)
+			}
+
+			max = keys[0]
+			for i := 1; i < len(keys); i++ {
+				if max.(string) > keys[i] {
+					max = keys[i]
+				}
+			}
+		}
+
+	}
+
+	return max
+}
+
+// get min Value out of a map , max will only get the max key out of a map
+func minValue(data string, state string) interface{} {
+	var max interface{}
+	if state == "isMain" {
+		variable := getVariable(data)
+		if data, errors := variableDict[variable].(maps); errors {
+			keys := make([]string, 0, len(data.maps))
+			for k := range data.maps {
+				keys = append(keys, k)
+			}
+
+			max = keys[0]
+			for i := 1; i < len(keys); i++ {
+				if data.maps[max.(string)].(string) > data.maps[keys[i]].(string) {
 					max = data.maps[keys[i]]
 				}
+
+				// else if data.maps[max.(string)].(int) > data.maps[keys[i]].(int) {
+				// 	max = data.maps[keys[i]]
+				// } else if data.maps[max.(string)].(float32) > data.maps[keys[i]].(float32) {
+				// 	max = data.maps[keys[i]]
+				// } else if data.maps[max.(string)].(float64) > data.maps[keys[i]].(float64) {
+				// 	max = data.maps[keys[i]]
+				// } else if len(data.maps[max.(string)].(set).set) > len(data.maps[keys[i]].(set).set) {
+				// 	max = data.maps[keys[i]]
+				// } else if len(data.maps[max.(string)].(list).list) > len(data.maps[keys[i]].(list).list) {
+				// 	max = data.maps[keys[i]]
+				// }
+			}
+
+		}
+	} else {
+		variable := getVariable(data)
+		if data, errors := functionDict[state].funcVariableDict[variable].(maps); errors {
+			keys := make([]string, 0, len(data.maps))
+			for k := range data.maps {
+				keys = append(keys, k)
+			}
+
+			max = keys[0]
+			for i := 1; i < len(keys); i++ {
+				if data.maps[max.(string)].(string) > data.maps[keys[i]].(string) {
+					max = data.maps[keys[i]]
+				}
+
+				// else if data.maps[max.(string)].(int) > data.maps[keys[i]].(int) {
+				// 	max = data.maps[keys[i]]
+				// } else if data.maps[max.(string)].(float32) > data.maps[keys[i]].(float32) {
+				// 	max = data.maps[keys[i]]
+				// } else if data.maps[max.(string)].(float64) > data.maps[keys[i]].(float64) {
+				// 	max = data.maps[keys[i]]
+				// } else if len(data.maps[max.(string)].(set).set) > len(data.maps[keys[i]].(set).set) {
+				// 	max = data.maps[keys[i]]
+				// } else if len(data.maps[max.(string)].(list).list) > len(data.maps[keys[i]].(list).list) {
+				// 	max = data.maps[keys[i]]
+				// }
 			}
 
 		}
@@ -3825,12 +4025,49 @@ func FindKeyword(tok string, keyword []string) bool {
 func dataStructureOperations(state string, tok string) {
 	//
 	keywords := []string{"if", "sort", "in", "remove", "to", "is", "from", "add", "equal", "not", "of", "max",
-		"min", "length", "delete", "sort", "reverse", "insert", "at"}
+		"min", "length", "delete", "reverse", "insert", "at"}
 
 	if state == "isMain" {
 		token := strings.Split(tok, " ")
 		if FindKeyword(token[0], keywords) == true {
-			fmt.Println(token, tok)
+			if getVariable(token[0]) == "if" {
+
+			} else if getVariable(token[0]) == "insert" {
+
+			} else if getVariable(token[0]) == "min" {
+				if getVariable(token[1]) == "of" {
+
+					if Aset, errors := min(token[2], "isMain").(string); errors {
+						fmt.Println(Aset)
+					}
+				} else {
+					fmt.Println("error")
+				}
+
+			} else if getVariable(token[0]) == "max" {
+				if getVariable(token[1]) == "of" {
+
+					if Aset, errors := max(token[2], "isMain").(string); errors {
+						fmt.Println(Aset)
+					}
+
+				} else {
+					fmt.Println("error")
+				}
+
+			} else if getVariable(token[0]) == "remove" {
+
+			} else if getVariable(token[0]) == "delete" {
+
+			} else if getVariable(token[0]) == "add" {
+
+			} else if getVariable(token[0]) == "sort" {
+
+			} else if getVariable(token[0]) == "reverse" {
+
+			} else if getVariable(token[0]) == "length" {
+
+			}
 
 		} else {
 
