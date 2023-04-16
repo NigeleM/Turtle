@@ -3,11 +3,11 @@
 
  a = list [1,2,3,"Hello World",1]
  c = set [1,2,3,4,4,5]
- show a .
- show " Set C Below " . 
- show c .
+ // show a .
+ // show " Set C Below " . 
+ // show c .
  b = map ["Nigele" : 2, "Khris":3, "Mom":4]
- show b , " my map " , c , a , " ", 1+1 .
+ // show b , " my map " , c , a , " ", 1+1 .
 
 def run[]
  a = list [1,2,3,"Hello World",1]
@@ -21,4 +21,5 @@ def run[]
  show d .
  def [end]
 
-if a in b
+min of c 
+max of c
