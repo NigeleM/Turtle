@@ -4022,38 +4022,77 @@ func FindKeyword(tok string, keyword []string) bool {
 
 // data Structure operations function used to handle the various data structure
 // operations , manipulation and etc.
+
+// Functions below are for statements , the data structures have their own implementation of these function
+// in some cases there is a generic interface to handle certain functionality
+
+// sort data in data structure
+func Sort(state string, tok string) {
+
+}
+
+// get min value of data structure
+func minFunc(state string, tok string) {
+
+}
+
+// remove element from data structure
+func remove(state string, tok string) {
+
+}
+
+// get max value of data structure
+func maxFunc(state string, tok string) {
+
+}
+
+// get the length of a data structure
+func length(state string, tok string) {
+
+}
+
+// delete a value out of a data structure
+func deleteFunc(state string, tok string) {
+
+}
+
+// add a value into a data structure such as set or list
+// or add data structures together
+func addFunc(state string, tok string) {
+
+}
+
+func reverseFunc(state string, tok string) {
+
+}
+
+// insert keys into maps or dictionaries
+func insertData(state string, tok string) {
+
+}
+
 func dataStructureOperations(state string, tok string) {
 	//
-	keywords := []string{"if", "sort", "in", "remove", "to", "is", "from", "add", "equal", "not", "of", "max",
+	keywords := []string{"sort", "in", "remove", "to", "is", "from", "add", "equal", "equals", "not", "of", "max",
 		"min", "length", "delete", "reverse", "insert", "at"}
 
 	if state == "isMain" {
 		token := strings.Split(tok, " ")
 		if FindKeyword(token[0], keywords) == true {
-			if getVariable(token[0]) == "if" {
-
-			} else if getVariable(token[0]) == "insert" {
+			if getVariable(token[0]) == "insert" {
 
 			} else if getVariable(token[0]) == "min" {
-				if getVariable(token[1]) == "of" {
-
-					if Aset, errors := min(token[2], "isMain").(string); errors {
-						fmt.Println(Aset)
-					}
-				} else {
-					fmt.Println("error")
-				}
 
 			} else if getVariable(token[0]) == "max" {
-				if getVariable(token[1]) == "of" {
+				// if getVariable(token[1]) == "of" {
 
-					if Aset, errors := max(token[2], "isMain").(string); errors {
-						fmt.Println(Aset)
-					}
+				// 	if Aset, errors := max(token[2], "isMain").(string); errors {
+				// 		fmt.Println(Aset)
+				// 	}
 
-				} else {
-					fmt.Println("error")
-				}
+				// } else {
+				// 	fmt.Println("error")
+				// }
 
 			} else if getVariable(token[0]) == "remove" {
 
