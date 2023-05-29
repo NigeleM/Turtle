@@ -4030,6 +4030,34 @@ func FindKeyword(tok string, keyword []string) bool {
 
 // sort data in data structure
 func Sort(state string, tok string) {
+	if state == "isMain" {
+		token := strings.Split(tok, " ")
+		for _, data := range token {
+			if data == "sort" {
+				continue
+			} else if dataType, errors := variableDict[getVariable(data)].(set); errors {
+				dataType.sort()
+				variableDict[getVariable(data)] = dataType
+			} else if dataType, errors := variableDict[getVariable(data)].(list); errors {
+				dataType.sort(dataType)
+				variableDict[getVariable(data)] = dataType
+			}
+		}
+	} else {
+		token := strings.Split(tok, " ")
+		for _, data := range token {
+			if data == "sort" {
+				continue
+			} else if dataType, errors := functionDict[state].funcVariableDict[getVariable(data)].(set); errors {
+				dataType.sort()
+				functionDict[state].funcVariableDict[getVariable(data)] = dataType
+			} else if dataType, errors := functionDict[state].funcVariableDict[getVariable(data)].(list); errors {
+				dataType.sort(dataType)
+				functionDict[state].funcVariableDict[getVariable(data)] = dataType
+			}
+		}
+
+	}
 
 }
 
@@ -4154,6 +4182,7 @@ func dataStructureOperations(state string, tok string) {
 				addFunc(state, tok)
 
 			} else if getVariable(token[0]) == "sort" {
+				Sort(state, tok)
 
 			} else if getVariable(token[0]) == "reverse" {
 
@@ -4182,7 +4211,7 @@ func dataStructureOperations(state string, tok string) {
 				addFunc(state, tok)
 
 			} else if getVariable(token[0]) == "sort" {
-
+				Sort(state, tok)
 			} else if getVariable(token[0]) == "reverse" {
 
 			} else if getVariable(token[0]) == "length" {
