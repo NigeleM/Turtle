@@ -1,25 +1,37 @@
 
 
 
- a = list [1,2,3,"Hello World",1]
+ a = 100
+ b = list [1,2,3,"Hello World",1]
  c = set [1,2,3,4,4,5]
  // show a .
  // show " Set C Below " . 
  // show c .
- b = map ["Nigele" : 2, "Khris":3, "Mom":4]
+ d = map ["Nigele" : 2, "Khris":3, "Mom":4]
  // show b , " my map " , c , a , " ", 1+1 .
+
+
+// def run[]
+//  a = list [1,2,3,"Hello World",1]
+ // c = set [1,2,3,4,4,5]
+ // show a .
+ // show " Set C Below " . 
+ // show c .
+ // b = map ["Nigele" : 2, "Khris":3, "Mom":4]
+ // show b , " my map " , c , a , " ", 1+1 .
+ // d = []
+ // show d .
+ // def [end]
 
 def run[]
  a = list [1,2,3,"Hello World",1]
- c = set [1,2,3,4,4,5]
- show a .
- show " Set C Below " . 
- show c .
- b = map ["Nigele" : 2, "Khris":3, "Mom":4]
- show b , " my map " , c , a , " ", 1+1 .
- d = []
- show d .
- def [end]
+ c = 130
+add 150 to a
+show "---------------" .
+show a . 
+show "---------------" .
+def [end]
 
-min of c 
-max of c
+add 120 to b
+show b .
+run[]
