@@ -2,7 +2,7 @@
 
 
  a = 100
- b = list [1,2,3,"Hello World",1]
+ b = list [3,2,1]
  c = set [1,2,3,4,4,5]
  // show a .
  // show " Set C Below " . 
@@ -24,7 +24,7 @@
  // def [end]
 
 def run[]
- a = list [1,2,3,"Hello World",1]
+ a = set [1,2,3]
  c = 130
 add 150 to a
 show "---------------" .
@@ -32,6 +32,8 @@ show a .
 show "---------------" .
 def [end]
 
-add 120 to b
+add 1 to b
 show b .
-run[]
+//run[]
+sort b 
+show b .
