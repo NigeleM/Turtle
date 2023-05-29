@@ -1405,6 +1405,8 @@ func functionProtocol(str string, state string) {
 			if strings.Contains(varTok[0], "=") {
 				insertVariableFunc(tok, name)
 			}
+		} else {
+			dataStructureOperations(name, tok)
 		}
 	}
 
@@ -4059,7 +4061,57 @@ func deleteFunc(state string, tok string) {
 // add a value into a data structure such as set or list
 // or add data structures together
 func addFunc(state string, tok string) {
-
+	if state == "isMain" {
+		var variable_or_value string
+		var toisTrue bool
+		token := strings.Split(tok, " ")
+		for _, data := range token {
+			if data == "add" {
+				continue
+			} else {
+				if getVariable(data) == "" && variable_or_value == "" {
+					variable_or_value = data
+				} else if getVariable(data) != "" && variable_or_value == "" {
+					variable_or_value = variableDict[getVariable(data)].(string)
+				} else if data == "to" {
+					toisTrue = true
+				} else if toisTrue == true {
+					if dataType, errors := variableDict[getVariable(data)].(set); errors {
+						dataType.add(variable_or_value)
+						variableDict[getVariable(data)] = dataType
+					} else if dataType, errors := variableDict[getVariable(data)].(list); errors {
+						dataType.add(variable_or_value)
+						variableDict[getVariable(data)] = dataType
+					}
+				}
+			}
+		}
+	} else {
+		var variable_or_value string
+		var toisTrue bool
+		token := strings.Split(tok, " ")
+		for _, data := range token {
+			if data == "add" {
+				continue
+			} else {
+				if getVariable(data) == "" && variable_or_value == "" {
+					variable_or_value = data
+				} else if getVariable(data) != "" && variable_or_value == "" {
+					variable_or_value = functionDict[state].funcVariableDict[getVariable(data)].(string)
+				} else if data == "to" {
+					toisTrue = true
+				} else if toisTrue == true {
+					if dataType, errors := functionDict[state].funcVariableDict[getVariable(data)].(set); errors {
+						dataType.add(variable_or_value)
+						functionDict[state].funcVariableDict[getVariable(data)] = dataType
+					} else if dataType, errors := functionDict[state].funcVariableDict[getVariable(data)].(list); errors {
+						dataType.add(variable_or_value)
+						functionDict[state].funcVariableDict[getVariable(data)] = dataType
+					}
+				}
+			}
+		}
+	}
 }
 
 func reverseFunc(state string, tok string) {
@@ -4099,6 +4151,7 @@ func dataStructureOperations(state string, tok string) {
 			} else if getVariable(token[0]) == "delete" {
 
 			} else if getVariable(token[0]) == "add" {
+				addFunc(state, tok)
 
 			} else if getVariable(token[0]) == "sort" {
 
@@ -4115,6 +4168,26 @@ func dataStructureOperations(state string, tok string) {
 	} else {
 		token := strings.Split(tok, " ")
 		if FindKeyword(token[0], keywords) == true {
+			if getVariable(token[0]) == "insert" {
+
+			} else if getVariable(token[0]) == "min" {
+
+			} else if getVariable(token[0]) == "max" {
+
+			} else if getVariable(token[0]) == "remove" {
+
+			} else if getVariable(token[0]) == "delete" {
+
+			} else if getVariable(token[0]) == "add" {
+				addFunc(state, tok)
+
+			} else if getVariable(token[0]) == "sort" {
+
+			} else if getVariable(token[0]) == "reverse" {
+
+			} else if getVariable(token[0]) == "length" {
+
+			}
 
 		} else {
 
