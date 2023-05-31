@@ -1,8 +1,8 @@
 
 
 
- a = 100
- b = list [3,2,1]
+ b = 100
+ a = list [3,2,1]
  c = set [1,2,3,4,4,5]
  // show a .
  // show " Set C Below " . 
@@ -26,14 +26,18 @@
 def run[]
  a = set [1,2,3]
  c = 130
-add 150 to a
-show "---------------" .
-show a . 
-show "---------------" .
+//max of a
+//min of a
+length of a
 def [end]
 
-add 1 to b
-show b .
+//add 1 to b
+//show b .
 //run[]
-sort b 
-show b .
+//sort b 
+//show b .
+//max of a 
+//min of a
+//max of d
+//min of d
+//length of a 
