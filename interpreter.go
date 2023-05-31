@@ -3437,9 +3437,9 @@ func (Alist *list) index(value interface{}) int {
 	count := 0
 	for _, v := range Alist.list {
 		if v == value {
-			count += 1
 			break
 		}
+		count += 1
 	}
 	return count
 
@@ -3529,7 +3529,22 @@ func (Aset *set) copy(vars string, state string) {
 
 }
 
-func (Aset *set) remove() {
+func (Aset *set) index(value interface{}) int {
+	count := 0
+	for _, v := range Aset.set {
+		if v == value {
+
+			break
+		}
+		count += 1
+	}
+	return count
+}
+
+func (Aset *set) remove(value interface{}) {
+	index := Aset.index(value)
+	copy(Aset.set[index:], Aset.set[index+1:])
+	Aset.set = Aset.set[:len(Aset.set)-1]
 
 }
 
@@ -4071,6 +4086,62 @@ func minFunc(state string, tok string) {
 
 // remove element from data structure
 func remove(state string, tok string) {
+	var removing interface{}
+	var remove, from bool
+	if state == "isMain" {
+		token := strings.Split(tok, " ")
+		for _, data := range token {
+			if data == "remove" {
+				remove = true
+				continue
+			} else if data == "from" {
+				from = true
+				continue
+			} else if remove == true && from == false {
+				if getVariable(data) == "" {
+					removing = data
+				} else {
+					removing = variableDict[getVariable(data)]
+				}
+			} else if remove == true && from == true {
+				fmt.Println(data)
+				if dataType, errors := variableDict[getVariable(data)].(set); errors {
+					dataType.remove(removing)
+					variableDict[getVariable(data)] = dataType
+				} else if dataType, errors := variableDict[getVariable(data)].(list); errors {
+					dataType.remove(removing)
+					variableDict[getVariable(data)] = dataType
+				}
+
+			}
+
+		}
+	} else {
+		token := strings.Split(tok, " ")
+		for _, data := range token {
+			if data == "remove" {
+				remove = true
+				continue
+			} else if data == "from" {
+				from = true
+				continue
+			} else if remove == true && from == false {
+				if getVariable(data) == "" {
+					removing = data
+				} else {
+					removing = functionDict[state].funcVariableDict[getVariable(data)]
+				}
+			} else if remove == true && from == true {
+				if dataType, errors := functionDict[state].funcVariableDict[getVariable(data)].(set); errors {
+					dataType.remove(removing)
+					functionDict[state].funcVariableDict[getVariable(data)] = dataType
+				} else if dataType, errors := functionDict[state].funcVariableDict[getVariable(data)].(list); errors {
+					dataType.remove(removing)
+					functionDict[state].funcVariableDict[getVariable(data)] = dataType
+				}
+			}
+		}
+	}
 
 }
 
@@ -4206,7 +4277,7 @@ func dataStructureOperations(state string, tok string) {
 			} else if getVariable(token[0]) == "max" {
 				fmt.Println(max(token[2], state))
 			} else if getVariable(token[0]) == "remove" {
-
+				remove(state, tok)
 			} else if getVariable(token[0]) == "delete" {
 
 			} else if getVariable(token[0]) == "add" {
@@ -4236,17 +4307,15 @@ func dataStructureOperations(state string, tok string) {
 			} else if getVariable(token[0]) == "max" {
 				fmt.Println(max(token[2], state))
 			} else if getVariable(token[0]) == "remove" {
-
+				remove(state, tok)
 			} else if getVariable(token[0]) == "delete" {
 
 			} else if getVariable(token[0]) == "add" {
 				addFunc(state, tok)
-
 			} else if getVariable(token[0]) == "sort" {
 				Sort(state, tok)
 			} else if getVariable(token[0]) == "reverse" {
 				reverseFunc(state, token[1])
-
 			} else if getVariable(token[0]) == "length" {
 				fmt.Println(length(state, token[2]))
 
