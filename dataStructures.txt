@@ -29,11 +29,14 @@ def run[]
 //max of a
 //min of a
 length of a
+show a . 
+reverse a 
+show a .
 def [end]
 
 //add 1 to b
 //show b .
-//run[]
+run[]
 //sort b 
 //show b .
 //max of a 
@@ -41,3 +44,6 @@ def [end]
 //max of d
 //min of d
 //length of a 
+//show a . 
+//reverse a 
+//show a . 

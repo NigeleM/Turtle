@@ -3483,7 +3483,7 @@ func (Alist *list) remove(value interface{}) {
 
 // Reverse function for reversing data
 func (Alist *list) reverse() {
-	for i, j := 0, len(Alist.list); i < j; i, j = i+1, j-1 {
+	for i, j := 0, len(Alist.list)-1; i < j; i, j = i+1, j-1 {
 		Alist.list[i], Alist.list[j] = Alist.list[j], Alist.list[i]
 	}
 
@@ -3561,6 +3561,9 @@ func (Aset *set) sort() {
 }
 
 func (Aset *set) reverse() {
+	for i, j := 0, len(Aset.set)-1; i < j; i, j = i+1, j-1 {
+		Aset.set[i], Aset.set[j] = Aset.set[j], Aset.set[i]
+	}
 
 }
 
@@ -4161,6 +4164,25 @@ func addFunc(state string, tok string) {
 }
 
 func reverseFunc(state string, tok string) {
+	if state == "isMain" {
+		if dataType, errors := variableDict[getVariable(tok)].(set); errors {
+			dataType.reverse()
+			variableDict[getVariable(tok)] = dataType
+		} else if dataType, errors := variableDict[getVariable(tok)].(list); errors {
+			dataType.reverse()
+			variableDict[getVariable(tok)] = dataType
+		}
+	} else {
+		if dataType, errors := functionDict[state].funcVariableDict[getVariable(tok)].(set); errors {
+			dataType.reverse()
+			functionDict[state].funcVariableDict[getVariable(tok)] = dataType
+
+		} else if dataType, errors := functionDict[state].funcVariableDict[getVariable(tok)].(list); errors {
+			dataType.reverse()
+			functionDict[state].funcVariableDict[getVariable(tok)] = dataType
+
+		}
+	}
 
 }
 
@@ -4192,6 +4214,8 @@ func dataStructureOperations(state string, tok string) {
 			} else if getVariable(token[0]) == "sort" {
 				Sort(state, tok)
 			} else if getVariable(token[0]) == "reverse" {
+				reverseFunc(state, token[1])
+				// fmt.Println(evalDataExpressions(token[1]+" .", state))
 
 			} else if getVariable(token[0]) == "length" {
 				fmt.Println(length(state, token[2]))
@@ -4221,6 +4245,7 @@ func dataStructureOperations(state string, tok string) {
 			} else if getVariable(token[0]) == "sort" {
 				Sort(state, tok)
 			} else if getVariable(token[0]) == "reverse" {
+				reverseFunc(state, token[1])
 
 			} else if getVariable(token[0]) == "length" {
 				fmt.Println(length(state, token[2]))
