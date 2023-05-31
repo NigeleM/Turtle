@@ -4077,8 +4077,26 @@ func maxFunc(state string, tok string) {
 }
 
 // get the length of a data structure
-func length(state string, tok string) {
+func length(state string, tok string) int {
+	var length int
+	if state == "isMain" {
+		if dataType, errors := variableDict[getVariable(tok)].(set); errors {
+			length = dataType.Len()
+		} else if dataType, errors := variableDict[getVariable(tok)].(list); errors {
+			length = dataType.Len()
+		}
+	} else {
 
+		if dataType, errors := functionDict[state].funcVariableDict[getVariable(tok)].(set); errors {
+			length = dataType.Len()
+		} else if dataType, errors := functionDict[state].funcVariableDict[getVariable(tok)].(list); errors {
+			length = dataType.Len()
+
+		}
+
+	}
+
+	return length
 }
 
 // delete a value out of a data structure
@@ -4162,31 +4180,21 @@ func dataStructureOperations(state string, tok string) {
 			if getVariable(token[0]) == "insert" {
 
 			} else if getVariable(token[0]) == "min" {
-
+				fmt.Println(min(token[2], state))
 			} else if getVariable(token[0]) == "max" {
-				// if getVariable(token[1]) == "of" {
-
-				// 	if Aset, errors := max(token[2], "isMain").(string); errors {
-				// 		fmt.Println(Aset)
-				// 	}
-
-				// } else {
-				// 	fmt.Println("error")
-				// }
-
+				fmt.Println(max(token[2], state))
 			} else if getVariable(token[0]) == "remove" {
 
 			} else if getVariable(token[0]) == "delete" {
 
 			} else if getVariable(token[0]) == "add" {
 				addFunc(state, tok)
-
 			} else if getVariable(token[0]) == "sort" {
 				Sort(state, tok)
-
 			} else if getVariable(token[0]) == "reverse" {
 
 			} else if getVariable(token[0]) == "length" {
+				fmt.Println(length(state, token[2]))
 
 			}
 
@@ -4200,9 +4208,9 @@ func dataStructureOperations(state string, tok string) {
 			if getVariable(token[0]) == "insert" {
 
 			} else if getVariable(token[0]) == "min" {
-
+				fmt.Println(min(token[2], state))
 			} else if getVariable(token[0]) == "max" {
-
+				fmt.Println(max(token[2], state))
 			} else if getVariable(token[0]) == "remove" {
 
 			} else if getVariable(token[0]) == "delete" {
@@ -4215,6 +4223,7 @@ func dataStructureOperations(state string, tok string) {
 			} else if getVariable(token[0]) == "reverse" {
 
 			} else if getVariable(token[0]) == "length" {
+				fmt.Println(length(state, token[2]))
 
 			}
 
