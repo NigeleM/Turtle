@@ -1,58 +1,29 @@
 
 
 
- b = 100
- a = list [3,2,1]
-          insert 4 to a at 2
- c = set [1,2,3,4,4,5]
- // show a .
- // show " Set C Below " . 
- // show c .
- d = map ["Nigele" : 2, "Khris":3, "Mom":4]
- // show b , " my map " , c , a , " ", 1+1 .
+ //b = 100
+ delta = 0
+  a = list [3,2,1]
+  show a .
+  insert 4 to a at delta
+  show a .
 
-
-def run[]
+ def run[]
+ delta = 0
  show "run" .
   a = list [1,2,3,"Hello World",1]
   show a . 
-   insert 4 to a at 2
+  b = "good day" 
+  insert b to a at delta
  // c = set [1,2,3,4,4,5]
- // show a .
+  show a .
  // show " Set C Below " . 
  // show c .
  // b = map ["Nigele" : 2, "Khris":3, "Mom":4]
  // show b , " my map " , c , a , " ", 1+1 .
  // d = []
  // show d .
-   show a . 
+ //  show a . 
   def [end]
 
-// def run[]
-// a = set [1,2,3]
-// c = 130
-//max of a
-//min of a
-//length of a
-//show a . 
-//reverse a 
-//show a .
-//def [end]
-
-//add 1 to b
-//show b .
-//run[]
-//sort b 
-//show b .
-//max of a 
-//min of a
-//max of d
-//min of d
-//length of a 
-//show a . 
-//reverse a 
-//show a . 
-//show a .
- //  remove 2 from a
-// show a . 
-run[] 
+run[]
