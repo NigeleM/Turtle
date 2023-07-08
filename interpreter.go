@@ -3932,7 +3932,7 @@ func min(data string, state string) interface{} {
 	return max
 }
 
-// get min Value out of a map , max will only get the max key out of a map
+// get min Value out of a map , min will only get the min key out of a map
 func minValue(data string, state string) interface{} {
 	var max interface{}
 	if state == "isMain" {
@@ -4093,11 +4093,6 @@ func Sort(state string, tok string) {
 
 }
 
-// get min value of data structure
-func minFunc(state string, tok string) {
-
-}
-
 // remove element from data structure
 func remove(state string, tok string) {
 	var removing interface{}
@@ -4156,11 +4151,6 @@ func remove(state string, tok string) {
 			}
 		}
 	}
-
-}
-
-// get max value of data structure
-func maxFunc(state string, tok string) {
 
 }
 
@@ -4272,7 +4262,7 @@ func reverseFunc(state string, tok string) {
 }
 
 // insert keys into maps or dictionaries
-func insertData(state string, tok string) {
+func UpdateMap(state string, tok string) {
 
 }
 
@@ -4285,6 +4275,7 @@ func insert(state string, tok string) {
 		var atisTrue bool
 		var index int
 		var theList string
+		var operationComplete bool
 		token := strings.Split(tok, " ")
 		for _, data := range token {
 			if data == "insert" {
@@ -4301,12 +4292,23 @@ func insert(state string, tok string) {
 				} else if toisTrue == true && atisTrue == false && data == "at" {
 					atisTrue = true
 				} else if toisTrue == true && atisTrue == true {
-					index, _ = strconv.Atoi(data)
+					// change the index to check for a variable and not just a static value
+					if getVariable(data) == "" {
+						index, _ = strconv.Atoi(data)
+					} else {
+						index, _ = strconv.Atoi(variableDict[getVariable(data)].(string))
+					}
+
 					if dataType, errors := variableDict[theList].(list); errors {
 						// fmt.Println(variable_or_value)
 						// fmt.Println(index)
-						dataType.insert(variable_or_value, index)
-						variableDict[getVariable(theList)] = dataType
+						if operationComplete == false {
+							dataType.insert(variable_or_value, index)
+							variableDict[getVariable(theList)] = dataType
+							operationComplete = true
+						} else if operationComplete == true {
+							continue
+						}
 					} else {
 						fmt.Println("Error with insert statement")
 					}
@@ -4319,6 +4321,7 @@ func insert(state string, tok string) {
 		var atisTrue bool
 		var index int
 		var theList string
+		var operationComplete bool
 		token := strings.Split(tok, " ")
 		for _, data := range token {
 			if data == "insert" {
@@ -4335,10 +4338,23 @@ func insert(state string, tok string) {
 				} else if toisTrue == true && atisTrue == false && data == "at" {
 					atisTrue = true
 				} else if toisTrue == true && atisTrue == true {
-					index, _ = strconv.Atoi(data)
+
+					if getVariable(data) == "" {
+						index, _ = strconv.Atoi(data)
+					} else {
+						index, _ = strconv.Atoi(functionDict[state].funcVariableDict[getVariable(data)].(string))
+					}
+
 					if dataType, errors := functionDict[state].funcVariableDict[theList].(list); errors {
-						dataType.insert(variable_or_value, index)
-						functionDict[state].funcVariableDict[getVariable(theList)] = dataType
+
+						if operationComplete == false {
+							dataType.insert(variable_or_value, index)
+							functionDict[state].funcVariableDict[getVariable(theList)] = dataType
+							operationComplete = true
+						} else if operationComplete == true {
+							continue
+						}
+						// break
 					} else {
 						fmt.Println("Error with insert statement")
 					}
@@ -4363,8 +4379,10 @@ func removeSpaces(token []string) []string {
 	return data
 }
 
+// Data Structure operations func for doing data structure manipulation
+// insert, remove, max value, min value, and etc
 func dataStructureOperations(state string, tok string) {
-	//
+
 	keywords := []string{"sort", "in", "remove", "to", "is", "from", "add", "equal", "equals", "not", "of", "max",
 		"min", "length", "delete", "reverse", "insert", "at"}
 
