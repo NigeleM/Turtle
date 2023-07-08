@@ -3507,6 +3507,20 @@ func (Alist *list) find(value interface{}) bool {
 	return found
 }
 
+// Insert a value into a list.
+func (Alist *list) insert(value string, index int) {
+	fmt.Println()
+	if len(Alist.list) == index { // nil or empty slice or after last element
+		Alist.list = append(Alist.list, value)
+	} else if len(Alist.list) < index {
+		fmt.Println("Index is greater than length of list")
+	} else {
+		Alist.list = append(Alist.list[:index+1], Alist.list[index:]...) // index < len(a)
+		Alist.list[index] = value
+	}
+
+}
+
 // Set functions
 func (Aset *set) clear() {
 	var newSet set
@@ -4262,6 +4276,93 @@ func insertData(state string, tok string) {
 
 }
 
+// insert only needed for Lists
+func insert(state string, tok string) {
+	// fmt.Print("INSERT IS BEING CALLED")
+	if state == "isMain" {
+		var variable_or_value string
+		var toisTrue bool
+		var atisTrue bool
+		var index int
+		var theList string
+		token := strings.Split(tok, " ")
+		for _, data := range token {
+			if data == "insert" {
+				continue
+			} else {
+				if getVariable(data) == "" && variable_or_value == "" {
+					variable_or_value = data
+				} else if getVariable(data) != "" && variable_or_value == "" {
+					variable_or_value = variableDict[getVariable(data)].(string)
+				} else if data == "to" {
+					toisTrue = true
+				} else if toisTrue == true && atisTrue == false && data != "at" {
+					theList = getVariable(data)
+				} else if toisTrue == true && atisTrue == false && data == "at" {
+					atisTrue = true
+				} else if toisTrue == true && atisTrue == true {
+					index, _ = strconv.Atoi(data)
+					if dataType, errors := variableDict[theList].(list); errors {
+						// fmt.Println(variable_or_value)
+						// fmt.Println(index)
+						dataType.insert(variable_or_value, index)
+						variableDict[getVariable(theList)] = dataType
+					} else {
+						fmt.Println("Error with insert statement")
+					}
+				}
+			}
+		}
+	} else {
+		var variable_or_value string
+		var toisTrue bool
+		var atisTrue bool
+		var index int
+		var theList string
+		token := strings.Split(tok, " ")
+		for _, data := range token {
+			if data == "insert" {
+				continue
+			} else {
+				if getVariable(data) == "" && variable_or_value == "" {
+					variable_or_value = data
+				} else if getVariable(data) != "" && variable_or_value == "" {
+					variable_or_value = functionDict[state].funcVariableDict[getVariable(data)].(string)
+				} else if data == "to" {
+					toisTrue = true
+				} else if toisTrue == true && atisTrue == false && data != "at" {
+					theList = getVariable(data)
+				} else if toisTrue == true && atisTrue == false && data == "at" {
+					atisTrue = true
+				} else if toisTrue == true && atisTrue == true {
+					index, _ = strconv.Atoi(data)
+					if dataType, errors := functionDict[state].funcVariableDict[theList].(list); errors {
+						dataType.insert(variable_or_value, index)
+						functionDict[state].funcVariableDict[getVariable(theList)] = dataType
+					} else {
+						fmt.Println("Error with insert statement")
+					}
+				}
+			}
+		}
+	}
+
+}
+
+// fix the issue of spaces with dataStructure Operations
+// This can also be used other places to resolve issues
+func removeSpaces(token []string) []string {
+	var data []string
+	for _, info := range token {
+		if info == "" {
+			continue
+		} else {
+			data = append(data, info)
+		}
+	}
+	return data
+}
+
 func dataStructureOperations(state string, tok string) {
 	//
 	keywords := []string{"sort", "in", "remove", "to", "is", "from", "add", "equal", "equals", "not", "of", "max",
@@ -4269,9 +4370,10 @@ func dataStructureOperations(state string, tok string) {
 
 	if state == "isMain" {
 		token := strings.Split(tok, " ")
+		token = removeSpaces(token)
 		if FindKeyword(token[0], keywords) == true {
 			if getVariable(token[0]) == "insert" {
-
+				insert(state, tok)
 			} else if getVariable(token[0]) == "min" {
 				fmt.Println(min(token[2], state))
 			} else if getVariable(token[0]) == "max" {
@@ -4287,7 +4389,6 @@ func dataStructureOperations(state string, tok string) {
 			} else if getVariable(token[0]) == "reverse" {
 				reverseFunc(state, token[1])
 				// fmt.Println(evalDataExpressions(token[1]+" .", state))
-
 			} else if getVariable(token[0]) == "length" {
 				fmt.Println(length(state, token[2]))
 
@@ -4299,9 +4400,10 @@ func dataStructureOperations(state string, tok string) {
 
 	} else {
 		token := strings.Split(tok, " ")
+		token = removeSpaces(token)
 		if FindKeyword(token[0], keywords) == true {
 			if getVariable(token[0]) == "insert" {
-
+				insert(state, tok)
 			} else if getVariable(token[0]) == "min" {
 				fmt.Println(min(token[2], state))
 			} else if getVariable(token[0]) == "max" {
@@ -4318,7 +4420,6 @@ func dataStructureOperations(state string, tok string) {
 				reverseFunc(state, token[1])
 			} else if getVariable(token[0]) == "length" {
 				fmt.Println(length(state, token[2]))
-
 			}
 
 		} else {

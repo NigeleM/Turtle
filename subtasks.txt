@@ -22,3 +22,4 @@ Data structures
 100 % - rewriting variable and function dictionary with interface. Was the right move for now
 - later tasks will be improve sort functionality for multiple data types
 _ add remove functionality that doesnt depend on spacing for parsing
+- Add data Structure operations for dictionaries this weekend

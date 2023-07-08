@@ -3,6 +3,7 @@
 
  b = 100
  a = list [3,2,1]
+          insert 4 to a at 2
  c = set [1,2,3,4,4,5]
  // show a .
  // show " Set C Below " . 
@@ -11,8 +12,11 @@
  // show b , " my map " , c , a , " ", 1+1 .
 
 
-// def run[]
-//  a = list [1,2,3,"Hello World",1]
+def run[]
+ show "run" .
+  a = list [1,2,3,"Hello World",1]
+  show a . 
+   insert 4 to a at 2
  // c = set [1,2,3,4,4,5]
  // show a .
  // show " Set C Below " . 
@@ -21,18 +25,19 @@
  // show b , " my map " , c , a , " ", 1+1 .
  // d = []
  // show d .
- // def [end]
+   show a . 
+  def [end]
 
-def run[]
- a = set [1,2,3]
- c = 130
+// def run[]
+// a = set [1,2,3]
+// c = 130
 //max of a
 //min of a
-length of a
-show a . 
-reverse a 
-show a .
-def [end]
+//length of a
+//show a . 
+//reverse a 
+//show a .
+//def [end]
 
 //add 1 to b
 //show b .
@@ -47,6 +52,7 @@ def [end]
 //show a . 
 //reverse a 
 //show a . 
-show a.
-remove 2 from a
-show a.  
+//show a .
+ //  remove 2 from a
+// show a . 
+run[] 
