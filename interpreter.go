@@ -3174,6 +3174,8 @@ func dataStructureListParser(strlist string) list {
 		} else if string(value) == "," && stringStatus == 0 {
 			newStructure.add(element)
 			element = ""
+		} else if string(value) == " " && stringStatus == 0 {
+			continue
 		} else {
 			element += string(value)
 		}
@@ -3212,6 +3214,8 @@ func dataStructureSetParser(list string) set {
 			newStructure.add(element)
 			element = ""
 
+		} else if string(value) == " " && stringStatus == 0 {
+			continue
 		} else {
 			element += string(value)
 		}
