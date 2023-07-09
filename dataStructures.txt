@@ -4,6 +4,10 @@
  //b = 100
  delta = 0
   a = list [3,2,1]
+  b = map ["Nigele" : 2, "Khris":3, "Mom":4]
+  show b .
+  delete "Nigele" from b 
+  show b . 
   show a .
   insert 4 to a at delta
   show a .
@@ -26,4 +30,4 @@
  //  show a . 
   def [end]
 
-run[]
+//run[]

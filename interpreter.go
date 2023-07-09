@@ -3497,6 +3497,7 @@ func (Alist *list) pop() {
 }
 
 // find value in list
+// finds the first value
 func (Alist *list) find(value interface{}) bool {
 	found := false
 	for _, v := range Alist.list {
@@ -4177,11 +4178,6 @@ func length(state string, tok string) int {
 	return length
 }
 
-// delete a value out of a data structure
-func deleteFunc(state string, tok string) {
-
-}
-
 // add a value into a data structure such as set or list
 // or add data structures together
 func addFunc(state string, tok string) {
@@ -4365,6 +4361,63 @@ func insert(state string, tok string) {
 
 }
 
+// delete data from Map
+func deleteFromMap(state string, tok string) {
+	if state == "isMain" {
+		var variable_or_value string
+		var fromisTrue bool
+		var deleteState bool
+		token := strings.Split(tok, " ")
+		for _, data := range token {
+			if data == "delete" {
+				continue
+			} else {
+				if getVariable(data) == "" && variable_or_value == "" {
+					variable_or_value = data
+				} else if getVariable(data) != "" && variable_or_value == "" {
+					variable_or_value = variableDict[getVariable(data)].(string)
+				} else if fromisTrue == false && data == "from" {
+					fromisTrue = true
+				} else if fromisTrue == true && deleteState == false {
+					if dataType, errors := variableDict[getVariable(data)].(maps); errors {
+						//fmt.Println(dataType, variable_or_value)
+						//delete(dataType.maps, variable_or_value)
+						dataType.delete(parseString(variable_or_value))
+						//fmt.Println(dataType)
+						variableDict[getVariable(tok)] = dataType
+					}
+					deleteState = true
+				}
+			}
+		}
+	} else {
+		var variable_or_value string
+		var fromisTrue bool
+		var deleteState bool
+		token := strings.Split(tok, " ")
+		for _, data := range token {
+			if data == "delete" {
+				continue
+			} else {
+				if getVariable(data) == "" && variable_or_value == "" {
+					variable_or_value = data
+				} else if getVariable(data) != "" && variable_or_value == "" {
+					variable_or_value = functionDict[state].funcVariableDict[getVariable(data)].(string)
+				} else if fromisTrue == false && data == "from" {
+					fromisTrue = true
+				} else if fromisTrue == true && deleteState == false {
+					if dataType, errors := functionDict[state].funcVariableDict[data].(maps); errors {
+						dataType.delete(parseString(variable_or_value))
+						variableDict[getVariable(tok)] = dataType
+					}
+					deleteState = true
+				}
+			}
+		}
+	}
+
+}
+
 // fix the issue of spaces with dataStructure Operations
 // This can also be used other places to resolve issues
 func removeSpaces(token []string) []string {
@@ -4399,7 +4452,7 @@ func dataStructureOperations(state string, tok string) {
 			} else if getVariable(token[0]) == "remove" {
 				remove(state, tok)
 			} else if getVariable(token[0]) == "delete" {
-
+				deleteFromMap(state, tok)
 			} else if getVariable(token[0]) == "add" {
 				addFunc(state, tok)
 			} else if getVariable(token[0]) == "sort" {
