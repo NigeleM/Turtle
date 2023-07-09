@@ -1,16 +1,27 @@
 
 
 
- //b = 100
- delta = 0
+  b = 100
+  delta = 0
   a = list [3,2,1]
-  b = map ["Nigele" : 2, "Khris":3, "Mom":4]
+  b = map ["Nigele McCoy" : 2, "Khris":3, "Mom":4]
   show b .
-  delete "Nigele" from b 
+  c = "Nigele McCoy"
+  delete c from b 
   show b . 
   show a .
   insert 4 to a at delta
   show a .
+
+
+def back[]
+  show "In back function" .
+  bd = map ["Nigele" : 2, "Khris":3, "Mom":4]
+  show bd .
+  a = "Khris"
+   delete "Khris" from bd 
+  show bd . 
+def [end]
 
  def run[]
  delta = 0
@@ -31,3 +42,5 @@
   def [end]
 
 //run[]
+
+back[]

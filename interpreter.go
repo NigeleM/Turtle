@@ -3265,6 +3265,9 @@ func dataStructureMapsParser(list string) maps {
 
 			}
 
+		} else if string(value) == " " && stringStatus == 0 {
+			continue
+
 		} else {
 			element += string(value)
 		}
@@ -3287,6 +3290,9 @@ func dataStructureMapsParser(list string) maps {
 				value := element[Index+1 : len(element)-1]
 				newStructure.add(parseString(key), parseString(value))
 				element = ""
+			} else if string(value) == " " && stringStatus == 0 {
+				continue
+
 			}
 
 		}
@@ -3301,12 +3307,24 @@ type maps struct {
 	length int
 }
 
+// delete key and value from map
 func (Amap *maps) delete(data string) {
-	delete(Amap.maps, data)
+
+	_, isPresent := Amap.maps[data]
+	if isPresent {
+		delete(Amap.maps, data)
+
+	} else {
+		fmt.Println(data, ": Value Not Found")
+		os.Exit(1)
+	}
+
 }
 
+// add key and value to map
 func (maper *maps) add(key string, value string) {
 	// fmt.Println(key, value, "in map")
+	// fmt.Println(key, "->", value)
 	maper.maps[key] = value
 	// fmt.Println(maper)
 }
@@ -3423,6 +3441,7 @@ func (Alist *list) copy(vars string, state string) {
 
 }
 
+// get the count of an value in a list
 func (Alist *list) count(value interface{}) int {
 	count := 0
 	for _, v := range Alist.list {
@@ -3433,6 +3452,7 @@ func (Alist *list) count(value interface{}) int {
 	return count
 }
 
+// get index of value in list
 func (Alist *list) index(value interface{}) int {
 	count := 0
 	for _, v := range Alist.list {
@@ -4380,11 +4400,10 @@ func deleteFromMap(state string, tok string) {
 					fromisTrue = true
 				} else if fromisTrue == true && deleteState == false {
 					if dataType, errors := variableDict[getVariable(data)].(maps); errors {
-						//fmt.Println(dataType, variable_or_value)
-						//delete(dataType.maps, variable_or_value)
+						// fmt.Println(dataType)
 						dataType.delete(parseString(variable_or_value))
-						//fmt.Println(dataType)
-						variableDict[getVariable(tok)] = dataType
+						// fmt.Println(dataType)
+						variableDict[getVariable(data)] = dataType
 					}
 					deleteState = true
 				}
@@ -4406,9 +4425,11 @@ func deleteFromMap(state string, tok string) {
 				} else if fromisTrue == false && data == "from" {
 					fromisTrue = true
 				} else if fromisTrue == true && deleteState == false {
-					if dataType, errors := functionDict[state].funcVariableDict[data].(maps); errors {
+					if dataType, errors := functionDict[state].funcVariableDict[getVariable(data)].(maps); errors {
+						// fmt.Println(dataType)
 						dataType.delete(parseString(variable_or_value))
-						variableDict[getVariable(tok)] = dataType
+						// fmt.Println(dataType)
+						functionDict[state].funcVariableDict[getVariable(data)] = dataType
 					}
 					deleteState = true
 				}
@@ -4482,7 +4503,7 @@ func dataStructureOperations(state string, tok string) {
 			} else if getVariable(token[0]) == "remove" {
 				remove(state, tok)
 			} else if getVariable(token[0]) == "delete" {
-
+				deleteFromMap(state, tok)
 			} else if getVariable(token[0]) == "add" {
 				addFunc(state, tok)
 			} else if getVariable(token[0]) == "sort" {
