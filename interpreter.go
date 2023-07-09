@@ -29,7 +29,9 @@ func eval(s string) string {
 	fs := token.NewFileSet()
 	tv, err := types.Eval(fs, nil, token.NoPos, s)
 	if err != nil {
-		panic(err)
+		fmt.Println(s, err)
+		//panic(err)
+		os.Exit(1)
 	}
 	return tv.Value.String()
 }
@@ -131,6 +133,7 @@ func insertVariable(variableToken string, state string) {
 				newVarTok[v] = variableDict[newVarTok[v]].(string)
 			}
 		}
+
 		VarTok := strings.Join(newVarTok, " ")
 		variableDict[string(varToken[0])] = eval(VarTok)
 
@@ -3233,7 +3236,11 @@ func dataStructureSetParser(list string) set {
 func dataStructureMapsParser(list string) maps {
 	var newStructure maps
 	newStructure.maps = make(map[string]interface{})
+
+	//fmt.Println(list[strings.Index(list, "[")+1 : strings.LastIndex(list, "]")])
+
 	newlist := list[strings.Index(list, "[")+1 : strings.LastIndex(list, "]")]
+
 	stringStatus := 0
 	var element string
 	// fmt.Println(newlist)
@@ -4452,6 +4459,18 @@ func removeSpaces(token []string) []string {
 			continue
 		} else {
 			data = append(data, info)
+		}
+	}
+	return data
+}
+
+func removeSpacesInStr(token string) string {
+	var data string
+	for _, info := range token {
+		if string(info) == "" {
+			continue
+		} else {
+			data += string(info)
 		}
 	}
 	return data
