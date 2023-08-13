@@ -4503,7 +4503,6 @@ func dataStructureOperations(state string, tok string) {
 				Sort(state, tok)
 			} else if getVariable(token[0]) == "reverse" {
 				reverseFunc(state, token[1])
-				// fmt.Println(evalDataExpressions(token[1]+" .", state))
 			} else if getVariable(token[0]) == "length" {
 				fmt.Println(length(state, token[2]))
 
@@ -4512,7 +4511,6 @@ func dataStructureOperations(state string, tok string) {
 		} else {
 			var newToken string
 			is := false
-			// in := false
 
 			for index, value := range token {
 				if value == "is" {
@@ -4524,7 +4522,6 @@ func dataStructureOperations(state string, tok string) {
 						os.Exit(1)
 					}
 				} else if value == "in" {
-					// in = true
 					if index > 0 {
 						newToken = token[index-1]
 					} else {
@@ -4539,6 +4536,7 @@ func dataStructureOperations(state string, tok string) {
 					}
 				} else if value == "max" {
 					if is == true {
+
 						newToken = newToken + " = " + max(token[index+2], state).(string)
 						insertVariable(newToken, state)
 						break
