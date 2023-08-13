@@ -6,6 +6,10 @@
   a = list [3,2,1]
   b = map ["Nigele McCoy" : 2, "Khris":3, "Mom":4]
   show b .
+  z is max of a 
+  show "max of a is " , z .
+  z is min of a 
+  show "min of a is ", z .
   c = "Nigele McCoy"
   delete c from b 
   show b . 

@@ -4510,7 +4510,43 @@ func dataStructureOperations(state string, tok string) {
 			}
 
 		} else {
+			var newToken string
+			is := false
+			// in := false
 
+			for index, value := range token {
+				if value == "is" {
+					is = true
+					if index > 0 {
+						newToken = token[index-1]
+					} else {
+						fmt.Println("error")
+						os.Exit(1)
+					}
+				} else if value == "in" {
+					// in = true
+					if index > 0 {
+						newToken = token[index-1]
+					} else {
+						fmt.Println("error")
+						os.Exit(1)
+					}
+				} else if value == "min" {
+					if is == true {
+						newToken = newToken + " = " + min(token[index+2], state).(string)
+						insertVariable(newToken, state)
+						break
+					}
+				} else if value == "max" {
+					if is == true {
+						newToken = newToken + " = " + max(token[index+2], state).(string)
+						insertVariable(newToken, state)
+						break
+					}
+
+				}
+
+			}
 		}
 
 	} else {
