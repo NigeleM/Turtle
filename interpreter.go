@@ -3465,12 +3465,14 @@ func (Alist *list) count(value interface{}) int {
 
 // get index of value in list
 func (Alist *list) index(value interface{}) int {
-	count := 0
+	count := -1
 	for _, v := range Alist.list {
+		count += 1
 		if v == value {
+
 			break
 		}
-		count += 1
+
 	}
 	return count
 
@@ -3578,8 +3580,9 @@ func (Aset *set) copy(vars string, state string) {
 func (Aset *set) index(value interface{}) int {
 	count := -1
 	for _, v := range Aset.set {
+		count += 1
 		if v == value {
-			count += 1
+
 			break
 		}
 
