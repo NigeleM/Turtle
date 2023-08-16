@@ -3576,13 +3576,13 @@ func (Aset *set) copy(vars string, state string) {
 }
 
 func (Aset *set) index(value interface{}) int {
-	count := 0
+	count := -1
 	for _, v := range Aset.set {
 		if v == value {
-
+			count += 1
 			break
 		}
-		count += 1
+
 	}
 	return count
 }
@@ -3635,15 +3635,102 @@ func (Aset *set) pop() {
 
 }
 
-func (Aset *set) union() set {
-	return *Aset
+func (Aset *set) union(setVar string, state string) set {
+	var Bset set
+	if state == "isMain" {
+		variable := getVariable(setVar)
+		if data, errors := variableDict[variable].(set); errors {
+			for _, info := range data.set {
+				Bset.add(info.(string))
+
+			}
+
+			for _, info := range Aset.set {
+				Bset.add(info.(string))
+
+			}
+
+		} else if data, errors := variableDict[variable].(list); errors {
+			for _, info := range data.list {
+				Bset.add(info.(string))
+
+			}
+
+			for _, info := range Aset.set {
+				Bset.add(info.(string))
+
+			}
+		}
+
+	} else {
+		variable := getVariable(setVar)
+		if data, errors := functionDict[state].funcVariableDict[variable].(set); errors {
+			for _, info := range data.set {
+				Bset.add(info.(string))
+
+			}
+
+			for _, info := range Aset.set {
+				Bset.add(info.(string))
+
+			}
+		} else if data, errors := functionDict[state].funcVariableDict[variable].(set); errors {
+			for _, info := range data.set {
+				Bset.add(info.(string))
+
+			}
+
+			for _, info := range Aset.set {
+				Bset.add(info.(string))
+
+			}
+		}
+
+	}
+
+	return Bset
 }
 
-func (Aset *set) intersection() set {
-	return *Aset
+func (Aset *set) intersection(setVar string, state string) set {
+	var Bset set
+	if state == "isMain" {
+		variable := getVariable(setVar)
+		if data, errors := variableDict[variable].(set); errors {
+			for _, info := range data.set {
+				if Aset.index(info.(string)) > -1 {
+					Bset.add(info.(string))
+				}
+			}
+		} else if data, errors := variableDict[variable].(list); errors {
+			for _, info := range data.list {
+				if Aset.index(info.(string)) > -1 {
+					Bset.add(info.(string))
+				}
+			}
+		}
+
+	} else {
+		variable := getVariable(setVar)
+		if data, errors := functionDict[state].funcVariableDict[variable].(set); errors {
+			for _, info := range data.set {
+				if Aset.index(info.(string)) > -1 {
+					Bset.add(info.(string))
+				}
+			}
+		} else if data, errors := functionDict[state].funcVariableDict[variable].(list); errors {
+			for _, info := range data.list {
+				if Aset.index(info.(string)) > -1 {
+					Bset.add(info.(string))
+				}
+
+			}
+		}
+
+	}
+	return Bset
 }
 
-func (Aset *set) difference() set {
+func (Aset *set) difference(set string) set {
 	return *Aset
 }
 
