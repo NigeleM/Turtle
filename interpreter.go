@@ -4601,7 +4601,8 @@ func dataStructureOperations(state string, tok string) {
 		} else {
 			var newToken string
 			is := false
-
+			// at := false
+			// of := false
 			for index, value := range token {
 				if value == "is" {
 					is = true
@@ -4631,6 +4632,29 @@ func dataStructureOperations(state string, tok string) {
 						insertVariable(newToken, state)
 						break
 					}
+
+				} else if value == "at" {
+					// at = true
+					// ofindex := 0
+					// var arguments []string
+					// if at == true {
+					// 	data := token[index:]
+					// 	for contentIndex, content := range data {
+					// 		if content == "of" {
+					// 			of = true
+					// 			ofindex = contentIndex
+					// 			break
+					// 		}
+					// 	}
+					// 	if of == false {
+
+					// 	} else if of == true {
+					// 		argvStart := data[ofindex:]
+					// 		for _, args := range argvStart {
+					// 			arguments = append(arguments, args)
+					// 		}
+					// 	}
+					// }
 
 				}
 
@@ -5398,6 +5422,7 @@ func OpenLatestFile() string {
 
 // Main function
 func main() {
+	// Starting point for interpreter
 	var Lastfile string
 	var LastfileState bool
 	var file *os.File
