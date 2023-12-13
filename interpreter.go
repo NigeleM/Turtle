@@ -1799,6 +1799,9 @@ func callCode(tok string, state string) {
 		} else {
 			insertVariableFunc(tok, state)
 		}
+	} else {
+		// data structure operations
+		dataStructureOperations("isMain", tok)
 	}
 
 }
@@ -5421,12 +5424,16 @@ func OpenLatestFile() string {
 }
 
 // Main function
+// Remember to setup some type of algorithm to randomize the memory location of application
+// to improve security
 func main() {
 	// Starting point for interpreter
+	// Definitions for running file or opening and running last turtle file
 	var Lastfile string
 	var LastfileState bool
 	var file *os.File
 	var err error
+	// check to see if file is passed in or execute last opened turtle file
 	if len(os.Args) == 2 {
 		file, err = os.Open(os.Args[1])
 	} else {
@@ -5440,6 +5447,7 @@ func main() {
 		}
 	}
 
+	// state definitions
 	definitionState := false
 	definitionName := ""
 	conditionState := false
@@ -5447,6 +5455,7 @@ func main() {
 	loopState := false
 	loopName := ""
 	var scanner *bufio.Scanner
+	// if there is a last file to open then open it, else exit interpreter if the file is not a turtle
 	if LastfileState == true {
 		if strings.Contains(Lastfile, ".t") || strings.Contains(Lastfile, ".T") {
 			file, err = os.Open(Lastfile)
@@ -5462,9 +5471,11 @@ func main() {
 		scanner = bufio.NewScanner(file)
 	}
 	defer file.Close()
+	// loop through contents of turtle file to interpret
 	for scanner.Scan() {
 
 		tok := scanner.Text()
+		// tok is the line that is to be interpreted
 		if len(tok) == 0 {
 			continue
 		} else if strings.Contains(tok, "//") && strings.Contains(tok, "\"") && strings.Index(tok, "//") < strings.Index(tok, "\"") {
@@ -5477,13 +5488,16 @@ func main() {
 		} else if strings.Contains(tok, "def ") && strings.Contains(tok, "[") && strings.Contains(tok, "[") && definitionState == false {
 			definitionState = true
 			var Newfunction function
+			// get name of function
 			nameSet := strings.SplitAfter(tok, "def ")
 			name := nameSet[1]
 			name = name[0:strings.Index(name, "[")]
 			name = strings.ReplaceAll(name, " ", "")
 			Newfunction.name = name
+			// get variable parameters
 			variables := nameSet[1][strings.Index(nameSet[1], "[")+1 : strings.Index(nameSet[1], "]")]
 			variablesSet := strings.Split(variables, ",")
+			// hold function in a function map and function variable
 			Newfunction.argumentCount = len(variablesSet)
 			Newfunction.argumentDict = variablesSet
 			Newfunction.funcVariableDict = make(map[string]interface{})
@@ -5493,12 +5507,15 @@ func main() {
 			for v := range variablesSet {
 				Newfunction.funcVariableDict[variablesSet[v]] = variablesSet[v]
 			}
+			// function dictionary to hold new function and definition
 			functionDict[Newfunction.name] = Newfunction
 			definitionName = Newfunction.name
+			// setup new function content list
 			Newfunction.content = make([]string, 0)
 			continue
 
 		} else if definitionState == true {
+			// get contents of function definition
 			if strings.Contains(tok, "def ") && strings.Contains(tok, "[end]") {
 				definitionState = false
 				contentDef := functionDict[definitionName]
@@ -5514,6 +5531,7 @@ func main() {
 			continue
 
 		} else if strings.Contains(tok, "if") && strings.Contains(tok, "]") && strings.Contains(tok, "[") && conditionState == false {
+			// same logic as function definition
 			conditionState = true
 			var ifElse ifelseCondition
 			ifElse.head = tok
@@ -5536,6 +5554,7 @@ func main() {
 			}
 			continue
 		} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") && loopState == false {
+			// Similar logic based on Function and if else statement
 			loopState = true
 			loopName = tok
 			var Newloop loop
@@ -5552,7 +5571,7 @@ func main() {
 			}
 
 		} else if strings.Contains(tok, "[") && strings.Contains(tok, "]") && strings.Contains(tok, "=") && strings.Index(tok, "=") < strings.Index(tok, "[") {
-
+			// Data Structure intialization and variable assigned to functions
 			if strings.Contains(tok, "list") && getVariable(strings.Split(tok, "=")[1]) == "list" {
 				dataStructureProtocol("list", "isMain", tok)
 			} else if strings.Contains(tok, "map") && getVariable(strings.Split(tok, "=")[1]) == "map" {
@@ -5563,13 +5582,16 @@ func main() {
 				insertFunction(tok, "isMain")
 			}
 		} else if strings.Contains(tok, "[") && strings.Contains(tok, "]") && strings.LastIndex(tok, "]") > strings.LastIndex(tok, ".") {
+			// call when a function needs to be executed
 			functionProtocol(tok, "isMain")
 		} else if strings.Contains(tok, "show") {
+			// displaying functions, variables , strings, output, prompts, data structures
 			showTok := strings.SplitAfter(tok, "show")
 			if strings.Contains(showTok[0], "show") {
 				showReal(tok, "isMain")
 			}
 		} else if strings.Contains(tok, "?") && strings.Contains(tok, "=") {
+			// user input for variables
 			if strings.Index(tok, "?") < strings.Index(tok, "\"") {
 				input := strings.Split(tok, "=")
 				var variable string = ""
@@ -5581,11 +5603,13 @@ func main() {
 				variableDict[vars] = variable
 			}
 		} else if strings.Contains(tok, "=") {
+			// assign values to variables
 			varTok := strings.SplitAfter(tok, "=")
 			if strings.Contains(varTok[0], "=") {
 				insertVariable(tok, "isMain")
 			}
 		} else {
+			// data structure operations
 			dataStructureOperations("isMain", tok)
 		}
 
