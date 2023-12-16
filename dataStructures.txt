@@ -1,21 +1,21 @@
 
 
 
-  b = 100
-  delta = 0
-  a = list [3,2,1]
-  b = map ["Nigele McCoy" : 2, "Khris":3, "Mom":4]
-  show b .
-  z is max of a 
-  show "max of a is " , z .
-  z is min of a 
-  show "min of a is ", z .
-  c = "Nigele McCoy"
-  delete c from b 
-  show b . 
-  show a .
-  insert 4 to a at delta
-  show a .
+  // b = 100
+  //delta = 0
+  //a = list [3,2,1]
+  //b = map ["Nigele McCoy" : 2, "Khris":3, "Mom":4]
+  //show b .
+  //z is max of a 
+  //show "max of a is " , z .
+  //z is min of a 
+  //show "min of a is ", z .
+  //c = "Nigele McCoy"
+  //delete c from b 
+  //show b . 
+  //show a .
+  //insert 4 to a at delta
+  //show a .
 
 
 def back[]
@@ -47,4 +47,12 @@ def [end]
 
 //run[]
 
-back[]
+//back[]
+
+Bd = map ["Nigele" : 2, "Khris":3, "Mom":4]
+C = Bd
+ show "C is " , C .
+ A is Bd at len
+
+ show "A is ",  A . 
+ show "B is ",  Bd . 

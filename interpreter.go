@@ -127,16 +127,28 @@ func insertVariable(variableToken string, state string) {
 		}
 
 		newVarTok := strings.Split(hold, " ")
+		isString := false
 		for v := range newVarTok {
 			_, isPresent := variableDict[newVarTok[v]]
 			if isPresent {
-				newVarTok[v] = variableDict[newVarTok[v]].(string)
+				if data, errors := variableDict[newVarTok[v]].(string); errors {
+					newVarTok[v] = data
+					isString = true
+				} else if data, errors := variableDict[newVarTok[v]].(list); errors {
+					variableDict[string(varToken[0])] = data
+				} else if data, errors := variableDict[newVarTok[v]].(set); errors {
+					variableDict[string(varToken[0])] = data
+				} else if data, errors := variableDict[newVarTok[v]].(maps); errors {
+					variableDict[string(varToken[0])] = data
+				}
+
 			}
 		}
 
-		VarTok := strings.Join(newVarTok, " ")
-		variableDict[string(varToken[0])] = eval(VarTok)
-
+		if isString {
+			VarTok := strings.Join(newVarTok, " ")
+			variableDict[string(varToken[0])] = eval(VarTok)
+		}
 	}
 }
 
@@ -898,14 +910,26 @@ func insertVariableFunc(variableToken string, name string) {
 		}
 
 		newVarTok := strings.Split(hold, " ")
+		isString := false
 		for v := range newVarTok {
 			_, isPresent := functionDict[name].funcVariableDict[newVarTok[v]]
 			if isPresent {
-				newVarTok[v] = functionDict[name].funcVariableDict[newVarTok[v]].(string)
+				if data, errors := functionDict[name].funcVariableDict[newVarTok[v]].(string); errors {
+					newVarTok[v] = data
+					isString = true
+				} else if data, errors := functionDict[name].funcVariableDict[newVarTok[v]].(list); errors {
+					variableDict[string(varToken[0])] = data
+				} else if data, errors := functionDict[name].funcVariableDict[newVarTok[v]].(set); errors {
+					variableDict[string(varToken[0])] = data
+				} else if data, errors := functionDict[name].funcVariableDict[newVarTok[v]].(maps); errors {
+					variableDict[string(varToken[0])] = data
+				}
 			}
 		}
-		VarTok := strings.Join(newVarTok, " ")
-		functionDict[name].funcVariableDict[string(varToken[0])] = eval(VarTok)
+		if isString {
+			VarTok := strings.Join(newVarTok, " ")
+			functionDict[name].funcVariableDict[string(varToken[0])] = eval(VarTok)
+		}
 
 	}
 }
@@ -1317,7 +1341,6 @@ func functionProtocol(str string, state string) {
 						functionDict[state].funcVariableDict[key] = Calledfunction.funcVariableDict[getVariable(returnCode[1])]
 						varState = true
 						break
-
 					}
 				}
 				if varState == false {
@@ -3236,6 +3259,7 @@ func dataStructureSetParser(list string) set {
 	return newStructure
 }
 
+// Adds data to a Map data struture , takes string data and does the proper mapping
 func dataStructureMapsParser(list string) maps {
 	var newStructure maps
 	newStructure.maps = make(map[string]interface{})
@@ -3316,6 +3340,7 @@ func dataStructureMapsParser(list string) maps {
 
 }
 
+// Map data structure
 type maps struct {
 	maps   map[string]interface{}
 	length int
@@ -3343,11 +3368,13 @@ func (maper *maps) add(key string, value string) {
 	// fmt.Println(maper)
 }
 
+// Set data structure
 type set struct {
 	set    []interface{}
 	length int
 }
 
+// list data structure
 type list struct {
 	list   []interface{}
 	length int
@@ -4168,6 +4195,7 @@ func dataStructureProtocol(isType string, state string, tok string) {
 
 }
 
+// check for keywords , used in data structure
 func FindKeyword(tok string, keyword []string) bool {
 	status := false
 	for _, v := range keyword {
@@ -4358,6 +4386,7 @@ func addFunc(state string, tok string) {
 	}
 }
 
+// used to reverse data structure
 func reverseFunc(state string, tok string) {
 	if state == "isMain" {
 		if dataType, errors := variableDict[getVariable(tok)].(set); errors {
@@ -4604,64 +4633,26 @@ func dataStructureOperations(state string, tok string) {
 		} else {
 			var newToken string
 			is := false
-			// at := false
-			// of := false
-			for index, value := range token {
-				if value == "is" {
-					is = true
-					if index > 0 {
-						newToken = token[index-1]
-					} else {
-						fmt.Println("error")
-						os.Exit(1)
-					}
-				} else if value == "in" {
-					if index > 0 {
-						newToken = token[index-1]
-					} else {
-						fmt.Println("error")
-						os.Exit(1)
-					}
-				} else if value == "min" {
-					if is == true {
-						newToken = newToken + " = " + min(token[index+2], state).(string)
-						insertVariable(newToken, state)
-						break
-					}
-				} else if value == "max" {
-					if is == true {
+			at := false
 
-						newToken = newToken + " = " + max(token[index+2], state).(string)
-						insertVariable(newToken, state)
-						break
-					}
+			if strings.Index(tok, " is ") > -1 {
+				is = true
+			}
 
-				} else if value == "at" {
-					// at = true
-					// ofindex := 0
-					// var arguments []string
-					// if at == true {
-					// 	data := token[index:]
-					// 	for contentIndex, content := range data {
-					// 		if content == "of" {
-					// 			of = true
-					// 			ofindex = contentIndex
-					// 			break
-					// 		}
-					// 	}
-					// 	if of == false {
+			if strings.Index(tok, " at ") > -1 {
+				at = true
+			}
 
-					// 	} else if of == true {
-					// 		argvStart := data[ofindex:]
-					// 		for _, args := range argvStart {
-					// 			arguments = append(arguments, args)
-					// 		}
-					// 	}
-					// }
+			if is == true && at == true {
 
-				}
+				fmt.Println(tok)
+				fmt.Println(tok[:strings.Index(tok, " is ")])
+				fmt.Println(tok[strings.Index(tok, " is ")+4 : strings.Index(tok, " at ")])
+				newToken = getVariable(tok[:strings.Index(tok, " is ")]) + " = " + getVariable(tok[strings.Index(tok, " is ")+4:strings.Index(tok, " at ")])
+				insertVariable(newToken, state)
 
 			}
+
 		}
 
 	} else {
