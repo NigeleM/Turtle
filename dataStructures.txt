@@ -51,8 +51,14 @@ def [end]
 
 Bd = map ["Nigele" : 2, "Khris":3, "Mom":4]
 C = Bd
- show "C is " , C .
- A is Bd at len
+show "C is " , C .
+A is Bd at len
 
  show "A is ",  A . 
- show "B is ",  Bd . 
+ show "Bd is ",  Bd . 
+a = list [3,2,1]
+c = 10
+b is a at add c .
+show b .
+show a .
+A is B 
