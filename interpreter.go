@@ -4644,32 +4644,50 @@ func dataStructureOperations(state string, tok string) {
 
 			if is == true && at == true {
 
-				fmt.Println(tok)
-				fmt.Println(tok[:strings.Index(tok, " is ")])
-				fmt.Println(tok[strings.Index(tok, " is ")+4 : strings.Index(tok, " at ")])
-				fmt.Println(tok[strings.Index(tok, " at ")+4:])
+				// fmt.Println(tok)
+				// fmt.Println(tok[:strings.Index(tok, " is ")])
+				// fmt.Println(tok[strings.Index(tok, " is ")+4 : strings.Index(tok, " at ")])
+				// fmt.Println(tok[strings.Index(tok, " at ")+4:])
 				newToken = getVariable(tok[:strings.Index(tok, " is ")]) + " = " + getVariable(tok[strings.Index(tok, " is ")+4:strings.Index(tok, " at ")])
 				insertVariable(newToken, state)
-				os.Exit(1)
+
 				if dataType, errors := variableDict[getVariable(tok[:strings.Index(tok, " is ")])].(list); errors {
 
 					if strings.Contains(tok[strings.Index(tok, " at ")+4:], "add") {
-						// fix
-						dataType.add(tok)
+						// fmt.Println("ENTERED -->")
+						variable_or_value := tok[strings.Index(tok, " add ")+4 : strings.LastIndex(tok, ".")]
+						// fmt.Println(variable_or_value)
+						if getVariable(variable_or_value) != "" {
+							dataType.add(variableDict[getVariable(variable_or_value)].(string))
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+						} else {
+							dataType.add(variable_or_value)
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+						}
+
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "len") {
 						dataType.len()
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "toString") {
 						dataType.toString()
+						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "clear") {
 						dataType.clear()
 						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "copy") {
-						// fix
-						dataType.copy(tok, state)
+						// Add this functionality as "A is B"
+						//dataType.copy(tok, state)
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "count") {
 						// fix
 						dataType.count(tok)
-
+						variable_or_value := tok[strings.Index(tok, " add ")+4 : strings.LastIndex(tok, ".")]
+						// fmt.Println(variable_or_value)
+						if getVariable(variable_or_value) != "" {
+							dataType.add(variableDict[getVariable(variable_or_value)].(string))
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+						} else {
+							dataType.add(variable_or_value)
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+						}
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "index") {
 						// fix
 						dataType.index(tok)
@@ -4770,6 +4788,8 @@ func dataStructureOperations(state string, tok string) {
 					dataType.toString()
 
 				}
+
+			} else if is == true && at == false {
 
 			}
 
