@@ -59,6 +59,8 @@ A is Bd at len
 a = list [3,2,1]
 c = 10
 b is a at add c .
+b is b at add c .
 show b .
 show a .
-A is B 
+d is b at index c .
+show d+1 .
