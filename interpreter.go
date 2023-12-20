@@ -4677,20 +4677,26 @@ func dataStructureOperations(state string, tok string) {
 						// Add this functionality as "A is B"
 						//dataType.copy(tok, state)
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "count") {
-						// fix
-						dataType.count(tok)
-						variable_or_value := tok[strings.Index(tok, " add ")+4 : strings.LastIndex(tok, ".")]
+						//
+						variable_or_value := tok[strings.Index(tok, " count ")+6 : strings.LastIndex(tok, ".")]
 						// fmt.Println(variable_or_value)
 						if getVariable(variable_or_value) != "" {
-							dataType.add(variableDict[getVariable(variable_or_value)].(string))
-							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+							// dataType.count(variableDict[getVariable(variable_or_value)].(string)
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = strconv.Itoa(dataType.count(variableDict[getVariable(variable_or_value)].(string)))
 						} else {
-							dataType.add(variable_or_value)
-							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+							dataType.count(variable_or_value)
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = strconv.Itoa(dataType.count(variable_or_value))
 						}
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "index") {
 						// fix
-						dataType.index(tok)
+						variable_or_value := tok[strings.Index(tok, " index ")+6 : strings.LastIndex(tok, ".")]
+						// fmt.Println(variable_or_value)
+						if getVariable(variable_or_value) != "" {
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = strconv.Itoa(dataType.index(variableDict[getVariable(variable_or_value)].(string)))
+						} else {
+							dataType.index(variable_or_value)
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.index(variable_or_value)
+						}
 
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "sort") {
 						dataType.sort()
