@@ -4826,6 +4826,174 @@ func dataStructureOperations(state string, tok string) {
 			}
 
 		} else {
+			var newToken string
+			is := false
+			at := false
+
+			if strings.Index(tok, " is ") > -1 {
+				is = true
+			}
+
+			if strings.Index(tok, " at ") > -1 {
+				at = true
+			}
+
+			if is == true && at == true {
+
+				// fmt.Println(tok)
+				// fmt.Println(tok[:strings.Index(tok, " is ")])
+				// fmt.Println(tok[strings.Index(tok, " is ")+4 : strings.Index(tok, " at ")])
+				// fmt.Println(tok[strings.Index(tok, " at ")+4:])
+				newToken = getVariable(tok[:strings.Index(tok, " is ")]) + " = " + getVariable(tok[strings.Index(tok, " is ")+4:strings.Index(tok, " at ")])
+				insertVariable(newToken, state)
+				// functionDict[state].funcVariableDict[getVariable(data)] = dataType
+				if dataType, errors := functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])].(list); errors {
+
+					if strings.Contains(tok[strings.Index(tok, " at ")+4:], "add") {
+						// fmt.Println("ENTERED -->")
+						variable_or_value := tok[strings.Index(tok, " add ")+4 : strings.LastIndex(tok, ".")]
+						// fmt.Println(variable_or_value)
+						if getVariable(variable_or_value) != "" {
+							dataType.add(functionDict[state].funcVariableDict[getVariable(variable_or_value)].(string))
+							functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+						} else {
+							dataType.add(variable_or_value)
+							functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+						}
+
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "len") {
+						dataType.len()
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "toString") {
+						dataType.toString()
+						functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "clear") {
+						dataType.clear()
+						functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "copy") {
+						// Add this functionality as "A is B"
+						//dataType.copy(tok, state)
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "count") {
+						//
+						variable_or_value := tok[strings.Index(tok, " count ")+6 : strings.LastIndex(tok, ".")]
+						// fmt.Println(variable_or_value)
+						if getVariable(variable_or_value) != "" {
+							// dataType.count(variableDict[getVariable(variable_or_value)].(string)
+							functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = strconv.Itoa(dataType.count(functionDict[state].funcVariableDict[getVariable(variable_or_value)].(string)))
+						} else {
+							dataType.count(variable_or_value)
+							functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = strconv.Itoa(dataType.count(variable_or_value))
+						}
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "index") {
+						// fix
+						variable_or_value := tok[strings.Index(tok, " index ")+6 : strings.LastIndex(tok, ".")]
+						// fmt.Println(variable_or_value)
+						if getVariable(variable_or_value) != "" {
+							functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = strconv.Itoa(dataType.index(functionDict[state].funcVariableDict[getVariable(variable_or_value)].(string)))
+						} else {
+							dataType.index(variable_or_value)
+							functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.index(variable_or_value)
+						}
+
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "sort") {
+						dataType.sort()
+						functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "remove") {
+						// fix
+						dataType.remove(tok)
+						functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "reverse") {
+						dataType.reverse()
+						functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "pop") {
+						dataType.pop()
+						functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "find") {
+						dataType.find(tok)
+						functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "insert") {
+						dataType.pop()
+						functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "length") {
+						functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.length
+
+					}
+
+				} else if dataType, errors := functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])].(set); errors {
+					if strings.Contains(tok[strings.Index(tok, " at ")+4:], "add") {
+						// fix
+						dataType.add(tok)
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "len") {
+						dataType.len()
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "toString") {
+						dataType.toString()
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "clear") {
+						dataType.clear()
+						functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "copy") {
+						// fix
+						dataType.copy(tok, state)
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "index") {
+						// fix
+						dataType.index(tok)
+
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "sort") {
+						dataType.sort()
+						functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "remove") {
+						// fix
+						dataType.remove(tok)
+						functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "reverse") {
+						dataType.reverse()
+						functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "pop") {
+						dataType.pop()
+						functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "insert") {
+						dataType.pop()
+						functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "length") {
+						functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.length
+
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "union") {
+						// fix
+						dataType.union(tok, state)
+						functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "intersection") {
+						// fix
+						dataType.intersection(tok, state)
+						functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "difference") {
+						// finx
+						dataType.difference(tok)
+						functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "subset") {
+						// look into may need a issubset and modify function
+						dataType.subset()
+						functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "superset") {
+						// look into may need a issuperset and modify function
+						dataType.superset()
+						functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+
+					}
+				} else if dataType, errors := functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])].(maps); errors {
+					dataType.toString()
+
+				}
+
+			} else if is == true && at == false {
+
+			}
 
 		}
 
