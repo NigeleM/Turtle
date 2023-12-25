@@ -3572,7 +3572,7 @@ func (Alist *list) find(value interface{}) bool {
 }
 
 // Insert a value into a list.
-func (Alist *list) insert(value string, index int) {
+func (Alist *list) insert(value interface{}, index int) {
 	if len(Alist.list) == index { // nil or empty slice or after last element
 		Alist.list = append(Alist.list, value)
 	} else if len(Alist.list) < index {
@@ -4654,9 +4654,7 @@ func dataStructureOperations(state string, tok string) {
 				if dataType, errors := variableDict[getVariable(tok[:strings.Index(tok, " is ")])].(list); errors {
 
 					if strings.Contains(tok[strings.Index(tok, " at ")+4:], "add") {
-						// fmt.Println("ENTERED -->")
 						variable_or_value := tok[strings.Index(tok, " add ")+4 : strings.LastIndex(tok, ".")]
-						// fmt.Println(variable_or_value)
 						if getVariable(variable_or_value) != "" {
 							dataType.add(variableDict[getVariable(variable_or_value)].(string))
 							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
@@ -4677,20 +4675,15 @@ func dataStructureOperations(state string, tok string) {
 						// Add this functionality as "A is B"
 						//dataType.copy(tok, state)
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "count") {
-						//
 						variable_or_value := tok[strings.Index(tok, " count ")+6 : strings.LastIndex(tok, ".")]
-						// fmt.Println(variable_or_value)
 						if getVariable(variable_or_value) != "" {
-							// dataType.count(variableDict[getVariable(variable_or_value)].(string)
 							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = strconv.Itoa(dataType.count(variableDict[getVariable(variable_or_value)].(string)))
 						} else {
 							dataType.count(variable_or_value)
 							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = strconv.Itoa(dataType.count(variable_or_value))
 						}
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "index") {
-						// fix
 						variable_or_value := tok[strings.Index(tok, " index ")+6 : strings.LastIndex(tok, ".")]
-						// fmt.Println(variable_or_value)
 						if getVariable(variable_or_value) != "" {
 							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = strconv.Itoa(dataType.index(variableDict[getVariable(variable_or_value)].(string)))
 						} else {
@@ -4702,23 +4695,91 @@ func dataStructureOperations(state string, tok string) {
 						dataType.sort()
 						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "remove") {
-						// fix
-						dataType.remove(tok)
-						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+						variable_or_value := tok[strings.Index(tok, " remove ")+8 : strings.LastIndex(tok, ".")]
+						if getVariable(variable_or_value) != "" {
+
+							if data, errors := variableDict[getVariable(variable_or_value)].(set); errors {
+								dataType.remove(data)
+								variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+							} else if data, errors := variableDict[getVariable(variable_or_value)].(list); errors {
+								dataType.remove(data)
+								variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+							} else if data, errors := variableDict[getVariable(variable_or_value)].(maps); errors {
+								dataType.remove(data)
+								variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+							} else if data, errors := variableDict[getVariable(variable_or_value)].(string); errors {
+								dataType.remove(data)
+								variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+							}
+
+						} else {
+							dataType.remove(variable_or_value)
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+
+						}
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "reverse") {
 						dataType.reverse()
 						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "pop") {
 						dataType.pop()
 						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
-
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "find") {
-						dataType.find(tok)
-						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+						variable_or_value := tok[strings.Index(tok, " find ")+6 : strings.LastIndex(tok, ".")]
+						if getVariable(variable_or_value) != "" {
 
+							if data, errors := variableDict[getVariable(variable_or_value)].(set); errors {
+								dataType.find(data)
+								variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+							} else if data, errors := variableDict[getVariable(variable_or_value)].(list); errors {
+								dataType.find(data)
+								variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+							} else if data, errors := variableDict[getVariable(variable_or_value)].(maps); errors {
+								dataType.find(data)
+								variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+							} else if data, errors := variableDict[getVariable(variable_or_value)].(string); errors {
+								dataType.find(data)
+								variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+							}
+
+						} else {
+							dataType.find(variable_or_value)
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+
+						}
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "insert") {
-						dataType.pop()
-						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+						variable_or_value := tok[strings.Index(tok, " insert ")+8 : strings.LastIndex(tok, ".")]
+						variable_or_value_Set := strings.Split(variable_or_value, ",")
+						var index int
+
+						if getVariable(variable_or_value_Set[1]) != "" {
+							index, _ = strconv.Atoi(variableDict[getVariable(variable_or_value_Set[1])].(string))
+
+						} else {
+							index, _ = strconv.Atoi(variable_or_value_Set[1])
+
+						}
+
+						if getVariable(variable_or_value_Set[0]) != "" {
+
+							if data, errors := variableDict[getVariable(variable_or_value_Set[0])].(string); errors {
+								dataType.insert(data, index)
+								variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+							} else if data, errors := variableDict[getVariable(variable_or_value_Set[0])].(maps); errors {
+								dataType.insert(data, index)
+								variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+							} else if data, errors := variableDict[getVariable(variable_or_value_Set[0])].(list); errors {
+								dataType.insert(data, index)
+								variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+							} else if data, errors := variableDict[getVariable(variable_or_value_Set[0])].(set); errors {
+								dataType.insert(data, index)
+								variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+							}
+
+						} else {
+							dataType.insert(variable_or_value_Set[0], index)
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+
+						}
 
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "length") {
 						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.length
@@ -4727,22 +4788,33 @@ func dataStructureOperations(state string, tok string) {
 
 				} else if dataType, errors := variableDict[getVariable(tok[:strings.Index(tok, " is ")])].(set); errors {
 					if strings.Contains(tok[strings.Index(tok, " at ")+4:], "add") {
-						// fix
-						dataType.add(tok)
+						variable_or_value := tok[strings.Index(tok, " add ")+4 : strings.LastIndex(tok, ".")]
+						if getVariable(variable_or_value) != "" {
+							dataType.add(variableDict[getVariable(variable_or_value)].(string))
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+						} else {
+							dataType.add(variable_or_value)
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+						}
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "len") {
 						dataType.len()
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "toString") {
 						dataType.toString()
+						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "clear") {
 						dataType.clear()
 						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "copy") {
-						// fix
-						dataType.copy(tok, state)
+						// Add this functionality as "A is B"
+						//dataType.copy(tok, state)
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "index") {
-						// fix
-						dataType.index(tok)
-
+						variable_or_value := tok[strings.Index(tok, " index ")+6 : strings.LastIndex(tok, ".")]
+						if getVariable(variable_or_value) != "" {
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = strconv.Itoa(dataType.index(variableDict[getVariable(variable_or_value)].(string)))
+						} else {
+							dataType.index(variable_or_value)
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.index(variable_or_value)
+						}
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "sort") {
 						dataType.sort()
 						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
@@ -4796,7 +4868,9 @@ func dataStructureOperations(state string, tok string) {
 				}
 
 			} else if is == true && at == false {
-
+				// A is B
+				newToken = getVariable(tok[:strings.Index(tok, " is ")]) + " = " + getVariable(tok[strings.Index(tok, " is ")+4:])
+				insertVariable(newToken, state)
 			}
 
 		}
