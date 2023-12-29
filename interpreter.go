@@ -4819,17 +4819,32 @@ func dataStructureOperations(state string, tok string) {
 						dataType.sort()
 						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "remove") {
-						// fix
-						dataType.remove(tok)
-						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+						variable_or_value := tok[strings.Index(tok, " remove ")+8 : strings.LastIndex(tok, ".")]
+						if getVariable(variable_or_value) != "" {
+
+							if data, errors := variableDict[getVariable(variable_or_value)].(set); errors {
+								dataType.remove(data)
+								variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+							} else if data, errors := variableDict[getVariable(variable_or_value)].(list); errors {
+								dataType.remove(data)
+								variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+							} else if data, errors := variableDict[getVariable(variable_or_value)].(maps); errors {
+								dataType.remove(data)
+								variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+							} else if data, errors := variableDict[getVariable(variable_or_value)].(string); errors {
+								dataType.remove(data)
+								variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+							}
+
+						} else {
+							dataType.remove(variable_or_value)
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+
+						}
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "reverse") {
 						dataType.reverse()
 						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "pop") {
-						dataType.pop()
-						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
-
-					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "insert") {
 						dataType.pop()
 						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
 
