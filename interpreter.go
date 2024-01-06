@@ -3360,12 +3360,50 @@ func (Amap *maps) delete(data string) {
 
 }
 
+// get value from dictionaries
+func (Amap *maps) get(data string) interface{} {
+
+	_, isPresent := Amap.maps[data]
+	if isPresent {
+		return isPresent
+	}
+
+	return nil
+}
+
 // add key and value to map
 func (maper *maps) add(key string, value string) {
 	// fmt.Println(key, value, "in map")
 	// fmt.Println(key, "->", value)
 	maper.maps[key] = value
 	// fmt.Println(maper)
+}
+
+// get keys from dictionary
+func (maper *maps) getKeys() []interface{} {
+	var lists list
+	for key, _ := range maper.maps {
+		lists.list = append(lists.list, key)
+	}
+	return lists.list
+}
+
+// get Values from dictionary
+func (maper *maps) getValues() []interface{} {
+	var lists list
+	for _, values := range maper.maps {
+		lists.list = append(lists.list, values)
+	}
+	return lists.list
+}
+
+// invert map dictionary and returns a new dictonary
+func (maper *maps) invert() map[string]interface{} {
+	var new_map maps
+	for key, value := range maper.maps {
+		new_map.maps[value.(string)] = key
+	}
+	return new_map.maps
 }
 
 // Set data structure
@@ -3762,8 +3800,43 @@ func (Aset *set) intersection(setVar string, state string) set {
 	return Bset
 }
 
-func (Aset *set) difference(set string) set {
-	return *Aset
+func (Aset *set) difference(setVar string, state string) set {
+	var Bset set
+	if state == "isMain" {
+		variable := getVariable(setVar)
+		if data, errors := variableDict[variable].(set); errors {
+			for _, info := range data.set {
+				if Aset.index(info.(string)) == -1 {
+					Bset.add(info.(string))
+				}
+			}
+		} else if data, errors := variableDict[variable].(list); errors {
+			for _, info := range data.list {
+				if Aset.index(info.(string)) == -1 {
+					Bset.add(info.(string))
+				}
+			}
+		}
+
+	} else {
+		variable := getVariable(setVar)
+		if data, errors := functionDict[state].funcVariableDict[variable].(set); errors {
+			for _, info := range data.set {
+				if Aset.index(info.(string)) == -1 {
+					Bset.add(info.(string))
+				}
+			}
+		} else if data, errors := functionDict[state].funcVariableDict[variable].(list); errors {
+			for _, info := range data.list {
+				if Aset.index(info.(string)) == -1 {
+					Bset.add(info.(string))
+				}
+
+			}
+		}
+
+	}
+	return Bset
 }
 
 func (Aset *set) subset() bool {
@@ -4852,19 +4925,28 @@ func dataStructureOperations(state string, tok string) {
 						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.length
 
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "union") {
-						// fix
-						dataType.union(tok, state)
-						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+						variable_or_value := tok[strings.Index(tok, " union ")+6 : strings.LastIndex(tok, ".")]
+						if getVariable(variable_or_value) != "" {
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.union(variable_or_value, state)
+						} else {
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.union(variable_or_value, state)
+						}
 
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "intersection") {
-						// fix
-						dataType.intersection(tok, state)
-						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+						variable_or_value := tok[strings.Index(tok, " intersection ")+14 : strings.LastIndex(tok, ".")]
+						if getVariable(variable_or_value) != "" {
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.intersection(variable_or_value, state)
+						} else {
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.intersection(variable_or_value, state)
+						}
 
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "difference") {
-						// finx
-						dataType.difference(tok)
-						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+						variable_or_value := tok[strings.Index(tok, " difference ")+12 : strings.LastIndex(tok, ".")]
+						if getVariable(variable_or_value) != "" {
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.difference(variable_or_value, state)
+						} else {
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.difference(variable_or_value, state)
+						}
 
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "subset") {
 						// look into may need a issubset and modify function
@@ -4878,8 +4960,41 @@ func dataStructureOperations(state string, tok string) {
 
 					}
 				} else if dataType, errors := variableDict[getVariable(tok[:strings.Index(tok, " is ")])].(maps); errors {
-					dataType.toString()
 
+					if strings.Contains(tok[strings.Index(tok, " at ")+4:], "get") {
+						variable_or_value := tok[strings.Index(tok, " get ")+5 : strings.LastIndex(tok, ".")]
+						if getVariable(variable_or_value) != "" {
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.get(variableDict[getVariable(variable_or_value)].(string))
+						} else {
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.get(variable_or_value)
+						}
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "getValues") {
+						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.getValues()
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "getKeys") {
+						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.getKeys()
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "add") {
+						variable_or_value := strings.Split(tok[strings.Index(tok, " add ")+4:strings.LastIndex(tok, ".")], ",")
+						if getVariable(variable_or_value[0]) != "" && getVariable(variable_or_value[1]) != "" {
+							dataType.add(variableDict[getVariable(variable_or_value[0])].(string), variableDict[getVariable(variable_or_value[1])].(string))
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+						} else if getVariable(variable_or_value[0]) == "" && getVariable(variable_or_value[1]) == "" {
+							dataType.add(variable_or_value[0], variable_or_value[1])
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+						} else if getVariable(variable_or_value[0]) != "" && getVariable(variable_or_value[1]) == "" {
+							dataType.add(variableDict[getVariable(variable_or_value[0])].(string), variable_or_value[1])
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+						} else if getVariable(variable_or_value[0]) == "" && getVariable(variable_or_value[1]) != "" {
+							dataType.add(variable_or_value[0], variableDict[getVariable(variable_or_value[1])].(string))
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
+						}
+
+					} else if strings.Contains(tok[strings.Index(tok, " is ")+4:], "delete") {
+
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "invert") {
+						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.invert()
+					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "toString") {
+						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.toString()
+					}
 				}
 
 			} else if is == true && at == false {
@@ -5061,12 +5176,12 @@ func dataStructureOperations(state string, tok string) {
 
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "difference") {
 						// finx
-						dataType.difference(tok)
+						dataType.difference(tok, state)
 						functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
 
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "subset") {
 						// look into may need a issubset and modify function
-						dataType.subset()
+						dataType.intersection(tok, state)
 						functionDict[state].funcVariableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
 
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "superset") {
