@@ -64,3 +64,9 @@ show b .
 show a .
 d is b at index c .
 show d+1 .
+
+C = "Dad"
+Bd is Bd at add "Dad" , 1 .
+show Bd. 
+abb is Bd at get C .
+show abb . 

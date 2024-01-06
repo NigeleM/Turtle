@@ -103,7 +103,7 @@ func insertVariable(variableToken string, state string) {
 
 	varToken[0] = strings.ReplaceAll(varToken[0], " ", "")
 	if evalType(varToken[1], state) == "String" {
-		variableDict[string(varToken[0])] = eval(varToken[1])
+		variableDict[string(varToken[0])] = parseString(eval(varToken[1]))
 	} else if evalType(varToken[1], state) == "Int" {
 		variableDict[string(varToken[0])] = eval(varToken[1])
 	} else if evalType(varToken[1], state) == "Float" {
@@ -886,7 +886,7 @@ func insertVariableFunc(variableToken string, name string) {
 	varToken := strings.Split(newtoken, "=")
 	varToken[0] = strings.ReplaceAll(varToken[0], " ", "")
 	if evalType(varToken[1], name) == "String" {
-		functionDict[name].funcVariableDict[string(varToken[0])] = eval(varToken[1])
+		functionDict[name].funcVariableDict[string(varToken[0])] = parseString(eval(varToken[1]))
 	} else if evalType(varToken[1], name) == "Int" {
 		functionDict[name].funcVariableDict[string(varToken[0])] = eval(varToken[1])
 	} else if evalType(varToken[1], name) == "Float" {
@@ -3365,9 +3365,9 @@ func (Amap *maps) get(data string) interface{} {
 
 	_, isPresent := Amap.maps[data]
 	if isPresent {
-		return isPresent
-	}
 
+		return Amap.maps[data]
+	}
 	return nil
 }
 
@@ -3375,7 +3375,7 @@ func (Amap *maps) get(data string) interface{} {
 func (maper *maps) add(key string, value string) {
 	// fmt.Println(key, value, "in map")
 	// fmt.Println(key, "->", value)
-	maper.maps[key] = value
+	maper.maps[parseString(key)] = value
 	// fmt.Println(maper)
 }
 
@@ -4963,10 +4963,11 @@ func dataStructureOperations(state string, tok string) {
 
 					if strings.Contains(tok[strings.Index(tok, " at ")+4:], "get") {
 						variable_or_value := tok[strings.Index(tok, " get ")+5 : strings.LastIndex(tok, ".")]
+						fmt.Println(variable_or_value, "check", variableDict[getVariable(variable_or_value)])
 						if getVariable(variable_or_value) != "" {
 							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.get(variableDict[getVariable(variable_or_value)].(string))
 						} else {
-							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.get(variable_or_value)
+							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.get(parseString(variable_or_value))
 						}
 					} else if strings.Contains(tok[strings.Index(tok, " at ")+4:], "getValues") {
 						variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.getValues()
@@ -4978,13 +4979,13 @@ func dataStructureOperations(state string, tok string) {
 							dataType.add(variableDict[getVariable(variable_or_value[0])].(string), variableDict[getVariable(variable_or_value[1])].(string))
 							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
 						} else if getVariable(variable_or_value[0]) == "" && getVariable(variable_or_value[1]) == "" {
-							dataType.add(variable_or_value[0], variable_or_value[1])
+							dataType.add(parseString(eval(variable_or_value[0])), parseString(eval(variable_or_value[1])))
 							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
 						} else if getVariable(variable_or_value[0]) != "" && getVariable(variable_or_value[1]) == "" {
-							dataType.add(variableDict[getVariable(variable_or_value[0])].(string), variable_or_value[1])
+							dataType.add(variableDict[getVariable(variable_or_value[0])].(string), parseString(eval(variable_or_value[0])))
 							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
 						} else if getVariable(variable_or_value[0]) == "" && getVariable(variable_or_value[1]) != "" {
-							dataType.add(variable_or_value[0], variableDict[getVariable(variable_or_value[1])].(string))
+							dataType.add(parseString(eval(variable_or_value[0])), variableDict[getVariable(variable_or_value[1])].(string))
 							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType
 						}
 
@@ -5344,6 +5345,9 @@ func evalDataExpressions(str string, state string) string {
 				} else if Amap, errors := variableDict[variable].(maps); errors {
 					return Amap.toString()
 				} else {
+					if nil == variableDict[variable] {
+						return "None"
+					}
 					return variableDict[variable].(string)
 				}
 
