@@ -51,34 +51,39 @@ def [end]
 
 Bd = map ["Nigele" : 2, "Khris":3, "Mom":4]
 C = Bd
-show "C is " , C .
+// show "C is " , C .
 A is Bd at len
 
- show "A is ",  A . 
- show "Bd is ",  Bd . 
+// show "A is ",  A . 
+// show "Bd is ",  Bd . 
 a = list [3,2,1]
 c = 10
 b is a at add c .
 b is b at add c .
-show b .
-show a .
+// show b .
+// show a .
 d is b at index c .
-show d+1 .
+// show d+1 .
 
-C = "Dad"
-Bd is Bd at add "Dad baddy" , 1 .
-show Bd. 
-abb is Bd at get C .
+// C = "Dad"
+// Bd is Bd at add "Dad baddy" , 1 .
+// show Bd. 
+// abb is Bd at get C .
 // show abb . 
 
 b = set [1,2,3,4,5]
 c = set [1]
 
-a is b at superset c .
-show a .
-a is b at subset c .
-show a .
+// a is b at superset c .
+// show a .
+// a is b at subset c .
+// show a .
 
 Bd = map ["Nigele" : "e", "Khris":"c", "Mom":"d"]
-dvd is Bd at invert .
-show dvd .
+// dvd is Bd at invert .
+// show dvd .
+
+d is Bd at getKeys .
+show d .
+d is Bd at getValues .
+show d .

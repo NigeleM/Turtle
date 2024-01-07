@@ -3380,21 +3380,22 @@ func (maper *maps) add(key string, value string) {
 }
 
 // get keys from dictionary
-func (maper *maps) getKeys() []interface{} {
+func (maper *maps) getKeys() list {
 	var lists list
 	for key, _ := range maper.maps {
 		lists.list = append(lists.list, key)
+
 	}
-	return lists.list
+	return lists
 }
 
 // get Values from dictionary
-func (maper *maps) getValues() []interface{} {
+func (maper *maps) getValues() list {
 	var lists list
 	for _, values := range maper.maps {
 		lists.list = append(lists.list, values)
 	}
-	return lists.list
+	return lists
 }
 
 // invert map dictionary and returns a new dictonary
@@ -5136,7 +5137,7 @@ func dataStructureOperations(state string, tok string) {
 					}
 				} else if dataType, errors := variableDict[getVariable(tok[:strings.Index(tok, " is ")])].(maps); errors {
 
-					if strings.Contains(tok[strings.Index(tok, " at ")+4:], "get") {
+					if strings.Contains(tok[strings.Index(tok, " at ")+4:], " get ") {
 						variable_or_value := tok[strings.Index(tok, " get ")+5 : strings.LastIndex(tok, ".")]
 						if getVariable(variable_or_value) != "" {
 							variableDict[getVariable(tok[:strings.Index(tok, " is ")])] = dataType.get(variableDict[getVariable(variable_or_value)].(string))
