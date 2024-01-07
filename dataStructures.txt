@@ -66,7 +66,19 @@ d is b at index c .
 show d+1 .
 
 C = "Dad"
-Bd is Bd at add "Dad" , 1 .
+Bd is Bd at add "Dad baddy" , 1 .
 show Bd. 
 abb is Bd at get C .
-show abb . 
+// show abb . 
+
+b = set [1,2,3,4,5]
+c = set [1]
+
+a is b at superset c .
+show a .
+a is b at subset c .
+show a .
+
+Bd = map ["Nigele" : "e", "Khris":"c", "Mom":"d"]
+dvd is Bd at invert .
+show dvd .
