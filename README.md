@@ -22,7 +22,23 @@ I had attempted to re-write in Java but it would be dependent on Java. I also wa
 My knowledge of C is limited as well, when it comes to memory allocation. My language has some of the basics but needs some help in
 memory allocation to help with developing objects and recursive functions.
 
-# Current Update as of 2023
+# Update as of 2024
+1. As of 2024.
+2. Variables  -> Completed
+3. Conditional statements -> Completed
+4. loops -> Completed
+5. Functions -> Completed
+6. Data Structures -> Completed
+7. Imports -> Not Completed
+8. Documentation -> Not Completed
+9. File management ->  Not Completed
+10. Standard Library -> Not Completed
+11. Optimization of Code -> Not Completed
+
+
+
+
+# Status of as of 2023
 Currently I am rewriting the Turtle interpreter in GO (Golang)
 Once I am able to publish a stable release I will make available for use and consumption.
 I'm working currently to add all the basics of a language before writing a standard library.
