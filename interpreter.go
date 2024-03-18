@@ -1824,7 +1824,7 @@ func callCode(tok string, state string) {
 		}
 	} else {
 		// data structure operations
-		dataStructureOperations("isMain", tok)
+		dataStructureOperations(state, tok)
 	}
 
 }
