@@ -3380,12 +3380,14 @@ func (maper *maps) add(key string, value string) {
 }
 
 // get keys from dictionary
-func (maper *maps) getKeys() list {
+func (maper *maps) getKeys() interface{} {
 	var lists list
+
 	for key, _ := range maper.maps {
 		lists.list = append(lists.list, key)
 
 	}
+	fmt.Println(lists)
 	return lists
 }
 
