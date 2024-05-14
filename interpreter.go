@@ -6276,6 +6276,171 @@ func OpenLatestFile() string {
 
 }
 
+// Import functionality add here
+// will use function that can be used recursively to read definition files or other T files
+func importing(importStatement string) {
+
+	// state definitions
+	definitionState := false
+	definitionName := ""
+	conditionState := false
+	conditionName := ""
+	loopState := false
+	loopName := ""
+	var scanner *bufio.Scanner
+	// import
+	importStatement = strings.ReplaceAll(importStatement, "import ", "")
+	importFile := strings.ReplaceAll(importStatement, " ", "")
+	importFile = importFile + ".t"
+	file, err := os.Open(importFile)
+	check(err)
+	scanner = bufio.NewScanner(file)
+
+	for scanner.Scan() {
+
+		tok := scanner.Text()
+		// tok is the line that is to be interpreted
+		if len(tok) == 0 {
+			continue
+		} else if strings.Contains(tok, "//") && strings.Contains(tok, "\"") && strings.Index(tok, "//") < strings.Index(tok, "\"") {
+			continue
+		} else if strings.Contains(tok, "//") {
+			comments := strings.SplitAfter(tok, "//")
+			if strings.Contains(comments[0], "//") {
+				continue
+			}
+		} else if strings.Contains(tok, "def ") && strings.Contains(tok, "[") && strings.Contains(tok, "[") && definitionState == false {
+			definitionState = true
+			var Newfunction function
+			// get name of function
+			nameSet := strings.SplitAfter(tok, "def ")
+			name := nameSet[1]
+			name = name[0:strings.Index(name, "[")]
+			name = strings.ReplaceAll(name, " ", "")
+			Newfunction.name = name
+			// get variable parameters
+			variables := nameSet[1][strings.Index(nameSet[1], "[")+1 : strings.Index(nameSet[1], "]")]
+			variablesSet := strings.Split(variables, ",")
+			// hold function in a function map and function variable
+			Newfunction.argumentCount = len(variablesSet)
+			Newfunction.argumentDict = variablesSet
+			Newfunction.funcVariableDict = make(map[string]interface{})
+			if Newfunction.argumentCount > 0 {
+				Newfunction.argumentState = true
+			}
+			for v := range variablesSet {
+				Newfunction.funcVariableDict[variablesSet[v]] = variablesSet[v]
+			}
+			// function dictionary to hold new function and definition
+			functionDict[Newfunction.name] = Newfunction
+			definitionName = Newfunction.name
+			// setup new function content list
+			Newfunction.content = make([]string, 0)
+			continue
+
+		} else if definitionState == true {
+			// get contents of function definition
+			if strings.Contains(tok, "def ") && strings.Contains(tok, "[end]") {
+				definitionState = false
+				contentDef := functionDict[definitionName]
+				contentDef.content = append(functionDict[definitionName].content, tok)
+				contentDef.contentLen = len(contentDef.content)
+				functionDict[definitionName] = contentDef
+
+			} else {
+				contentDef := functionDict[definitionName]
+				contentDef.content = append(functionDict[definitionName].content, tok)
+				functionDict[definitionName] = contentDef
+			}
+			continue
+
+		} else if strings.Contains(tok, "if") && strings.Contains(tok, "]") && strings.Contains(tok, "[") && conditionState == false {
+			// same logic as function definition
+			conditionState = true
+			var ifElse ifelseCondition
+			ifElse.head = tok
+			conditionName = tok
+			ifElse.content = append(ifElse.content, tok)
+			ifElseDict[ifElse.head] = ifElse
+			continue
+		} else if conditionState {
+			if strings.Contains(tok, "[end]") && strings.Contains(tok, "if") {
+				ifelseCopy := ifElseDict[conditionName]
+				ifelseCopy.content = append(ifElseDict[conditionName].content, tok)
+				ifElseDict[conditionName] = ifelseCopy
+				ifelse(ifElseDict[conditionName].content, "isMain")
+				conditionState = false
+			} else {
+				ifelseCopy := ifElseDict[conditionName]
+				ifelseCopy.content = append(ifElseDict[conditionName].content, tok)
+				ifElseDict[conditionName] = ifelseCopy
+
+			}
+			continue
+		} else if strings.Contains(tok, "]") && strings.Contains(tok, "loop") && strings.Contains(tok, "[") && !strings.Contains(tok, "[end]") && loopState == false {
+			// Similar logic based on Function and if else statement
+			loopState = true
+			loopName = tok
+			var Newloop loop
+			Newloop.name = loopName
+			Newloop.content = append(Newloop.content, tok)
+			loopDict[loopName] = Newloop
+		} else if loopState == true {
+			Newloop := loopDict[loopName]
+			Newloop.content = append(Newloop.content, tok)
+			loopDict[loopName] = Newloop
+			if strings.Contains(tok, "[loop]") && strings.Contains(tok, "[end]") {
+				loopState = false
+				loopStructure(loopDict[loopName].content, "isMain")
+			}
+
+		} else if strings.Contains(tok, "[") && strings.Contains(tok, "]") && strings.Contains(tok, "=") && strings.Index(tok, "=") < strings.Index(tok, "[") {
+			// Data Structure intialization and variable assigned to functions
+			if strings.Contains(tok, "list") && getVariable(strings.Split(tok, "=")[1]) == "list" {
+				dataStructureProtocol("list", "isMain", tok)
+			} else if strings.Contains(tok, "map") && getVariable(strings.Split(tok, "=")[1]) == "map" {
+				dataStructureProtocol("map", "isMain", tok)
+			} else if strings.Contains(tok, "set") && getVariable(strings.Split(tok, "=")[1]) == "set" {
+				dataStructureProtocol("set", "isMain", tok)
+			} else {
+				insertFunction(tok, "isMain")
+			}
+		} else if strings.Contains(tok, "[") && strings.Contains(tok, "]") && strings.LastIndex(tok, "]") > strings.LastIndex(tok, ".") {
+			// call when a function needs to be executed
+			functionProtocol(tok, "isMain")
+		} else if strings.Contains(tok, "show") {
+			// displaying functions, variables , strings, output, prompts, data structures
+			showTok := strings.SplitAfter(tok, "show")
+			if strings.Contains(showTok[0], "show") {
+				showReal(tok, "isMain")
+			}
+		} else if strings.Contains(tok, "?") && strings.Contains(tok, "=") {
+			// user input for variables
+			if strings.Index(tok, "?") < strings.Index(tok, "\"") {
+				input := strings.Split(tok, "=")
+				var variable string = ""
+				fmt.Print(getPrompt(tok))
+				scanIn := bufio.NewScanner(os.Stdin)
+				scanIn.Scan()
+				variable = scanIn.Text()
+				vars := strings.ReplaceAll(input[0], " ", "")
+				variableDict[vars] = variable
+			}
+		} else if strings.Contains(tok, "=") {
+			// assign values to variables
+			varTok := strings.SplitAfter(tok, "=")
+			if strings.Contains(varTok[0], "=") {
+				insertVariable(tok, "isMain")
+			}
+		} else {
+			// data structure operations
+			dataStructureOperations("isMain", tok)
+		}
+
+	}
+
+}
+
 // Main function
 // Remember to setup some type of algorithm to randomize the memory location of application
 // to improve security
@@ -6338,6 +6503,10 @@ func main() {
 			if strings.Contains(comments[0], "//") {
 				continue
 			}
+		} else if strings.Contains(tok, "import ") {
+			fmt.Println(tok, "import function call")
+			importing(tok)
+
 		} else if strings.Contains(tok, "def ") && strings.Contains(tok, "[") && strings.Contains(tok, "[") && definitionState == false {
 			definitionState = true
 			var Newfunction function

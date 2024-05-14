@@ -89,3 +89,15 @@ show d .
 show "Get Values " .
 d is Bd at getValues .
 show d .
+
+import data 
+hello[]
+
+def day[]
+  show "outer function" .
+  hello[]
+  show "works inside of function" .  
+def [end]
+
+day[]
+
