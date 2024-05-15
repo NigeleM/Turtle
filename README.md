@@ -11,7 +11,7 @@ It is copyrighted by me. My goal was to make a very simple language.
 4. loops -> Completed
 5. Functions -> Completed
 6. Data Structures -> Completed
-7. Imports -> Not Completed
+7. Imports -> Completed but not optimized
 8. Documentation -> Not Completed
 9. File management ->  Not Completed
 10. Standard Library -> Not Completed
