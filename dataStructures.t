@@ -101,3 +101,9 @@ def [end]
 
 day[]
 
+letter = list ["Nigele"]
+
+show letter .
+show "help" .
+
+ 
