@@ -6498,6 +6498,8 @@ func main() {
 			continue
 		} else if strings.Contains(tok, "//") && strings.Contains(tok, "\"") && strings.Index(tok, "//") < strings.Index(tok, "\"") {
 			continue
+		} else if tok == " " || tok == "\n" || tok == " \n" {
+			continue
 		} else if strings.Contains(tok, "//") {
 			comments := strings.SplitAfter(tok, "//")
 			if strings.Contains(comments[0], "//") {
@@ -6632,6 +6634,7 @@ func main() {
 			}
 		} else {
 			// data structure operations
+			fmt.Println(tok, "values")
 			dataStructureOperations("isMain", tok)
 		}
 
