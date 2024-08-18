@@ -13,9 +13,16 @@ It is copyrighted by me. My goal was to make a very simple language.
 6. Data Structures -> Completed
 7. Imports -> Completed but not optimized
 8. Documentation -> Not Completed
-9. File management ->  Not Completed
-10. Standard Library -> Not Completed
-11. Optimization of Code -> Not Completed
+9. File management ->  Working 
+  - Writing
+  - reading
+  - appending
+  - directory tool
+11. Standard Library -> Not Completed
+    -  HTTPS
+    -  STRING Functions
+    -  TIME
+12. Optimization of Code -> Not Completed
 
 Currently I am rewriting the Turtle interpreter in GO (Golang)
 Once I am able to publish a stable release I will make available for use and consumption.
