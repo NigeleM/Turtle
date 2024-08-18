@@ -6509,6 +6509,18 @@ func main() {
 			fmt.Println(tok, "import function call")
 			importing(tok)
 
+		} else if strings.Contains(tok, "[http]") {
+			// http request for requests
+
+		} else if strings.Contains(tok, "[string]") {
+			// string functions
+
+		} else if strings.Contains(tok, "[time]") {
+			// time function
+
+		} else if strings.Contains(tok, "[directory]") {
+			// directory function
+
 		} else if strings.Contains(tok, "[read]") {
 			// Fix and complete reading files
 			readfile := strings.ReplaceAll(tok, "[read]", "")
