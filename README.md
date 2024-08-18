@@ -14,10 +14,10 @@ It is copyrighted by me. My goal was to make a very simple language.
 7. Imports -> Completed but not optimized
 8. Documentation -> Not Completed
 9. File management ->  Working 
-  - Writing
-  - reading
-  - appending
-  - directory tool
+    - Writing
+    - reading
+    - appending
+    - directory tool
 11. Standard Library -> Not Completed
     -  HTTPS
     -  STRING Functions
