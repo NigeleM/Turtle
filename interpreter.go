@@ -6509,6 +6509,34 @@ func main() {
 			fmt.Println(tok, "import function call")
 			importing(tok)
 
+		} else if strings.Contains(tok, "[read]") {
+			// Fix and complete reading files
+			readfile := strings.ReplaceAll(tok, "[read]", "")
+			file, err := os.ReadFile(readfile)
+			if err != nil {
+				fmt.Println("Error")
+				panic(err)
+			} else {
+
+				fmt.Println(file)
+			}
+
+		} else if strings.Contains(tok, "[write]") {
+			// Fix and complete writing files
+			writefile := strings.ReplaceAll(tok, "[write]", "")
+			file, err := os.Create(writefile)
+			if err != nil {
+				fmt.Println("Error")
+				panic(err)
+			} else {
+
+				file.WriteString(tok)
+			}
+
+		} else if strings.Contains(tok, "[append]") {
+			// Append files addition
+			fmt.Println(tok)
+
 		} else if strings.Contains(tok, "def ") && strings.Contains(tok, "[") && strings.Contains(tok, "[") && definitionState == false {
 			definitionState = true
 			var Newfunction function
