@@ -1,5 +1,19 @@
 package main
 
+// #cgo CFLAGS: -g -Wall
+// #include <stdlib.h>
+
+/*
+#include <stdlib.h>
+#include <stdio.h>
+
+// Correct C function
+void dataSys(const char *d) {
+    system(d);
+}
+*/
+import "C"
+
 import (
 	"bufio"
 	"fmt"
@@ -6511,6 +6525,11 @@ func main() {
 
 		} else if strings.Contains(tok, "[http]") {
 			// http request for requests
+
+		} else if strings.Contains(tok, "sys") {
+			// http request for requests
+			tok = strings.ReplaceAll(tok, "sys", "")
+			C.dataSys(C.CString(tok))
 
 		} else if strings.Contains(tok, "[string]") {
 			// string functions
