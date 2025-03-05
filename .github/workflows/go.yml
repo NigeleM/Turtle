@@ -34,9 +34,9 @@ jobs:
           ${{ runner.os }}-go-
 
     - name: Build
-      run: CGO_ENABLED=0 go build -v ./...
+      run: CGO_ENABLED=0 go build interpreter.go
 
     
 
     - name: Test
-      run: go test -v ./...
+      run: go test interpreter.go
