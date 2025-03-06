@@ -105,5 +105,6 @@ letter = list ["Nigele"]
 
 show letter .
 show "help" .
+show "hello world"
 
  
