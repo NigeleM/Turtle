@@ -23,19 +23,25 @@ jobs:
       with:
         go-version: '1.20'
 
-    - name: Install dependencies (macOS)
-      if: runner.os == 'macOS'
-      run: |
-        brew update
-        brew install llvm make
+    # - name: Install dependencies (macOS)
+    #   if: runner.os == 'macOS'
+    #   run: |
+    #     brew update
+    #     brew install llvm make
 
-    - name: Install dependencies (Windows)
+    # - name: Install dependencies (Windows)
+    #   if: runner.os == 'Windows'
+    #   run: |
+    #     choco install llvm make mingw
+    #     echo "C:\Program Files\LLVM\bin" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+    #     echo "C:\ProgramData\chocolatey\bin" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+
+    - name: Verify Clang installation (Windows)
       if: runner.os == 'Windows'
-      run: |
-        choco install llvm make
+      run: clang --version
 
     - name: Build
       run: go build interpreter.go
 
     # - name: Test
-    #   run: go test -v ./...
+      # run: go test -v ./...
