@@ -21,11 +21,9 @@ import (
 	"go/types"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -6271,40 +6269,58 @@ func OpenLatestFile() string {
 		var seconds int64
 		var newestTime int64 = 0
 
-		if runtime.GOOS == "windows" {
-			// Windows-specific implementation
-			for _, item := range wholeList {
-				fileInfo, err := os.Stat(item)
-				check(err)
+		// if runtime.GOOS == "windows" {
+		// 	// Windows-specific implementation
+		// 	for _, item := range wholeList {
+		// 		fileInfo, err := os.Stat(item)
+		// 		check(err)
 
-				// Get creation time
-				creationTime := fileInfo.ModTime() // Use ModTime as creation time on Windows
-				seconds = creationTime.Unix()
+		// 		// Get creation time
+		// 		creationTime := fileInfo.ModTime() // Use ModTime as creation time on Windows
+		// 		seconds = creationTime.Unix()
 
-				// Store the file's creation time
-				fileToRead[item] = seconds
+		// 		// Store the file's creation time
+		// 		fileToRead[item] = seconds
 
-				// Find the newest file by creation time
-				if seconds > newestTime {
-					newestTime = seconds
-					file = item
-				}
-			}
+		// 		// Find the newest file by creation time
+		// 		if seconds > newestTime {
+		// 			newestTime = seconds
+		// 			file = item
+		// 		}
+		// 	}
 
-		} else {
+		// } else {
 
-			for _, item := range wholeList {
-				var st syscall.Stat_t
-				fileStat := syscall.Stat(item, &st)
-				check(fileStat)
-				// fmt.Println(item, fileStat)
-				fileToRead[item] = st.Ctimespec.Sec
-				// fmt.Println(item, fileToRead[item], st.Ctimespec.Sec)
-				seconds = st.Ctimespec.Sec
-				if seconds > newestTime {
-					newestTime = seconds
-					file = item
-				}
+		// 	for _, item := range wholeList {
+		// 		var st syscall.Stat_t
+		// 		fileStat := syscall.Stat(item, &st)
+		// 		check(fileStat)
+		// 		// fmt.Println(item, fileStat)
+		// 		fileToRead[item] = st.Ctimespec.Sec
+		// 		// fmt.Println(item, fileToRead[item], st.Ctimespec.Sec)
+		// 		seconds = st.Ctimespec.Sec
+		// 		if seconds > newestTime {
+		// 			newestTime = seconds
+		// 			file = item
+		// 		}
+		// 	}
+		// }
+
+		for _, item := range wholeList {
+			fileInfo, err := os.Stat(item)
+			check(err)
+
+			// Get creation time
+			creationTime := fileInfo.ModTime() // Use ModTime as creation time on Windows
+			seconds = creationTime.Unix()
+
+			// Store the file's creation time
+			fileToRead[item] = seconds
+
+			// Find the newest file by creation time
+			if seconds > newestTime {
+				newestTime = seconds
+				file = item
 			}
 		}
 
