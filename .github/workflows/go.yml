@@ -67,4 +67,4 @@ jobs:
       with:
         files: ./release/*
         token: ${{ secrets.GITHUB_TOKEN }}  # Use the GitHub token for authentication
-        tag_name: v0.1.4
+        tag_name: v0.1.5

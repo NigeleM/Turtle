@@ -27,7 +27,9 @@ import (
 	"time"
 )
 
-// v0.1.4
+// v0.1.5
+// Workable Copy
+// https://github.com/NigeleM/Turtle/releases/tag/v0.1.5
 
 // eval function
 // used for evaluation expression
