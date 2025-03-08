@@ -13,64 +13,81 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]  # macOS (Apple Silicon), Windows, and Linux (Ubuntu)
+        os: [macos-latest, windows-latest, ubuntu-latest]
 
     runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Fetch all history to ensure tags are included
+        fetch-depth: 0
 
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
         go-version: '1.23'
 
-    # Install Clang (Windows)
-    - name: Install Clang (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        choco install llvm
-        echo "C:\Program Files\LLVM\bin" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
-
-    - name: Verify Clang installation (Windows)
-      if: runner.os == 'Windows'
-      run: clang --version
-
-    # Install dependencies (Linux)
     - name: Install dependencies (Linux)
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y clang
+        sudo apt-get install -y clang nsis fakeroot dpkg
 
-    # Ensure release directory exists before building
+    - name: Install NSIS (Windows)
+      if: runner.os == 'Windows'
+      run: choco install nsis
+
     - name: Ensure release directory exists
       run: mkdir -p ./release
 
-    # Build for ${{ matrix.os }}
     - name: Build for ${{ matrix.os }}
       run: |
         if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-          # Build for Apple Silicon (arm64) only
-          GOARCH=arm64 GOOS=darwin go build -o release/interpreter-v0.1.5-darwin-arm64
+          GOARCH=arm64 GOOS=darwin go build -o release/interpreter-darwin-arm64
         elif [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-          go build -o release/interpreter-v0.1.5-linux
+          go build -o release/interpreter-linux
         fi
       shell: bash
 
-    # Build for Windows
     - name: Build for Windows
       if: runner.os == 'Windows'
       run: |
-        go build -o release/interpreter-v0.1.5.exe
+        go build -o release/interpreter.exe
       shell: pwsh
 
-    # Create GitHub Release and Publish Binaries
+    # ---- WINDOWS INSTALLER ----
+    - name: Create Windows Installer
+      if: runner.os == 'Windows'
+      run: makensis windows_installer.nsi
+
+    # ---- MAC INSTALLER ----
+    - name: Create macOS Installer
+      if: runner.os == 'macos-latest'
+      run: |
+        pkgbuild --root ./release --identifier com.mycompany.interpreter --version 0.1.5 --install-location /Applications/interpreter.pkg
+
+    # ---- LINUX INSTALLER ----
+    - name: Create Linux Installer
+      if: runner.os == 'Linux'
+      run: |
+        mkdir -p ./release/debian/DEBIAN
+        echo "Package: interpreter" > ./release/debian/DEBIAN/control
+        echo "Version: 0.1.5" >> ./release/debian/DEBIAN/control
+        echo "Architecture: amd64" >> ./release/debian/DEBIAN/control
+        echo "Maintainer: Your Name" >> ./release/debian/DEBIAN/control
+        echo "Description: Custom Interpreter" >> ./release/debian/DEBIAN/control
+        mkdir -p ./release/debian/usr/local/bin
+        cp release/interpreter-linux ./release/debian/usr/local/bin/interpreter
+        dpkg-deb --build ./release/debian release/interpreter_0.1.5_amd64.deb
+
+    # Publish Binaries & Installers
     - name: Publish Binaries to GitHub Release
       uses: softprops/action-gh-release@v1
       with:
-        files: ./release/*
-        token: ${{ secrets.GITHUB_TOKEN }}  # Use the GitHub token for authentication
+        files: |
+          ./release/interpreter*
+          ./release/*.pkg
+          ./release/*.exe
+          ./release/*.deb
+        token: ${{ secrets.GITHUB_TOKEN }}
         tag_name: v0.1.5
