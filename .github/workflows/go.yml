@@ -43,22 +43,21 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y clang
 
-    # Get version from Git tag, fallback if no tag exists
-    - name: Get version from Git tag
-      id: version
-      run: |
-        VERSION=$(git describe --tags --abbrev=0 || echo "v0.0.0")  # Fallback if no tag is found
-        echo "VERSION=$VERSION" >> $GITHUB_ENV
+    # Set fallback version
+    - name: Set fallback version
+      run: echo "VERSION=v0.0.0" >> $GITHUB_ENV  # You can change this to any default version you prefer
 
-    # Build the project with the tag as version
+    # Build the project with the fallback version
     - name: Build
-      run: go build -o ./release/interpreter-${{ env.VERSION }}.exe interpreter.go
+      run: go build -o interpreter-${{ env.VERSION }}.exe interpreter.go
 
-    # Archive Build Artifacts
-    - name: Archive Build Artifacts
-      run: |
-        mkdir -p ./release
-        mv interpreter-${{ env.VERSION }} ./release/interpreter-${{ matrix.os }}-${{ env.VERSION }}
+    # Ensure the release directory exists before moving the files
+    - name: Ensure release directory exists
+      run: mkdir -p ./release
+
+    # Move the built file to the release directory
+    - name: Move build artifact to release directory
+      run: mv interpreter-${{ env.VERSION }}.exe ./release/interpreter-${{ matrix.os }}-${{ env.VERSION }}
 
     # Create GitHub Release and Publish Binaries
     - name: Publish Binaries to GitHub Release
