@@ -18,7 +18,8 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout Repository
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
@@ -43,17 +44,16 @@ jobs:
     - name: Build for macOS
       if: runner.os == 'macOS'
       run: |
-        GOOS=darwin GOARCH=arm64 go build -o release/interpreter-darwin-arm64
-        GOOS=darwin GOARCH=amd64 go build -o release/interpreter-darwin-amd64
+        GOOS=darwin GOARCH=arm64 go build -o release/interpreter-darwin-arm64 .
+        GOOS=darwin GOARCH=amd64 go build -o release/interpreter-darwin-amd64 .
 
     - name: Build for Linux
       if: runner.os == 'Linux'
-      run: |
-        GOOS=linux GOARCH=amd64 go build -o release/interpreter-linux-amd64
+      run: GOOS=linux GOARCH=amd64 go build -o release/interpreter-linux-amd64 .
 
     - name: Build for Windows
       if: runner.os == 'Windows'
-      run: go build -o release/interpreter.exe
+      run: go build -o release/interpreter.exe .
       shell: pwsh
 
     # Create Installers
@@ -78,27 +78,29 @@ jobs:
       run: |
         pkgbuild --root release --identifier com.mycompany.interpreter \
         --version 0.1.5 --install-location /Applications/interpreter.app \
-        release/interpreter.pkg
+        --component release/interpreter-darwin-arm64 release/interpreter.pkg
 
     ## Linux Installer (DEB)
     - name: Create Linux Installer
       if: runner.os == 'Linux'
       run: |
         mkdir -p deb_build/DEBIAN
-        echo "Package: my-interpreter" > deb_build/DEBIAN/control
-        echo "Version: 0.1.5" >> deb_build/DEBIAN/control
-        echo "Architecture: amd64" >> deb_build/DEBIAN/control
-        echo "Maintainer: Your Name <your@email.com>" >> deb_build/DEBIAN/control
-        echo "Description: My Interpreter" >> deb_build/DEBIAN/control
+        cat <<EOF > deb_build/DEBIAN/control
+        Package: my-interpreter
+        Version: 0.1.5
+        Architecture: amd64
+        Maintainer: Your Name <your@email.com>
+        Description: My Interpreter
+        EOF
         mkdir -p deb_build/usr/local/bin
         cp release/interpreter-linux-amd64 deb_build/usr/local/bin/interpreter
         chmod 755 deb_build/usr/local/bin/interpreter
         dpkg-deb --build deb_build release/interpreter.deb
 
-    # Debug: List Generated Files
-    - name: Debug: List release files
-      run: ls -lh ./release
-      shell: bash
+    # # Debug: List Generated Files
+    # - name: Debug: List release files
+    #   run: ls -lh ./release
+    #   shell: bash
 
     # Publish Binaries and Installers
     - name: Publish Installers to GitHub Release
