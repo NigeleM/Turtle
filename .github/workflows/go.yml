@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
   push:
     tags:
-      - 'v0.1.1'  # Run only when a new tag is pushed (e.g., v1.0.0)
+      - 'v*'  # Run only when a new tag is pushed (e.g., v1.0.0)
 
 jobs:
   build:
