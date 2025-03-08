@@ -1,68 +1,121 @@
-name: Go Build and Release
+name: Build and Release Turtle
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-permissions:
-  contents: write  # Needed to push release files
+    tags:
+      - 'v*'
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        os: [macos-latest]  # Only building for macOS (Apple Silicon)
-
-    runs-on: ${{ matrix.os }}
-
+  # Build for macOS (M1/M2 chip only)
+  build-macos:
+    runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # Fetch all history to ensure tags are included
+      - name: Checkout Code
+        uses: actions/checkout@v2
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.23'
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.23.4'
 
-    # Build the binary for macOS (arm64)
-    - name: Build for macOS (Apple Silicon)
-      if: runner.os == 'macOS'
-      run: |
-        GOARCH=arm64 GOOS=darwin go build -o release/turtle-darwin-arm64
-      shell: bash
+      - name: Build macOS ARM64 Binary
+        run: |
+          go build -o release/turtle-darwin-arm64
 
-    # Create macOS Installer
-    - name: Create macOS Installer
-      if: runner.os == 'macOS'
-      run: |
-        # Ensure the release directory exists and the binary is there
-        ls -l release
-        
-        # Create root directory structure
-        mkdir -p pkgroot/usr/local/bin
-        
-        # Copy the binary directly to /usr/local/bin (no subdirectory)
-        cp release/turtle-darwin-arm64 pkgroot/usr/local/bin/
-        
-        # Verify the copy was successful
-        ls -l pkgroot/usr/local/bin/
-        
-        # Set the correct permissions on the binary
-        chmod 755 pkgroot/usr/local/bin/turtle
-        
-        # Create the package, with install location directly in /usr/local/bin
-        pkgbuild --root pkgroot --identifier com.mycompany.turtle \
-          --version 0.1.5 --install-location /usr/local/bin \
-          --ownership recommended release/turtle.pkg
-      shell: /bin/bash -e {0}
+      - name: Create macOS Installer
+        if: runner.os == 'macOS'
+        run: |
+          # Ensure the release directory exists and the binary is there
+          ls -l release
 
-    # Create GitHub Release and Publish Binaries
-    - name: Publish Binaries to GitHub Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: ./release/*
-        token: ${{ secrets.GITHUB_TOKEN }}  # Use the GitHub token for authentication
-        tag_name: v0.1.5
+          # Create root directory structure inside pkgroot
+          mkdir -p pkgroot/usr/local/bin
+
+          # Copy the binary directly to /usr/local/bin (no subdirectory)
+          cp release/turtle-darwin-arm64 pkgroot/usr/local/bin/turtle
+
+          # Verify the copy was successful
+          ls -l pkgroot/usr/local/bin/
+
+          # Set the correct permissions on the binary
+          chmod 755 pkgroot/usr/local/bin/turtle
+
+          # Create the package, with install location directly in /usr/local/bin
+          pkgbuild --root pkgroot --identifier com.mycompany.turtle \
+            --version 0.1.5 --install-location /usr/local/bin \
+            --ownership recommended release/turtle.pkg
+
+  # Build for Linux
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.23.4'
+
+      - name: Build Linux Binary
+        run: |
+          GOOS=linux GOARCH=amd64 go build -o release/turtle-linux-amd64
+
+      - name: Create Linux Package
+        run: |
+          # Ensure release directory and binary are in place
+          ls -l release
+
+          # Create debian package structure
+          mkdir -p debian/usr/local/bin
+          cp release/turtle-linux-amd64 debian/usr/local/bin/turtle
+
+          # Set correct permissions for the binary
+          chmod 755 debian/usr/local/bin/turtle
+
+          # Build the .deb package
+          dpkg-deb --build debian release/turtle.deb
+
+  # Build for Windows
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.23.4'
+
+      - name: Build Windows Binary
+        run: |
+          GOOS=windows GOARCH=amd64 go build -o release/turtle-windows-amd64.exe
+
+      - name: Create Windows Installer
+        run: |
+          # Ensure release directory and binary are in place
+          ls -l release
+
+          # Create the installer
+          nsis -V4 release/turtle-windows-amd64.exe /DOUTDIR=release /DINSTALLDIR=$INSTDIR/turtle
+
+  # Upload release assets
+  upload-release-assets:
+    runs-on: ubuntu-latest
+    needs: [build-macos, build-linux, build-windows]
+    steps:
+      - name: Upload macOS package
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release/turtle.pkg
+
+      - name: Upload Linux package
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release/turtle.deb
+
+      - name: Upload Windows installer
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release/turtle-windows-amd64.exe
