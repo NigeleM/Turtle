@@ -52,12 +52,12 @@ jobs:
     # Build for ${{ matrix.os }}
     - name: Build for ${{ matrix.os }}
       run: |
-        if [ "${{ matrix.os }}" == "macos-latest" ]; then
+        if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
           # Build for Apple Silicon (arm64) only
           GOARCH=arm64 GOOS=darwin go build -o release/interpreter-v0.1.4-darwin-arm64
-        elif [ "${{ matrix.os }}" == "windows-latest" ]; then
+        elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
           go build -o release/interpreter-v0.1.4.exe
-        else
+        elif [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
           go build -o release/interpreter-v0.1.4-linux
         fi
 
