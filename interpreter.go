@@ -1260,6 +1260,7 @@ func functionProtocol(str string, state string) {
 	loopState := false
 	loopName := ""
 	name := str
+	commentMulti := false
 	// parse name of function
 	if strings.Contains(name, "=") && strings.Index(name, "[") > strings.Index(name, "=") {
 		variable := getVariable(name[0:strings.Index(name, "=")])
@@ -1324,6 +1325,15 @@ func functionProtocol(str string, state string) {
 			if strings.Contains(comments[0], "//") {
 				continue
 			}
+		} else if strings.Contains(tok, "//*") && strings.Contains(tok, "\"") && strings.Index(tok, "//*") < strings.Index(tok, "\"") {
+			commentMulti = true
+		} else if commentMulti == true {
+			if strings.Contains(tok, "*//") && strings.Contains(tok, "\"") && strings.Index(tok, "*//") < strings.Index(tok, "\"") {
+				commentMulti = false
+			} else {
+				continue
+			}
+
 		} else if strings.Contains(tok, "return") {
 			// return function actions
 			returnCode := strings.Split(tok, "return ")
@@ -1715,6 +1725,7 @@ func callCode(tok string, state string) {
 	conditionName := ""
 	loopState := false
 	loopName := ""
+	commentMulti := false
 	if len(tok) == 0 {
 
 	} else if strings.Contains(tok, "//") && strings.Contains(tok, "\"") && strings.Index(tok, "//") < strings.Index(tok, "\"") {
@@ -1724,6 +1735,21 @@ func callCode(tok string, state string) {
 		if strings.Contains(comments[0], "//") {
 
 		}
+	} else if strings.Contains(tok, "//*") {
+		comments := strings.SplitAfter(tok, "//*")
+		if strings.Contains(comments[0], "//*") {
+			commentMulti = true
+		} else {
+
+		}
+	} else if commentMulti == true {
+		comments := strings.SplitAfter(tok, "*//")
+		if strings.Contains(comments[0], "*//") {
+			commentMulti = false
+		} else {
+
+		}
+
 	} else if strings.Contains(tok, "def ") && strings.Contains(tok, "[") && strings.Contains(tok, "[") && definitionState == false {
 		definitionState = true
 		var Newfunction function
@@ -6307,6 +6333,8 @@ func importing(importStatement string) {
 	loopName := ""
 	var scanner *bufio.Scanner
 	// import
+	// comments
+	commentMulti := false
 	importStatement = strings.ReplaceAll(importStatement, "import ", "")
 	importFile := strings.ReplaceAll(importStatement, " ", "")
 	importFile = importFile + ".t"
@@ -6327,6 +6355,21 @@ func importing(importStatement string) {
 			if strings.Contains(comments[0], "//") {
 				continue
 			}
+		} else if strings.Contains(tok, "//*") {
+			comments := strings.SplitAfter(tok, "//*")
+			if strings.Contains(comments[0], "//*") {
+				commentMulti = true
+			} else {
+
+			}
+		} else if commentMulti == true {
+			comments := strings.SplitAfter(tok, "*//")
+			if strings.Contains(comments[0], "*//") {
+				commentMulti = false
+			} else {
+
+			}
+
 		} else if strings.Contains(tok, "def ") && strings.Contains(tok, "[") && strings.Contains(tok, "[") && definitionState == false {
 			definitionState = true
 			var Newfunction function
@@ -6490,6 +6533,10 @@ func main() {
 	conditionName := ""
 	loopState := false
 	loopName := ""
+
+	// Comments over multiple lines
+	commentMulti := false
+
 	var scanner *bufio.Scanner
 	// if there is a last file to open then open it, else exit interpreter if the file is not a turtle
 	if LastfileState == true {
@@ -6514,8 +6561,28 @@ func main() {
 		// tok is the line that is to be interpreted
 		if len(tok) == 0 {
 			continue
+		} else if strings.Contains(tok, "//*") {
+			comments := strings.SplitAfter(tok, "//*")
+			if strings.Contains(comments[0], "//*") {
+				commentMulti = true
+			} else {
+
+			}
+		} else if commentMulti == true {
+			comments := strings.SplitAfter(tok, "*//")
+			if strings.Contains(comments[0], "*//") {
+				commentMulti = false
+			} else {
+
+			}
+
 		} else if strings.Contains(tok, "//") && strings.Contains(tok, "\"") && strings.Index(tok, "//") < strings.Index(tok, "\"") {
 			continue
+		} else if strings.Contains(tok, "//") {
+			comments := strings.SplitAfter(tok, "//")
+			if strings.Contains(comments[0], "//") {
+				continue
+			}
 		} else if tok == " " || tok == "\n" || tok == " \n" {
 			continue
 		} else if strings.Contains(tok, "//") {
