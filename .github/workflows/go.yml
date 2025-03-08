@@ -43,11 +43,13 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y clang
 
-    # Set fallback version
-    - name: Set fallback version
-      run: echo "VERSION=v0.0.0" >> $GITHUB_ENV  # You can change this to any default version you prefer
+    # Set the version based on the latest Git tag or fallback to v0.0.0
+    - name: Set version from Git tag
+      run: |
+        VERSION=$(git describe --tags --abbrev=0 || echo "v0.0.0")  # Use latest tag, fallback to v0.0.0
+        echo "VERSION=$VERSION" >> $GITHUB_ENV  # Set the version as an environment variable
 
-    # Build the project with the fallback version
+    # Build the project with the version
     - name: Build
       run: go build -o interpreter-${{ env.VERSION }}.exe interpreter.go
 
@@ -65,4 +67,5 @@ jobs:
       with:
         files: ./release/*
       env:
+        VERSION: ${{ env.VERSION }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
