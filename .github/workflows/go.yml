@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  build:
+  build-Mac:
     runs-on: macos-latest
     
     steps:
@@ -76,14 +76,20 @@ jobs:
         # Build your Linux binary
         GOOS=linux GOARCH=amd64 go build -o release/turtle-linux-amd64
 
+    - name: Install fpm for packaging
+      run: |
+        # Install fpm (if not already available)
+        sudo apt-get update
+        sudo apt-get install ruby ruby-dev
+        sudo gem install --no-document fpm
+
     - name: Create Linux Installer
       if: runner.os == 'Linux'
       run: |
         # Debugging step: List contents of the release directory to ensure the binary exists
         ls -l release
 
-        # Package the binary into a .deb or .rpm (you can use fpm or dpkg)
-        # Example for creating a .deb package
+        # Package the binary into a .deb package using fpm
         fpm -s dir -t deb -n turtle -v 0.1.6 --prefix /usr/local/bin release/turtle-linux-amd64
 
     - name: Upload Linux Release
@@ -106,8 +112,10 @@ jobs:
 
     - name: Build the binary for Windows
       run: |
-        # Build your Windows binary
-        GOOS=windows GOARCH=amd64 go build -o release/turtle-windows-amd64.exe
+        # Set GOOS and GOARCH environment variables for Windows
+        $env:GOOS='windows'
+        $env:GOARCH='amd64'
+        go build -o release/turtle-windows-amd64.exe
 
     - name: Upload Windows Release
       uses: softprops/action-gh-release@v1
