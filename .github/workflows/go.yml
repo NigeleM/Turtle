@@ -55,11 +55,17 @@ jobs:
         if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
           # Build for Apple Silicon (arm64) only
           GOARCH=arm64 GOOS=darwin go build -o release/interpreter-v0.1.4-darwin-arm64
-        elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-          go build -o release/interpreter-v0.1.4.exe
         elif [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
           go build -o release/interpreter-v0.1.4-linux
         fi
+      shell: bash
+
+    # Build for Windows
+    - name: Build for Windows
+      if: runner.os == 'Windows'
+      run: |
+        go build -o release/interpreter-v0.1.4.exe
+      shell: pwsh
 
     # Create GitHub Release and Publish Binaries
     - name: Publish Binaries to GitHub Release
