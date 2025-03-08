@@ -40,6 +40,16 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y clang
 
+    # Install Clang (macOS)
+    - name: Install Clang (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        xcode-select --install
+
+    - name: Verify Clang installation (macOS)
+      if: runner.os == 'macOS'
+      run: clang --version
+
     - name: Build
       run: go build interpreter.go
 
