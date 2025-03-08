@@ -45,21 +45,21 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y clang
 
+    # Ensure release directory exists before building
+    - name: Ensure release directory exists
+      run: mkdir -p ./release
+
     # Build for ${{ matrix.os }}
     - name: Build for ${{ matrix.os }}
       run: |
         if [ "${{ matrix.os }}" == "macos-latest" ]; then
           # Build for Apple Silicon (arm64) only
-          GOARCH=arm64 go build -o release/interpreter-v0.1.4-darwin-arm64
+          GOARCH=arm64 GOOS=darwin go build -o release/interpreter-v0.1.4-darwin-arm64
         elif [ "${{ matrix.os }}" == "windows-latest" ]; then
           go build -o release/interpreter-v0.1.4.exe
         else
           go build -o release/interpreter-v0.1.4-linux
         fi
-
-    # Ensure release directory exists before moving the files
-    - name: Ensure release directory exists
-      run: mkdir -p ./release
 
     # Create GitHub Release and Publish Binaries
     - name: Publish Binaries to GitHub Release
