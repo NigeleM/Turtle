@@ -13,7 +13,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]  # macOS (Apple Silicon), Windows, and Linux (Ubuntu)
+        os: [macos-latest, windows-latest, ubuntu-latest]  # macOS, Windows, and Linux (Ubuntu)
 
     runs-on: ${{ matrix.os }}
 
@@ -71,12 +71,15 @@ jobs:
     - name: Create macOS Installer
       if: runner.os == 'macOS'
       run: |
+        # Create root directory structure
         mkdir -p pkgroot/usr/local/bin
-        cp release/turtle-darwin-arm64 pkgroot/usr/local/bin/turtle
+        cp release/turtle-darwin-arm64 pkgroot/usr/local/bin/  # Just copy the binary here, no subdirectory
         chmod 755 pkgroot/usr/local/bin/turtle
+
+        # Create the package
         pkgbuild --root pkgroot --identifier com.mycompany.turtle \
-        --version 0.1.5 --install-location /usr/local/bin \
-        --ownership recommended release/turtle.pkg
+          --version 0.1.5 --install-location /usr/local/bin \
+          --ownership recommended release/turtle.pkg
 
     # Create GitHub Release and Publish Binaries
     - name: Publish Binaries to GitHub Release
