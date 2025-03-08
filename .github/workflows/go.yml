@@ -1,4 +1,4 @@
-name: Go
+name: Go Build and Release
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 permissions:
-  contents: write
+  contents: write  # Needed to push release files
 
 jobs:
   build:
@@ -46,8 +46,9 @@ jobs:
     # Set the version based on the latest Git tag or fallback to v0.0.0
     - name: Set version from Git tag
       run: |
-        VERSION=$(git describe --tags --abbrev=0 || echo "v0.0.0")  # Use latest tag, fallback to v0.0.0
-        echo "VERSION=$VERSION" >> $GITHUB_ENV  # Set the version as an environment variable
+        VERSION=$(git tag --list | sort -V | tail -n 1)  # Get the latest tag
+        if [ -z "$VERSION" ]; then VERSION="v0.0.0"; fi  # Fallback if no tags found
+        echo "VERSION=$VERSION" >> $GITHUB_ENV  # Set VERSION environment variable
 
     # Build the project with the version
     - name: Build
@@ -66,6 +67,6 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: ./release/*
+        token: ${{ secrets.GITHUB_TOKEN }}  # Use the GitHub token for authentication
       env:
         VERSION: ${{ env.VERSION }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
