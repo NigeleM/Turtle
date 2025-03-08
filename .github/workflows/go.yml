@@ -1,3 +1,5 @@
+name: Go
+
 on:
   push:
     branches: [ "main" ]
@@ -41,8 +43,27 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y clang
 
-    - name: Build
-      run: go build interpreter.go
+    # Get the latest Git tag for version
+    - name: Get version from Git tag
+      id: version
+      run: |
+        VERSION=$(git describe --tags --abbrev=0)
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-    # - name: Test
-    #   run: go test -v ./...
+    # Build the project with the tag as version
+    - name: Build
+      run: go build -o ./release/interpreter-${{ env.VERSION }}.exe interpreter.go
+
+    # Archive Build Artifacts
+    - name: Archive Build Artifacts
+      run: |
+        mkdir -p ./release
+        mv interpreter-${{ env.VERSION }} ./release/interpreter-${{ matrix.os }}-${{ env.VERSION }}
+
+    # Create GitHub Release and Publish Binaries
+    - name: Publish Binaries to GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ./release/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
