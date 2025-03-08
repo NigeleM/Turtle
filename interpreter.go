@@ -12,7 +12,6 @@ void dataSys(const char *d) {
     system(d);
 }
 */
-
 import "C"
 
 import (
