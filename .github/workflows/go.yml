@@ -1,4 +1,4 @@
-name: Go Build and Release with Installers
+name: Go Build and Release
 
 on:
   push:
@@ -13,99 +13,101 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        os: [windows-latest, ubuntu-latest, macos-latest]  # macOS (Apple Silicon), Windows, and Linux
 
     runs-on: ${{ matrix.os }}
 
     steps:
-    - name: Checkout Repository
+    - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0
+        fetch-depth: 0  # Ensure tags are included
 
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
         go-version: '1.23'
 
-    - name: Install Dependencies (Windows)
-      if: runner.os == 'Windows'
-      run: choco install inno-setup
-      shell: pwsh
-
-    - name: Install Dependencies (Linux)
+    # Install dependencies for Linux
+    - name: Install dependencies (Linux)
       if: runner.os == 'Linux'
-      run: sudo apt-get update && sudo apt-get install -y dpkg-dev fakeroot
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang fakeroot dpkg
 
+    # Ensure release directory exists
     - name: Ensure release directory exists
       run: mkdir -p ./release
 
-    # Build Binaries
-
-    - name: Build for macOS (Apple Silicon Only)
+    # Build for macOS (Apple Silicon only)
+    - name: Build for macOS (Apple Silicon)
       if: runner.os == 'macOS'
-      run: GOOS=darwin GOARCH=arm64 go build -o release/interpreter-darwin-arm64 .
+      run: |
+        GOARCH=arm64 GOOS=darwin go build -o release/interpreter-darwin-arm64
+      shell: bash
 
-    - name: Build for Linux
-      if: runner.os == 'Linux'
-      run: GOOS=linux GOARCH=amd64 go build -o release/interpreter-linux-amd64 .
-
+    # Build for Windows
     - name: Build for Windows
       if: runner.os == 'Windows'
-      run: go build -o release/interpreter.exe .
-      shell: pwsh
-
-    # Create Installers
-
-    ## Windows Installer (Inno Setup)
-    - name: Create Windows Installer
-      if: runner.os == 'Windows'
       run: |
-        echo "[Setup]" > installer.iss
-        echo "AppName=MyInterpreter" >> installer.iss
-        echo "AppVersion=0.1.5" >> installer.iss
-        echo "DefaultDirName={pf}\\MyInterpreter" >> installer.iss
-        echo "OutputDir=release" >> installer.iss
-        echo "OutputBaseFilename=interpreter-installer" >> installer.iss
-        echo "Source: \"release\\interpreter.exe\"; DestDir: \"{app}\"" >> installer.iss
-        iscc installer.iss
+        go build -o release/interpreter.exe
       shell: pwsh
 
-    ## macOS Installer (PKG) - Apple Silicon Only
+    # Build for Linux
+    - name: Build for Linux
+      if: runner.os == 'Linux'
+      run: |
+        go build -o release/interpreter-linux
+      shell: bash
+
+    # Create macOS Installer (.pkg)
     - name: Create macOS Installer
       if: runner.os == 'macOS'
       run: |
-        pkgbuild --root release --identifier com.mycompany.interpreter \
-        --version 0.1.5 --install-location /Applications/interpreter.app \
-        --component release/interpreter-darwin-arm64 release/interpreter.pkg
+        mkdir -p pkgroot/usr/local/bin
+        cp release/interpreter-darwin-arm64 pkgroot/usr/local/bin/interpreter
+        chmod 755 pkgroot/usr/local/bin/interpreter
+        pkgbuild --root pkgroot --identifier com.mycompany.interpreter \
+        --version 0.1.5 --install-location /usr/local/bin \
+        --ownership recommended release/interpreter.pkg
 
-    ## Linux Installer (DEB)
+    # Create Windows Installer (.exe) using Inno Setup
+    - name: Create Windows Installer
+      if: runner.os == 'Windows'
+      run: |
+        echo '[Setup]' > interpreter.iss
+        echo 'AppName=Interpreter' >> interpreter.iss
+        echo 'AppVersion=0.1.5' >> interpreter.iss
+        echo 'DefaultDirName={autopf}\Interpreter' >> interpreter.iss
+        echo 'OutputDir=release' >> interpreter.iss
+        echo 'OutputBaseFilename=interpreter-installer' >> interpreter.iss
+        echo 'SourceDir=release' >> interpreter.iss
+        echo 'Source: "release/interpreter.exe"; DestDir: "{app}"; Flags: ignoreversion' >> interpreter.iss
+        iscc interpreter.iss
+      shell: pwsh
+
+    # Create Linux Installer (.deb)
     - name: Create Linux Installer
       if: runner.os == 'Linux'
       run: |
-        mkdir -p deb_build/DEBIAN
-        cat <<EOF > deb_build/DEBIAN/control
-        Package: my-interpreter
-        Version: 0.1.5
-        Architecture: amd64
-        Maintainer: Your Name <your@email.com>
-        Description: My Interpreter
-        EOF
-        mkdir -p deb_build/usr/local/bin
-        cp release/interpreter-linux-amd64 deb_build/usr/local/bin/interpreter
-        chmod 755 deb_build/usr/local/bin/interpreter
-        dpkg-deb --build deb_build release/interpreter.deb
+        mkdir -p debroot/usr/local/bin
+        cp release/interpreter-linux debroot/usr/local/bin/interpreter
+        chmod 755 debroot/usr/local/bin/interpreter
+        mkdir -p debroot/DEBIAN
+        echo "Package: interpreter" > debroot/DEBIAN/control
+        echo "Version: 0.1.5" >> debroot/DEBIAN/control
+        echo "Architecture: amd64" >> debroot/DEBIAN/control
+        echo "Maintainer: My Company <contact@mycompany.com>" >> debroot/DEBIAN/control
+        echo "Description: Interpreter CLI tool" >> debroot/DEBIAN/control
+        dpkg-deb --build debroot release/interpreter.deb
 
-    # Publish Binaries and Installers
-    - name: Publish Installers to GitHub Release
+    # Upload installers as release assets
+    - name: Publish Binaries to GitHub Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          release/interpreter-darwin-arm64
-          release/interpreter-linux-amd64
-          release/interpreter.exe
-          release/interpreter-installer.exe
           release/interpreter.pkg
+          release/interpreter-installer.exe
           release/interpreter.deb
         token: ${{ secrets.GITHUB_TOKEN }}
         tag_name: v0.1.5
