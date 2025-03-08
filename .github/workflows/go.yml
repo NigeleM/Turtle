@@ -1,4 +1,4 @@
-name: Go Build
+name: Go Build and Release
 
 on:
   push:
@@ -11,8 +11,8 @@ jobs:
     timeout-minutes: 30  # Timeout for the entire job
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]  # Limited platforms to Ubuntu and Windows for testing
-        goarch: [amd64, arm64]  # Limited to amd64 and arm64 for debugging
+        os: [macos-latest, windows-latest, ubuntu-latest]  # macOS, Windows, and Linux (Ubuntu)
+        goarch: [amd64, arm64]  # Build for both amd64 and arm64 architectures
     
     runs-on: ${{ matrix.os }}
     
@@ -30,26 +30,44 @@ jobs:
       run: |
         choco install llvm
         echo "C:\Program Files\LLVM\bin" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
-    
-    - name: Verify Clang installation (Windows)
-      if: runner.os == 'Windows'
-      run: clang --version
 
-    # Install dependencies (Linux)
-    - name: Install dependencies (Linux)
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y clang
-
+    # Verify Go source files
     - name: Verify Go source files
       run: |
-        ls -l interpreter.go  # Make sure the Go source file exists
+        ls -l interpreter.go  # Ensure the Go source file exists
 
     - name: Build for ${{ matrix.os }}-${{ matrix.goarch }}
       run: |
         GOOS=${{ matrix.os }} GOARCH=${{ matrix.goarch }} go build -o myapp-${{ matrix.os }}-${{ matrix.goarch }} interpreter.go
 
-    # Optional: Add testing step if needed
-    # - name: Test
-    #   run: go test -v ./...
+    # Upload Binaries as Artifacts for Later Use
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: myapp-binaries
+        path: |
+          myapp-${{ matrix.os }}-${{ matrix.goarch }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # Get the release version from the GitHub tag (if present)
+    - name: Get Release Version
+      id: get_version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/}
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+    # Create GitHub Release
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          myapp-*-amd64
+          myapp-*-arm64
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
