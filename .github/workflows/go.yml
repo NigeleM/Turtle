@@ -43,5 +43,18 @@ jobs:
     - name: Build
       run: go build interpreter.go
 
+    # Optional: Run tests
     # - name: Test
     #   run: go test -v ./...
+
+    - name: Archive Build Artifacts
+      run: |
+        mkdir -p ./release
+        mv interpreter ./release/interpreter-${{ matrix.os }}
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ./release/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
