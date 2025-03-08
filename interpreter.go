@@ -13,7 +13,6 @@ void dataSys(const char *d) {
 }
 */
 
-// v0.1.1
 import "C"
 
 import (
