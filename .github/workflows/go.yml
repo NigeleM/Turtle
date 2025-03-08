@@ -45,23 +45,9 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y clang
 
-    # Debug: Show the tags in the repo
-    - name: Debug Git Tags
-      run: |
-        echo "Available Git Tags:"
-        git tag --list
-
-    # Get the version from GITHUB_REF, which is prefixed with 'refs/tags/'
-    - name: Set version from Git tag
-      run: |
-        VERSION=${GITHUB_REF#refs/tags/}  # Remove 'refs/tags/' prefix to get the tag name
-        if [ -z "$VERSION" ]; then VERSION="v0.0.0"; fi  # Fallback if no tags found
-        echo "Detected version: $VERSION"  # Debugging
-        echo "VERSION=$VERSION" >> $GITHUB_ENV  # Set VERSION as an environment variable
-
-    # Build the project with the version
+    # Build the project with fixed version v0.1.4
     - name: Build
-      run: go build -o interpreter-${{ env.VERSION }}.exe interpreter.go
+      run: go build -o interpreter-v0.1.4.exe interpreter.go
 
     # Ensure the release directory exists before moving the files
     - name: Ensure release directory exists
@@ -69,7 +55,7 @@ jobs:
 
     # Move the built file to the release directory
     - name: Move build artifact to release directory
-      run: mv interpreter-${{ env.VERSION }}.exe ./release/interpreter-${{ matrix.os }}-${{ env.VERSION }}
+      run: mv interpreter-v0.1.4.exe ./release/interpreter-${{ matrix.os }}-v0.1.4
 
     # Create GitHub Release and Publish Binaries
     - name: Publish Binaries to GitHub Release
@@ -77,5 +63,3 @@ jobs:
       with:
         files: ./release/*
         token: ${{ secrets.GITHUB_TOKEN }}  # Use the GitHub token for authentication
-      env:
-        VERSION: ${{ env.VERSION }}
