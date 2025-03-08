@@ -13,7 +13,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]  # macOS, Windows, and Linux (Ubuntu)
+        os: [macos-latest]  # Only building for macOS (Apple Silicon)
 
     runs-on: ${{ matrix.os }}
 
@@ -27,59 +27,37 @@ jobs:
       with:
         go-version: '1.23'
 
-    # Install Clang (Windows)
-    - name: Install Clang (Windows)
-      if: runner.os == 'Windows'
+    # Build the binary for macOS (arm64)
+    - name: Build for macOS (Apple Silicon)
+      if: runner.os == 'macOS'
       run: |
-        choco install llvm
-        echo "C:\Program Files\LLVM\bin" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
-
-    - name: Verify Clang installation (Windows)
-      if: runner.os == 'Windows'
-      run: clang --version
-
-    # Install dependencies (Linux)
-    - name: Install dependencies (Linux)
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y clang
-
-    # Ensure release directory exists before building
-    - name: Ensure release directory exists
-      run: mkdir -p ./release
-
-    # Build for ${{ matrix.os }}
-    - name: Build for ${{ matrix.os }}
-      run: |
-        if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-          # Build for Apple Silicon (arm64) only
-          GOARCH=arm64 GOOS=darwin go build -o release/turtle-darwin-arm64
-        elif [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-          go build -o release/turtle-linux
-        fi
+        GOARCH=arm64 GOOS=darwin go build -o release/turtle-darwin-arm64
       shell: bash
-
-    # Build for Windows
-    - name: Build for Windows
-      if: runner.os == 'Windows'
-      run: |
-        go build -o release/turtle.exe
-      shell: pwsh
 
     # Create macOS Installer
     - name: Create macOS Installer
       if: runner.os == 'macOS'
       run: |
+        # Debugging step: Check the release directory
+        ls -l release
+        
         # Create root directory structure
         mkdir -p pkgroot/usr/local/bin
-        cp release/turtle-darwin-arm64 pkgroot/usr/local/bin/  # Just copy the binary here, no subdirectory
+        
+        # Copy the binary directly to /usr/local/bin
+        cp release/turtle-darwin-arm64 pkgroot/usr/local/bin/turtle
+        
+        # Verify the copy was successful
+        ls -l pkgroot/usr/local/bin/
+        
+        # Set the correct permissions on the binary
         chmod 755 pkgroot/usr/local/bin/turtle
-
+        
         # Create the package
         pkgbuild --root pkgroot --identifier com.mycompany.turtle \
           --version 0.1.5 --install-location /usr/local/bin \
           --ownership recommended release/turtle.pkg
+      # shell: /bin/bash -e {0}
 
     # Create GitHub Release and Publish Binaries
     - name: Publish Binaries to GitHub Release
