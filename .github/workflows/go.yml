@@ -92,6 +92,9 @@ jobs:
         # Package the binary into a .deb package using fpm
         fpm -s dir -t deb -n turtle -v 0.1.6 --prefix /usr/local/bin release/turtle-linux-amd64
 
+        # Move the .deb package to the release folder
+        mv turtle_0.1.6_amd64.deb release/
+
     - name: Upload Linux Release
       uses: softprops/action-gh-release@v1
       with:
