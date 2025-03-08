@@ -13,37 +13,51 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]  # macOS (Apple Silicon), Windows, and Linux
+        os: [macos-latest, windows-latest, ubuntu-latest]  # macOS (Apple Silicon), Windows, and Linux (Ubuntu)
 
     runs-on: ${{ matrix.os }}
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Ensure tags are included
+        fetch-depth: 0  # Fetch all history to ensure tags are included
 
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
         go-version: '1.23'
 
-    # Install dependencies for Linux
+    # Install Clang (Windows)
+    - name: Install Clang (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        choco install llvm
+        echo "C:\Program Files\LLVM\bin" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+
+    - name: Verify Clang installation (Windows)
+      if: runner.os == 'Windows'
+      run: clang --version
+
+    # Install dependencies (Linux)
     - name: Install dependencies (Linux)
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y clang fakeroot dpkg
+        sudo apt-get install -y clang
 
-    # Ensure release directory exists
+    # Ensure release directory exists before building
     - name: Ensure release directory exists
       run: mkdir -p ./release
 
-    # Build for macOS (Apple Silicon only)
-    - name: Build for macOS (Apple Silicon)
-      if: runner.os == 'macOS'
+    # Build for ${{ matrix.os }}
+    - name: Build for ${{ matrix.os }}
       run: |
-        GOARCH=arm64 GOOS=darwin go build -o release/turtle-darwin-arm64
+        if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+          # Build for Apple Silicon (arm64) only
+          GOARCH=arm64 GOOS=darwin go build -o release/turtle-darwin-arm64
+        elif [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+          go build -o release/turtle-linux
+        fi
       shell: bash
 
     # Build for Windows
@@ -53,14 +67,7 @@ jobs:
         go build -o release/turtle.exe
       shell: pwsh
 
-    # Build for Linux
-    - name: Build for Linux
-      if: runner.os == 'Linux'
-      run: |
-        go build -o release/turtle-linux
-      shell: bash
-
-    # Create macOS Installer (.pkg)
+    # Create macOS Installer
     - name: Create macOS Installer
       if: runner.os == 'macOS'
       run: |
@@ -71,43 +78,10 @@ jobs:
         --version 0.1.5 --install-location /usr/local/bin \
         --ownership recommended release/turtle.pkg
 
-    # Create Windows Installer (.exe) using Inno Setup
-    - name: Create Windows Installer
-      if: runner.os == 'Windows'
-      run: |
-        echo '[Setup]' > turtle.iss
-        echo 'AppName=Turtle' >> turtle.iss
-        echo 'AppVersion=0.1.5' >> turtle.iss
-        echo 'DefaultDirName={autopf}\Turtle' >> turtle.iss
-        echo 'OutputDir=release' >> turtle.iss
-        echo 'OutputBaseFilename=turtle-installer' >> turtle.iss
-        echo 'SourceDir=release' >> turtle.iss
-        echo 'Source: "release/turtle.exe"; DestDir: "{app}"; Flags: ignoreversion' >> turtle.iss
-        iscc turtle.iss
-      shell: pwsh
-
-    # Create Linux Installer (.deb)
-    - name: Create Linux Installer
-      if: runner.os == 'Linux'
-      run: |
-        mkdir -p debroot/usr/local/bin
-        cp release/turtle-linux debroot/usr/local/bin/turtle
-        chmod 755 debroot/usr/local/bin/turtle
-        mkdir -p debroot/DEBIAN
-        echo "Package: turtle" > debroot/DEBIAN/control
-        echo "Version: 0.1.5" >> debroot/DEBIAN/control
-        echo "Architecture: amd64" >> debroot/DEBIAN/control
-        echo "Maintainer: My Company <contact@mycompany.com>" >> debroot/DEBIAN/control
-        echo "Description: Turtle CLI tool" >> debroot/DEBIAN/control
-        dpkg-deb --build debroot release/turtle.deb
-
-    # Upload installers as release assets
+    # Create GitHub Release and Publish Binaries
     - name: Publish Binaries to GitHub Release
       uses: softprops/action-gh-release@v1
       with:
-        files: |
-          release/turtle.pkg
-          release/turtle-installer.exe
-          release/turtle.deb
-        token: ${{ secrets.GITHUB_TOKEN }}
+        files: ./release/*
+        token: ${{ secrets.GITHUB_TOKEN }}  # Use the GitHub token for authentication
         tag_name: v0.1.5
