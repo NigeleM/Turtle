@@ -12,8 +12,18 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]  # macOS, Windows, and Linux
-        goarch: [amd64, arm64]  # Build for multiple architectures
+        os: [macos-latest, windows-latest, ubuntu-latest]  # Target OS
+        goos: [darwin, windows, linux]  # Valid GOOS values
+        goarch: [amd64, arm64]  # Architectures
+        exclude:
+          - os: windows-latest
+            goos: darwin  # No "darwin" builds on Windows
+          - os: ubuntu-latest
+            goos: darwin  # No "darwin" builds on Linux
+          - os: macos-latest
+            goos: windows  # No "windows" builds on macOS
+          - os: macos-latest
+            goos: linux  # No "linux" builds on macOS
 
     runs-on: ${{ matrix.os }}
 
@@ -45,10 +55,10 @@ jobs:
         sudo apt-get install -y clang
 
     - name: Set output file name
-      run: echo "BIN_NAME=myapp-${{ runner.os }}-${{ matrix.goarch }}" >> $GITHUB_ENV
+      run: echo "BIN_NAME=myapp-${{ matrix.goos }}-${{ matrix.goarch }}" >> $GITHUB_ENV
 
     - name: Build
-      run: GOOS=${{ matrix.os }} GOARCH=${{ matrix.goarch }} go build -o ${{ env.BIN_NAME }} interpreter.go
+      run: GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o ${{ env.BIN_NAME }} interpreter.go
 
     - name: Upload binaries
       uses: actions/upload-artifact@v4
