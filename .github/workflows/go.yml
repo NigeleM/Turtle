@@ -1,21 +1,26 @@
-name: Go
+name: Go Build & Release
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  push:
+    tags:
+      - 'v0.1.1'  # Run only when a new tag is pushed (e.g., v1.0.0)
 
 jobs:
   build:
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]  # macOS, Windows, and Linux (Ubuntu) 
+        os: [macos-latest, windows-latest, ubuntu-latest]  # macOS, Windows, and Linux
+        goarch: [amd64, arm64]  # Build for multiple architectures
 
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
     - name: Set up Go
       uses: actions/setup-go@v4
@@ -40,8 +45,49 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y clang
 
-    - name: Build
-      run: go build interpreter.go
+    - name: Set output file name
+      id: vars
+      run: echo "BIN_NAME=myapp-${{ runner.os }}-${{ matrix.goarch }}" >> $GITHUB_ENV
 
-    # - name: Test
-    #   run: go test -v ./...
+    - name: Build
+      run: GOOS=${{ runner.os }} GOARCH=${{ matrix.goarch }} go build -o ${{ env.BIN_NAME }} interpreter.go
+
+    - name: Upload binaries
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.BIN_NAME }}
+        path: ${{ env.BIN_NAME }}
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')  # Run only on new tags (releases)
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Download all build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: builds
+
+    - name: List downloaded files
+      run: ls -l builds
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: builds/*
+        tag_name: ${{ github.ref_name }}
+        name: Release ${{ github.ref_name }}
+        body: |
+          ## Changes in this release
+          - Add feature X
+          - Fix bug Y
+          - Improve performance Z
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
