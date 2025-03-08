@@ -43,13 +43,16 @@ jobs:
 
         # Create the package
         pkgbuild --root pkgroot/usr/local/bin/ --identifier com.mycompany.turtle \
-          --version 0.1.6 --install-location /usr/local/bin \
+          --version 0.1.5 --install-location /usr/local/bin \
           --ownership recommended release/turtle.pkg
 
     - name: Upload Release
       uses: softprops/action-gh-release@v1
       with:
         files: release/turtle.pkg
+        token: ${{ secrets.GITHUB_TOKEN }}  # Uses the GITHUB_TOKEN secret for authentication
+      env:
+        GOROOT: /Users/runner/hostedtoolcache/go/1.23.6/arm64
 
     - name: Clean up
       run: |
