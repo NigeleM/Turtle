@@ -96,9 +96,9 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         tag_name: v0.1.6
-        files: release/turtle-linux-amd64.deb  # Ensure that the correct .deb file is uploaded
+        files: release/turtle_0.1.6_amd64.deb  # Corrected the file name here
         token: ${{ secrets.GITHUB_TOKEN }}  # Uses the GITHUB_TOKEN secret for authentication
-
+        
   build-windows:
     runs-on: windows-latest
     steps:
