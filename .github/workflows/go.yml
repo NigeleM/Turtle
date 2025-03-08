@@ -13,7 +13,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]  # macOS, Windows, and Linux (Ubuntu) 
+        os: [macos-latest, windows-latest, ubuntu-latest]  # macOS, Windows, and Linux (Ubuntu)
 
     runs-on: ${{ matrix.os }}
 
@@ -43,11 +43,11 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y clang
 
-    # Get the latest Git tag for version
+    # Get version from Git tag, fallback if no tag exists
     - name: Get version from Git tag
       id: version
       run: |
-        VERSION=$(git describe --tags --abbrev=0)
+        VERSION=$(git describe --tags --abbrev=0 || echo "v0.0.0")  # Fallback if no tag is found
         echo "VERSION=$VERSION" >> $GITHUB_ENV
 
     # Build the project with the tag as version
