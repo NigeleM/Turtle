@@ -19,6 +19,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history to ensure tags are included
 
     - name: Set up Go
       uses: actions/setup-go@v4
@@ -43,11 +45,18 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y clang
 
-    # Set the version based on the latest Git tag
+    # Debug: Show the tags in the repo
+    - name: Debug Git Tags
+      run: |
+        echo "Available Git Tags:"
+        git tag --list
+
+    # Get the version from GITHUB_REF, which is prefixed with 'refs/tags/'
     - name: Set version from Git tag
       run: |
-        VERSION=$(git tag --list | sort -V | tail -n 1)  # Get the latest tag
+        VERSION=${GITHUB_REF#refs/tags/}  # Remove 'refs/tags/' prefix to get the tag name
         if [ -z "$VERSION" ]; then VERSION="v0.0.0"; fi  # Fallback if no tags found
+        echo "Detected version: $VERSION"  # Debugging
         echo "VERSION=$VERSION" >> $GITHUB_ENV  # Set VERSION as an environment variable
 
     # Build the project with the version
