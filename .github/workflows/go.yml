@@ -43,7 +43,7 @@ jobs:
 
         # Create the package
         pkgbuild --root pkgroot/usr/local/bin/ --identifier com.mycompany.turtle \
-          --version 0.1.5 --install-location /usr/local/bin \
+          --version 0.1.6 --install-location /usr/local/bin \
           --ownership recommended release/turtle.pkg
 
     - name: Upload Release
