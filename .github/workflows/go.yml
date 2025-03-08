@@ -39,19 +39,20 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         # Debugging step: Check the release directory
-        ls -l release
+        # ls -l release
         
-        # Create root directory structure
-        mkdir -p pkgroot/usr/local/bin
+        # # Create root directory structure
+        # mkdir -p pkgroot/usr/local/bin
         
-        # Copy the binary directly to /usr/local/bin
-        cp release/turtle-darwin-arm64 pkgroot/usr/local/bin/turtle
+        # # Copy the binary directly to /usr/local/bin
+        # cp release/turtle-darwin-arm64 pkgroot/usr/local/bin/turtle
         
-        # Verify the copy was successful
-        ls -l pkgroot/usr/local/bin/
+        # # Verify the copy was successful
+        # ls -l pkgroot/usr/local/bin/
         
-        # Set the correct permissions on the binary
-        chmod 755 pkgroot/usr/local/bin/turtle
+        # # Set the correct permissions on the binary
+        # chmod 755 pkgroot/usr/local/bin/turtle
+        chmod 755 turtle
         
         # Create the package
         pkgbuild --root pkgroot --identifier com.mycompany.turtle \
