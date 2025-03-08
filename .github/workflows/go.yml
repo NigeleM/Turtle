@@ -1,25 +1,21 @@
-name: Go Build & Release
+name: Go
 
 on:
   push:
-    branches: [ "main" ]  # Run on pushes to main branch
-    tags:
-      - 'v*'  # Run when a new tag is pushed (e.g., v1.0.0)
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]  # Run on pull requests to main
+    branches: [ "main" ]
 
 jobs:
   build:
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]  # macOS, Windows, and Linux
-        goarch: [amd64, arm64]  # Build for multiple architectures
+        os: [macos-latest, windows-latest, ubuntu-latest]  # macOS, Windows, and Linux (Ubuntu) 
 
     runs-on: ${{ matrix.os }}
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
     - name: Set up Go
       uses: actions/setup-go@v4
@@ -44,48 +40,21 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y clang
 
-    - name: Set output file name
-      run: echo "BIN_NAME=myapp-${{ runner.os }}-${{ matrix.goarch }}" >> $GITHUB_ENV
-
     - name: Build
-      run: GOOS=${{ matrix.os }} GOARCH=${{ matrix.goarch }} go build -o ${{ env.BIN_NAME }} interpreter.go
+      run: go build interpreter.go
 
-    - name: Upload binaries
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.BIN_NAME }}
-        path: ${{ env.BIN_NAME }}
+    # Optional: Run tests
+    # - name: Test
+    #   run: go test -v ./...
 
-  release:
-    name: Create GitHub Release
-    needs: build
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')  # Only run on tag pushes
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Download all build artifacts
-      uses: actions/download-artifact@v4
-      with:
-        path: builds
-
-    - name: List downloaded files
-      run: ls -l builds
+    - name: Archive Build Artifacts
+      run: |
+        mkdir -p ./release
+        mv interpreter ./release/interpreter-${{ matrix.os }}
 
     - name: Create GitHub Release
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v1
       with:
-        files: builds/*
-        tag_name: ${{ github.ref_name }}
-        name: Release ${{ github.ref_name }}
-        body: |
-          ## Changes in this release
-          - Add feature X
-          - Fix bug Y
-          - Improve performance Z
-        draft: false
-        prerelease: false
+        files: ./release/*
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
