@@ -46,16 +46,19 @@ jobs:
         sudo apt-get install -y clang
 
     # Build the project with fixed version v0.1.4
-    - name: Build
-      run: go build -o interpreter-v0.1.4.exe interpreter.go
+    - name: Build for ${{ matrix.os }}
+      run: |
+        if [ "${{ matrix.os }}" == "macos-latest" ]; then
+          go build -o release/interpreter-v0.1.4-darwin
+        elif [ "${{ matrix.os }}" == "windows-latest" ]; then
+          go build -o release/interpreter-v0.1.4.exe
+        else
+          go build -o release/interpreter-v0.1.4-linux
+        fi
 
-    # Ensure the release directory exists before moving the files
+    # Ensure release directory exists before moving the files
     - name: Ensure release directory exists
       run: mkdir -p ./release
-
-    # Move the built file to the release directory
-    - name: Move build artifact to release directory
-      run: mv interpreter-v0.1.4.exe ./release/interpreter-${{ matrix.os }}-v0.1.4
 
     # Create GitHub Release and Publish Binaries
     - name: Publish Binaries to GitHub Release
@@ -63,4 +66,4 @@ jobs:
       with:
         files: ./release/*
         token: ${{ secrets.GITHUB_TOKEN }}  # Use the GitHub token for authentication
-        tag_name: v0.1.4 
+        tag_name: v0.1.4
