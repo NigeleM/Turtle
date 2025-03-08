@@ -43,12 +43,12 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y clang
 
-    # Set the version based on the latest Git tag or fallback to v0.0.0
+    # Set the version based on the latest Git tag
     - name: Set version from Git tag
       run: |
         VERSION=$(git tag --list | sort -V | tail -n 1)  # Get the latest tag
         if [ -z "$VERSION" ]; then VERSION="v0.0.0"; fi  # Fallback if no tags found
-        echo "VERSION=$VERSION" >> $GITHUB_ENV  # Set VERSION environment variable
+        echo "VERSION=$VERSION" >> $GITHUB_ENV  # Set VERSION as an environment variable
 
     # Build the project with the version
     - name: Build
