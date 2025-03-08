@@ -43,21 +43,21 @@ jobs:
     - name: Build for macOS (Apple Silicon)
       if: runner.os == 'macOS'
       run: |
-        GOARCH=arm64 GOOS=darwin go build -o release/interpreter-darwin-arm64
+        GOARCH=arm64 GOOS=darwin go build -o release/turtle-darwin-arm64
       shell: bash
 
     # Build for Windows
     - name: Build for Windows
       if: runner.os == 'Windows'
       run: |
-        go build -o release/interpreter.exe
+        go build -o release/turtle.exe
       shell: pwsh
 
     # Build for Linux
     - name: Build for Linux
       if: runner.os == 'Linux'
       run: |
-        go build -o release/interpreter-linux
+        go build -o release/turtle-linux
       shell: bash
 
     # Create macOS Installer (.pkg)
@@ -65,25 +65,25 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         mkdir -p pkgroot/usr/local/bin
-        cp release/interpreter-darwin-arm64 pkgroot/usr/local/bin/interpreter
-        chmod 755 pkgroot/usr/local/bin/interpreter
-        pkgbuild --root pkgroot --identifier com.mycompany.interpreter \
+        cp release/turtle-darwin-arm64 pkgroot/usr/local/bin/turtle
+        chmod 755 pkgroot/usr/local/bin/turtle
+        pkgbuild --root pkgroot --identifier com.mycompany.turtle \
         --version 0.1.5 --install-location /usr/local/bin \
-        --ownership recommended release/interpreter.pkg
+        --ownership recommended release/turtle.pkg
 
     # Create Windows Installer (.exe) using Inno Setup
     - name: Create Windows Installer
       if: runner.os == 'Windows'
       run: |
-        echo '[Setup]' > interpreter.iss
-        echo 'AppName=Interpreter' >> interpreter.iss
-        echo 'AppVersion=0.1.5' >> interpreter.iss
-        echo 'DefaultDirName={autopf}\Interpreter' >> interpreter.iss
-        echo 'OutputDir=release' >> interpreter.iss
-        echo 'OutputBaseFilename=interpreter-installer' >> interpreter.iss
-        echo 'SourceDir=release' >> interpreter.iss
-        echo 'Source: "release/interpreter.exe"; DestDir: "{app}"; Flags: ignoreversion' >> interpreter.iss
-        iscc interpreter.iss
+        echo '[Setup]' > turtle.iss
+        echo 'AppName=Turtle' >> turtle.iss
+        echo 'AppVersion=0.1.5' >> turtle.iss
+        echo 'DefaultDirName={autopf}\Turtle' >> turtle.iss
+        echo 'OutputDir=release' >> turtle.iss
+        echo 'OutputBaseFilename=turtle-installer' >> turtle.iss
+        echo 'SourceDir=release' >> turtle.iss
+        echo 'Source: "release/turtle.exe"; DestDir: "{app}"; Flags: ignoreversion' >> turtle.iss
+        iscc turtle.iss
       shell: pwsh
 
     # Create Linux Installer (.deb)
@@ -91,23 +91,23 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         mkdir -p debroot/usr/local/bin
-        cp release/interpreter-linux debroot/usr/local/bin/interpreter
-        chmod 755 debroot/usr/local/bin/interpreter
+        cp release/turtle-linux debroot/usr/local/bin/turtle
+        chmod 755 debroot/usr/local/bin/turtle
         mkdir -p debroot/DEBIAN
-        echo "Package: interpreter" > debroot/DEBIAN/control
+        echo "Package: turtle" > debroot/DEBIAN/control
         echo "Version: 0.1.5" >> debroot/DEBIAN/control
         echo "Architecture: amd64" >> debroot/DEBIAN/control
         echo "Maintainer: My Company <contact@mycompany.com>" >> debroot/DEBIAN/control
-        echo "Description: Interpreter CLI tool" >> debroot/DEBIAN/control
-        dpkg-deb --build debroot release/interpreter.deb
+        echo "Description: Turtle CLI tool" >> debroot/DEBIAN/control
+        dpkg-deb --build debroot release/turtle.deb
 
     # Upload installers as release assets
     - name: Publish Binaries to GitHub Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          release/interpreter.pkg
-          release/interpreter-installer.exe
-          release/interpreter.deb
+          release/turtle.pkg
+          release/turtle-installer.exe
+          release/turtle.deb
         token: ${{ secrets.GITHUB_TOKEN }}
         tag_name: v0.1.5
