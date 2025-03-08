@@ -2,12 +2,11 @@ name: Go Build & Release
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-  push:
+    branches: [ "main" ]  # Run on pushes to main branch
     tags:
-      - 'v*'  # Run only when a new tag is pushed (e.g., v1.0.0)
+      - 'v*'  # Run when a new tag is pushed (e.g., v1.0.0)
+  pull_request:
+    branches: [ "main" ]  # Run on pull requests to main
 
 jobs:
   build:
@@ -46,11 +45,10 @@ jobs:
         sudo apt-get install -y clang
 
     - name: Set output file name
-      id: vars
       run: echo "BIN_NAME=myapp-${{ runner.os }}-${{ matrix.goarch }}" >> $GITHUB_ENV
 
     - name: Build
-      run: GOOS=${{ runner.os }} GOARCH=${{ matrix.goarch }} go build -o ${{ env.BIN_NAME }} interpreter.go
+      run: GOOS=${{ matrix.os }} GOARCH=${{ matrix.goarch }} go build -o ${{ env.BIN_NAME }} interpreter.go
 
     - name: Upload binaries
       uses: actions/upload-artifact@v4
@@ -62,7 +60,7 @@ jobs:
     name: Create GitHub Release
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')  # Run only on new tags (releases)
+    if: startsWith(github.ref, 'refs/tags/')  # Only run on tag pushes
 
     steps:
     - name: Checkout repository
