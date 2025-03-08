@@ -38,27 +38,26 @@ jobs:
     - name: Create macOS Installer
       if: runner.os == 'macOS'
       run: |
-        # Debugging step: Check the release directory
-        # ls -l release
+        # Ensure the release directory exists and the binary is there
+        ls -l release
         
-        # # Create root directory structure
-        # mkdir -p pkgroot/usr/local/bin
+        # Create root directory structure
+        mkdir -p pkgroot/usr/local/bin
         
-        # # Copy the binary directly to /usr/local/bin
-        # cp release/turtle-darwin-arm64 pkgroot/usr/local/bin/turtle
+        # Copy the binary directly to /usr/local/bin (no subdirectory)
+        cp release/turtle-darwin-arm64 pkgroot/usr/local/bin/
         
-        # # Verify the copy was successful
-        # ls -l pkgroot/usr/local/bin/
+        # Verify the copy was successful
+        ls -l pkgroot/usr/local/bin/
         
-        # # Set the correct permissions on the binary
-        # chmod 755 pkgroot/usr/local/bin/turtle
-        chmod 755 turtle
+        # Set the correct permissions on the binary
+        chmod 755 pkgroot/usr/local/bin/turtle
         
-        # Create the package
+        # Create the package, with install location directly in /usr/local/bin
         pkgbuild --root pkgroot --identifier com.mycompany.turtle \
           --version 0.1.5 --install-location /usr/local/bin \
           --ownership recommended release/turtle.pkg
-      # shell: /bin/bash -e {0}
+      shell: /bin/bash -e {0}
 
     # Create GitHub Release and Publish Binaries
     - name: Publish Binaries to GitHub Release
