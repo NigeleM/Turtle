@@ -1,85 +1,55 @@
-name: Go Build & Release
+name: Go Build
 
 on:
   push:
-    branches: [ "main" ]  # Run on pushes to main branch
-    tags:
-      - 'v*'  # Run when a new tag is pushed (e.g., v1.0.0)
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]  # Run on pull requests to main
+    branches: [ "main" ]
 
 jobs:
   build:
+    timeout-minutes: 30  # Timeout for the entire job
     strategy:
       matrix:
-        goos: [linux, windows, darwin]  # Valid GOOS values
-        goarch: [amd64, arm64]  # Architectures
-        exclude:
-          - goos: darwin
-            goarch: arm64  # Skip Apple Silicon for now (use macos-latest instead)
-          - goos: windows
-            goarch: arm64  # Windows ARM64 builds are not always stable
-
-    runs-on: ubuntu-latest  # Use Linux for cross-compilation
-
+        os: [ubuntu-latest, windows-latest]  # Limited platforms to Ubuntu and Windows for testing
+        goarch: [amd64, arm64]  # Limited to amd64 and arm64 for debugging
+    
+    runs-on: ${{ matrix.os }}
+    
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
+    - uses: actions/checkout@v4
+    
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
         go-version: '1.20'
 
-    - name: Install dependencies
-      run: sudo apt-get update && sudo apt-get install -y clang zip
+    # Install Clang (Windows)
+    - name: Install Clang (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        choco install llvm
+        echo "C:\Program Files\LLVM\bin" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+    
+    - name: Verify Clang installation (Windows)
+      if: runner.os == 'Windows'
+      run: clang --version
 
-    - name: Set output file name
-      run: echo "BIN_NAME=myapp-${{ matrix.goos }}-${{ matrix.goarch }}" >> $GITHUB_ENV
+    # Install dependencies (Linux)
+    - name: Install dependencies (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang
 
-    - name: Build
-      run: GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o ${{ env.BIN_NAME }} interpreter.go
+    - name: Verify Go source files
+      run: |
+        ls -l interpreter.go  # Make sure the Go source file exists
 
-    - name: Archive Windows Executables
-      if: matrix.goos == 'windows'
-      run: zip ${{ env.BIN_NAME }}.zip ${{ env.BIN_NAME }}.exe
+    - name: Build for ${{ matrix.os }}-${{ matrix.goarch }}
+      run: |
+        GOOS=${{ matrix.os }} GOARCH=${{ matrix.goarch }} go build -o myapp-${{ matrix.os }}-${{ matrix.goarch }} interpreter.go
 
-    - name: Upload binaries
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.BIN_NAME }}
-        path: ${{ env.BIN_NAME }}*
-  
-  release:
-    name: Create GitHub Release
-    needs: build
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')  # Only run on tag pushes
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Download all build artifacts
-      uses: actions/download-artifact@v4
-      with:
-        path: builds
-
-    - name: List downloaded files
-      run: ls -l builds
-
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@v2
-      with:
-        files: builds/*
-        tag_name: ${{ github.ref_name }}
-        name: Release ${{ github.ref_name }}
-        body: |
-          ## Changes in this release
-          - Add feature X
-          - Fix bug Y
-          - Improve performance Z
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    # Optional: Add testing step if needed
+    # - name: Test
+    #   run: go test -v ./...
