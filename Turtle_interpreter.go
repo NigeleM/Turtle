@@ -15,6 +15,7 @@ void dataSys(const char *d) {
 import "C"
 
 import (
+	files "Turtle/Files"
 	"bufio"
 	"fmt"
 	"go/token"
@@ -29,7 +30,7 @@ import (
 
 // v0.1.6
 // Workable Copy
-// https://github.com/NigeleM/Turtle/releases/tag/v0.1.5
+// https://github.com/NigeleM/Turtle/releases/tag/v0.1.6
 // Installer Complete
 // Need Icon for files
 
@@ -6620,16 +6621,17 @@ func main() {
 
 		} else if strings.Contains(tok, "[read]") {
 			// Fix and complete reading files
-			readfile := strings.ReplaceAll(tok, "[read]", "")
-			file, err := os.ReadFile(readfile)
-			if err != nil {
-				fmt.Println("Error")
-				panic(err)
-			} else {
+			// readfile := strings.ReplaceAll(tok, "[read]", "")
+			// file, err := os.ReadFile(readfile)
+			// if err != nil {
+			// 	fmt.Println("Error")
+			// 	panic(err)
+			// } else {
 
-				fmt.Println(file)
-			}
-
+			// 	fmt.Println(file)
+			// }
+			tok = files.Filefunction(tok)
+			callCode(tok, "isMain")
 		} else if strings.Contains(tok, "[write]") {
 			// Fix and complete writing files
 			writefile := strings.ReplaceAll(tok, "[write]", "")

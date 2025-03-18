@@ -11,3 +11,6 @@
 
 show "Hello , Nigele" .
 // back[]
+
+[read]  file.txt to b [end]
+show b .
