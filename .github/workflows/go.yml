@@ -1,14 +1,12 @@
-name: Build and Release
-
 on:
   push:
     branches:
       - main
 
 jobs:
-  build:
+  build-mac:
     runs-on: macos-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
@@ -20,38 +18,83 @@ jobs:
 
     - name: Build the binary for macOS
       run: |
-        # Build your macOS binary
+        mkdir -p release
         GOOS=darwin GOARCH=arm64 go build -o release/turtle-darwin-arm64
 
     - name: Create macOS Installer
-      if: runner.os == 'macOS'
       run: |
-        # Debugging step: List contents of the release directory to ensure the binary exists
-        ls -l release
-
-        # Ensure the pkgroot directory structure exists
         mkdir -p pkgroot/usr/local/bin
-
-        # Copy the binary directly to /usr/local/bin (no subdirectory)
         cp release/turtle-darwin-arm64 pkgroot/usr/local/bin/turtle
-
-        # Verify the binary is in the correct location
-        ls -l pkgroot/usr/local/bin/
-
-        # Set the correct permissions on the binary
         chmod 755 pkgroot/usr/local/bin/turtle
-
-        # Create the package
-        pkgbuild --root pkgroot/usr/local/bin/ --identifier com.genesys.turtle \
-          --version 0.1.7 --install-location /usr/local/bin \
+        pkgbuild --root pkgroot --identifier com.genesys.turtle \
+          --version 0.1.6 --install-location /usr/local/bin \
           --ownership recommended release/turtle.pkg
 
     - name: Upload Release
       uses: softprops/action-gh-release@v1
       with:
+        tag_name: v0.1.6
         files: release/turtle.pkg
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Clean up
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: '1.23'
+
+    - name: Build the binary for Linux
       run: |
-        # Clean up any build artifacts
-        rm -rf release pkgroot
+        mkdir -p release
+        GOOS=linux GOARCH=amd64 go build -o release/turtle-linux-amd64
+
+    - name: Install fpm for packaging
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ruby ruby-dev
+        sudo gem install --no-document fpm
+
+    - name: Create Linux Installer
+      run: |
+        fpm -s dir -t deb -n turtle -v 0.1.6 --prefix /usr/local/bin -C release .
+        mv turtle_0.1.6_amd64.deb release/turtle-linux-amd64.deb
+
+    - name: Upload Linux Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v0.1.6
+        files: release/turtle-linux-amd64.deb
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: '1.23'
+
+    - name: Build the binary for Windows
+      run: |
+        mkdir -p release
+        $env:GOOS="windows"
+        $env:GOARCH="amd64"
+        go build -o release/turtle-windows-amd64.exe
+
+    - name: Upload Windows Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v0.1.6
+        files: release/turtle-windows-amd64.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
