@@ -42,7 +42,7 @@ jobs:
         chmod 755 pkgroot/usr/local/bin/turtle
 
         # Create the package
-        pkgbuild --root pkgroot/usr/local/bin/ --identifier com.mycompany.turtle \
+        pkgbuild --root pkgroot/usr/local/bin/ --identifier com.genesys.turtle \
           --version 0.1.5 --install-location /usr/local/bin \
           --ownership recommended release/turtle.pkg
 

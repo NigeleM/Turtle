@@ -27,7 +27,7 @@ import (
 	"time"
 )
 
-// v0.1.5
+// v0.1.6
 // Workable Copy
 // https://github.com/NigeleM/Turtle/releases/tag/v0.1.5
 // Installer Complete
@@ -3386,6 +3386,7 @@ func dataStructureMapsParser(list string) maps {
 }
 
 // Map data structure
+
 type maps struct {
 	maps   map[string]interface{}
 	length int
@@ -3454,13 +3455,13 @@ func (maper *maps) invert() maps {
 	return new_map
 }
 
-// Set data structure
+// // Set data structure
 type set struct {
 	set    []interface{}
 	length int
 }
 
-// list data structure
+// // list data structure
 type list struct {
 	list   []interface{}
 	length int
