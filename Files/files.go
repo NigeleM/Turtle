@@ -48,7 +48,7 @@ func Filefunction(fileToken string) string {
 						fmt.Println(string(fileRead))
 						strings.Split(string(fileRead), "\n")
 						token = "b = [" + strings.Join(strings.Split(string(fileRead), "\n"), ",") + "]"
-						fmt.Println(token)
+						// fmt.Println(token)
 					}
 					break
 				}

@@ -6345,7 +6345,7 @@ func importing(importStatement string) {
 	commentMulti := false
 	importStatement = strings.ReplaceAll(importStatement, "import ", "")
 	importFile := strings.ReplaceAll(importStatement, " ", "")
-	importFile = importFile + ".t"
+	importFile = importFile + ".trt"
 	file, err := os.Open(importFile)
 	check(err)
 	scanner = bufio.NewScanner(file)
@@ -6548,7 +6548,7 @@ func main() {
 	var scanner *bufio.Scanner
 	// if there is a last file to open then open it, else exit interpreter if the file is not a turtle
 	if LastfileState == true {
-		if strings.Contains(Lastfile, ".t") || strings.Contains(Lastfile, ".T") {
+		if strings.Contains(Lastfile, ".trt") {
 			file, err = os.Open(Lastfile)
 			check(err)
 			scanner = bufio.NewScanner(file)
