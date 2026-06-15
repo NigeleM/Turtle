@@ -39,15 +39,17 @@ func Filefunction(fileToken string) string {
 				if value == " " || value == "" {
 					continue
 				} else {
+					// fmt.Println(value, "value")
 					fileRead, err := os.ReadFile(value)
 					if err != nil {
 						fmt.Println("Error")
 						panic(err)
 					} else {
 
-						fmt.Println(string(fileRead))
+						// be sure to parse out the variable to assign to list
+						// fmt.Println(string(fileRead))
 						strings.Split(string(fileRead), "\n")
-						token = "b = [" + strings.Join(strings.Split(string(fileRead), "\n"), ",") + "]"
+						token = " = [" + strings.Join(strings.Split(string(fileRead), "\n"), ",") + "]"
 						// fmt.Println(token)
 					}
 					break
