@@ -9,8 +9,15 @@
  def [end]
 *//
 
-show "Hello , Nigele" .
+// show "Hello , Nigele" .
 // back[]
 
-[read]  file.txt to b [end]
-show b .
+// [read]  file.txt to a [end]
+// show a .
+
+
+[write] file.txt 
+"the data was on its own [end]"
+[end]
+
+
