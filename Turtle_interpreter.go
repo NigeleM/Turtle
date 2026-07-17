@@ -6541,7 +6541,10 @@ func main() {
 	conditionName := ""
 	loopState := false
 	loopName := ""
-
+	file_write_state := false
+	file_append_state := false
+	file_header := ""
+	file_token := ""
 	// Comments over multiple lines
 	commentMulti := false
 
@@ -6620,33 +6623,39 @@ func main() {
 			// directory function
 
 		} else if strings.Contains(tok, "[read]") {
-			// Fix and complete reading files
-			// readfile := strings.ReplaceAll(tok, "[read]", "")
-			// file, err := os.ReadFile(readfile)
-			// if err != nil {
-			// 	fmt.Println("Error")
-			// 	panic(err)
-			// } else {
 
-			// 	fmt.Println(file)
-			// }
-			tok = files.Filefunction(tok)
+			tok = files.Fileread(tok)
 			callCode(tok, "isMain")
 		} else if strings.Contains(tok, "[write]") {
 			// Fix and complete writing files
-			writefile := strings.ReplaceAll(tok, "[write]", "")
-			file, err := os.Create(writefile)
-			if err != nil {
-				fmt.Println("Error")
-				panic(err)
-			} else {
+			// files.Filewrite(tok)
+			file_write_state = true
+			file_header = tok
+		} else if file_write_state {
+			// fmt.Println(tok)
+			// very complex revamp parser to pass the evaluation
 
-				file.WriteString(tok)
+			if "[end]" == strings.Trim(tok, " ") {
+				files.Filewrite(file_header, file_token)
+				// files.Filewrite(file_header, file_token)
+				file_write_state = false
+			} else {
+				file_token += tok
 			}
 
 		} else if strings.Contains(tok, "[append]") {
 			// Append files addition
-			fmt.Println(tok)
+			// files.Fileappend(tok)
+			file_append_state = true
+			file_header = tok
+		} else if file_append_state {
+			if "[end]" == strings.Trim(tok, " ") {
+				files.Fileappend(file_header, file_token)
+				file_append_state = false
+			} else {
+				file_token += tok
+
+			}
 
 		} else if strings.Contains(tok, "def ") && strings.Contains(tok, "[") && strings.Contains(tok, "[") && definitionState == false {
 			definitionState = true
@@ -6773,6 +6782,7 @@ func main() {
 			}
 		} else {
 			// data structure operations
+			// must be testing investigate
 			fmt.Println(tok, "values")
 			dataStructureOperations("isMain", tok)
 		}
