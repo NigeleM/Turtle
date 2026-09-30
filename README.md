@@ -19,12 +19,18 @@ around unmodified for reference.
 | Variables | Done |
 | Conditional statements | Done |
 | Loops | Done |
-| Functions | Done |
+| Functions (can read globals; local assignment never writes through) | Done |
 | Data structures (list/set/map) | Done |
+| Type conversion (`change`) | Done |
+| Standard library: strings | Done |
+| Standard library: math (`import math`) | Done |
+| Standard library: time (`import time`) | Done |
+| Standard library: HTTP | Not started |
 | Imports | Done |
 | File management (read/write/append/directory) | Done |
+| Automated tests (`go test ./...`) | Done |
+| CI (build/vet/test on every push) + tag-triggered releases | Done |
 | Documentation | Done — see `docs/` |
-| Standard library (strings, time, HTTP) | Not started |
 | `.trt`-only file extension enforcement | Not started |
 
 ## Quick start

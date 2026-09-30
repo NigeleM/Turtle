@@ -344,3 +344,26 @@ previously-released binary was the old interpreter**, none of the
 rewrite's features included. Not verified against a real GitHub Actions
 run (no network access to trigger one from here); YAML syntax was
 validated and every underlying command was run locally.
+
+**First real CI run** (pushed by the user, 2026-09-29) came back showing
+"6 errors, 2 warnings, 1 notice" in GitHub's Annotations panel — alarming
+at a glance, but the job's actual `conclusion` was `success` (checked via
+the Actions API directly: every step — build, vet, test — passed). The
+"6 errors" were the same harmless cgo compiler warning (`ignoring return
+value of 'system'`) from the legacy `Turtle_interpreter.go`, appearing
+twice each across the build/vet/test steps (3 steps × 2 lines each);
+GitHub's annotation extractor tags cgo/gcc warnings as `failure`-level
+even though they don't fail anything. Real fix, not just cosmetic: `./...`
+was pulling the legacy root package (cgo) and `Files/` (no cgo, harmless)
+into scope. Confirmed via `grep -rl 'import "C"'` that `Turtle_interpreter.go`
+is the *only* cgo file in the repo, then scoped every `go build`/`vet`/
+`test` invocation in both `ci.yml` and `release.yml` to the eight rewrite
+packages explicitly (`./Files/... ./ast/... ./cmd/... ./evaluator/...
+./lexer/... ./object/... ./parser/... ./token/...`), never touching the
+root package. This isn't just about quieting the annotation noise: the
+Windows release job has no C compiler by default, so `go vet ./...`/`go
+test ./...` there would have hit the cgo file and could have genuinely
+failed (not just warned) the next time that job actually ran — this fix
+heads that off before it happens. Verified all three commands locally
+(build/vet/test with the explicit package list, matching exactly what CI
+now runs).
