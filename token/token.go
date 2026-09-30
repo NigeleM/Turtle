@@ -1,0 +1,136 @@
+// Package token defines the lexical tokens of the Turtle language.
+package token
+
+type Type string
+
+type Token struct {
+	Type    Type
+	Literal string
+	Line    int
+}
+
+const (
+	ILLEGAL Type = "ILLEGAL"
+	EOF     Type = "EOF"
+
+	IDENT  Type = "IDENT"
+	INT    Type = "INT"
+	FLOAT  Type = "FLOAT"
+	STRING Type = "STRING"
+
+	ASSIGN   Type = "="
+	PLUS     Type = "+"
+	MINUS    Type = "-"
+	ASTERISK Type = "*"
+	SLASH    Type = "/"
+	PERCENT  Type = "%"
+
+	LT     Type = "<"
+	GT     Type = ">"
+	LE     Type = "<="
+	GE     Type = ">="
+	EQ     Type = "=="
+	NOT_EQ Type = "!="
+	AND    Type = "&&"
+	OR     Type = "||"
+	BANG   Type = "!"
+
+	INCR Type = "++"
+	DECR Type = "--"
+
+	COMMA  Type = ","
+	PERIOD Type = "."
+	COLON  Type = ":"
+	SEMI   Type = ";"
+
+	LBRACKET Type = "["
+	RBRACKET Type = "]"
+	LPAREN   Type = "("
+	RPAREN   Type = ")"
+
+	QUESTION Type = "?"
+
+	// Keywords
+	TRUE     Type = "TRUE"
+	FALSE    Type = "FALSE"
+	SHOW     Type = "SHOW"
+	IF       Type = "IF"
+	ELSE     Type = "ELSE"
+	DEF      Type = "DEF"
+	END      Type = "END"
+	LOOP     Type = "LOOP"
+	RETURN   Type = "RETURN"
+	LIST     Type = "LIST"
+	SET      Type = "SET"
+	MAP      Type = "MAP"
+	IMPORT   Type = "IMPORT"
+	SYS      Type = "SYS"
+	TO       Type = "TO"
+	FROM     Type = "FROM"
+	AT       Type = "AT"
+	OF       Type = "OF"
+	IS       Type = "IS"
+	ADD      Type = "ADD"
+	CHANGE   Type = "CHANGE"
+	REMOVE   Type = "REMOVE"
+	DELETE   Type = "DELETE"
+	SORT     Type = "SORT"
+	REVERSE  Type = "REVERSE"
+	INSERT   Type = "INSERT"
+	MIN      Type = "MIN"
+	MAX      Type = "MAX"
+	LENGTH   Type = "LENGTH"
+	READ     Type = "READ"
+	WRITE    Type = "WRITE"
+	APPEND   Type = "APPEND"
+	DIR      Type = "DIRECTORY"
+	BREAK    Type = "BREAK"
+	CONTINUE Type = "CONTINUE"
+)
+
+var keywords = map[string]Type{
+	"true":      TRUE,
+	"false":     FALSE,
+	"show":      SHOW,
+	"if":        IF,
+	"else":      ELSE,
+	"def":       DEF,
+	"end":       END,
+	"loop":      LOOP,
+	"return":    RETURN,
+	"list":      LIST,
+	"set":       SET,
+	"map":       MAP,
+	"import":    IMPORT,
+	"sys":       SYS,
+	"to":        TO,
+	"from":      FROM,
+	"at":        AT,
+	"of":        OF,
+	"is":        IS,
+	"add":       ADD,
+	"change":    CHANGE,
+	"remove":    REMOVE,
+	"delete":    DELETE,
+	"sort":      SORT,
+	"reverse":   REVERSE,
+	"insert":    INSERT,
+	"min":       MIN,
+	"max":       MAX,
+	"length":    LENGTH,
+	"read":      READ,
+	"write":     WRITE,
+	"append":    APPEND,
+	"directory": DIR,
+	"break":     BREAK,
+	"continue":  CONTINUE,
+}
+
+// LookupIdent returns the keyword Type for literal, or IDENT if it isn't
+// a reserved word.
+func LookupIdent(literal string) Type {
+	if tok, ok := keywords[literal]; ok {
+		return tok
+	}
+	return IDENT
+}

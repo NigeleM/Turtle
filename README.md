@@ -1,30 +1,49 @@
 # The Turtle Programming Language ⓒ 2017
-Turtle was my side project during community college and undergrad. 
-It is copyrighted by me. My goal was to make a very simple language. 
 
+Turtle was my side project during community college and undergrad.
+It is copyrighted by me. My goal was to make a very simple language.
 
+## Status
 
-# Update as of 2024
-1. As of 2024.
-2. Variables  -> Completed
-3. Conditional statements -> Completed
-4. loops -> Completed
-5. Functions -> Completed
-6. Data Structures -> Completed
-7. Imports -> Completed but not optimized
-8. Documentation -> Not Completed
-9. File management ->  Working 
-    - Writing
-    - reading
-    - appending
-    - directory tool
-11. Standard Library -> Not Completed
-    -  HTTPS
-    -  STRING Functions
-    -  TIME
-12. Optimization of Code -> Not Completed
+The interpreter has been rewritten in Go as a proper lexer → parser → AST
+→ tree-walking evaluator (`token/`, `lexer/`, `ast/`, `parser/`,
+`object/`, `evaluator/`, `cmd/turtle/`), replacing the original
+`Turtle_interpreter.go`, which parsed source by re-scanning raw strings.
+Surface syntax is unchanged and verified against real historical example
+scripts (see `SPEC.md` and `docs/architecture.md` for exactly what changed
+under the hood and why). `Turtle_interpreter.go` and `Files/` are kept
+around unmodified for reference.
 
-Currently I am rewriting the Turtle interpreter in GO (Golang)
-Once I am able to publish a stable release I will make available for use and consumption.
-I'm working currently to add all the basics of a language before writing a standard library.
-Later this year I will add offical Documentation in order to explain how everything works.
+| Feature | Status |
+|---|---|
+| Variables | Done |
+| Conditional statements | Done |
+| Loops | Done |
+| Functions | Done |
+| Data structures (list/set/map) | Done |
+| Imports | Done |
+| File management (read/write/append/directory) | Done |
+| Documentation | Done — see `docs/` |
+| Standard library (strings, time, HTTP) | Not started |
+| `.trt`-only file extension enforcement | Not started |
+
+## Quick start
+
+```sh
+go build -o turtle ./cmd/turtle
+./turtle path/to/script.t
+```
+
+See [`docs/getting-started.md`](docs/getting-started.md) for more.
+
+## Documentation
+
+- [`docs/getting-started.md`](docs/getting-started.md) — build and run your first script
+- [`docs/tour.md`](docs/tour.md) — a guided, example-driven walkthrough of the language
+- [`docs/reference.md`](docs/reference.md) — the complete formal syntax reference
+- [`docs/stdlib.md`](docs/stdlib.md) — data structure methods, file I/O, `sys`, `import`
+- [`docs/architecture.md`](docs/architecture.md) — how the interpreter itself is built, for contributors
+- [`docs/contributing.md`](docs/contributing.md) — how to add new syntax or standard-library functions
+- [`SPEC.md`](SPEC.md) — the language specification this rewrite was built from, including every deliberate deviation from the original interpreter's behavior and why
+- [`PROGRESS.md`](PROGRESS.md) — session-by-session log of what's been done and what's left
+- [`TODO.md`](TODO.md) — forward-looking punch list of what's next

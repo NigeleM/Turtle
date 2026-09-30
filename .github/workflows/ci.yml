@@ -1,0 +1,32 @@
+name: CI
+
+# Validates every push to main and every PR: build, vet, and the real
+# `go test ./...` suite. Separate from release.yml, which only runs when
+# a version tag is pushed — this one exists so a broken commit is caught
+# immediately instead of only being discovered at release time.
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build-vet-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Build (all packages)
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./... -v

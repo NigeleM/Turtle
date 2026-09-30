@@ -1,0 +1,308 @@
+// Package evaluator tree-walks a Turtle AST.
+package evaluator
+
+import (
+	"bufio"
+	"fmt"
+	"io"
+	"os"
+
+	"Turtle/ast"
+	"Turtle/object"
+)
+
+// Signal is a control-flow effect that a statement can produce, which
+// propagates up through enclosing blocks until something (a loop, for
+// Break/Continue; a function call, for Return) consumes it.
+type Signal int
+
+const (
+	SigNone Signal = iota
+	SigReturn
+	SigBreak
+	SigContinue
+)
+
+type ExecResult struct {
+	Signal Signal
+	Value  object.Object
+}
+
+var noneResult = ExecResult{Signal: SigNone}
+
+// Interpreter holds everything shared across a whole program run: global
+// scope and a single stdin reader (fixing the legacy interpreter's habit
+// of allocating a fresh bufio.Scanner per input prompt).
+type Interpreter struct {
+	Global  *object.Environment
+	Dir     string // directory imports/[read]/[write] paths resolve relative to
+	stdin   *bufio.Scanner
+	modules map[string]bool // builtin modules enabled via "import <name>"
+}
+
+func New(dir string) *Interpreter {
+	return NewWithStdin(dir, os.Stdin)
+}
+
+// NewWithStdin is like New but reads "?" input from r instead of
+// os.Stdin — used by tests to feed a program's input prompts without
+// touching the real stdin.
+func NewWithStdin(dir string, r io.Reader) *Interpreter {
+	return &Interpreter{
+		Global:  object.NewGlobalEnvironment(),
+		Dir:     dir,
+		stdin:   bufio.NewScanner(r),
+		modules: map[string]bool{},
+	}
+}
+
+// builtinModules maps a name recognized by "import <name>" to a native
+// capability instead of a <name>.t file on disk: "math" unlocks the
+// sqrt/abs/round/floor/ceil/pow/random number methods, "time" unlocks the
+// now[]/sleep[ms] builtin functions. Anything else falls through to the
+// existing file-based import.
+var builtinModules = map[string]bool{"math": true, "time": true}
+
+func (it *Interpreter) hasModule(name string) bool {
+	return it.modules[name]
+}
+
+// requireModule fails with a clear message naming the missing import,
+// rather than "unknown method" — the whole point of gating these behind
+// import is that the error tells you exactly what to add.
+func requireModule(it *Interpreter, module, what string) {
+	if !it.hasModule(module) {
+		fatalf("%q needs \"import %s\" first", what, module)
+	}
+}
+
+// currentLine is the source line of whatever statement is being evaluated
+// right now, kept up to date by evalStatement (the single dispatch point
+// every statement, top-level or nested, passes through). Every fatalf call
+// anywhere in the evaluator reads it, so runtime errors get a real
+// location without threading a line parameter through every function.
+// Turtle runs one program per process and exits on the first fatal error,
+// so a package-level variable is safe here — there's never more than one
+// evaluation in flight.
+var currentLine int
+
+// fatalError is what fatalf panics with. Run recovers exactly this type at
+// the top of a program's evaluation and turns it into a returned error —
+// any other panic (a genuine interpreter bug, not a deliberate runtime
+// error) is left to propagate and crash normally, so a real bug is never
+// silently swallowed.
+type fatalError struct{ msg string }
+
+func (e fatalError) Error() string { return e.msg }
+
+// fatalf reports a runtime error and unwinds the current evaluation via
+// panic/recover (see Run) rather than calling os.Exit directly — that's
+// what lets tests exercise an error path (e.g. division by zero, a failed
+// change conversion) without killing the test binary, while the CLI
+// (cmd/turtle/main.go) still exits 1 with this exact message, since it's
+// the only thing at the top that doesn't recover.
+func fatalf(format string, args ...interface{}) {
+	msg := fmt.Sprintf(format, args...)
+	if currentLine > 0 {
+		msg = fmt.Sprintf("line %d: %s", currentLine, msg)
+	}
+	panic(fatalError{msg})
+}
+
+// Run evaluates program to completion, or returns the fatalf error that
+// stopped it (formatted exactly as the CLI has always printed it, minus
+// the "turtle: " prefix the caller adds). A panic that isn't a fatalError
+// is a real bug, not a Turtle runtime error, and is re-panicked rather
+// than swallowed.
+func (it *Interpreter) Run(program *ast.Program) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if fe, ok := r.(fatalError); ok {
+				err = fe
+				return
+			}
+			panic(r)
+		}
+	}()
+	it.evalStatements(program.Statements, it.Global)
+	return nil
+}
+
+func (it *Interpreter) evalStatements(stmts []ast.Statement, env *object.Environment) ExecResult {
+	for _, stmt := range stmts {
+		res := it.evalStatement(stmt, env)
+		if res.Signal != SigNone {
+			return res
+		}
+	}
+	return noneResult
+}
+
+func (it *Interpreter) evalBlock(block *ast.BlockStatement, env *object.Environment) ExecResult {
+	if block == nil {
+		return noneResult
+	}
+	return it.evalStatements(block.Statements, env)
+}
+
+func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment) ExecResult {
+	currentLine = stmt.Line()
+	switch s := stmt.(type) {
+	case *ast.AssignStatement:
+		env.Set(s.Name, it.evalExpression(s.Value, env))
+		return noneResult
+
+	case *ast.InputStatement:
+		fmt.Print(s.Prompt)
+		if !it.stdin.Scan() {
+			// EOF (or a read error) on stdin: there's nothing left to
+			// read, ever, so returning "" here would make any loop that
+			// re-prompts on bad input (e.g. retrying invalid numeric
+			// input) spin forever re-reading empty strings instead of
+			// terminating.
+			fatalf("unexpected end of input reading %q", s.Name)
+		}
+		env.Set(s.Name, &object.String{Value: it.stdin.Text()})
+		return noneResult
+
+	case *ast.ShowStatement:
+		out := ""
+		for _, e := range s.Expressions {
+			out += it.evalExpression(e, env).Inspect()
+		}
+		fmt.Println(out)
+		return noneResult
+
+	case *ast.ExpressionStatement:
+		val := it.evalExpression(s.Expression, env)
+		if s.Print {
+			fmt.Println(val.Inspect())
+		}
+		return noneResult
+
+	case *ast.CallStatement:
+		it.evalExpression(s.Call, env)
+		return noneResult
+
+	case *ast.ReturnStatement:
+		return ExecResult{Signal: SigReturn, Value: it.evalExpression(s.Value, env)}
+
+	case *ast.BreakStatement:
+		return ExecResult{Signal: SigBreak}
+
+	case *ast.ContinueStatement:
+		return ExecResult{Signal: SigContinue}
+
+	case *ast.FunctionDefStatement:
+		env.DefineFunction(&object.Function{Name: s.Name, Parameters: s.Parameters, Body: s.Body})
+		return noneResult
+
+	case *ast.IfStatement:
+		return it.evalIf(s, env)
+
+	case *ast.LoopStatement:
+		return it.evalLoop(s, env)
+
+	case *ast.DataOpStatement:
+		it.evalDataOp(s, env)
+		return noneResult
+
+	case *ast.ImportStatement:
+		it.evalImport(s, env)
+		return noneResult
+
+	case *ast.SysStatement:
+		it.evalSys(s)
+		return noneResult
+
+	case *ast.FileReadStatement:
+		it.evalFileRead(s, env)
+		return noneResult
+
+	case *ast.FileWriteStatement:
+		it.evalFileWrite(s, env)
+		return noneResult
+
+	case *ast.DirectoryStatement:
+		it.evalDirectory(s, env)
+		return noneResult
+
+	default:
+		fatalf("no evaluator for statement type %T", stmt)
+		return noneResult
+	}
+}
+
+func (it *Interpreter) evalIf(s *ast.IfStatement, env *object.Environment) ExecResult {
+	for _, clause := range s.Clauses {
+		if clause.Condition == nil {
+			return it.evalBlock(clause.Body, env)
+		}
+		if isTruthy(it.evalExpression(clause.Condition, env)) {
+			return it.evalBlock(clause.Body, env)
+		}
+	}
+	return noneResult
+}
+
+// evalLoop runs a loop. For the C-style form it shadows the induction
+// variable for the duration of the loop and restores whatever value (or
+// absence) it had beforehand once the loop finishes — otherwise two
+// loops nested with the same induction-variable name (a real pattern
+// seen in historical Turtle scripts, e.g. both using "i") would clobber
+// each other's iteration state, since Turtle has no block scoping and
+// loop variables live in the same environment as everything else.
+func (it *Interpreter) evalLoop(s *ast.LoopStatement, env *object.Environment) ExecResult {
+	if s.Kind == ast.LoopCStyle && s.Init != nil {
+		var varName string
+		if initAssign, ok := s.Init.(*ast.AssignStatement); ok {
+			varName = initAssign.Name
+		}
+		var outerVal object.Object
+		var hadOuter bool
+		if varName != "" {
+			outerVal, hadOuter = env.Get(varName)
+			defer func() {
+				if hadOuter {
+					env.Set(varName, outerVal)
+				} else {
+					env.Delete(varName)
+				}
+			}()
+		}
+		it.evalStatement(s.Init, env)
+	}
+	for {
+		if s.Condition != nil {
+			if !isTruthy(it.evalExpression(s.Condition, env)) {
+				break
+			}
+		}
+		res := it.evalBlock(s.Body, env)
+		if res.Signal == SigBreak {
+			break
+		}
+		if res.Signal == SigReturn {
+			return res
+		}
+		if s.Kind == ast.LoopCStyle && s.Post != nil {
+			it.evalStatement(s.Post, env)
+		}
+	}
+	return noneResult
+}
+
+func isTruthy(obj object.Object) bool {
+	switch v := obj.(type) {
+	case *object.Boolean:
+		return v.Value
+	case *object.Integer:
+		return v.Value != 0
+	case *object.Float:
+		return v.Value != 0
+	case *object.String:
+		return v.Value != ""
+	default:
+		return obj != nil
+	}
+}

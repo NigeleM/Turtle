@@ -1,0 +1,133 @@
+name: Release
+
+# Runs only when a version tag (v0.1.7, v1.0.0, ...) is pushed — not on
+# every push to main. That's the fix for the old behavior, where every
+# ordinary push silently tried to overwrite the same hardcoded "v0.1.6"
+# release. The version packaged into each artifact is derived from the
+# tag itself, so bumping a version is just "tag and push" — nothing to
+# edit in this file.
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+
+    - name: Vet and test
+      run: |
+        go vet ./...
+        go test ./...
+
+    - name: Build the binary for macOS
+      run: |
+        mkdir -p release
+        CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o release/turtle-darwin-arm64 ./cmd/turtle
+
+    - name: Create macOS Installer
+      run: |
+        VERSION="${GITHUB_REF_NAME#v}"
+        mkdir -p pkgroot/usr/local/bin
+        cp release/turtle-darwin-arm64 pkgroot/usr/local/bin/turtle
+        chmod 755 pkgroot/usr/local/bin/turtle
+        pkgbuild --root pkgroot --identifier com.genesys.turtle \
+          --version "$VERSION" --install-location /usr/local/bin \
+          --ownership recommended release/turtle.pkg
+
+    - name: Upload Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.ref_name }}
+        files: release/turtle.pkg
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+
+    - name: Vet and test
+      run: |
+        go vet ./...
+        go test ./...
+
+    - name: Build the binary for Linux
+      run: |
+        mkdir -p release
+        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o release/turtle-linux-amd64 ./cmd/turtle
+
+    - name: Install fpm for packaging
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ruby ruby-dev
+        sudo gem install --no-document fpm
+
+    - name: Create Linux Installer
+      run: |
+        VERSION="${GITHUB_REF_NAME#v}"
+        # "turtle-linux-amd64=turtle" maps the built binary to /usr/local/bin/turtle
+        # inside the package (the old command packaged the whole release/
+        # directory verbatim, installing it as /usr/local/bin/turtle-linux-amd64).
+        fpm -s dir -t deb -n turtle -v "$VERSION" --prefix /usr/local/bin \
+          -C release turtle-linux-amd64=turtle
+        mv "turtle_${VERSION}_amd64.deb" release/turtle-linux-amd64.deb
+
+    - name: Upload Linux Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.ref_name }}
+        files: release/turtle-linux-amd64.deb
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+
+    - name: Vet and test
+      run: |
+        go vet ./...
+        go test ./...
+
+    - name: Build the binary for Windows
+      run: |
+        mkdir -p release
+        $env:CGO_ENABLED="0"
+        $env:GOOS="windows"
+        $env:GOARCH="amd64"
+        go build -o release/turtle-windows-amd64.exe ./cmd/turtle
+
+    - name: Upload Windows Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.ref_name }}
+        files: release/turtle-windows-amd64.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
