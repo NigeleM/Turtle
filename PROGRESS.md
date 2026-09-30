@@ -367,3 +367,51 @@ failed (not just warned) the next time that job actually ran — this fix
 heads that off before it happens. Verified all three commands locally
 (build/vet/test with the explicit package list, matching exactly what CI
 now runs).
+
+## First real release (v0.9.0) — and a real macOS packaging bug it surfaced
+
+Pushed `v0.9.0` (deleting two stray, wrongly-shaped tags — `v0.9` and
+`0.9` — first; the trigger is `v*.*.*`, three dot-separated components,
+so neither matched and neither fired anything). `release.yml` ran clean
+on all three OS jobs and published a real GitHub Release with all three
+installers attached — the first release ever built from the rewritten
+interpreter rather than the legacy `Turtle_interpreter.go`.
+
+Installing the `.pkg` on the actual Mac this was developed on surfaced a
+real, pre-existing bug: the installer reported success, but `turtle` was
+nowhere on `PATH` afterward. Root cause, confirmed directly via `pkgutil
+--pkg-info`/`--files` and `find`: the binary landed at
+`/usr/local/bin/usr/local/bin/turtle`, not `/usr/local/bin/turtle`. The
+`pkgbuild` invocation had `--install-location /usr/local/bin` *and* a
+payload root (`pkgroot/usr/local/bin/turtle`) that already contained that
+same path — the two concatenate, so the destination path got applied
+twice. This exact `pkgbuild` command predates this session (inherited
+unchanged from the original `go.yml`), so **every prior `.pkg` release
+(`v0.1.4`–`v0.1.6`) almost certainly had the same bug** — worth asking
+before assuming this is new.
+
+One wrinkle worth recording: the user recalled that the "obviously
+correct" flat-payload form (`pkgroot/turtle` directly, no nested path) had
+been tried before and silently failed to write anything — which is why
+the nested form existed in the first place. Before touching it again,
+confirmed with them that the old failure looked like *this exact
+symptom* (installer reports success, binary missing from `PATH`), not a
+Gatekeeper/code-signing block (which would refuse to run the installer at
+all, not misplace its output) — so the earlier nested-path change was
+very likely an attempted fix for the same underlying bug that didn't
+actually solve it, just moved where the misplaced file ended up.
+
+Fixed by flattening the payload (`pkgroot/turtle`, not `pkgroot/usr/local/bin/turtle`)
+and verified two ways before touching `release.yml`, since `pkgbuild` is
+available on this Mac:
+1. `pkgutil --payload-files` on a locally-built test package showed
+   `./turtle` (not `./usr/local/bin/turtle`).
+2. `pkgutil --expand` + `lsbom` on the Bill of Materials — the actual
+   manifest macOS's Installer reads — confirmed `.` → `/usr/local/bin`
+   and `./turtle` → `/usr/local/bin/turtle`, no nesting.
+
+Also manually fixed the already-broken install on this machine (`cp`'d
+the misplaced binary to the correct path, removed the bogus nested
+`/usr/local/bin/usr/` directory) so `turtle` works from the terminal here
+right now, independent of whether/when a new tagged release goes out with
+the packaging fix.

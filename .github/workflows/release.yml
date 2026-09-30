@@ -40,9 +40,14 @@ jobs:
     - name: Create macOS Installer
       run: |
         VERSION="${GITHUB_REF_NAME#v}"
-        mkdir -p pkgroot/usr/local/bin
-        cp release/turtle-darwin-arm64 pkgroot/usr/local/bin/turtle
-        chmod 755 pkgroot/usr/local/bin/turtle
+        # pkgroot's contents install AT --install-location, so pkgroot
+        # must contain just "turtle", not another usr/local/bin/turtle
+        # underneath it — that used to double the path to
+        # /usr/local/bin/usr/local/bin/turtle, silently: the .pkg reported
+        # success but "turtle" was never actually on PATH.
+        mkdir -p pkgroot
+        cp release/turtle-darwin-arm64 pkgroot/turtle
+        chmod 755 pkgroot/turtle
         pkgbuild --root pkgroot --identifier com.genesys.turtle \
           --version "$VERSION" --install-location /usr/local/bin \
           --ownership recommended release/turtle.pkg
