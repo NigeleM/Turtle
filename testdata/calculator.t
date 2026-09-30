@@ -1,0 +1,91 @@
+// A calculator, written to exercise functions, conditionals, loops,
+// lists, and interactive input in one program.
+
+def addition[a, b]
+    return a + b
+def [end]
+
+def subtract[a, b]
+    return a - b
+def [end]
+
+def multiply[a, b]
+    return a * b
+def [end]
+
+def divide[a, b]
+    if ] b == 0 [
+        show "  -> error: division by zero" .
+        return 0
+    else ]
+        return a / b
+    if [end]
+def [end]
+
+def calculate[a, b, op]
+    if ] op == "+" [
+        return addition[a, b]
+    else if ] op == "-" [
+        return subtract[a, b]
+    else if ] op == "*" [
+        return multiply[a, b]
+    else if ] op == "/" [
+        return divide[a, b]
+    else ]
+        show "  -> unknown operator: ", op .
+        return 0
+    if [end]
+def [end]
+
+show "=== Turtle calculator ===" .
+show " " .
+
+lefts = list [12, 9, 6, 20, 7.5, 5]
+rights = list [4, 3, 0, 8, 2.5, 0]
+ops = list ["+", "-", "*", "/", "/", "*"]
+
+count = length of lefts
+
+[loop][i = 0; i < count; i++]
+    a is lefts at get i .
+    b is rights at get i .
+    op is ops at get i .
+
+    result = calculate[a, b, op]
+    show a, " ", op, " ", b, " = ", result .
+[loop][end]
+
+show " " .
+show "=== Interactive mode (type q to quit) ===" .
+
+running = true
+[loop][running]
+    op = ? "Operator (+, -, *, /, q): "
+    if ] op == "q" [
+        running = false
+    else ]
+        aStr = ? "  first number: "
+        aOk is aStr at isNumber .
+        if ] !aOk [
+            show "  -> \"", aStr, "\" isn't a number, try again." .
+            continue
+        if [end]
+
+        bStr = ? "  second number: "
+        bOk is bStr at isNumber .
+        if ] !bOk [
+            show "  -> \"", bStr, "\" isn't a number, try again." .
+            continue
+        if [end]
+
+        // ? always reads a raw string; change converts it to a real
+        // number so it can flow into calculate[]'s arithmetic. isNumber
+        // above already validated it, so this can't fail here.
+        a = change aStr to float
+        b = change bStr to float
+        result = calculate[a, b, op]
+        show a, " ", op, " ", b, " = ", result .
+    if [end]
+[loop][end]
+
+show "Goodbye!" .

@@ -1,0 +1,185 @@
+package parser
+
+import (
+	"strings"
+	"testing"
+
+	"Turtle/ast"
+	"Turtle/lexer"
+)
+
+// parseOK parses src and fails the test immediately if there were any
+// parse errors, returning the resulting program for further assertions.
+func parseOK(t *testing.T, src string) *ast.Program {
+	t.Helper()
+	p := New(lexer.New(src))
+	program := p.ParseProgram()
+	if errs := p.Errors(); len(errs) > 0 {
+		t.Fatalf("unexpected parse error(s) for %q: %v", src, errs)
+	}
+	return program
+}
+
+func TestParseAssignmentAndShow(t *testing.T) {
+	program := parseOK(t, `x = 1 + 2 * 3
+show x .`)
+	if len(program.Statements) != 2 {
+		t.Fatalf("got %d statements, want 2", len(program.Statements))
+	}
+	as, ok := program.Statements[0].(*ast.AssignStatement)
+	if !ok {
+		t.Fatalf("statement 0 is %T, want *ast.AssignStatement", program.Statements[0])
+	}
+	if as.Name != "x" {
+		t.Errorf("assign name = %q, want %q", as.Name, "x")
+	}
+	infix, ok := as.Value.(*ast.InfixExpression)
+	if !ok || infix.Operator != "+" {
+		t.Fatalf("value is %#v, want a top-level '+' infix (precedence: * binds tighter)", as.Value)
+	}
+	if _, ok := program.Statements[1].(*ast.ShowStatement); !ok {
+		t.Errorf("statement 1 is %T, want *ast.ShowStatement", program.Statements[1])
+	}
+}
+
+func TestParseIfElseReversedBrackets(t *testing.T) {
+	program := parseOK(t, `if ] x > 10 [
+    show "big" .
+else if ] x > 0 [
+    show "small" .
+else ]
+    show "non-positive" .
+if [end]`)
+	if len(program.Statements) != 1 {
+		t.Fatalf("got %d statements, want 1", len(program.Statements))
+	}
+	ifs, ok := program.Statements[0].(*ast.IfStatement)
+	if !ok {
+		t.Fatalf("statement is %T, want *ast.IfStatement", program.Statements[0])
+	}
+	if len(ifs.Clauses) != 3 {
+		t.Fatalf("got %d clauses, want 3 (if / else-if / else)", len(ifs.Clauses))
+	}
+	if ifs.Clauses[0].Condition == nil {
+		t.Error("clause 0 (if) should have a condition")
+	}
+	if ifs.Clauses[1].Condition == nil {
+		t.Error("clause 1 (else if) should have a condition")
+	}
+	if ifs.Clauses[2].Condition != nil {
+		t.Error("clause 2 (trailing else) should have a nil condition")
+	}
+}
+
+func TestParseLoopHeaders(t *testing.T) {
+	program := parseOK(t, `[loop][i = 0; i < 5; i++]
+    show i .
+[loop][end]`)
+	ls, ok := program.Statements[0].(*ast.LoopStatement)
+	if !ok {
+		t.Fatalf("statement is %T, want *ast.LoopStatement", program.Statements[0])
+	}
+	if ls.Kind != ast.LoopCStyle {
+		t.Errorf("got loop kind %v, want LoopCStyle", ls.Kind)
+	}
+	if ls.Init == nil || ls.Condition == nil || ls.Post == nil {
+		t.Error("C-style loop should have Init, Condition, and Post all set")
+	}
+
+	program2 := parseOK(t, `[loop][count < 3]
+    count = count + 1
+[loop][end]`)
+	ls2, ok := program2.Statements[0].(*ast.LoopStatement)
+	if !ok {
+		t.Fatalf("statement is %T, want *ast.LoopStatement", program2.Statements[0])
+	}
+	if ls2.Kind != ast.LoopWhile {
+		t.Errorf("got loop kind %v, want LoopWhile", ls2.Kind)
+	}
+	if ls2.Init != nil || ls2.Post != nil {
+		t.Error("while-style loop should have nil Init and Post")
+	}
+}
+
+func TestParseFunctionDefAndCall(t *testing.T) {
+	// "add" itself is a reserved word (the data-op statement), so the
+	// function here is named "addition" — same workaround the language's
+	// own testdata/calculator.t needs.
+	program := parseOK(t, `def addition[a, b]
+    return a + b
+def [end]
+
+sum = addition[1, 2]`)
+	fd, ok := program.Statements[0].(*ast.FunctionDefStatement)
+	if !ok {
+		t.Fatalf("statement 0 is %T, want *ast.FunctionDefStatement", program.Statements[0])
+	}
+	if fd.Name != "addition" || len(fd.Parameters) != 2 {
+		t.Errorf("got name=%q params=%v, want name=addition params=[a b]", fd.Name, fd.Parameters)
+	}
+
+	as, ok := program.Statements[1].(*ast.AssignStatement)
+	if !ok {
+		t.Fatalf("statement 1 is %T, want *ast.AssignStatement", program.Statements[1])
+	}
+	call, ok := as.Value.(*ast.CallExpression)
+	if !ok || call.Name != "addition" || len(call.Arguments) != 2 {
+		t.Errorf("value is %#v, want a call to addition with 2 arguments", as.Value)
+	}
+}
+
+func TestParseIsAtMethodCall(t *testing.T) {
+	program := parseOK(t, `r is nums at get 0 .`)
+	as, ok := program.Statements[0].(*ast.AssignStatement)
+	if !ok {
+		t.Fatalf("statement is %T, want *ast.AssignStatement (is-statements lower to assignment)", program.Statements[0])
+	}
+	mc, ok := as.Value.(*ast.MethodCallExpression)
+	if !ok {
+		t.Fatalf("value is %T, want *ast.MethodCallExpression", as.Value)
+	}
+	if mc.Method != "get" || len(mc.Arguments) != 1 {
+		t.Errorf("got method=%q args=%d, want method=get args=1", mc.Method, len(mc.Arguments))
+	}
+}
+
+func TestParseChangeStatementRequiresIdentifier(t *testing.T) {
+	program := parseOK(t, `change a to integer .`)
+	as, ok := program.Statements[0].(*ast.AssignStatement)
+	if !ok {
+		t.Fatalf("statement is %T, want *ast.AssignStatement (change-statement lowers to self-assignment)", program.Statements[0])
+	}
+	if as.Name != "a" {
+		t.Errorf("assign target = %q, want %q", as.Name, "a")
+	}
+	ce, ok := as.Value.(*ast.ChangeExpression)
+	if !ok {
+		t.Fatalf("value is %T, want *ast.ChangeExpression", as.Value)
+	}
+	if ce.TypeName != "integer" {
+		t.Errorf("got type name %q, want %q", ce.TypeName, "integer")
+	}
+}
+
+func TestParseAdditionKeywordDataOp(t *testing.T) {
+	program := parseOK(t, `add 4 to nums .`)
+	dop, ok := program.Statements[0].(*ast.DataOpStatement)
+	if !ok {
+		t.Fatalf("statement is %T, want *ast.DataOpStatement", program.Statements[0])
+	}
+	if dop.Kind != ast.OpAdd || dop.Target != "nums" {
+		t.Errorf("got kind=%v target=%q, want OpAdd target=nums", dop.Kind, dop.Target)
+	}
+}
+
+func TestParseErrorsReportLineNumbers(t *testing.T) {
+	p := New(lexer.New("x = 1\nshow x\nb = 2"))
+	p.ParseProgram()
+	errs := p.Errors()
+	if len(errs) == 0 {
+		t.Fatal("expected a parse error for a missing 'show' period, got none")
+	}
+	if !strings.Contains(errs[0], "line 2") {
+		t.Errorf("error %q does not mention line 2", errs[0])
+	}
+}

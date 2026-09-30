@@ -1,0 +1,1135 @@
+// Package parser turns a token stream into a Turtle AST.
+//
+// Convention used throughout this file: every parseXStatement function
+// advances curToken to the first token of whatever follows it before
+// returning (so ParseProgram/parseBlockUntil never call nextToken after
+// a statement). Expression parsers use the opposite, standard Pratt
+// convention: they leave curToken on their own last consumed token, so
+// an enclosing parser can inspect peekToken to decide what comes next.
+package parser
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+
+	"Turtle/ast"
+	"Turtle/lexer"
+	"Turtle/token"
+)
+
+const (
+	LOWEST int = iota
+	OR
+	AND
+	EQUALS
+	LESSGREATER
+	SUM
+	PRODUCT
+	PREFIX
+)
+
+var precedences = map[token.Type]int{
+	token.OR:       OR,
+	token.AND:      AND,
+	token.EQ:       EQUALS,
+	token.NOT_EQ:   EQUALS,
+	token.LT:       LESSGREATER,
+	token.GT:       LESSGREATER,
+	token.LE:       LESSGREATER,
+	token.GE:       LESSGREATER,
+	token.PLUS:     SUM,
+	token.MINUS:    SUM,
+	token.ASTERISK: PRODUCT,
+	token.SLASH:    PRODUCT,
+	token.PERCENT:  PRODUCT,
+}
+
+type prefixParseFn func() ast.Expression
+type infixParseFn func(ast.Expression) ast.Expression
+
+type Parser struct {
+	l *lexer.Lexer
+
+	curToken  token.Token
+	peekToken token.Token
+	buf       []token.Token
+
+	errors []string
+
+	prefixParseFns map[token.Type]prefixParseFn
+	infixParseFns  map[token.Type]infixParseFn
+}
+
+func New(l *lexer.Lexer) *Parser {
+	p := &Parser{l: l}
+
+	p.prefixParseFns = map[token.Type]prefixParseFn{
+		token.IDENT:  p.parseIdentifier,
+		token.INT:    p.parseIntegerLiteral,
+		token.FLOAT:  p.parseFloatLiteral,
+		token.STRING: p.parseStringLiteral,
+		token.TRUE:   p.parseBoolean,
+		token.FALSE:  p.parseBoolean,
+		token.MINUS:  p.parsePrefixExpression,
+		token.BANG:   p.parsePrefixExpression,
+		token.LPAREN: p.parseGroupedExpression,
+		token.LIST:   p.parseListLiteral,
+		token.SET:    p.parseSetLiteral,
+		token.MAP:    p.parseMapLiteral,
+		token.MIN:    p.parseMinMaxLength,
+		token.MAX:    p.parseMinMaxLength,
+		token.LENGTH: p.parseMinMaxLength,
+		token.CHANGE: p.parseChangeExpression,
+	}
+	p.infixParseFns = map[token.Type]infixParseFn{
+		token.PLUS:     p.parseInfixExpression,
+		token.MINUS:    p.parseInfixExpression,
+		token.ASTERISK: p.parseInfixExpression,
+		token.SLASH:    p.parseInfixExpression,
+		token.PERCENT:  p.parseInfixExpression,
+		token.LT:       p.parseInfixExpression,
+		token.GT:       p.parseInfixExpression,
+		token.LE:       p.parseInfixExpression,
+		token.GE:       p.parseInfixExpression,
+		token.EQ:       p.parseInfixExpression,
+		token.NOT_EQ:   p.parseInfixExpression,
+		token.AND:      p.parseInfixExpression,
+		token.OR:       p.parseInfixExpression,
+	}
+
+	p.nextToken()
+	p.nextToken()
+	return p
+}
+
+func (p *Parser) Errors() []string { return p.errors }
+
+func (p *Parser) errorf(format string, args ...interface{}) {
+	p.errors = append(p.errors, fmt.Sprintf("line %d: %s", p.curToken.Line, fmt.Sprintf(format, args...)))
+}
+
+func (p *Parser) nextToken() {
+	p.curToken = p.peekToken
+	if len(p.buf) > 0 {
+		p.peekToken = p.buf[0]
+		p.buf = p.buf[1:]
+	} else {
+		p.peekToken = p.l.NextToken()
+	}
+}
+
+// peekN returns the token n positions ahead of curToken; peekN(0) is
+// curToken itself, peekN(1) is peekToken.
+func (p *Parser) peekN(n int) token.Token {
+	if n == 0 {
+		return p.curToken
+	}
+	if n == 1 {
+		return p.peekToken
+	}
+	for len(p.buf) < n-1 {
+		p.buf = append(p.buf, p.l.NextToken())
+	}
+	return p.buf[n-2]
+}
+
+func (p *Parser) curTokenIs(t token.Type) bool  { return p.curToken.Type == t }
+func (p *Parser) peekTokenIs(t token.Type) bool { return p.peekToken.Type == t }
+
+func (p *Parser) expectPeek(t token.Type) bool {
+	if p.peekTokenIs(t) {
+		p.nextToken()
+		return true
+	}
+	p.errorf("expected next token to be %s, got %s (%q) instead", t, p.peekToken.Type, p.peekToken.Literal)
+	return false
+}
+
+func (p *Parser) peekPrecedence() int {
+	if p.peekToken.Line != p.curToken.Line {
+		return LOWEST
+	}
+	if pr, ok := precedences[p.peekToken.Type]; ok {
+		return pr
+	}
+	return LOWEST
+}
+
+func (p *Parser) curPrecedence() int {
+	if pr, ok := precedences[p.curToken.Type]; ok {
+		return pr
+	}
+	return LOWEST
+}
+
+// requirePeriod consumes a trailing '.' and advances past it. Used by
+// every statement kind confirmed to require one: show, data-structure
+// operations, and "is" assignments.
+func (p *Parser) requirePeriod() bool {
+	if !p.expectPeek(token.PERIOD) {
+		return false
+	}
+	p.nextToken()
+	return true
+}
+
+// ---- top level ---------------------------------------------------------
+
+func (p *Parser) ParseProgram() *ast.Program {
+	program := &ast.Program{}
+	for !p.curTokenIs(token.EOF) {
+		before := p.curToken
+		stmt := p.parseStatement()
+		if stmt != nil {
+			program.Statements = append(program.Statements, stmt)
+		}
+		if p.curToken == before {
+			p.nextToken() // guarantee forward progress past a malformed statement
+		}
+	}
+	return program
+}
+
+// parseBlockUntil parses statements starting just after curToken (the
+// block's own opening token) until stop() reports true. It never
+// consumes whatever satisfies stop(); the caller inspects/consumes it.
+func (p *Parser) parseBlockUntil(stop func() bool) *ast.BlockStatement {
+	block := &ast.BlockStatement{Token: p.curToken}
+	p.nextToken()
+	for !stop() && !p.curTokenIs(token.EOF) {
+		before := p.curToken
+		stmt := p.parseStatement()
+		if stmt != nil {
+			block.Statements = append(block.Statements, stmt)
+		}
+		if p.curToken == before {
+			p.nextToken()
+		}
+	}
+	return block
+}
+
+func (p *Parser) parseStatement() ast.Statement {
+	switch p.curToken.Type {
+	case token.SHOW:
+		return p.parseShowStatement()
+	case token.RETURN:
+		return p.parseReturnStatement()
+	case token.BREAK:
+		stmt := &ast.BreakStatement{Token: p.curToken}
+		p.nextToken()
+		return stmt
+	case token.CONTINUE:
+		stmt := &ast.ContinueStatement{Token: p.curToken}
+		p.nextToken()
+		return stmt
+	case token.DEF:
+		return p.parseFunctionDef()
+	case token.IF:
+		return p.parseIfStatement()
+	case token.IMPORT:
+		return p.parseImportStatement()
+	case token.SYS:
+		return p.parseSysStatement()
+	case token.ADD:
+		return p.parseAddStatement()
+	case token.CHANGE:
+		return p.parseChangeStatement()
+	case token.REMOVE:
+		return p.parseRemoveStatement()
+	case token.DELETE:
+		return p.parseDeleteStatement()
+	case token.SORT:
+		return p.parseSortStatement()
+	case token.REVERSE:
+		return p.parseReverseStatement()
+	case token.INSERT:
+		return p.parseInsertStatement()
+	case token.MIN, token.MAX, token.LENGTH:
+		return p.parseMinMaxLengthStatement()
+	case token.LBRACKET:
+		return p.parseBracketStatement()
+	case token.IDENT:
+		return p.parseIdentifierLeadStatement()
+	default:
+		p.errorf("unexpected token %s (%q) at start of statement", p.curToken.Type, p.curToken.Literal)
+		p.nextToken()
+		return nil
+	}
+}
+
+func (p *Parser) parseBracketStatement() ast.Statement {
+	switch p.peekToken.Type {
+	case token.LOOP:
+		return p.parseLoopStatement()
+	case token.READ:
+		return p.parseFileReadStatement()
+	case token.WRITE:
+		return p.parseFileWriteStatement(false)
+	case token.APPEND:
+		return p.parseFileWriteStatement(true)
+	case token.DIR:
+		return p.parseDirectoryStatement()
+	case token.IF:
+		return p.parseNestedIfStatement()
+	default:
+		p.errorf("unexpected '[' at start of statement (followed by %s)", p.peekToken.Type)
+		p.nextToken()
+		return nil
+	}
+}
+
+// ---- assignment / input / is / bare call --------------------------------
+
+func (p *Parser) parseIdentifierLeadStatement() ast.Statement {
+	if p.peekTokenIs(token.ASSIGN) {
+		return p.parseAssignOrInputStatement()
+	}
+	if p.peekTokenIs(token.IS) {
+		return p.parseIsStatement()
+	}
+	if p.peekTokenIs(token.LBRACKET) {
+		tok := p.curToken
+		expr := p.parseExpression(LOWEST)
+		p.nextToken()
+		if call, ok := expr.(*ast.CallExpression); ok {
+			return &ast.CallStatement{Token: tok, Call: call}
+		}
+		return &ast.ExpressionStatement{Token: tok, Expression: expr}
+	}
+	p.errorf("unexpected identifier %q at start of statement", p.curToken.Literal)
+	p.nextToken()
+	return nil
+}
+
+// parseAssignOrInputStatement parses "name = expr" and
+// "name = ? \"prompt\"". curToken is the name; peek is '='.
+func (p *Parser) parseAssignOrInputStatement() ast.Statement {
+	tok := p.curToken
+	name := p.curToken.Literal
+	p.nextToken() // name -> '='
+
+	if p.peekTokenIs(token.QUESTION) {
+		p.nextToken() // '=' -> '?'
+		if !p.expectPeek(token.STRING) {
+			return nil
+		}
+		prompt := p.curToken.Literal
+		p.nextToken()
+		return &ast.InputStatement{Token: tok, Name: name, Prompt: prompt}
+	}
+
+	p.nextToken() // '=' -> first token of value
+	val := p.parseExpression(LOWEST)
+	p.nextToken()
+	return &ast.AssignStatement{Token: tok, Name: name, Value: val}
+}
+
+// parseIsStatement parses "name is expr ." and
+// "name is receiver at method arg, arg ." curToken is name; peek is IS.
+func (p *Parser) parseIsStatement() ast.Statement {
+	tok := p.curToken
+	name := p.curToken.Literal
+	p.nextToken() // name -> IS
+	p.nextToken() // IS -> first token of receiver
+	receiver := p.parseExpression(LOWEST)
+
+	if p.peekTokenIs(token.AT) {
+		p.nextToken() // -> AT
+		p.nextToken() // -> method name token
+		method := p.curToken.Literal
+		var args []ast.Expression
+		if !p.peekTokenIs(token.PERIOD) && !p.peekTokenIs(token.EOF) {
+			p.nextToken()
+			args = append(args, p.parseExpression(LOWEST))
+			for p.peekTokenIs(token.COMMA) {
+				p.nextToken()
+				p.nextToken()
+				args = append(args, p.parseExpression(LOWEST))
+			}
+		}
+		if !p.requirePeriod() {
+			return nil
+		}
+		return &ast.AssignStatement{
+			Token: tok, Name: name,
+			Value: &ast.MethodCallExpression{Token: tok, Receiver: receiver, Method: method, Arguments: args},
+		}
+	}
+
+	if !p.requirePeriod() {
+		return nil
+	}
+	return &ast.AssignStatement{Token: tok, Name: name, Value: receiver}
+}
+
+func (p *Parser) parseShowStatement() ast.Statement {
+	tok := p.curToken
+	p.nextToken()
+	exprs := []ast.Expression{p.parseExpression(LOWEST)}
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken()
+		p.nextToken()
+		exprs = append(exprs, p.parseExpression(LOWEST))
+	}
+	if !p.requirePeriod() {
+		return nil
+	}
+	return &ast.ShowStatement{Token: tok, Expressions: exprs}
+}
+
+func (p *Parser) parseReturnStatement() ast.Statement {
+	tok := p.curToken
+	p.nextToken()
+	val := p.parseExpression(LOWEST)
+	p.nextToken()
+	return &ast.ReturnStatement{Token: tok, Value: val}
+}
+
+func (p *Parser) parseImportStatement() ast.Statement {
+	tok := p.curToken
+	if !p.expectPeek(token.IDENT) {
+		return nil
+	}
+	path := p.curToken.Literal
+	p.nextToken()
+	return &ast.ImportStatement{Token: tok, Path: path}
+}
+
+// parseSysStatement is trivial: the lexer already captured the entire
+// raw rest-of-line as this token's Literal (see lexer.captureRestOfLine),
+// so no further tokenizing of arbitrary shell syntax is needed here.
+func (p *Parser) parseSysStatement() ast.Statement {
+	tok := p.curToken
+	p.nextToken()
+	return &ast.SysStatement{Token: tok, Command: tok.Literal}
+}
+
+// ---- data-structure "sentence" statements ------------------------------
+
+func (p *Parser) parseAddStatement() ast.Statement {
+	tok := p.curToken
+	p.nextToken()
+	val := p.parseExpression(LOWEST)
+	if !p.expectPeek(token.TO) {
+		return nil
+	}
+	if !p.expectPeek(token.IDENT) {
+		return nil
+	}
+	target := p.curToken.Literal
+	if !p.requirePeriod() {
+		return nil
+	}
+	return &ast.DataOpStatement{Token: tok, Kind: ast.OpAdd, Target: target, Value: val}
+}
+
+// parseChangeExpression parses "change <expr> to <type>" as an expression,
+// usable anywhere (assigned to a new variable, nested in a larger
+// expression, passed as an argument, ...). curToken is CHANGE.
+func (p *Parser) parseChangeExpression() ast.Expression {
+	tok := p.curToken
+	p.nextToken()
+	src := p.parseExpression(LOWEST)
+	if !p.expectPeek(token.TO) {
+		return nil
+	}
+	p.nextToken()
+	typeName := p.curToken.Literal
+	return &ast.ChangeExpression{Token: tok, Source: src, TypeName: typeName}
+}
+
+// parseChangeStatement parses "change <ident> to <type> ." as a standalone
+// statement: it mutates <ident> in place, so the source must be a plain
+// identifier (like the target of "add ... to <ident> ."), not an
+// arbitrary expression.
+func (p *Parser) parseChangeStatement() ast.Statement {
+	tok := p.curToken
+	if !p.expectPeek(token.IDENT) {
+		return nil
+	}
+	name := p.curToken.Literal
+	if !p.expectPeek(token.TO) {
+		return nil
+	}
+	p.nextToken()
+	typeName := p.curToken.Literal
+	if !p.requirePeriod() {
+		return nil
+	}
+	return &ast.AssignStatement{
+		Token: tok, Name: name,
+		Value: &ast.ChangeExpression{Token: tok, Source: &ast.Identifier{Token: tok, Value: name}, TypeName: typeName},
+	}
+}
+
+func (p *Parser) parseRemoveStatement() ast.Statement {
+	tok := p.curToken
+	p.nextToken()
+	val := p.parseExpression(LOWEST)
+	if !p.expectPeek(token.FROM) {
+		return nil
+	}
+	if !p.expectPeek(token.IDENT) {
+		return nil
+	}
+	target := p.curToken.Literal
+	if !p.requirePeriod() {
+		return nil
+	}
+	return &ast.DataOpStatement{Token: tok, Kind: ast.OpRemove, Target: target, Value: val}
+}
+
+func (p *Parser) parseDeleteStatement() ast.Statement {
+	tok := p.curToken
+	p.nextToken()
+	val := p.parseExpression(LOWEST)
+	if !p.expectPeek(token.FROM) {
+		return nil
+	}
+	if !p.expectPeek(token.IDENT) {
+		return nil
+	}
+	target := p.curToken.Literal
+	if !p.requirePeriod() {
+		return nil
+	}
+	return &ast.DataOpStatement{Token: tok, Kind: ast.OpDelete, Target: target, Value: val}
+}
+
+func (p *Parser) parseSortStatement() ast.Statement {
+	tok := p.curToken
+	if !p.expectPeek(token.IDENT) {
+		return nil
+	}
+	target := p.curToken.Literal
+	if !p.requirePeriod() {
+		return nil
+	}
+	return &ast.DataOpStatement{Token: tok, Kind: ast.OpSort, Target: target}
+}
+
+func (p *Parser) parseReverseStatement() ast.Statement {
+	tok := p.curToken
+	if !p.expectPeek(token.IDENT) {
+		return nil
+	}
+	target := p.curToken.Literal
+	if !p.requirePeriod() {
+		return nil
+	}
+	return &ast.DataOpStatement{Token: tok, Kind: ast.OpReverse, Target: target}
+}
+
+func (p *Parser) parseInsertStatement() ast.Statement {
+	tok := p.curToken
+	p.nextToken()
+	val := p.parseExpression(LOWEST)
+	if !p.expectPeek(token.TO) {
+		return nil
+	}
+	if !p.expectPeek(token.IDENT) {
+		return nil
+	}
+	target := p.curToken.Literal
+	if !p.expectPeek(token.AT) {
+		return nil
+	}
+	p.nextToken()
+	idx := p.parseExpression(LOWEST)
+	if !p.requirePeriod() {
+		return nil
+	}
+	return &ast.DataOpStatement{Token: tok, Kind: ast.OpInsert, Target: target, Value: val, Index: idx}
+}
+
+func (p *Parser) parseMinMaxLengthStatement() ast.Statement {
+	tok := p.curToken
+	expr := p.parseMinMaxLength()
+	if !p.requirePeriod() {
+		return nil
+	}
+	return &ast.ExpressionStatement{Token: tok, Expression: expr, Print: true}
+}
+
+// ---- function definitions ------------------------------------------
+
+func (p *Parser) parseFunctionDef() ast.Statement {
+	tok := p.curToken
+	if !p.expectPeek(token.IDENT) {
+		return nil
+	}
+	name := p.curToken.Literal
+	if !p.expectPeek(token.LBRACKET) {
+		return nil
+	}
+	var params []string
+	if !p.peekTokenIs(token.RBRACKET) {
+		p.nextToken()
+		params = append(params, p.curToken.Literal)
+		for p.peekTokenIs(token.COMMA) {
+			p.nextToken()
+			p.nextToken()
+			params = append(params, p.curToken.Literal)
+		}
+	}
+	if !p.expectPeek(token.RBRACKET) {
+		return nil
+	}
+	body := p.parseBlockUntil(p.isDefEnd)
+	if !p.curTokenIs(token.DEF) {
+		p.errorf("expected 'def [end]' to close function %q, got %s (%q)", name, p.curToken.Type, p.curToken.Literal)
+		return nil
+	}
+	if !p.expectPeek(token.LBRACKET) {
+		return nil
+	}
+	if !p.expectPeek(token.END) {
+		return nil
+	}
+	if !p.expectPeek(token.RBRACKET) {
+		return nil
+	}
+	p.nextToken()
+	return &ast.FunctionDefStatement{Token: tok, Name: name, Parameters: params, Body: body}
+}
+
+func (p *Parser) isDefEnd() bool {
+	return p.curTokenIs(token.DEF) &&
+		p.peekN(1).Type == token.LBRACKET &&
+		p.peekN(2).Type == token.END &&
+		p.peekN(3).Type == token.RBRACKET
+}
+
+// ---- if / else if / else --------------------------------------------
+//
+// Real syntax uses reversed brackets: `if ] cond [ ... else if ] cond [
+// ... else ] ... if [end]`. One nested level is written by prefixing
+// each clause keyword with an extra literal '[': `[if ] cond [`,
+// `[else if ] cond [`, `[else ]`, with no separate closing marker of its
+// own — it implicitly ends the moment a clause at the *same or
+// shallower* bracket depth is seen. This generalizes to arbitrary depth
+// via ordinary recursion: entering a nested chain just means consuming
+// one more leading '[' than its parent; the parent's own bare
+// continuation tokens (no leading '[') are what make an inner chain
+// return control upward, however many levels deep it is.
+
+func (p *Parser) isIfChainStop() bool {
+	if p.curTokenIs(token.ELSE) {
+		return true
+	}
+	if p.isIfEnd() {
+		return true
+	}
+	if p.curTokenIs(token.LBRACKET) && p.peekTokenIs(token.ELSE) {
+		return true
+	}
+	return false
+}
+
+// isIfEnd reports whether curToken starts the closing "if [end]" marker,
+// which — like "def [end]" — is four tokens: IF LBRACKET END RBRACKET.
+func (p *Parser) isIfEnd() bool {
+	return p.curTokenIs(token.IF) &&
+		p.peekN(1).Type == token.LBRACKET &&
+		p.peekN(2).Type == token.END &&
+		p.peekN(3).Type == token.RBRACKET
+}
+
+// parseIfHeaderAndBody parses "if ] cond [" plus its body. curToken must
+// be IF on entry.
+func (p *Parser) parseIfHeaderAndBody() *ast.IfClause {
+	if !p.expectPeek(token.RBRACKET) {
+		return nil
+	}
+	p.nextToken()
+	cond := p.parseExpression(LOWEST)
+	if !p.expectPeek(token.LBRACKET) {
+		return nil
+	}
+	body := p.parseBlockUntil(p.isIfChainStop)
+	return &ast.IfClause{Condition: cond, Body: body}
+}
+
+// parseIfChain parses one full if/else-if/else sequence. If nested is
+// true, curToken is IF but this chain was entered via a leading '['
+// already consumed by the caller, and the chain must NOT consume a
+// closing "if [end]" of its own — it returns as soon as a same-or-
+// shallower-depth clause token appears, leaving it for the caller.
+func (p *Parser) parseIfChain(tok token.Token, nested bool) ast.Statement {
+	clause := p.parseIfHeaderAndBody()
+	if clause == nil {
+		return nil
+	}
+	clauses := []*ast.IfClause{clause}
+
+	for {
+		if p.curTokenIs(token.LBRACKET) && p.peekTokenIs(token.ELSE) {
+			p.nextToken() // consume '[' -> ELSE
+		} else if !p.curTokenIs(token.ELSE) {
+			break
+		}
+		// curToken == ELSE
+		if p.peekTokenIs(token.IF) {
+			p.nextToken() // ELSE -> IF
+			c := p.parseIfHeaderAndBody()
+			if c == nil {
+				return nil
+			}
+			clauses = append(clauses, c)
+			continue
+		}
+		if !p.expectPeek(token.RBRACKET) {
+			return nil
+		}
+		body := p.parseBlockUntil(p.isIfChainStop)
+		clauses = append(clauses, &ast.IfClause{Condition: nil, Body: body})
+		break
+	}
+
+	if !nested {
+		if !p.isIfEnd() {
+			p.errorf("expected 'if [end]' to close if-statement, got %s (%q)", p.curToken.Type, p.curToken.Literal)
+			return nil
+		}
+		p.nextToken() // IF -> '['
+		p.nextToken() // '[' -> END
+		p.nextToken() // END -> ']'
+		p.nextToken() // advance past ']'
+	}
+	return &ast.IfStatement{Token: tok, Clauses: clauses}
+}
+
+func (p *Parser) parseIfStatement() ast.Statement {
+	return p.parseIfChain(p.curToken, false)
+}
+
+func (p *Parser) parseNestedIfStatement() ast.Statement {
+	tok := p.curToken // '['
+	p.nextToken()     // '[' -> IF
+	return p.parseIfChain(tok, true)
+}
+
+// ---- loops -------------------------------------------------------------
+
+func (p *Parser) isLoopEnd() bool {
+	return p.curTokenIs(token.LBRACKET) &&
+		p.peekN(1).Type == token.LOOP &&
+		p.peekN(2).Type == token.RBRACKET &&
+		p.peekN(3).Type == token.LBRACKET &&
+		p.peekN(4).Type == token.END
+}
+
+func (p *Parser) parseLoopStatement() ast.Statement {
+	tok := p.curToken // '['
+	p.nextToken()     // '[' -> LOOP
+	if !p.expectPeek(token.RBRACKET) {
+		return nil
+	}
+	if !p.expectPeek(token.LBRACKET) {
+		return nil
+	}
+	p.nextToken() // -> first token of header
+
+	kind, init, cond, post := p.parseLoopHeader()
+	if !p.expectPeek(token.RBRACKET) {
+		return nil
+	}
+
+	body := p.parseBlockUntil(p.isLoopEnd)
+	if !p.curTokenIs(token.LBRACKET) {
+		p.errorf("expected '[loop][end]' to close loop, got %s (%q)", p.curToken.Type, p.curToken.Literal)
+		return nil
+	}
+	if !p.expectPeek(token.LOOP) {
+		return nil
+	}
+	if !p.expectPeek(token.RBRACKET) {
+		return nil
+	}
+	if !p.expectPeek(token.LBRACKET) {
+		return nil
+	}
+	if !p.expectPeek(token.END) {
+		return nil
+	}
+	if !p.expectPeek(token.RBRACKET) {
+		return nil
+	}
+	p.nextToken()
+	return &ast.LoopStatement{Token: tok, Kind: kind, Init: init, Condition: cond, Post: post, Body: body}
+}
+
+// headerHasSemicolon reports whether the loop header starting at
+// curToken (already positioned just past the header's opening '[')
+// contains a top-level ';', which distinguishes the C-style
+// "init; cond; post" form from the bare-condition while-style form.
+func (p *Parser) headerHasSemicolon() bool {
+	depth := 0
+	for i := 0; i < 512; i++ {
+		t := p.peekN(i)
+		if t.Type == token.EOF {
+			return false
+		}
+		if t.Type == token.LBRACKET {
+			depth++
+		}
+		if t.Type == token.RBRACKET {
+			if depth == 0 {
+				return false
+			}
+			depth--
+		}
+		if t.Type == token.SEMI && depth == 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func (p *Parser) parseLoopHeader() (ast.LoopKind, ast.Statement, ast.Expression, ast.Statement) {
+	if p.headerHasSemicolon() {
+		init := p.parseAssignOrInputStatement() // advances past itself, landing on ';'
+		if !p.curTokenIs(token.SEMI) {
+			p.errorf("expected ';' after loop init, got %s (%q)", p.curToken.Type, p.curToken.Literal)
+			return ast.LoopCStyle, init, nil, nil
+		}
+		p.nextToken() // ';' -> first token of condition
+		cond := p.parseExpression(LOWEST)
+		if !p.expectPeek(token.SEMI) {
+			return ast.LoopCStyle, init, cond, nil
+		}
+		p.nextToken() // ';' -> first token of post clause
+		post := p.parsePostClause()
+		return ast.LoopCStyle, init, cond, post
+	}
+	cond := p.parseExpression(LOWEST)
+	return ast.LoopWhile, nil, cond, nil
+}
+
+// parsePostClause parses "i++", "i--", or "i = expr" and leaves curToken
+// on its own last token (expression-style), since the caller still needs
+// to check peek for the header's closing ']'.
+func (p *Parser) parsePostClause() ast.Statement {
+	tok := p.curToken
+	if p.curTokenIs(token.IDENT) && (p.peekTokenIs(token.INCR) || p.peekTokenIs(token.DECR)) {
+		name := p.curToken.Literal
+		op := "+"
+		if p.peekToken.Type == token.DECR {
+			op = "-"
+		}
+		p.nextToken() // name -> ++/--
+		return &ast.AssignStatement{
+			Token: tok, Name: name,
+			Value: &ast.InfixExpression{
+				Token: tok, Operator: op,
+				Left:  &ast.Identifier{Token: tok, Value: name},
+				Right: &ast.IntegerLiteral{Token: tok, Value: 1},
+			},
+		}
+	}
+	name := p.curToken.Literal
+	p.nextToken() // name -> '='
+	p.nextToken() // '=' -> first token of value
+	val := p.parseExpression(LOWEST)
+	return &ast.AssignStatement{Token: tok, Name: name, Value: val}
+}
+
+// ---- files --------------------------------------------------------------
+
+// parsePathExpression parses a file path starting at curToken: either a
+// quoted string, or a bareword like "file.txt" / "data/in.csv"
+// reconstructed from the IDENT/PERIOD/SLASH/MINUS/INT tokens the lexer
+// split it into (or just "." on its own, for [directory]).
+func (p *Parser) parsePathExpression() ast.Expression {
+	tok := p.curToken
+	if p.curTokenIs(token.STRING) {
+		return &ast.StringLiteral{Token: tok, Value: tok.Literal}
+	}
+	var sb strings.Builder
+	sb.WriteString(tok.Literal)
+	for p.peekTokenIs(token.PERIOD) || p.peekTokenIs(token.SLASH) || p.peekTokenIs(token.MINUS) {
+		p.nextToken()
+		sb.WriteString(p.curToken.Literal)
+		if p.peekTokenIs(token.IDENT) || p.peekTokenIs(token.INT) {
+			p.nextToken()
+			sb.WriteString(p.curToken.Literal)
+		}
+	}
+	return &ast.StringLiteral{Token: tok, Value: sb.String()}
+}
+
+func (p *Parser) parseFileReadStatement() ast.Statement {
+	tok := p.curToken // '['
+	p.nextToken()     // '[' -> READ
+	p.nextToken()     // READ -> ']'
+	if !p.curTokenIs(token.RBRACKET) {
+		p.errorf("expected ']' after [read, got %s (%q)", p.curToken.Type, p.curToken.Literal)
+		return nil
+	}
+	p.nextToken() // -> first token of path
+	path := p.parsePathExpression()
+	if !p.expectPeek(token.TO) {
+		return nil
+	}
+	if !p.expectPeek(token.IDENT) {
+		return nil
+	}
+	varName := p.curToken.Literal
+	if !p.expectPeek(token.LBRACKET) {
+		return nil
+	}
+	if !p.expectPeek(token.END) {
+		return nil
+	}
+	if !p.expectPeek(token.RBRACKET) {
+		return nil
+	}
+	p.nextToken()
+	return &ast.FileReadStatement{Token: tok, File: path, Var: varName}
+}
+
+func (p *Parser) parseFileWriteStatement(isAppend bool) ast.Statement {
+	tok := p.curToken // '['
+	p.nextToken()     // '[' -> WRITE/APPEND
+	p.nextToken()     // -> ']'
+	if !p.curTokenIs(token.RBRACKET) {
+		p.errorf("expected ']' after [write/[append, got %s (%q)", p.curToken.Type, p.curToken.Literal)
+		return nil
+	}
+	p.nextToken() // -> first token of path
+	path := p.parsePathExpression()
+	p.nextToken() // -> first token of body (or straight to "[end]")
+
+	var items []ast.ContentItem
+	for !(p.curTokenIs(token.LBRACKET) && p.peekTokenIs(token.END)) && !p.curTokenIs(token.EOF) {
+		switch p.curToken.Type {
+		case token.STRING:
+			items = append(items, ast.ContentItem{Literal: p.curToken.Literal})
+		case token.IDENT:
+			items = append(items, ast.ContentItem{Name: p.curToken.Literal, IsVar: true})
+		default:
+			// punctuation between items (commas, etc.) is ignored.
+		}
+		p.nextToken()
+	}
+	if !p.curTokenIs(token.LBRACKET) {
+		p.errorf("expected '[end]' to close file block, got %s (%q)", p.curToken.Type, p.curToken.Literal)
+		return nil
+	}
+	if !p.expectPeek(token.END) {
+		return nil
+	}
+	if !p.expectPeek(token.RBRACKET) {
+		return nil
+	}
+	p.nextToken()
+	return &ast.FileWriteStatement{Token: tok, File: path, Content: items, Append: isAppend}
+}
+
+func (p *Parser) parseDirectoryStatement() ast.Statement {
+	tok := p.curToken // '['
+	p.nextToken()     // '[' -> DIRECTORY
+	p.nextToken()     // -> ']'
+	if !p.curTokenIs(token.RBRACKET) {
+		p.errorf("expected ']' after [directory, got %s (%q)", p.curToken.Type, p.curToken.Literal)
+		return nil
+	}
+	p.nextToken() // -> first token of path
+	path := p.parsePathExpression()
+	if !p.expectPeek(token.TO) {
+		return nil
+	}
+	if !p.expectPeek(token.IDENT) {
+		return nil
+	}
+	varName := p.curToken.Literal
+	if !p.expectPeek(token.LBRACKET) {
+		return nil
+	}
+	if !p.expectPeek(token.END) {
+		return nil
+	}
+	if !p.expectPeek(token.RBRACKET) {
+		return nil
+	}
+	p.nextToken()
+	return &ast.DirectoryStatement{Token: tok, Path: path, Var: varName}
+}
+
+// ---- expressions ---------------------------------------------------
+
+func (p *Parser) parseExpression(precedence int) ast.Expression {
+	prefix := p.prefixParseFns[p.curToken.Type]
+	if prefix == nil {
+		p.errorf("no prefix parse function for %s (%q)", p.curToken.Type, p.curToken.Literal)
+		return nil
+	}
+	left := prefix()
+
+	for precedence < p.peekPrecedence() {
+		infix := p.infixParseFns[p.peekToken.Type]
+		if infix == nil {
+			return left
+		}
+		p.nextToken()
+		left = infix(left)
+	}
+	return left
+}
+
+// parseIdentifier handles both a plain variable reference and a
+// function call ("name[args]"). The two are ambiguous at the token
+// level whenever an identifier is immediately followed by '[' — which
+// also happens at the end of an if-condition, since if-headers close
+// with a bare '[' (reversed-bracket syntax: "if ] cond ["). Real call
+// arguments always sit on the same physical line as the call's '[';
+// a header's closing '[' is always the last token on its line. That
+// line-boundary is what tells the two apart here.
+func (p *Parser) parseIdentifier() ast.Expression {
+	tok := p.curToken
+	if p.peekTokenIs(token.LBRACKET) && p.peekToken.Line == tok.Line && p.peekN(2).Line == p.peekToken.Line {
+		p.nextToken()
+		args := p.parseExpressionList(token.RBRACKET)
+		return &ast.CallExpression{Token: tok, Name: tok.Literal, Arguments: args}
+	}
+	return &ast.Identifier{Token: tok, Value: tok.Literal}
+}
+
+func (p *Parser) parseIntegerLiteral() ast.Expression {
+	v, err := strconv.ParseInt(p.curToken.Literal, 10, 64)
+	if err != nil {
+		p.errorf("could not parse %q as integer", p.curToken.Literal)
+		return nil
+	}
+	return &ast.IntegerLiteral{Token: p.curToken, Value: v}
+}
+
+func (p *Parser) parseFloatLiteral() ast.Expression {
+	v, err := strconv.ParseFloat(p.curToken.Literal, 64)
+	if err != nil {
+		p.errorf("could not parse %q as float", p.curToken.Literal)
+		return nil
+	}
+	return &ast.FloatLiteral{Token: p.curToken, Value: v}
+}
+
+func (p *Parser) parseStringLiteral() ast.Expression {
+	return &ast.StringLiteral{Token: p.curToken, Value: p.curToken.Literal}
+}
+
+func (p *Parser) parseBoolean() ast.Expression {
+	return &ast.BooleanLiteral{Token: p.curToken, Value: p.curTokenIs(token.TRUE)}
+}
+
+func (p *Parser) parsePrefixExpression() ast.Expression {
+	tok := p.curToken
+	p.nextToken()
+	right := p.parseExpression(PREFIX)
+	return &ast.PrefixExpression{Token: tok, Operator: tok.Literal, Right: right}
+}
+
+func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
+	tok := p.curToken
+	prec := p.curPrecedence()
+	p.nextToken()
+	right := p.parseExpression(prec)
+	return &ast.InfixExpression{Token: tok, Left: left, Operator: tok.Literal, Right: right}
+}
+
+func (p *Parser) parseGroupedExpression() ast.Expression {
+	p.nextToken()
+	expr := p.parseExpression(LOWEST)
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+	return expr
+}
+
+func (p *Parser) parseExpressionList(end token.Type) []ast.Expression {
+	var list []ast.Expression
+	if p.peekTokenIs(end) {
+		p.nextToken()
+		return list
+	}
+	p.nextToken()
+	list = append(list, p.parseExpression(LOWEST))
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken()
+		p.nextToken()
+		list = append(list, p.parseExpression(LOWEST))
+	}
+	if !p.expectPeek(end) {
+		return nil
+	}
+	return list
+}
+
+func (p *Parser) parseListLiteral() ast.Expression {
+	tok := p.curToken
+	if !p.expectPeek(token.LBRACKET) {
+		return nil
+	}
+	elems := p.parseExpressionList(token.RBRACKET)
+	return &ast.ListLiteral{Token: tok, Elements: elems}
+}
+
+func (p *Parser) parseSetLiteral() ast.Expression {
+	tok := p.curToken
+	if !p.expectPeek(token.LBRACKET) {
+		return nil
+	}
+	elems := p.parseExpressionList(token.RBRACKET)
+	return &ast.SetLiteral{Token: tok, Elements: elems}
+}
+
+func (p *Parser) parseMapLiteral() ast.Expression {
+	tok := p.curToken
+	if !p.expectPeek(token.LBRACKET) {
+		return nil
+	}
+	m := &ast.MapLiteral{Token: tok}
+	if p.peekTokenIs(token.RBRACKET) {
+		p.nextToken()
+		return m
+	}
+	p.nextToken()
+	for {
+		k := p.parseExpression(LOWEST)
+		if !p.expectPeek(token.COLON) {
+			return nil
+		}
+		p.nextToken()
+		v := p.parseExpression(LOWEST)
+		m.Keys = append(m.Keys, k)
+		m.Values = append(m.Values, v)
+		if p.peekTokenIs(token.COMMA) {
+			p.nextToken()
+			p.nextToken()
+			continue
+		}
+		break
+	}
+	if !p.expectPeek(token.RBRACKET) {
+		return nil
+	}
+	return m
+}
+
+func (p *Parser) parseMinMaxLength() ast.Expression {
+	tok := p.curToken
+	if !p.expectPeek(token.OF) {
+		return nil
+	}
+	p.nextToken()
+	arg := p.parseExpression(LOWEST)
+	switch tok.Type {
+	case token.MIN:
+		return &ast.MinExpression{Token: tok, Arg: arg}
+	case token.MAX:
+		return &ast.MaxExpression{Token: tok, Arg: arg}
+	default:
+		return &ast.LengthExpression{Token: tok, Arg: arg}
+	}
+}
