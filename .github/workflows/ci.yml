@@ -1,9 +1,15 @@
 name: CI
 
 # Validates every push to main and every PR: build, vet, and the real
-# `go test ./...` suite. Separate from release.yml, which only runs when
-# a version tag is pushed — this one exists so a broken commit is caught
+# `go test` suite. Separate from release.yml, which only runs when a
+# version tag is pushed — this one exists so a broken commit is caught
 # immediately instead of only being discovered at release time.
+#
+# Scope excludes the root "Turtle" package (the legacy Turtle_interpreter.go,
+# kept around unmodified for reference — see PROGRESS.md) because it uses
+# cgo, whose C-compiler warnings get surfaced by GitHub as "failure"-level
+# annotations even though they never fail the build. Files/ has no cgo and
+# stays in scope.
 on:
   push:
     branches:
@@ -22,11 +28,11 @@ jobs:
         with:
           go-version: '1.24'
 
-      - name: Build (all packages)
-        run: go build ./...
+      - name: Build
+        run: go build ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./token/...
 
       - name: Vet
-        run: go vet ./...
+        run: go vet ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./token/...
 
       - name: Test
-        run: go test ./... -v
+        run: go test ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./token/... -v
