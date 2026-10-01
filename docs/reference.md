@@ -68,9 +68,14 @@ are integers, float division otherwise; division by zero is a fatal error.
 back to floating-point modulo (Go's `math.Mod`); modulo by zero is a fatal
 error, same as division by zero.
 `<`/`>`/`<=`/`>=` work on two numbers or two strings (lexicographic).
-`==`/`!=` compare numbers by value, functions by identity (the same
-definition), everything else by type + string form — so `none == none` is
-true and `none` never equals `0`, `""`, or `"none"`.
+`==`/`!=` compare numbers by value (`1 == 1.0`), functions by identity
+(the same definition), lists element by element in order, and sets and
+maps regardless of order (`set [1, 2] == set [2, 1]`). Everything else
+needs the same type and value, so `1 != "1"`, `none == none`, and `none`
+never equals `0`, `""`, or `"none"`. The same equality is used for set
+deduplication and membership and for `count`/`index`/`find`/`remove`.
+Map keys are stored by their shown form, except that equal sets always
+make the same key.
 
 Truthiness (conditions, `&&`, `||`, `!`): `false`, `0`, `0.0`, `""`, and
 `none` are falsy; everything else is truthy.

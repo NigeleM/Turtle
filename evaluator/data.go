@@ -45,7 +45,7 @@ func (it *Interpreter) evalDataOp(s *ast.DataOpStatement, env *object.Environmen
 			fatalf("'remove ... from %s' needs a list or set, got %s", s.Target, target.Type())
 		}
 	case ast.OpDelete:
-		key := it.evalExpression(s.Value, env).Inspect()
+		key := object.Key(it.evalExpression(s.Value, env))
 		m, ok := target.(*object.Map)
 		if !ok {
 			fatalf("'delete ... from %s' needs a map, got %s", s.Target, target.Type())
@@ -91,7 +91,7 @@ func (it *Interpreter) evalDataOp(s *ast.DataOpStatement, env *object.Environmen
 
 func removeFirst(elems []object.Object, val object.Object) []object.Object {
 	for i, e := range elems {
-		if e.Inspect() == val.Inspect() {
+		if object.Equal(e, val) {
 			return append(elems[:i], elems[i+1:]...)
 		}
 	}
@@ -229,7 +229,7 @@ func listMethod(l *object.List, method string, args []object.Object) object.Obje
 		requireArgs(method, args, 1)
 		n := 0
 		for _, e := range l.Elements {
-			if e.Inspect() == args[0].Inspect() {
+			if object.Equal(e, args[0]) {
 				n++
 			}
 		}
@@ -237,7 +237,7 @@ func listMethod(l *object.List, method string, args []object.Object) object.Obje
 	case "index":
 		requireArgs(method, args, 1)
 		for i, e := range l.Elements {
-			if e.Inspect() == args[0].Inspect() {
+			if object.Equal(e, args[0]) {
 				return &object.Integer{Value: int64(i)}
 			}
 		}
@@ -262,7 +262,7 @@ func listMethod(l *object.List, method string, args []object.Object) object.Obje
 	case "find":
 		requireArgs(method, args, 1)
 		for _, e := range l.Elements {
-			if e.Inspect() == args[0].Inspect() {
+			if object.Equal(e, args[0]) {
 				return &object.Boolean{Value: true}
 			}
 		}
@@ -322,7 +322,7 @@ func setMethod(s *object.Set, method string, args []object.Object) object.Object
 		requireArgs(method, args, 1)
 		n := 0
 		for _, e := range s.Elements {
-			if e.Inspect() == args[0].Inspect() {
+			if object.Equal(e, args[0]) {
 				n++
 			}
 		}
@@ -330,7 +330,7 @@ func setMethod(s *object.Set, method string, args []object.Object) object.Object
 	case "index":
 		requireArgs(method, args, 1)
 		for i, e := range s.Elements {
-			if e.Inspect() == args[0].Inspect() {
+			if object.Equal(e, args[0]) {
 				return &object.Integer{Value: int64(i)}
 			}
 		}
@@ -445,7 +445,7 @@ func mapMethod(m *object.Map, method string, args []object.Object) object.Object
 	switch method {
 	case "get":
 		requireArgs(method, args, 1)
-		key := args[0].Inspect()
+		key := object.Key(args[0])
 		v, ok := m.Values[key]
 		if !ok {
 			fatalf("key %q not found in map", key)
@@ -465,11 +465,11 @@ func mapMethod(m *object.Map, method string, args []object.Object) object.Object
 		return list
 	case "add":
 		requireArgs(method, args, 2)
-		m.Set(args[0].Inspect(), args[1])
+		m.Set(object.Key(args[0]), args[1])
 		return m
 	case "delete":
 		requireArgs(method, args, 1)
-		key := args[0].Inspect()
+		key := object.Key(args[0])
 		if !m.Delete(key) {
 			fatalf("key %q not found in map", key)
 		}
@@ -477,7 +477,7 @@ func mapMethod(m *object.Map, method string, args []object.Object) object.Object
 	case "invert":
 		result := object.NewMap()
 		for _, k := range m.Keys {
-			result.Set(m.Values[k].Inspect(), &object.String{Value: k})
+			result.Set(object.Key(m.Values[k]), &object.String{Value: k})
 		}
 		return result
 	case "toString":

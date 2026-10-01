@@ -65,8 +65,8 @@ func (l *List) Inspect() string {
 	return "[ " + strings.Join(parts, ", ") + " ]"
 }
 
-// Set is Turtle's `set [...]` — insertion-ordered, deduplicated by
-// Inspect() string equality (matching legacy's string-based dedup).
+// Set is Turtle's `set [...]` — insertion-ordered, deduplicated by Equal
+// (so set [1, 2] and set [2, 1] are equal, and 1 and "1" are distinct).
 type Set struct{ Elements []Object }
 
 func (s *Set) Type() Type { return SET }
@@ -80,7 +80,7 @@ func (s *Set) Inspect() string {
 
 func (s *Set) Contains(v Object) bool {
 	for _, e := range s.Elements {
-		if e.Inspect() == v.Inspect() {
+		if Equal(e, v) {
 			return true
 		}
 	}
