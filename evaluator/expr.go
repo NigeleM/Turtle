@@ -62,6 +62,10 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 	case *ast.FunctionLiteral:
 		return &object.Function{Parameters: e.Parameters, Body: e.Body, Env: env}
 
+	case *ast.FieldExpression:
+		a, i := it.assemblyField(e, env)
+		return a.Values[i]
+
 	case *ast.ListLiteral:
 		list := &object.List{}
 		for _, el := range e.Elements {
@@ -405,6 +409,13 @@ func (it *Interpreter) callFunction(fn *object.Function, name string, args []obj
 	if fn.Name != "" {
 		name = fn.Name
 	}
+	if fn.Shape != nil {
+		if len(args) != len(fn.Shape.Fields) {
+			fatalf("%s needs %d value(s), one per field (%s), got %d",
+				name, len(fn.Shape.Fields), strings.Join(fn.Shape.Fields, ", "), len(args))
+		}
+		return &object.Assembly{Shape: fn.Shape, Values: append([]object.Object{}, args...)}
+	}
 	if len(args) != len(fn.Parameters) {
 		fatalf("function %q expects %d argument(s), got %d", name, len(fn.Parameters), len(args))
 	}
@@ -530,4 +541,20 @@ func evalSleep(args []object.Object) {
 	default:
 		fatalf(`'sleep' unit must be "seconds" or "ms", got %q`, unit)
 	}
+}
+
+// assemblyField evaluates the value in "field of <value>" and finds the
+// field in it, failing clearly if the value isn't assembled or has no
+// such field.
+func (it *Interpreter) assemblyField(fe *ast.FieldExpression, env *object.Environment) (*object.Assembly, int) {
+	obj := it.evalExpression(fe.Object, env)
+	a, ok := obj.(*object.Assembly)
+	if !ok {
+		fatalf("'%s of' needs an assembled value, got %s", fe.Field, obj.Type())
+	}
+	i := a.Shape.Index(fe.Field)
+	if i < 0 {
+		fatalf("%s has no field %q (its fields: %s)", a.Shape.Name, fe.Field, strings.Join(a.Shape.Fields, ", "))
+	}
+	return a, i
 }

@@ -109,6 +109,9 @@ sum = add[1, 2]
   closed by `gives [end]`), and `a f args` calls `f[a, args]`
   sentence-style. Library verbs like `data`'s `process`/`keep` are
   ordinary functions, not syntax. See `docs/reference.md` §Functions.
+- **(new)** `assemble Name [fields]` declares a named type; `Name[...]`
+  builds one, `field of v` reads a field, `field of v = x` changes it.
+  See `docs/reference.md` §Assembled types.
 - **(new)** For-each loops `[loop][x in c]` / `[loop][k, v in c]`, and
   `+`/`-` on two lists, sets, or maps. See `docs/reference.md`.
 - **(new)** A function without `return`, or with a bare `return`, yields

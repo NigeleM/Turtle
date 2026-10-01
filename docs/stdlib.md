@@ -210,7 +210,7 @@ also return it. Use `copy` first to keep the original.
 |---|---|---|
 | `process` | collection, function | replaces each element (list/set) or each value (map) with the function's result; a set is deduplicated afterwards |
 | `keep` | collection, function | keeps only the elements (list/set) or entries (map) for which the function gives a truthy result: a filter |
-| `copy` | collection | a new list/set/map with the same elements |
+| `copy` | collection | a new list/set/map with the same elements, or a new assembled value with the same fields |
 
 For a map, the function takes the value (`x gives ...`), or the key and the
 value (`[k, v] gives ...`).

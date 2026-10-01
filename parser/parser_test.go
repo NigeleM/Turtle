@@ -215,3 +215,11 @@ func TestQualifiedCall(t *testing.T) {
 		t.Fatalf("got %#v", prog.Statements[0].(*ast.AssignStatement).Value)
 	}
 }
+
+func TestAssembleDuplicateFieldIsAnError(t *testing.T) {
+	p := New(lexer.New("assemble A [x, x]\n"))
+	p.ParseProgram()
+	if errs := p.Errors(); len(errs) != 1 || !strings.Contains(errs[0], `field "x" listed twice`) {
+		t.Fatalf("want one duplicate-field error, got %v", errs)
+	}
+}

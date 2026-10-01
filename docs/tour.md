@@ -286,6 +286,26 @@ show first .
 
 See [`stdlib.md`](stdlib.md) for the full method list per type.
 
+## Your own types: `assemble`
+
+When the same shape of data keeps appearing (an order, a point, a user),
+name it once with `assemble`:
+
+```
+assemble Order [item, qty, price]
+
+o = Order["pen", 3, 1.5]     // one value per field, in order
+show o .                     // Order { item: pen, qty: 3, price: 1.5 }
+show qty of o .              // 3
+qty of o = 10                // fields can be changed
+
+total = qty of o * price of o
+```
+
+A misspelled field (`prise of o`) or a missing value (`Order["pen", 3]`)
+is an error that names the fields, rather than a silently wrong map.
+Two `Order`s with the same fields are `==`.
+
 ## Files
 
 ```

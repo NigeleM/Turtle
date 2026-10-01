@@ -27,6 +27,7 @@ around unmodified for reference.
 | `+`/`-` on lists, sets, maps | Done |
 | Standard library: data (`process`, `keep`, `copy`) | Done |
 | Standard library: system (command-line `args`, `exists`/`isFile`/`isFolder`) | Done |
+| Assembled types (`assemble Order [item, qty]`, `qty of o`) | Done |
 | Data structures (list/set/map) | Done |
 | Type conversion (`change`) | Done |
 | Standard library: strings | Done |

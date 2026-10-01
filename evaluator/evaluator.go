@@ -221,6 +221,24 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		}
 		return noneResult
 
+	case *ast.AssembleStatement:
+		// Like a def: the constructor goes in the file's function table at
+		// top level (so it's exported and importable), or is a local
+		// inside a function body.
+		shape := &object.Shape{Name: s.Name, Fields: s.Fields}
+		fn := &object.Function{Name: s.Name, Parameters: s.Fields, Shape: shape, Env: env}
+		if env.IsRoot() {
+			env.DefineFunction(fn)
+		} else {
+			env.Set(s.Name, fn)
+		}
+		return noneResult
+
+	case *ast.FieldAssignStatement:
+		a, i := it.assemblyField(s.Target, env)
+		a.Values[i] = it.evalExpression(s.Value, env)
+		return noneResult
+
 	case *ast.IfStatement:
 		return it.evalIf(s, env)
 
