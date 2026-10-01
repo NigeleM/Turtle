@@ -717,3 +717,43 @@ show now[] .`, wantErr: `"now" isn't imported — add it to "import time [...]"`
 		})
 	}
 }
+
+func TestStructuralEquality(t *testing.T) {
+	cases := []struct{ name, src, want string }{
+		{"sets ignore order", `show set [1, 2] == set [2, 1] .`, "true\n"},
+		{"set of equal sets dedups", `a = set [1, 2]
+b = set [2, 1]
+c = set [a, b]
+show length of c .`, "1\n"},
+		{"number and string are distinct", `s = set [1, "1"]
+show length of s .
+show "1" == 1 .`, "2\nfalse\n"},
+		{"int and float are equal", `s = set [1, 1.0]
+show length of s .
+show 1 == 1.0 .`, "1\ntrue\n"},
+		{"lists keep order", `show list [1, 2] == list [2, 1] .
+show list [set [1, 2]] == list [set [2, 1]] .`, "false\ntrue\n"},
+		{"maps ignore order", `show map ["x": 1, "y": 2] == map ["y": 2, "x": 1] .`, "true\n"},
+		{"equal sets are the same map key", `k = map [set [1, 2]: "pair"]
+v is k at get set [2, 1] .
+show v .`, "pair\n"},
+		{"searches use equality", `nums = list [1, "1", 2]
+n is nums at count 1 .
+show n .
+i is nums at index "1" .
+show i .
+remove "1" from nums .
+show nums .`, "1\n1\n[ 1, 2 ]\n"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := run(t, c.src, "")
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}

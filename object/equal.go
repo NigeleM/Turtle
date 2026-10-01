@@ -1,0 +1,92 @@
+package object
+
+import (
+	"sort"
+	"strings"
+)
+
+// Equal is Turtle's one notion of value equality, used by ==/!=, set
+// deduplication and membership, and list/set searches (count, index,
+// find, remove). Numbers compare by value across Integer/Float (1 ==
+// 1.0); functions by identity; lists element by element in order; sets
+// and maps regardless of order. Anything else needs the same type and
+// the same value — so 1 and "1" are different, even though both show
+// as 1.
+func Equal(a, b Object) bool {
+	if af, ok := number(a); ok {
+		bf, ok := number(b)
+		return ok && af == bf
+	}
+	switch av := a.(type) {
+	case *List:
+		bv, ok := b.(*List)
+		if !ok || len(av.Elements) != len(bv.Elements) {
+			return false
+		}
+		for i := range av.Elements {
+			if !Equal(av.Elements[i], bv.Elements[i]) {
+				return false
+			}
+		}
+		return true
+	case *Set:
+		bv, ok := b.(*Set)
+		if !ok || len(av.Elements) != len(bv.Elements) {
+			return false
+		}
+		for _, e := range av.Elements {
+			if !bv.Contains(e) {
+				return false
+			}
+		}
+		return true
+	case *Map:
+		bv, ok := b.(*Map)
+		if !ok || len(av.Keys) != len(bv.Keys) {
+			return false
+		}
+		for _, k := range av.Keys {
+			v, ok := bv.Values[k]
+			if !ok || !Equal(av.Values[k], v) {
+				return false
+			}
+		}
+		return true
+	case *Function:
+		return a == b
+	}
+	return a.Type() == b.Type() && a.Inspect() == b.Inspect()
+}
+
+// Key is the string a value is stored under as a map key. It's the value's
+// shown form, except that a set's elements are put in a fixed order first,
+// so equal sets are always the same key whatever order they were built
+// in.
+func Key(obj Object) string {
+	switch v := obj.(type) {
+	case *Set:
+		parts := make([]string, len(v.Elements))
+		for i, e := range v.Elements {
+			parts[i] = Key(e)
+		}
+		sort.Strings(parts)
+		return "{ " + strings.Join(parts, ", ") + " }"
+	case *List:
+		parts := make([]string, len(v.Elements))
+		for i, e := range v.Elements {
+			parts[i] = Key(e)
+		}
+		return "[ " + strings.Join(parts, ", ") + " ]"
+	}
+	return obj.Inspect()
+}
+
+func number(obj Object) (float64, bool) {
+	switch v := obj.(type) {
+	case *Integer:
+		return float64(v.Value), true
+	case *Float:
+		return v.Value, true
+	}
+	return 0, false
+}

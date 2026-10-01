@@ -74,7 +74,7 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 	case *ast.MapLiteral:
 		m := object.NewMap()
 		for i, k := range e.Keys {
-			key := it.evalExpression(k, env).Inspect()
+			key := object.Key(it.evalExpression(k, env))
 			m.Set(key, it.evalExpression(e.Values[i], env))
 		}
 		return m
@@ -236,15 +236,7 @@ func compareStr(op string, l, r string) bool {
 }
 
 func valuesEqual(left, right object.Object) bool {
-	lf, _, lIsNum := numeric(left)
-	rf, _, rIsNum := numeric(right)
-	if lIsNum && rIsNum {
-		return lf == rf
-	}
-	if lfn, ok := left.(*object.Function); ok {
-		return lfn == right
-	}
-	return left.Inspect() == right.Inspect() && left.Type() == right.Type()
+	return object.Equal(left, right)
 }
 
 // evalChange converts val to typeName ("integer", "float", "string",
