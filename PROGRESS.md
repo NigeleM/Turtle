@@ -462,4 +462,5 @@ checks its own results, exiting 1 on any failure; `go test` runs it.
 - A method call ending an if-header (`if ] x at isEmpty [`) misread the
   header's closing `[`.
 
-Still open: a clear error for a reserved word used as a name.
+A second stress run (151 probes, 148 passing; the rest are design
+limits) and its fixes are logged in `docs/stress-test-log.md`.

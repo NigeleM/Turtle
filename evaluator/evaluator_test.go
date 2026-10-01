@@ -1542,3 +1542,27 @@ show list [] || "default" .`
 		t.Errorf("got %q, want %q", out, want)
 	}
 }
+
+func TestNotWithMethodsAndValueSubjects(t *testing.T) {
+	src := `import data
+import strings
+rows = list [list [], list [1]]
+rows keep r gives !r at isEmpty .
+show rows .
+s = "abc"
+b is !s at contains "z" .
+show b .
+show !s at isEmpty .
+show list [1, "a", 2.0] join "|" .
+orig = list [1, 2]
+big = copy[orig] process x gives x * 10
+show orig, big .`
+	out, err := run(t, src, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "[ [ 1 ] ]\ntrue\ntrue\n1|a|2.0\n[ 1, 2 ][ 10, 20 ]\n"
+	if out != want {
+		t.Errorf("got %q, want %q", out, want)
+	}
+}

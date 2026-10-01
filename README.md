@@ -120,6 +120,7 @@ library).
 - [`docs/stdlib.md`](docs/stdlib.md) — data structure methods, file I/O, `sys`, `import`
 - [`docs/architecture.md`](docs/architecture.md) — how the interpreter itself is built, for contributors
 - [`docs/contributing.md`](docs/contributing.md) — how to add new syntax or standard-library functions
+- [`docs/stress-test-log.md`](docs/stress-test-log.md) — what the stress tests tried, what broke, and how each finding was handled
 - [`SPEC.md`](SPEC.md) — the language specification this rewrite was built from, including every deliberate deviation from the original interpreter's behavior and why
 - [`PROGRESS.md`](PROGRESS.md) — session-by-session log of what's been done and what's left
 - [`TODO.md`](TODO.md) — forward-looking punch list of what's next

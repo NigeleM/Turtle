@@ -112,8 +112,9 @@ neither side changes:
 `<expr> at <method>` calls a method inside any expression:
 `show name at upper .`, `w = x at slice[0, 3]`. In this form, method
 arguments go in brackets. The statement form `r is x at slice 0, 3 .` still
-takes them unbracketed. `at` binds more loosely than every operator, so
-`a + b at upper` is `(a + b) at upper`.
+takes them unbracketed. `at` binds more loosely than every binary operator, so
+`a + b at upper` is `(a + b) at upper`. `!` takes the whole method call:
+`!r at isEmpty` means "r is not empty".
 
 Function calls: `<name>[<expr>, ...]` — Turtle uses `[...]` for call and
 definition argument lists, not `(...)`. See also sentence-style calls
@@ -333,8 +334,13 @@ r = nums scale x gives x + 1, 10     // scale[nums, x gives x + 1, 10]
 show nums total .                    // total[nums]
 ```
 
-- The left side is a variable name, or a string or number literal
-  (`"lo" isinstring line`). It can't be a call: store the result first.
+- The left side is a variable name, a literal (`"lo" isinstring line`,
+  `list [1, 2] join ","`), or a call's result
+  (`big = copy[nums] process x gives x * 10` processes a copy).
+- An argument runs to the end of the expression, so
+  `"abc" find "c" - 1` is `find["abc", "c" - 1]`. To use a sentence's
+  result in arithmetic, store it first: `i = "abc" find "c"`, then
+  `i - 1`.
 - A negative first argument works when the `-` is attached to it:
   `s substring -5`. A spaced `-` (`a b - 1`) or one attached to the name
   (`a b-1`) means subtraction.
