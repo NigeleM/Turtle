@@ -20,6 +20,7 @@ const (
 	SET      Type = "SET"
 	MAP      Type = "MAP"
 	FUNCTION Type = "FUNCTION"
+	NONE     Type = "NONE"
 )
 
 type Object interface {
@@ -125,12 +126,26 @@ func (m *Map) Delete(key string) bool {
 	return true
 }
 
-// Function is a Turtle function definition (not a call frame — each
-// call gets its own fresh Environment; see Environment.NewCall).
+// None is Turtle's "no value": the result of a function that returns
+// nothing, and the value of the none literal. There is exactly one,
+// NoneValue, so identity and equality coincide.
+type None struct{}
+
+func (n *None) Type() Type      { return NONE }
+func (n *None) Inspect() string { return "none" }
+
+var NoneValue = &None{}
+
+// Function is a Turtle function value (not a call frame — each call gets
+// its own fresh Environment enclosing Env; see NewEnclosedEnvironment).
+// Env is the scope the def ran in, which is what makes a nested def a
+// closure: its body can read the enclosing call's locals even after that
+// call has returned.
 type Function struct {
 	Name       string
 	Parameters []string
 	Body       *ast.BlockStatement
+	Env        *Environment
 }
 
 func (f *Function) Type() Type      { return FUNCTION }

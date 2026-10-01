@@ -152,14 +152,37 @@ the environment after every operation.
 
 ### Scoping
 
-`object.Environment` intentionally has **no parent-chained variable
-lookup** — a function body only sees its own parameters, never the
-caller's or global variables (matching the legacy language's actual
-behavior, confirmed from real example scripts). Function *definitions*
-are the one thing that do chain: `Environment.GetFunction` delegates up to
-the global environment, so any scope can call any top-level function.
+`object.Environment` is a chain of scopes with **lexical** lookup:
+`Get` walks from the current scope out through each enclosing one to the
+global scope. A call's scope encloses the called function's *defining*
+scope (`object.Function.Env`), never the caller's — so a top-level
+function reads globals, and a nested `def` (a closure) also reads the
+locals of the call it was defined in. `Set` only ever writes to the
+current scope, so assignment never writes through to a global or a
+captured variable; it shadows it.
 
-Each call gets `env.NewCallEnvironment()` — a fresh, empty variable map.
+Top-level function definitions live in a separate table on the global
+environment (`GetFunction`/`DefineFunction`), callable by name from any
+scope. A nested `def` is instead stored as an ordinary local variable
+holding the `*object.Function`. Identifier evaluation falls back to the
+function table, which is how `f = add` turns a top-level function into a
+value.
+
+The main program and every imported `.t` module each have their own
+root environment (`object.NewGlobalEnvironment`), and each root records its
+own imports (`AddImport`/`Imports`/`FindImport`, holding `object.Import`
+and `object.Module`). `Interpreter.loadModule` caches modules by resolved
+path, so each runs once, and it tracks the in-progress chain to report
+circular imports. An unqualified call resolves in `evalCall` in this
+order: a variable holding a function, the file's own top-level def, then
+`resolveImported`, which fails on a clash rather than guessing. A
+qualified `m name` (two identifiers on one line, recorded in
+`Identifier.Module`/`CallExpression.Module`) goes straight to
+`qualifiedImport`. The `math`/`time` gates in `requireModule` check the
+*current file's* imports.
+
+Each call gets `object.NewEnclosedEnvironment(fn.Env)` — a fresh, empty
+variable map.
 This is a deliberate fix: the legacy interpreter stored one mutable
 variable map *per function definition*, shared by every call to that
 function, which broke recursion (a recursive call would stomp the outer

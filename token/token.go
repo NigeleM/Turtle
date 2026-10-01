@@ -53,6 +53,7 @@ const (
 	// Keywords
 	TRUE     Type = "TRUE"
 	FALSE    Type = "FALSE"
+	NONE     Type = "NONE"
 	SHOW     Type = "SHOW"
 	IF       Type = "IF"
 	ELSE     Type = "ELSE"
@@ -91,6 +92,7 @@ const (
 var keywords = map[string]Type{
 	"true":      TRUE,
 	"false":     FALSE,
+	"none":      NONE,
 	"show":      SHOW,
 	"if":        IF,
 	"else":      ELSE,

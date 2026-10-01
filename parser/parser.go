@@ -71,6 +71,7 @@ func New(l *lexer.Lexer) *Parser {
 		token.STRING: p.parseStringLiteral,
 		token.TRUE:   p.parseBoolean,
 		token.FALSE:  p.parseBoolean,
+		token.NONE:   p.parseNone,
 		token.MINUS:  p.parsePrefixExpression,
 		token.BANG:   p.parsePrefixExpression,
 		token.LPAREN: p.parseGroupedExpression,
@@ -289,7 +290,7 @@ func (p *Parser) parseIdentifierLeadStatement() ast.Statement {
 	if p.peekTokenIs(token.IS) {
 		return p.parseIsStatement()
 	}
-	if p.peekTokenIs(token.LBRACKET) {
+	if p.peekTokenIs(token.LBRACKET) || p.isQualifiedName() {
 		tok := p.curToken
 		expr := p.parseExpression(LOWEST)
 		p.nextToken()
@@ -379,8 +380,14 @@ func (p *Parser) parseShowStatement() ast.Statement {
 	return &ast.ShowStatement{Token: tok, Expressions: exprs}
 }
 
+// parseReturnStatement handles "return <expr>" and a bare "return" (the
+// last token on its line), which returns none.
 func (p *Parser) parseReturnStatement() ast.Statement {
 	tok := p.curToken
+	if p.peekTokenIs(token.EOF) || p.peekToken.Line != tok.Line {
+		p.nextToken()
+		return &ast.ReturnStatement{Token: tok}
+	}
 	p.nextToken()
 	val := p.parseExpression(LOWEST)
 	p.nextToken()
@@ -393,8 +400,31 @@ func (p *Parser) parseImportStatement() ast.Statement {
 		return nil
 	}
 	path := p.curToken.Literal
+	var names []string
+	if p.peekTokenIs(token.LBRACKET) && p.peekToken.Line == p.curToken.Line {
+		p.nextToken() // -> '['
+		if p.peekTokenIs(token.RBRACKET) {
+			p.errorf("import %s [] lists nothing to import — list names, or drop the brackets to import everything", path)
+			p.nextToken() // -> ']'
+			p.nextToken()
+			return nil
+		}
+		for {
+			if !p.expectPeek(token.IDENT) {
+				return nil
+			}
+			names = append(names, p.curToken.Literal)
+			if !p.peekTokenIs(token.COMMA) {
+				break
+			}
+			p.nextToken()
+		}
+		if !p.expectPeek(token.RBRACKET) {
+			return nil
+		}
+	}
 	p.nextToken()
-	return &ast.ImportStatement{Token: tok, Path: path}
+	return &ast.ImportStatement{Token: tok, Path: path, Names: names}
 }
 
 // parseSysStatement is trivial: the lexer already captured the entire
@@ -987,14 +1017,28 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 // arguments always sit on the same physical line as the call's '[';
 // a header's closing '[' is always the last token on its line. That
 // line-boundary is what tells the two apart here.
+//
+// Two identifiers side by side on one line ("time now") are a name
+// qualified by its module — never otherwise valid, since every word that
+// can follow a name (is, at, to, of, ...) is a keyword, not an IDENT.
 func (p *Parser) parseIdentifier() ast.Expression {
 	tok := p.curToken
-	if p.peekTokenIs(token.LBRACKET) && p.peekToken.Line == tok.Line && p.peekN(2).Line == p.peekToken.Line {
+	module := ""
+	if p.isQualifiedName() {
+		module = tok.Literal
+		p.nextToken()
+	}
+	name := p.curToken
+	if p.peekTokenIs(token.LBRACKET) && p.peekToken.Line == name.Line && p.peekN(2).Line == p.peekToken.Line {
 		p.nextToken()
 		args := p.parseExpressionList(token.RBRACKET)
-		return &ast.CallExpression{Token: tok, Name: tok.Literal, Arguments: args}
+		return &ast.CallExpression{Token: tok, Module: module, Name: name.Literal, Arguments: args}
 	}
-	return &ast.Identifier{Token: tok, Value: tok.Literal}
+	return &ast.Identifier{Token: tok, Module: module, Value: name.Literal}
+}
+
+func (p *Parser) isQualifiedName() bool {
+	return p.curTokenIs(token.IDENT) && p.peekTokenIs(token.IDENT) && p.peekToken.Line == p.curToken.Line
 }
 
 func (p *Parser) parseIntegerLiteral() ast.Expression {
@@ -1021,6 +1065,10 @@ func (p *Parser) parseStringLiteral() ast.Expression {
 
 func (p *Parser) parseBoolean() ast.Expression {
 	return &ast.BooleanLiteral{Token: p.curToken, Value: p.curTokenIs(token.TRUE)}
+}
+
+func (p *Parser) parseNone() ast.Expression {
+	return &ast.NoneLiteral{Token: p.curToken}
 }
 
 func (p *Parser) parsePrefixExpression() ast.Expression {

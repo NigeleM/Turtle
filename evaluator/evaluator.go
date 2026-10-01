@@ -37,7 +37,8 @@ type Interpreter struct {
 	Global  *object.Environment
 	Dir     string // directory imports/[read]/[write] paths resolve relative to
 	stdin   *bufio.Scanner
-	modules map[string]bool // builtin modules enabled via "import <name>"
+	modules map[string]*object.Module // loaded .t modules, by resolved path
+	loading []string                  // .t modules mid-import, outermost first
 }
 
 func New(dir string) *Interpreter {
@@ -52,27 +53,31 @@ func NewWithStdin(dir string, r io.Reader) *Interpreter {
 		Global:  object.NewGlobalEnvironment(),
 		Dir:     dir,
 		stdin:   bufio.NewScanner(r),
-		modules: map[string]bool{},
+		modules: map[string]*object.Module{},
 	}
 }
 
 // builtinModules maps a name recognized by "import <name>" to a native
-// capability instead of a <name>.t file on disk: "math" unlocks the
-// sqrt/abs/round/floor/ceil/pow/random number methods, "time" unlocks the
-// now[]/sleep[ms] builtin functions. Anything else falls through to the
-// existing file-based import.
-var builtinModules = map[string]bool{"math": true, "time": true}
-
-func (it *Interpreter) hasModule(name string) bool {
-	return it.modules[name]
+// capability instead of a <name>.t file on disk: "math" provides the
+// sqrt/abs/round/floor/ceil/pow/random number methods, "time" provides
+// the now[]/sleep[ms] builtin functions. Anything else falls through to
+// the file-based import.
+var builtinModules = map[string]*object.Module{
+	"math": {Name: "math", Methods: []string{"sqrt", "abs", "round", "floor", "ceil", "pow", "random"}},
+	"time": {Name: "time", Funcs: []string{"now", "sleep"}},
 }
 
 // requireModule fails with a clear message naming the missing import,
 // rather than "unknown method" — the whole point of gating these behind
-// import is that the error tells you exactly what to add.
-func requireModule(it *Interpreter, module, what string) {
-	if !it.hasModule(module) {
+// import is that the error tells you exactly what to add. Imports are
+// per file, so env is whichever file's code is running.
+func requireModule(env *object.Environment, module, what string) {
+	im, ok := env.FindImport(module)
+	if !ok {
 		fatalf("%q needs \"import %s\" first", what, module)
+	}
+	if !im.Allows(what) {
+		fatalf("%q isn't imported — add it to \"import %s [...]\"", what, module)
 	}
 }
 
@@ -185,6 +190,9 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		return noneResult
 
 	case *ast.ReturnStatement:
+		if s.Value == nil {
+			return ExecResult{Signal: SigReturn, Value: object.NoneValue}
+		}
 		return ExecResult{Signal: SigReturn, Value: it.evalExpression(s.Value, env)}
 
 	case *ast.BreakStatement:
@@ -194,7 +202,18 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		return ExecResult{Signal: SigContinue}
 
 	case *ast.FunctionDefStatement:
-		env.DefineFunction(&object.Function{Name: s.Name, Parameters: s.Parameters, Body: s.Body})
+		// A top-level def goes in its file's global function table,
+		// callable by name from anywhere in that file (and exported to
+		// files that import it). A def nested inside a function body is a
+		// closure: a local variable holding a function that captures the
+		// enclosing call's scope, so it can be returned or passed along
+		// and still read that call's locals after it has finished.
+		fn := &object.Function{Name: s.Name, Parameters: s.Parameters, Body: s.Body, Env: env}
+		if env.IsRoot() {
+			env.DefineFunction(fn)
+		} else {
+			env.Set(s.Name, fn)
+		}
 		return noneResult
 
 	case *ast.IfStatement:
@@ -302,6 +321,8 @@ func isTruthy(obj object.Object) bool {
 		return v.Value != 0
 	case *object.String:
 		return v.Value != ""
+	case *object.None:
+		return false
 	default:
 		return obj != nil
 	}

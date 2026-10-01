@@ -321,10 +321,17 @@ it only when you mean to.
 import util
 ```
 
-Parses and runs `util.t`, adding its top-level functions and variables to
-your program's global scope. There's no module namespacing — everything
-lands in one shared global scope, same as the rest of the top-level
-program.
+Runs `util.t` once, in its own scope, and makes its top-level functions
+available to your program. Its variables stay private to it. To take only
+some of its functions, list them:
+
+```
+import util [parse, format]
+```
+
+If two imports export a function with the same name, say which one you
+mean by putting the module name in front: `util format[x]`. Calling the
+plain name in that case is an error that tells you exactly this.
 
 Two names are special: `import math` and `import time` don't read a file
 at all — they unlock built-in capability instead:
@@ -347,6 +354,7 @@ show now[] - t1 .      // at least 500 (now[] is always milliseconds)
 sleep[250, "ms"]        // or be explicit about milliseconds
 ```
 
-Calling a math method or `now`/`sleep` before the matching `import` is a
-fatal error that names exactly which import is missing. See
+`import time [now]` and `import math [sqrt]` work the same way as for
+files. Calling a math method or `now`/`sleep` before the matching `import`
+is a fatal error that names exactly which import is missing. See
 [`stdlib.md`](stdlib.md#number) for the full method/function list.

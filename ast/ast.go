@@ -74,6 +74,7 @@ func (ss *ShowStatement) statementNode()       {}
 func (ss *ShowStatement) TokenLiteral() string { return ss.Token.Literal }
 func (ss *ShowStatement) Line() int            { return ss.Token.Line }
 
+// ReturnStatement's Value is nil for a bare "return", which yields none.
 type ReturnStatement struct {
 	Token token.Token
 	Value Expression
@@ -187,9 +188,12 @@ func (dop *DataOpStatement) statementNode()       {}
 func (dop *DataOpStatement) TokenLiteral() string { return dop.Token.Literal }
 func (dop *DataOpStatement) Line() int            { return dop.Token.Line }
 
+// ImportStatement is "import m" (Names nil: the whole module) or
+// "import m [a, b]" (only those names).
 type ImportStatement struct {
 	Token token.Token
 	Path  string
+	Names []string
 }
 
 func (is *ImportStatement) statementNode()       {}
@@ -247,9 +251,12 @@ func (ds *DirectoryStatement) Line() int            { return ds.Token.Line }
 
 // ---- Expressions -----------------------------------------------------
 
+// Identifier is a name, optionally qualified by the module it comes from
+// ("time now", Module "time") to resolve a clash between imports.
 type Identifier struct {
-	Token token.Token
-	Value string
+	Token  token.Token
+	Module string
+	Value  string
 }
 
 func (i *Identifier) expressionNode()      {}
@@ -287,6 +294,11 @@ type BooleanLiteral struct {
 func (bl *BooleanLiteral) expressionNode()      {}
 func (bl *BooleanLiteral) TokenLiteral() string { return bl.Token.Literal }
 
+type NoneLiteral struct{ Token token.Token }
+
+func (nl *NoneLiteral) expressionNode()      {}
+func (nl *NoneLiteral) TokenLiteral() string { return nl.Token.Literal }
+
 type PrefixExpression struct {
 	Token    token.Token
 	Operator string
@@ -306,8 +318,10 @@ type InfixExpression struct {
 func (ie *InfixExpression) expressionNode()      {}
 func (ie *InfixExpression) TokenLiteral() string { return ie.Token.Literal }
 
+// CallExpression is "name[args]", or "module name[args]" when Module is set.
 type CallExpression struct {
 	Token     token.Token
+	Module    string
 	Name      string
 	Arguments []Expression
 }

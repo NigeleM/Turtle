@@ -83,27 +83,57 @@ func (it *Interpreter) evalDirectory(s *ast.DirectoryStatement, env *object.Envi
 	env.Set(s.Var, list)
 }
 
-// evalImport parses and runs another .t file directly into the global
-// environment, matching the legacy interpreter's flatten-into-globals
-// behavior (there is no module namespacing in Turtle). Recognized builtin
-// module names ("math", "time" — see builtinModules) are handled natively
-// instead: no file is read, "import <name>" just flips that module on.
+// evalImport makes a module's functions available to the importing file:
+// all of them for "import m", or just the listed ones for "import m [a,
+// b]". Recognized builtin module names ("math", "time" — see
+// builtinModules) are handled natively; anything else is <name>.t. Each
+// .t module runs once, in its own global scope, no matter how many files
+// import it — its top-level variables stay private to it, and its
+// functions keep reading those, not the importer's. Two imports exporting
+// the same function name is fine; only calling that name unqualified is
+// an error (see resolveImported).
 func (it *Interpreter) evalImport(s *ast.ImportStatement, env *object.Environment) {
-	if builtinModules[s.Path] {
-		it.modules[s.Path] = true
-		return
+	mod := it.loadModule(s.Path)
+	for _, n := range s.Names {
+		if !mod.Exports(n) {
+			fatalf("import %s: module %q has no %q", s.Path, s.Path, n)
+		}
 	}
-	path := it.resolvePath(s.Path + ".t")
+	env.AddImport(mod, s.Names)
+}
+
+func (it *Interpreter) loadModule(name string) *object.Module {
+	if mod, ok := builtinModules[name]; ok {
+		return mod
+	}
+	path := it.resolvePath(name + ".t")
+	if mod, ok := it.modules[path]; ok {
+		return mod
+	}
+	for i, p := range it.loading {
+		if p == path {
+			chain := append(append([]string{}, it.loading[i:]...), path)
+			for j := range chain {
+				chain[j] = strings.TrimSuffix(filepath.Base(chain[j]), ".t")
+			}
+			fatalf("import %s: circular import (%s)", name, strings.Join(chain, " -> "))
+		}
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
-		fatalf("import %s: %v", s.Path, err)
+		fatalf("import %s: %v", name, err)
 	}
 	p := parser.New(lexer.New(string(data)))
 	program := p.ParseProgram()
 	if errs := p.Errors(); len(errs) > 0 {
-		fatalf("import %s: %s", s.Path, errs[0])
+		fatalf("import %s: %s", name, errs[0])
 	}
-	it.evalStatements(program.Statements, it.Global)
+	mod := &object.Module{Name: name, Env: object.NewGlobalEnvironment()}
+	it.loading = append(it.loading, path)
+	it.evalStatements(program.Statements, mod.Env)
+	it.loading = it.loading[:len(it.loading)-1]
+	it.modules[path] = mod
+	return mod
 }
 
 // evalSys runs the rest of the line through a shell, inheriting

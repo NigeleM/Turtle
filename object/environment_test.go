@@ -56,3 +56,22 @@ func TestFunctionsAreGlobalRegardlessOfDefiningScope(t *testing.T) {
 		t.Error("function should also be visible from the call scope that defined it")
 	}
 }
+
+func TestGetWalksEnclosingScopes(t *testing.T) {
+	global := NewGlobalEnvironment()
+	global.Set("g", &Integer{Value: 1})
+	outer := NewEnclosedEnvironment(global)
+	outer.Set("o", &Integer{Value: 2})
+	inner := NewEnclosedEnvironment(outer)
+
+	if v, ok := inner.Get("o"); !ok || v.(*Integer).Value != 2 {
+		t.Errorf("inner should read enclosing call's 'o', got %v, %v", v, ok)
+	}
+	if v, ok := inner.Get("g"); !ok || v.(*Integer).Value != 1 {
+		t.Errorf("inner should read global 'g', got %v, %v", v, ok)
+	}
+	inner.Set("o", &Integer{Value: 99})
+	if v, _ := outer.Get("o"); v.(*Integer).Value != 2 {
+		t.Errorf("inner Set must not write through to outer, got %v", v)
+	}
+}
