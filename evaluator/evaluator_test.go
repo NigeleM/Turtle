@@ -3,6 +3,7 @@ package evaluator
 import (
 	"bufio"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -16,6 +17,12 @@ import (
 // (evaluator.go) is a package-level variable, safe only because one
 // evaluation runs at a time, exactly like the real CLI.
 func run(t *testing.T, src, stdin string) (string, error) {
+	t.Helper()
+	return runIn(t, ".", src, stdin)
+}
+
+// runIn is run with imports and file paths resolving relative to dir.
+func runIn(t *testing.T, dir, src, stdin string) (string, error) {
 	t.Helper()
 	p := parser.New(lexer.New(src))
 	program := p.ParseProgram()
@@ -42,7 +49,7 @@ func run(t *testing.T, src, stdin string) (string, error) {
 		outCh <- sb.String()
 	}()
 
-	it := NewWithStdin(".", strings.NewReader(stdin))
+	it := NewWithStdin(dir, strings.NewReader(stdin))
 	runErr := it.Run(program)
 
 	w.Close()
@@ -432,5 +439,281 @@ show now[] .`
 	}
 	if out != "42\n" {
 		t.Errorf("got %q, want %q (user's own now[] must win, time isn't even imported)", out, "42\n")
+	}
+}
+
+func TestClosuresAndFunctionValues(t *testing.T) {
+	cases := []struct{ name, src, want string }{
+		{"closure captures parameter", `def make_adder[n]
+    def adder[x]
+        return x + n
+    def [end]
+    return adder
+def [end]
+
+add5 = make_adder[5]
+add10 = make_adder[10]
+show add5[1] .
+show add10[1] .`, "6\n11\n"},
+		{"closure mutates captured list", `def make_counter[]
+    counts = list [0]
+    def inc[]
+        c is counts at pop .
+        c = c + 1
+        add c to counts .
+        return c
+    def [end]
+    return inc
+def [end]
+
+a = make_counter[]
+b = make_counter[]
+show a[] .
+show a[] .
+show b[] .`, "1\n2\n1\n"},
+		{"assignment to captured name shadows", `def outer[]
+    n = 1
+    def inner[]
+        n = 99
+        return n
+    def [end]
+    show inner[] .
+    return n
+def [end]
+
+show outer[] .`, "99\n1\n"},
+		{"closure reads globals", `greeting = "hi"
+def outer[]
+    def inner[]
+        return greeting
+    def [end]
+    return inner[]
+def [end]
+
+show outer[] .`, "hi\n"},
+		{"nested def is not global", `def outer[]
+    def inner[]
+        return 1
+    def [end]
+    return inner[]
+def [end]
+
+show outer[] .
+show inner[] .`, "1\n"},
+		{"top-level function as argument", `def double[x]
+    return x * 2
+def [end]
+
+def apply[f, v]
+    return f[v]
+def [end]
+
+show apply[double, 21] .
+g = double
+show g[4] .`, "42\n8\n"},
+		{"function equality is identity", `def f[]
+    return 1
+def [end]
+def g[]
+    return 1
+def [end]
+
+show f == f .
+show f == g .`, "true\nfalse\n"},
+		{"recursive nested def", `def run[]
+    def fact[n]
+        if ] n <= 1 [
+            return 1
+        if [end]
+        return n * fact[n - 1]
+    def [end]
+    return fact[5]
+def [end]
+
+show run[] .`, "120\n"},
+		{"lexical not dynamic scope", `def reader[]
+    return secret
+def [end]
+
+def caller[]
+    secret = "caller's local"
+    return reader[]
+def [end]
+
+secret = "global"
+show caller[] .`, "global\n"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := run(t, c.src, "")
+			if c.name == "nested def is not global" {
+				if err == nil || !strings.Contains(err.Error(), `undefined function "inner"`) {
+					t.Fatalf("want undefined function error, got %v", err)
+				}
+			} else if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
+func TestNone(t *testing.T) {
+	cases := []struct{ name, src, want string }{
+		{"literal", `x = none
+show x .`, "none\n"},
+		{"no return yields none", `def f[]
+    y = 1
+def [end]
+
+show f[] .`, "none\n"},
+		{"bare return yields none", `def f[x]
+    if ] x > 0 [
+        return
+    if [end]
+    return x
+def [end]
+
+show f[1] .
+show f[-1] .`, "none\n-1\n"},
+		{"equality", `show none == none .
+show none != none .
+show 0 == none .
+show "none" == none .`, "true\nfalse\nfalse\nfalse\n"},
+		{"falsy", `if ] none [
+    show "yes" .
+else ]
+    show "no" .
+if [end]
+show !none .`, "no\ntrue\n"},
+		{"concat", `show "x=" + none .`, "x=none\n"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := run(t, c.src, "")
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
+func TestNoneArithmeticIsFatal(t *testing.T) {
+	_, err := run(t, `show none - 1 .`, "")
+	if err == nil || !strings.Contains(err.Error(), "NONE") {
+		t.Fatalf("want a type error naming NONE, got %v", err)
+	}
+}
+
+// moduleDir writes each name -> source pair to <tmp>/<name>.t and returns
+// the directory, for import tests.
+func moduleDir(t *testing.T, files map[string]string) string {
+	t.Helper()
+	dir := t.TempDir()
+	for name, src := range files {
+		if err := os.WriteFile(filepath.Join(dir, name+".t"), []byte(src), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return dir
+}
+
+const mylibSrc = `SECRET = "mylib's"
+def helper[x]
+    return x * 10
+def [end]
+def binary[x]
+    return helper[x] + 1
+def [end]
+def now[]
+    return "mylib now"
+def [end]
+def reveal[]
+    return SECRET
+def [end]
+show "mylib loaded" .`
+
+func TestImports(t *testing.T) {
+	dir := moduleDir(t, map[string]string{
+		"mylib": mylibSrc,
+		"other": `import mylib [binary]
+def twice[x]
+    return binary[x] * 2
+def [end]`,
+		"a": `import b`,
+		"b": `import a`,
+	})
+	cases := []struct{ name, src, want, wantErr string }{
+		{name: "full import, plain names", src: `import mylib
+show binary[2] .
+show helper[1] .`, want: "mylib loaded\n21\n10\n"},
+		{name: "module runs once", src: `import mylib
+import mylib
+import other
+show twice[2] .`, want: "mylib loaded\n42\n"},
+		{name: "module variables are private but its functions see them", src: `import mylib
+SECRET = "main's"
+show reveal[] .
+show SECRET .`, want: "mylib loaded\nmylib's\nmain's\n"},
+		{name: "module variables don't leak", src: `import mylib
+show SECRET .`, wantErr: `undefined variable "SECRET"`},
+		{name: "partial import limits plain names", src: `import mylib [binary]
+show binary[1] .
+show reveal[] .`, wantErr: `undefined function "reveal"`},
+		{name: "partial import still allows qualifying listed names", src: `import mylib [binary]
+show mylib binary[1] .`, want: "mylib loaded\n11\n"},
+		{name: "partial import blocks qualified unlisted names", src: `import mylib [binary]
+show mylib reveal[] .`, wantErr: `"reveal" isn't imported`},
+		{name: "unknown name in list", src: `import mylib [binery]`, wantErr: `module "mylib" has no "binery"`},
+		{name: "clash requires qualifying", src: `import time
+import mylib
+show now[] .`, wantErr: `"now" is provided by more than one import (time, mylib)`},
+		{name: "qualified call resolves clash", src: `import time
+import mylib
+show mylib now[] .
+show time now[] > 0 .
+show binary[1] .`, want: "mylib loaded\nmylib now\ntrue\n11\n"},
+		{name: "clash only for that name", src: `import time [now]
+import mylib [now]
+show time now[] > 0 .`, want: "mylib loaded\ntrue\n"},
+		{name: "own def beats imports", src: `import time
+import mylib
+def now[]
+    return "mine"
+def [end]
+show now[] .
+show mylib now[] .`, want: "mylib loaded\nmine\nmylib now\n"},
+		{name: "qualified function value", src: `import mylib
+f = mylib binary
+show f[3] .`, want: "mylib loaded\n31\n"},
+		{name: "unknown module", src: `show nope now[] .`, wantErr: `unknown module "nope"`},
+		{name: "circular import", src: `import a`, wantErr: "circular import"},
+		{name: "builtin partial import", src: `import math [sqrt]
+r is 16 at sqrt .
+show r .
+r is 2 at pow 3 .`, want: "4\n", wantErr: `"pow" isn't imported — add it to "import math [...]"`},
+		{name: "builtin function partial import", src: `import time [sleep]
+sleep[0.001]
+show now[] .`, wantErr: `"now" isn't imported — add it to "import time [...]"`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := runIn(t, dir, c.src, "")
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("want error containing %q, got %v", c.wantErr, err)
+				}
+			} else if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if c.want != "" && out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
 	}
 }

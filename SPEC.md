@@ -97,10 +97,17 @@ def [end]
 sum = add[1, 2]
 ```
 
-- A function body sees only its declared parameters as local variables
-  (no closure over caller/global variables) but *can* call any other
-  top-level function (confirmed: `hello[]` calls `multiply[10,50]` and
-  `definition[12,9]`).
+- A function body sees its declared parameters as local variables and
+  can **read global (top-level) variables**; it never sees its caller's
+  locals. Assignment inside a function always creates/updates a local,
+  never a global. It can call any other top-level function (confirmed:
+  `hello[]` calls `multiply[10,50]` and `definition[12,9]`).
+- **(new)** Functions are values and nested `def`s are closures with
+  lexical scoping — see `docs/reference.md` §Functions. Captured variables
+  are read-only by assignment, by the same rule as globals.
+- **(new)** A function without `return`, or with a bare `return`, yields
+  `none` (legacy/earlier rewrite: integer `0`). `none` is a new literal and
+  reserved word; see `docs/reference.md` §None.
 - `return <expr>` ends the call and the value is usable directly in an
   expression (`a = hello[C]`, `a = a + 1.00`, `show hello[a] ,...`).
 - **(fixed)** Each call gets its own fresh local environment/frame.
@@ -288,11 +295,15 @@ current value. Items are newline-joined.
 import util
 ```
 
-Parses and runs `util.t` in the current global environment before
-continuing (function definitions and top-level statements it contains
-become available) — matches legacy's flatten-into-globals behavior,
-since there is no evidence real Turtle programs relied on any kind of
-module namespacing.
+- **(changed)** Legacy, and the rewrite until now, ran `util.t` in the
+  importer's global environment (flatten-into-globals), so names from
+  different files silently overwrote each other. Now each `.t` module runs
+  once in its own global scope and exports only its top-level functions.
+- `import m [a, b]` limits what's imported. A function can be qualified
+  by module (`time now[]`, two identifiers side by side), and an
+  unqualified call to a name that two imports provide is a fatal error
+  asking for the qualified form. Full rules are in `docs/reference.md`
+  §Modules.
 
 ## Shell escape
 

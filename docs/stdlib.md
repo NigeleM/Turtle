@@ -175,7 +175,7 @@ no natural receiver for "the current time"):
 | Function | Args | Returns |
 |---|---|---|
 | `now[]` | — | milliseconds since the Unix epoch, as an Integer |
-| `sleep[amount [, unit]]` | amount, optional unit | pauses execution for that long; return value unused |
+| `sleep[amount [, unit]]` | amount, optional unit | pauses execution for that long; returns `none` |
 
 `sleep`'s `unit` is the string `"seconds"` (the default, when omitted) or
 `"ms"`:
@@ -263,9 +263,14 @@ content.
 import <name>
 ```
 
-Reads `<name>.t` (relative to the current script's directory), parses it,
-and evaluates its statements directly into the running program's global
-scope — so any functions or variables it defines become available to the
-rest of your program, as if you'd pasted its contents in. There's no
-namespacing: an imported file's top-level variables share the same global
-scope as everything else, so name collisions silently overwrite.
+```
+import <name> [<f>, <g>]
+```
+
+Reads `<name>.t` (relative to the current script's directory) and runs it
+once, in its own scope. Its top-level functions become available to your
+program: all of them, or only the ones listed in `[...]`. Its top-level
+variables stay private to it. When two imports export the same function
+name, call it qualified by module, as in `mylib now[]` or `time now[]`.
+An unqualified call to a name that clashes is a fatal error. Full rules
+are in [`reference.md`](reference.md#modules).

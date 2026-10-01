@@ -183,3 +183,35 @@ func TestParseErrorsReportLineNumbers(t *testing.T) {
 		t.Errorf("error %q does not mention line 2", errs[0])
 	}
 }
+
+func TestImportList(t *testing.T) {
+	p := New(lexer.New("import time [sleep, now]\n"))
+	prog := p.ParseProgram()
+	if errs := p.Errors(); len(errs) > 0 {
+		t.Fatalf("parse errors: %v", errs)
+	}
+	is, ok := prog.Statements[0].(*ast.ImportStatement)
+	if !ok || is.Path != "time" || len(is.Names) != 2 || is.Names[0] != "sleep" || is.Names[1] != "now" {
+		t.Fatalf("got %#v", prog.Statements[0])
+	}
+}
+
+func TestEmptyImportListIsAnError(t *testing.T) {
+	p := New(lexer.New("import time []\n"))
+	p.ParseProgram()
+	if errs := p.Errors(); len(errs) != 1 || !strings.Contains(errs[0], "lists nothing to import") {
+		t.Fatalf("want exactly one 'lists nothing' error, got %v", errs)
+	}
+}
+
+func TestQualifiedCall(t *testing.T) {
+	p := New(lexer.New("t = time now[]\n"))
+	prog := p.ParseProgram()
+	if errs := p.Errors(); len(errs) > 0 {
+		t.Fatalf("parse errors: %v", errs)
+	}
+	ce, ok := prog.Statements[0].(*ast.AssignStatement).Value.(*ast.CallExpression)
+	if !ok || ce.Module != "time" || ce.Name != "now" {
+		t.Fatalf("got %#v", prog.Statements[0].(*ast.AssignStatement).Value)
+	}
+}

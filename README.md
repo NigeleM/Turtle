@@ -20,13 +20,15 @@ around unmodified for reference.
 | Conditional statements | Done |
 | Loops | Done |
 | Functions (can read globals; local assignment never writes through) | Done |
+| First-class functions + closures (lexical scope, read-only capture) | Done |
+| `none` value/type | Done |
 | Data structures (list/set/map) | Done |
 | Type conversion (`change`) | Done |
 | Standard library: strings | Done |
 | Standard library: math (`import math`) | Done |
 | Standard library: time (`import time`) | Done |
 | Standard library: HTTP | Not started |
-| Imports | Done |
+| Imports (per-module scope, `import m [a, b]`, `m name[...]` on clash) | Done |
 | File management (read/write/append/directory) | Done |
 | Automated tests (`go test ./...`) | Done |
 | CI (build/vet/test on every push) + tag-triggered releases | Done |
@@ -41,6 +43,36 @@ go build -o turtle ./cmd/turtle
 ```
 
 See [`docs/getting-started.md`](docs/getting-started.md) for more.
+
+## A taste of Turtle
+
+```
+import time [now, sleep]
+import mylib [binary]          // only what you list; mylib.t's variables stay private
+
+def make_adder[n]              // functions are values; a nested def is a closure
+    def adder[x]
+        return x + n
+    def [end]
+    return adder
+def [end]
+
+add5 = make_adder[5]
+show add5[1] .                 // 6
+
+def log[msg]
+    show msg .                 // no return, so the call yields none
+def [end]
+
+r = log["hi"]
+show r == none .               // true
+
+t = time now[]                 // naming the module always works, and is required
+                               // when two imports both provide "now"
+```
+
+Full rules: [`docs/reference.md`](docs/reference.md) (Functions, Closures,
+None, Modules).
 
 ## Documentation
 

@@ -191,7 +191,7 @@ func (it *Interpreter) evalMethodCall(mc *ast.MethodCallExpression, env *object.
 	case *object.String:
 		return stringMethod(r, mc.Method, args)
 	case *object.Integer, *object.Float:
-		return it.numberMethod(r, mc.Method, args)
+		return it.numberMethod(r, mc.Method, args, env)
 	default:
 		fatalf("method %q needs a list, set, map, string, or number receiver, got %s", mc.Method, receiver.Type())
 		return nil
@@ -595,10 +595,10 @@ func runeIndexOf(s, sub string) int {
 // of these require "import math" first (see requireModule) — they're a
 // bundle of library functionality on top of the core +-*/% operators,
 // not core syntax.
-func (it *Interpreter) numberMethod(receiver object.Object, method string, args []object.Object) object.Object {
+func (it *Interpreter) numberMethod(receiver object.Object, method string, args []object.Object, env *object.Environment) object.Object {
 	switch method {
 	case "sqrt":
-		requireModule(it, "math", "sqrt")
+		requireModule(env, "math", "sqrt")
 		requireArgs(method, args, 0)
 		f, _, _ := numeric(receiver)
 		if f < 0 {
@@ -606,7 +606,7 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		}
 		return &object.Float{Value: math.Sqrt(f)}
 	case "abs":
-		requireModule(it, "math", "abs")
+		requireModule(env, "math", "abs")
 		requireArgs(method, args, 0)
 		f, isInt, _ := numeric(receiver)
 		if isInt {
@@ -614,22 +614,22 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		}
 		return &object.Float{Value: math.Abs(f)}
 	case "round":
-		requireModule(it, "math", "round")
+		requireModule(env, "math", "round")
 		requireArgs(method, args, 0)
 		f, _, _ := numeric(receiver)
 		return &object.Integer{Value: int64(math.Round(f))}
 	case "floor":
-		requireModule(it, "math", "floor")
+		requireModule(env, "math", "floor")
 		requireArgs(method, args, 0)
 		f, _, _ := numeric(receiver)
 		return &object.Integer{Value: int64(math.Floor(f))}
 	case "ceil":
-		requireModule(it, "math", "ceil")
+		requireModule(env, "math", "ceil")
 		requireArgs(method, args, 0)
 		f, _, _ := numeric(receiver)
 		return &object.Integer{Value: int64(math.Ceil(f))}
 	case "pow":
-		requireModule(it, "math", "pow")
+		requireModule(env, "math", "pow")
 		requireArgs(method, args, 1)
 		base, _, _ := numeric(receiver)
 		exp, _, ok := numeric(args[0])
@@ -638,7 +638,7 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		}
 		return &object.Float{Value: math.Pow(base, exp)}
 	case "random":
-		requireModule(it, "math", "random")
+		requireModule(env, "math", "random")
 		requireArgs(method, args, 0)
 		n, ok := receiver.(*object.Integer)
 		if !ok {

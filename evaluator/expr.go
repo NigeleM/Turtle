@@ -21,13 +21,26 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 		return &object.String{Value: e.Value}
 	case *ast.BooleanLiteral:
 		return &object.Boolean{Value: e.Value}
+	case *ast.NoneLiteral:
+		return object.NoneValue
 
 	case *ast.Identifier:
-		val, ok := env.Get(e.Value)
-		if !ok {
-			fatalf("undefined variable %q", e.Value)
+		// A variable, or failing that a function by name — so "f = add"
+		// or "apply[mylib binary, 3]" passes the function itself.
+		if e.Module != "" {
+			return importedFunctionValue(qualifiedImport(env, e.Module, e.Value), e.Value)
 		}
-		return val
+		if val, ok := env.Get(e.Value); ok {
+			return val
+		}
+		if fn, ok := env.GetFunction(e.Value); ok {
+			return fn
+		}
+		if im := resolveImported(env, e.Value); im != nil {
+			return importedFunctionValue(im, e.Value)
+		}
+		fatalf("undefined variable %q", e.Value)
+		return nil
 
 	case *ast.PrefixExpression:
 		right := it.evalExpression(e.Right, env)
@@ -228,6 +241,9 @@ func valuesEqual(left, right object.Object) bool {
 	if lIsNum && rIsNum {
 		return lf == rf
 	}
+	if lfn, ok := left.(*object.Function); ok {
+		return lfn == right
+	}
 	return left.Inspect() == right.Inspect() && left.Type() == right.Type()
 }
 
@@ -307,21 +323,56 @@ func evalChange(typeName string, val object.Object) object.Object {
 	return nil
 }
 
-// evalCall runs a user-defined function in a fresh, isolated call
-// environment (fixing the legacy bug of one shared mutable scope per
-// function definition, which broke recursion).
+// evalCall resolves "name[...]" and runs it. Resolution order:
+//  1. a variable holding a function (a parameter, a nested def, or a
+//     function returned from another call) — a variable holding a
+//     non-function doesn't block the lookup, so existing scripts with a
+//     variable and a function of the same name keep working;
+//  2. a top-level def in the current file — your own function always
+//     wins over an imported one of the same name;
+//  3. a function from this file's imports, which must be unambiguous:
+//     if two imports both provide it, it has to be called qualified
+//     ("time now[]").
+//
+// "module name[...]" skips straight to that one module.
 func (it *Interpreter) evalCall(ce *ast.CallExpression, env *object.Environment) object.Object {
-	fn, ok := env.GetFunction(ce.Name)
-	if !ok {
-		if result, handled := it.callBuiltin(ce, env); handled {
-			return result
-		}
-		fatalf("undefined function %q", ce.Name)
+	if ce.Module != "" {
+		return it.callImported(qualifiedImport(env, ce.Module, ce.Name), ce, env)
 	}
+	if v, ok := env.Get(ce.Name); ok {
+		if fn, ok := v.(*object.Function); ok {
+			return it.callFunction(fn, ce, env)
+		}
+	}
+	if fn, ok := env.GetFunction(ce.Name); ok {
+		return it.callFunction(fn, ce, env)
+	}
+	if im := resolveImported(env, ce.Name); im != nil {
+		return it.callImported(im, ce, env)
+	}
+	for _, mod := range builtinModules {
+		if mod.ExportsFunction(ce.Name) {
+			requireModule(env, mod.Name, ce.Name)
+		}
+	}
+	fatalf("undefined function %q", ce.Name)
+	return nil
+}
+
+// callFunction runs fn in a fresh, isolated call environment (fixing the
+// legacy bug of one shared mutable scope per function definition, which
+// broke recursion) that encloses the function's defining scope, not the
+// caller's — lexical scoping, which is what lets a closure see the locals
+// it captured, and an imported function its own module's globals.
+func (it *Interpreter) callFunction(fn *object.Function, ce *ast.CallExpression, env *object.Environment) object.Object {
 	if len(ce.Arguments) != len(fn.Parameters) {
 		fatalf("function %q expects %d argument(s), got %d", ce.Name, len(fn.Parameters), len(ce.Arguments))
 	}
-	callEnv := env.NewCallEnvironment()
+	defEnv := fn.Env
+	if defEnv == nil {
+		defEnv = it.Global
+	}
+	callEnv := object.NewEnclosedEnvironment(defEnv)
 	for i, param := range fn.Parameters {
 		callEnv.Set(param, it.evalExpression(ce.Arguments[i], env))
 	}
@@ -329,28 +380,79 @@ func (it *Interpreter) evalCall(ce *ast.CallExpression, env *object.Environment)
 	if res.Signal == SigReturn {
 		return res.Value
 	}
-	return &object.Integer{Value: 0}
+	return object.NoneValue
 }
 
-// callBuiltin handles "now[]" and "sleep[amount [, unit]]" — the
-// functions unlocked by "import time" (see builtinModules in
-// evaluator.go). Only reached when no user-defined function of that name
-// exists, so a user's own function of the same name always takes
-// precedence and is never shadowed.
-func (it *Interpreter) callBuiltin(ce *ast.CallExpression, env *object.Environment) (object.Object, bool) {
+func (it *Interpreter) callImported(im *object.Import, ce *ast.CallExpression, env *object.Environment) object.Object {
+	if fn, ok := im.Module.Function(ce.Name); ok {
+		return it.callFunction(fn, ce, env)
+	}
+	return it.callBuiltin(ce, env)
+}
+
+// resolveImported finds the import that provides function name to an
+// unqualified use, or nil if none does. More than one is a clash: rather
+// than guess, it fails and asks for the module to be named.
+func resolveImported(env *object.Environment, name string) *object.Import {
+	var found []*object.Import
+	for _, im := range env.Imports() {
+		if im.Allows(name) && im.Module.ExportsFunction(name) {
+			found = append(found, im)
+		}
+	}
+	if len(found) <= 1 {
+		if len(found) == 1 {
+			return found[0]
+		}
+		return nil
+	}
+	mods := make([]string, len(found))
+	for i, im := range found {
+		mods[i] = im.Module.Name
+	}
+	fatalf("%q is provided by more than one import (%s) — say which one, e.g. %s %s[...]",
+		name, strings.Join(mods, ", "), mods[0], name)
+	return nil
+}
+
+// qualifiedImport resolves "module name" against this file's imports.
+func qualifiedImport(env *object.Environment, module, name string) *object.Import {
+	im, ok := env.FindImport(module)
+	if !ok {
+		fatalf("unknown module %q in \"%s %s\" — import it first", module, module, name)
+	}
+	if !im.Module.ExportsFunction(name) {
+		fatalf("module %q has no function %q", module, name)
+	}
+	if !im.Allows(name) {
+		fatalf("%q isn't imported — add it to \"import %s [...]\"", name, module)
+	}
+	return im
+}
+
+func importedFunctionValue(im *object.Import, name string) object.Object {
+	fn, ok := im.Module.Function(name)
+	if !ok {
+		fatalf("%q is a builtin of %q and can only be called, not used as a value", name, im.Module.Name)
+	}
+	return fn
+}
+
+// callBuiltin runs a builtin module function ("now[]", "sleep[amount [,
+// unit]]") once resolution has already confirmed it's imported.
+func (it *Interpreter) callBuiltin(ce *ast.CallExpression, env *object.Environment) object.Object {
 	switch ce.Name {
 	case "now":
-		requireModule(it, "time", "now")
 		if len(ce.Arguments) != 0 {
 			fatalf("'now' expects 0 arguments, got %d", len(ce.Arguments))
 		}
-		return &object.Integer{Value: time.Now().UnixMilli()}, true
+		return &object.Integer{Value: time.Now().UnixMilli()}
 	case "sleep":
-		requireModule(it, "time", "sleep")
 		it.evalSleep(ce, env)
-		return &object.Integer{Value: 0}, true
+		return object.NoneValue
 	}
-	return nil, false
+	fatalf("no builtin function %q", ce.Name)
+	return nil
 }
 
 // evalSleep implements "sleep[amount]" / "sleep[amount, unit]". unit is

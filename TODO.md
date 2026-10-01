@@ -123,7 +123,7 @@ can write their own `.t` libraries and have them feel first-class, not
 bolted on.
 
 **What already works today**, confirmed the same day: `import mylib`
-flattens `mylib.t`'s top-level functions into global scope, and you can
+makes `mylib.t`'s top-level functions available, and you can
 call one as `binary[a]`, capture it with plain assignment (`r =
 binary[a]`) or the sentence-style `is` form (`r is binary[a] .`), or run
 it as a bare statement (`binary[a]`). All of that is ordinary
@@ -146,13 +146,14 @@ functions read like methods. Small, contained change: one new fallback
 branch, no grammar/parser changes needed (the parser already builds a
 `MethodCallExpression` generically).
 
-**Related open question worth settling first**: `import` has no module
-namespacing at all (see `docs/reference.md`'s Modules section) — two
-libraries defining the same function name silently collide in global
-scope. That's a tolerable footgun for a single project importing its own
-files, but becomes a real problem the moment "people build their own
-libraries" implies *combining libraries written by different people*.
-Worth deciding whether that's in scope before or alongside the UFCS work.
+**Module namespacing: DONE (2026-09-30).** Each `.t` module now runs
+once in its own scope and exports only its top-level functions. `import m
+[a, b]` limits what's imported, `m name[...]` qualifies a call, and an
+unqualified call to a name two imports share is a fatal error asking for
+the qualified form (see `docs/reference.md` §Modules). For the UFCS
+fallback, that means `evalMethodCall` should resolve `mc.Method` the same
+way `evalCall` does (own defs, then unambiguous imports) rather than only
+`env.GetFunction`, and qualified methods (`a at mylib binary`) become an
+open syntax question.
 
-**Next step**: confirm whether the UFCS fallback alone covers the goal, or
-whether module namespacing needs to land first.
+**Next step**: confirm whether the UFCS fallback alone covers the goal.

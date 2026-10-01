@@ -16,7 +16,8 @@ non-terminal; `[x]` is optional; `{x}` is zero-or-more; `|` is alternation.
 - **Numbers**: `<digits>` (integer) or `<digits>.<digits>` (float).
 - **Strings**: double-quoted. Escapes: `\n`, `\t`, `\"`, `\\`.
 - **Booleans**: `true`, `false`.
-- **Reserved words** (cannot be used as identifiers): `true false show if
+- **None**: `none` — the single "no value" value (type `NONE`).
+- **Reserved words** (cannot be used as identifiers): `true false none show if
   else def end loop return list set map import sys to from at of is add
   change remove delete sort reverse insert min max length read write append
   directory break continue`. Type names used after `change ... to` —
@@ -67,7 +68,12 @@ are integers, float division otherwise; division by zero is a fatal error.
 back to floating-point modulo (Go's `math.Mod`); modulo by zero is a fatal
 error, same as division by zero.
 `<`/`>`/`<=`/`>=` work on two numbers or two strings (lexicographic).
-`==`/`!=` compare numbers by value, everything else by type + string form.
+`==`/`!=` compare numbers by value, functions by identity (the same
+definition), everything else by type + string form — so `none == none` is
+true and `none` never equals `0`, `""`, or `"none"`.
+
+Truthiness (conditions, `&&`, `||`, `!`): `false`, `0`, `0.0`, `""`, and
+`none` are falsy; everything else is truthy.
 
 Function calls: `<name>[<expr>, ...]` — Turtle uses `[...]` for call and
 definition argument lists, not `(...)`.
@@ -139,12 +145,14 @@ no separator inserted.
 
 ```
 return <expr>
+return
 break
 continue
 ```
 
 `return` ends the current function call; the value is usable directly at
-the call site. `break`/`continue` only affect the nearest enclosing loop;
+the call site. A bare `return` (nothing else on the line), or reaching the
+end of the body without a `return`, yields `none`. `break`/`continue` only affect the nearest enclosing loop;
 outside a loop they're a no-op.
 
 ## Functions
@@ -156,18 +164,92 @@ def <name>[<param>, ...]
 def [end]
 ```
 
-Call: `<name>[<expr>, ...]`. Each call gets a fresh scope seeded with only
-its parameters and no closure over the *caller's* locals — but variable
-lookup falls through to the global scope when a name isn't a parameter or
-local, so a function body can read top-level variables (a parameter/local
-of the same name shadows the global). Assignment always writes to the
-call's own local scope, never the global, so `x = ...` inside a function
+Call: `<name>[<expr>, ...]`. Each call gets a fresh scope seeded with its
+parameters. Scoping is **lexical**: a name that isn't a parameter or local
+is looked up in the scope the function was *defined* in — for a top-level
+function that's the global scope, so every function body can read
+top-level variables; it never sees the *caller's* locals. A parameter/local
+of the same name shadows the outer one. Assignment always writes to the
+call's own local scope, never an outer one, so `x = ...` inside a function
 can't clobber a global `x` — it just shadows it for the rest of that call.
-Mutating a global `list`/`set`/`map` via a data-structure statement or
-method call *does* affect the global, since that mutates the same
-underlying value `Get` returned rather than rebinding a name. The body can
-call any other top-level function, including itself, recursively.
-Argument count must match parameter count.
+Mutating an outer `list`/`set`/`map` via a data-structure statement or
+method call *does* affect it, since that mutates the same underlying value
+rather than rebinding a name. The body can call any other top-level
+function, including itself, recursively. Argument count must match
+parameter count.
+
+### Functions are values
+
+A function's name, used without `[...]`, is the function itself: it can be
+assigned, passed as an argument, returned, and compared with `==`. Calling
+`<name>[...]` resolves `name` first as a variable holding a function, then
+as a top-level function, then as a builtin (`now`, `sleep`).
+
+```
+def double[x]
+    return x * 2
+def [end]
+
+def apply[f, v]
+    return f[v]
+def [end]
+
+show apply[double, 21] .    // 42
+g = double
+show g[4] .                 // 8
+```
+
+A result must be stored before it's called — `g = make[]` then `g[]`;
+`make[][]` isn't valid syntax.
+
+### Closures
+
+A `def` inside a function body defines a **closure**: a local variable
+holding a function that remembers the scope it was defined in, so it can
+read the enclosing call's parameters and locals even after that call has
+returned. Nested defs are local to their enclosing call, not global.
+
+```
+def make_adder[n]
+    def adder[x]
+        return x + n
+    def [end]
+    return adder
+def [end]
+
+add5 = make_adder[5]
+show add5[1] .              // 6
+```
+
+Captured variables are **read-only** by assignment, following the same rule
+as globals: `n = ...` inside `adder` creates a local `n` instead of
+changing the captured one. To keep mutable state in a closure, capture a
+list/set/map and mutate it in place:
+
+```
+def make_counter[]
+    counts = list [0]
+    def inc[]
+        c is counts at pop .
+        c = c + 1
+        add c to counts .
+        return c
+    def [end]
+    return inc
+def [end]
+
+tick = make_counter[]
+show tick[] .               // 1
+show tick[] .               // 2
+```
+
+## None
+
+`none` is Turtle's "no value". It's what a function returns when it has no
+`return` or uses a bare `return`, and what the time module's `sleep[...]`
+returns. It shows as `none`, is falsy, equals only itself, and concatenates
+as `"none"` (`"x=" + none` is `"x=none"`). Arithmetic and ordering
+comparisons on `none` are fatal type errors.
 
 ## Conditionals
 
@@ -284,27 +366,71 @@ current value; items are newline-joined.
 ## Modules
 
 ```
-import <ident>
+import <name>                  // everything the module exports
+import <name> [<f>, <g>, ...]  // only the listed names
 ```
 
-Parses and evaluates `<ident>.t` in the current global scope before
-continuing — **except** for two reserved builtin module names, `math` and
-`time`, which don't read a file at all: `import math`/`import time` just
-enable a native capability for the rest of the program. Because of this,
-avoid naming your own module file `math.t` or `time.t` — those names
-always resolve to the builtin, never to a file.
+`<name>` is a builtin module (`math`, `time`) or a file `<name>.t`,
+resolved relative to the current script's directory. Because builtin names
+win, don't name your own module file `math.t` or `time.t`.
+
+**What a module exports.** A `.t` module exports its top-level functions,
+and only those. It runs once, in its own global scope, the first time any
+file imports it; later imports reuse it. Its top-level variables stay
+private to it, although its own functions can read them. A function you
+import keeps calling the module's other functions, even ones you didn't
+import, and those never leak into your program. A module's own imports
+aren't passed on to the files that import it.
+
+**Plain and qualified names.** Imported functions are called by their
+plain name: `t = now[]`. You can always name the module explicitly by
+writing it in front, separated by a space: `t = time now[]`. Without
+brackets, `mylib binary` is the function itself as a value, the same as a
+plain function name.
+
+**Clashes.** Importing two modules that export the same function name is
+fine. Calling that name *unqualified* is a fatal error that asks you to
+choose: `"now" is provided by more than one import (time, mylib) — say
+which one, e.g. time now[...]`. Every other name from those modules keeps
+working unqualified. Your own top-level `def` always wins over an imported
+function with the same name, and the module's version stays reachable
+qualified (`time now[]`).
+
+**Import lists.** `import time [sleep, now]` makes only the listed names
+available, plain or qualified. Anything else from that module is a fatal
+error naming the list to add it to. A listed name the module doesn't
+export is a fatal error at the `import` line. `import m []` is a parse
+error. Importing the same module again merges: lists accumulate, and a
+full import makes everything available.
+
+Imports apply per file: the main program and each module only see what
+they themselves imported. A circular import (`a` imports `b` imports `a`)
+is a fatal error that shows the chain.
+
+**Builtin modules.**
 
 - `import math` unlocks number methods: `sqrt`, `abs`, `round`, `floor`,
-  `ceil`, `pow`, `random` (see [`stdlib.md`](stdlib.md#number)). Calling
-  any of these before `import math` is a fatal error naming exactly which
-  import is missing.
-- `import time` unlocks two builtin functions: `now[]` (milliseconds since
-  the Unix epoch, as an Integer) and `sleep[<amount> [, <unit>]]` (pauses;
-  `<unit>` is `"seconds"`, the default, or `"ms"`). Same gating behavior —
-  used before `import time`, both fail with a clear "needs import time"
-  error. If you've already defined your own function named `now` or
-  `sleep`, yours always wins; the builtin
-  only applies when no user function of that name exists.
+  `ceil`, `pow`, `random` (see [`stdlib.md`](stdlib.md#number)). Methods
+  are called on a value (`r is 16 at sqrt .`), so they never clash and
+  are never qualified; an import list still limits which ones you can use
+  (`import math [sqrt]`).
+- `import time` provides two builtin functions: `now[]` (milliseconds
+  since the Unix epoch, as an Integer) and `sleep[<amount> [, <unit>]]`
+  (pauses; `<unit>` is `"seconds"`, the default, or `"ms"`; returns
+  `none`). Builtin functions can be called but not used as values.
+
+Using a math method or `now`/`sleep` without the matching import is a fatal
+error naming exactly which import is missing.
+
+```
+import time
+import mylib [binary, now]
+
+r = binary[5]          // only mylib has binary
+t = time now[]         // both have now: name the module
+m = mylib now[]
+sleep[0.5]             // only time has sleep
+```
 
 ## Shell escape
 
