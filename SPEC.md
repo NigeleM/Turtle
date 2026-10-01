@@ -105,6 +105,12 @@ sum = add[1, 2]
 - **(new)** Functions are values and nested `def`s are closures with
   lexical scoping — see `docs/reference.md` §Functions. Captured variables
   are read-only by assignment, by the same rule as globals.
+- **(new)** `gives` makes anonymous functions (`x gives x + 1`, block form
+  closed by `gives [end]`), and `a f args` calls `f[a, args]`
+  sentence-style. Library verbs like `data`'s `process`/`keep` are
+  ordinary functions, not syntax. See `docs/reference.md` §Functions.
+- **(new)** For-each loops `[loop][x in c]` / `[loop][k, v in c]`, and
+  `+`/`-` on two lists, sets, or maps. See `docs/reference.md`.
 - **(new)** A function without `return`, or with a bare `return`, yields
   `none` (legacy/earlier rewrite: integer `0`). `none` is a new literal and
   reserved word; see `docs/reference.md` §None.

@@ -22,6 +22,11 @@ around unmodified for reference.
 | Functions (can read globals; local assignment never writes through) | Done |
 | First-class functions + closures (lexical scope, read-only capture) | Done |
 | `none` value/type | Done |
+| Anonymous functions (`x gives x + 1`) + sentence-style calls (`nums process f`) | Done |
+| For-each loops (`[loop][x in nums]`) | Done |
+| `+`/`-` on lists, sets, maps | Done |
+| Standard library: data (`process`, `keep`, `copy`) | Done |
+| Standard library: system (command-line `args`, `exists`/`isFile`/`isFolder`) | Done |
 | Data structures (list/set/map) | Done |
 | Type conversion (`change`) | Done |
 | Standard library: strings | Done |

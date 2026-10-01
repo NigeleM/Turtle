@@ -69,6 +69,11 @@ or parser changes.
 
 ## 2. List/set higher-order methods
 
+> **Superseded (2026-09-30).** Built as the `data` library's `process`
+> (map) and `keep` (filter), taking real function values (`x gives x + 1`
+> or a named function) rather than a name passed as a string. See
+> `stdlib.md` §Data library. `reduce` isn't built yet.
+
 `map`/`filter`/`reduce` over a list or set, dispatched to an existing
 top-level function **by name, passed as a string** — deliberately not a
 new "function value" type or lambda syntax (see the "high order
