@@ -24,6 +24,12 @@ func run(t *testing.T, src, stdin string) (string, error) {
 // runIn is run with imports and file paths resolving relative to dir.
 func runIn(t *testing.T, dir, src, stdin string) (string, error) {
 	t.Helper()
+	return runFull(t, dir, src, stdin, nil)
+}
+
+// runFull is runIn plus command-line arguments for system's args[].
+func runFull(t *testing.T, dir, src, stdin string, args []string) (string, error) {
+	t.Helper()
 	p := parser.New(lexer.New(src))
 	program := p.ParseProgram()
 	if errs := p.Errors(); len(errs) > 0 {
@@ -50,6 +56,7 @@ func runIn(t *testing.T, dir, src, stdin string) (string, error) {
 	}()
 
 	it := NewWithStdin(dir, strings.NewReader(stdin))
+	it.Args = args
 	runErr := it.Run(program)
 
 	w.Close()
@@ -691,7 +698,7 @@ show mylib now[] .`, want: "mylib loaded\nmine\nmylib now\n"},
 		{name: "qualified function value", src: `import mylib
 f = mylib binary
 show f[3] .`, want: "mylib loaded\n31\n"},
-		{name: "unknown module", src: `show nope now[] .`, wantErr: `unknown module "nope"`},
+		{name: "unknown module", src: `show nope now[] .`, wantErr: `unknown module or variable "nope"`},
 		{name: "circular import", src: `import a`, wantErr: "circular import"},
 		{name: "builtin partial import", src: `import math [sqrt]
 r is 16 at sqrt .
@@ -748,6 +755,265 @@ show nums .`, "1\n1\n[ 1, 2 ]\n"},
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			out, err := run(t, c.src, "")
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
+func TestGivesSentenceCallsAndDataLib(t *testing.T) {
+	cases := []struct{ name, src, want, wantErr string }{
+		{name: "gives one and many params", src: `double = x gives x * 2
+plus = [a, b] gives a + b
+show double[4] .
+show plus[2, 3] .`, want: "8\n5\n"},
+		{name: "gives with no params", src: `def twice[f]
+    f[]
+    f[]
+def [end]
+twice[[] gives
+    show "hi" .
+gives [end]]`, want: "hi\nhi\n"},
+		{name: "gives captures scope", src: `n = 10
+f = x gives x + n
+show f[1] .`, want: "11\n"},
+		{name: "block form", src: `f = [x] gives
+    if ] x > 3 [
+        return x * 100
+    if [end]
+    return x
+gives [end]
+show f[1] .
+show f[5] .`, want: "1\n500\n"},
+		{name: "process list in place", src: `import data
+nums = list [5, 3, 8, 1]
+nums process x gives x + 1 .
+show nums .`, want: "[ 6, 4, 9, 2 ]\n"},
+		{name: "process with method in body", src: `import data
+words = list ["hey", "do"]
+words process x gives x at upper .
+show words .`, want: "[ HEY, DO ]\n"},
+		{name: "process with named function", src: `import data
+def double[x]
+    return x * 2
+def [end]
+nums = list [1, 2]
+nums process double .
+show nums .`, want: "[ 2, 4 ]\n"},
+		{name: "process block", src: `import data
+vals = list [1, 5]
+vals process [x] gives
+    if ] x > 3 [
+        return 0
+    if [end]
+    return x
+gives [end]
+show vals .`, want: "[ 1, 0 ]\n"},
+		{name: "process map values and key-value", src: `import data
+ages = map ["Alice": 30, "Bob": 25]
+ages process x gives x + 1 .
+show ages .
+ages process [k, v] gives k + "=" + v .
+show ages .`, want: "{ Alice: 31, Bob: 26 }\n{ Alice: Alice=31, Bob: Bob=26 }\n"},
+		{name: "process set dedups", src: `import data
+s = set [1, 2, 3, 4]
+s process x gives x % 2 .
+show s .`, want: "{ 1, 0 }\n"},
+		{name: "keep filters list, set, map", src: `import data
+nums = list [5, 3, 8, 1]
+nums keep x gives x > 3 .
+show nums .
+s = set [1, 2, 3]
+s keep x gives x != 2 .
+show s .
+m = map ["a": 1, "b": 5]
+m keep [k, v] gives v > 2 .
+show m .`, want: "[ 5, 8 ]\n{ 1, 3 }\n{ b: 5 }\n"},
+		{name: "copy leaves original", src: `import data
+orig = list [1, 2]
+big = copy[orig]
+big process x gives x * 10 .
+show orig .
+show big .`, want: "[ 1, 2 ]\n[ 10, 20 ]\n"},
+		{name: "sentence call with user function and args", src: `def scale[xs, f, times]
+    out = list []
+    [loop][x in xs]
+        add f[x] * times to out .
+    [loop][end]
+    return out
+def [end]
+nums = list [1, 2]
+r = nums scale x gives x + 1, 10
+show r .`, want: "[ 20, 30 ]\n"},
+		{name: "sentence call with no args", src: `def total[xs]
+    t = 0
+    [loop][x in xs]
+        t = t + x
+    [loop][end]
+    return t
+def [end]
+nums = list [1, 2, 3]
+show nums total .`, want: "6\n"},
+		{name: "process needs import", src: `nums = list [1]
+nums process x gives x .`, wantErr: `"process" needs "import data" first`},
+		{name: "process needs a function", src: `import data
+nums = list [1]
+nums process 5 .`, wantErr: "'process' needs a function"},
+		{name: "variable named like a module is refused", src: `import data
+data = list [1]
+data process x gives x .`, wantErr: `"data" is both a variable and an imported module`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := run(t, c.src, "")
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("want error containing %q, got %v", c.wantErr, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
+func TestForEachLoop(t *testing.T) {
+	cases := []struct{ name, src, want string }{
+		{"list with break and continue", `[loop][x in list [1, 2, 3, 4, 5]]
+    if ] x == 2 [
+        continue
+    if [end]
+    if ] x == 5 [
+        break
+    if [end]
+    show x .
+[loop][end]`, "1\n3\n4\n"},
+		{"index and element", `[loop][i, w in list ["a", "b"]]
+    show i, w .
+[loop][end]`, "0a\n1b\n"},
+		{"map keys, then key and value", `m = map ["x": 1, "y": 2]
+[loop][k in m]
+    show k .
+[loop][end]
+[loop][k, v in m]
+    show k, "=", v .
+[loop][end]`, "x\ny\nx=1\ny=2\n"},
+		{"string characters", `[loop][c in "hi"]
+    show c .
+[loop][end]`, "h\ni\n"},
+		{"loop name restored", `x = "before"
+[loop][x in list [1, 2]]
+[loop][end]
+show x .`, "before\n"},
+		{"snapshot: adding inside doesn't loop forever", `nums = list [1, 2]
+[loop][x in nums]
+    add x to nums .
+[loop][end]
+show nums .`, "[ 1, 2, 1, 2 ]\n"},
+		{"return from inside", `def first_big[xs]
+    [loop][x in xs]
+        if ] x > 2 [
+            return x
+        if [end]
+    [loop][end]
+    return none
+def [end]
+show first_big[list [1, 5, 9]] .`, "5\n"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := run(t, c.src, "")
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
+func TestCollectionOperators(t *testing.T) {
+	cases := []struct{ name, src, want string }{
+		{"list +", `show list [5, 3] + list [6, 7] .`, "[ 5, 3, 6, 7 ]\n"},
+		{"list -", `show list [1, 2, 3, 2] - list [2] .`, "[ 1, 3 ]\n"},
+		{"set +", `show set [1, 2] + set [2, 3] .`, "{ 1, 2, 3 }\n"},
+		{"set -", `show set [1, 2, 3] - set [2] .`, "{ 1, 3 }\n"},
+		{"map + keeps first on shared key", `show map ["a": 1, "b": 2] + map ["b": 99, "c": 3] .`, "{ a: 1, b: 2, c: 3 }\n"},
+		{"map - by key", `show map ["a": 1, "b": 2] - map ["b": 0] .`, "{ a: 1 }\n"},
+		{"operands unchanged", `a = list [1]
+b = a + list [2]
+show a .`, "[ 1 ]\n"},
+		{"string + list still concatenates", `show "x" + list [1] .`, "x[ 1 ]\n"},
+		{"method call in expression", `show "hi" at upper .
+t = "Hello, World" at slice[0, 5]
+show t .`, "HI\nHello\n"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := run(t, c.src, "")
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
+func TestSystemLibrary(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "notes.txt"), []byte("hi"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(dir, "sub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	cases := []struct {
+		name, src string
+		args      []string
+		want      string
+		wantErr   string
+	}{
+		{name: "args", src: `import system
+a = args[]
+show a .
+show length of a .`, args: []string{"one", "two words"}, want: "[ one, two words ]\n2\n"},
+		{name: "no args is an empty list", src: `import system
+show length of args[] .`, want: "0\n"},
+		{name: "exists, isFile, isFolder", src: `import system
+show exists["notes.txt"], isFile["notes.txt"], isFolder["notes.txt"] .
+show exists["sub"], isFile["sub"], isFolder["sub"] .
+show exists["missing.txt"], isFile["missing.txt"], isFolder["missing.txt"] .`,
+			want: "truetruefalse\ntruefalsetrue\nfalsefalsefalse\n"},
+		{name: "sentence style", src: `import system
+p = "notes.txt"
+if ] p exists [
+    show "yes" .
+if [end]`, want: "yes\n"},
+		{name: "needs import", src: `show exists["notes.txt"] .`, wantErr: `"exists" needs "import system" first`},
+		{name: "path must be a string", src: `import system
+show exists[5] .`, wantErr: "'exists' needs a path string"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := runFull(t, dir, c.src, "", c.args)
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("want error containing %q, got %v", c.wantErr, err)
+				}
+				return
+			}
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}

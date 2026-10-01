@@ -148,5 +148,10 @@ type Function struct {
 	Env        *Environment
 }
 
-func (f *Function) Type() Type      { return FUNCTION }
-func (f *Function) Inspect() string { return "def " + f.Name }
+func (f *Function) Type() Type { return FUNCTION }
+func (f *Function) Inspect() string {
+	if f.Name == "" {
+		return "gives function"
+	}
+	return "def " + f.Name
+}

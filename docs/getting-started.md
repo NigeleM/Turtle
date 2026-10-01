@@ -26,6 +26,14 @@ go run ./cmd/turtle path/to/script.t
 ./turtle path/to/script.t
 ```
 
+Anything after the script path is passed to the script, which reads it
+with `import system` and `args[]` (see
+[`stdlib.md`](stdlib.md#system-library)):
+
+```sh
+./turtle report.t data.txt --verbose
+```
+
 If you omit the path, `turtle` looks for the most recently modified `.t` or
 `.T` file in the current directory and runs that instead:
 

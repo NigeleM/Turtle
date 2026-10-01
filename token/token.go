@@ -87,6 +87,8 @@ const (
 	DIR      Type = "DIRECTORY"
 	BREAK    Type = "BREAK"
 	CONTINUE Type = "CONTINUE"
+	GIVES    Type = "GIVES"
+	IN       Type = "IN"
 )
 
 var keywords = map[string]Type{
@@ -126,6 +128,8 @@ var keywords = map[string]Type{
 	"directory": DIR,
 	"break":     BREAK,
 	"continue":  CONTINUE,
+	"gives":     GIVES,
+	"in":        IN,
 }
 
 // LookupIdent returns the keyword Type for literal, or IDENT if it isn't

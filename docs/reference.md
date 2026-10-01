@@ -20,7 +20,7 @@ non-terminal; `[x]` is optional; `{x}` is zero-or-more; `|` is alternation.
 - **Reserved words** (cannot be used as identifiers): `true false none show if
   else def end loop return list set map import sys to from at of is add
   change remove delete sort reverse insert min max length read write append
-  directory break continue`. Type names used after `change ... to` —
+  directory break continue gives in`. Type names used after `change ... to` —
   `integer`, `float`, `string`, `ascii`, `char`, `hex` — are **not** reserved;
   like method names (`get`, `union`, ...) they're plain identifiers whose
   meaning is only special right after `to`.
@@ -60,8 +60,9 @@ Precedence, low to high:
 | 7 | unary `-` `!` |
 | 8 (highest) | primary: literals, identifiers, calls, `(...)` grouping |
 
-`+` is overloaded: numeric addition when both operands are numbers, string
-concatenation otherwise (either side coerced via its natural string form).
+`+` is overloaded: numeric addition when both operands are numbers; on two
+lists, sets, or maps it combines them (below); otherwise string
+concatenation (either side coerced via its natural string form).
 `-` and `*` require two numbers. `/` does integer division when both sides
 are integers, float division otherwise; division by zero is a fatal error.
 `%` is modulo: integer `%` integer stays an integer, anything else falls
@@ -80,8 +81,27 @@ make the same key.
 Truthiness (conditions, `&&`, `||`, `!`): `false`, `0`, `0.0`, `""`, and
 `none` are falsy; everything else is truthy.
 
+`+` and `-` on two collections of the same kind always make a new one;
+neither side changes:
+
+| Expression | Result |
+|---|---|
+| `list + list` | joined, in order |
+| `list - list` | the left list without any element that's in the right one |
+| `set + set` | union |
+| `set - set` | difference |
+| `map + map` | all entries; on a key both have, the **left** map's value wins |
+| `map - map` | the left map without the right map's **keys** (values ignored) |
+
+`<expr> at <method>` calls a method inside any expression:
+`show name at upper .`, `w = x at slice[0, 3]`. In this form, method
+arguments go in brackets. The statement form `r is x at slice 0, 3 .` still
+takes them unbracketed. `at` binds more loosely than every operator, so
+`a + b at upper` is `(a + b) at upper`.
+
 Function calls: `<name>[<expr>, ...]` — Turtle uses `[...]` for call and
-definition argument lists, not `(...)`.
+definition argument lists, not `(...)`. See also sentence-style calls
+under Functions.
 
 ## Variables
 
@@ -248,6 +268,64 @@ show tick[] .               // 1
 show tick[] .               // 2
 ```
 
+### Anonymous functions: `gives`
+
+```
+x gives <expr>             // one parameter
+[a, b] gives <expr>        // several, bracketed like a def
+[] gives <expr>            // none
+[x] gives                  // block form: a whole body, closed by gives [end]
+    <statement> ...
+gives [end]
+```
+
+`gives` makes a function without a name. It's a value like any other
+function, and it can read the variables around it (it's a closure).
+
+```
+double = x gives x * 2
+show double[4] .                     // 8
+plus = [a, b] gives a + b
+show apply[x gives x + 1, 3] .       // 4
+
+big = [x] gives
+    if ] x > 3 [
+        return true
+    if [end]
+    return false
+gives [end]
+```
+
+The expression form's body runs to the end of the expression, so inside a
+call's `[...]` it stops at the next `,` or `]`.
+
+### Sentence-style calls
+
+```
+<variable> <function> [<arg>, ...]
+```
+
+calls `<function>[<variable>, <arg>, ...]`: the variable on the left
+becomes the first argument. It works with any function: your own, an
+imported one, or a builtin like `data`'s `process`.
+
+```
+nums process x gives x + 1 .         // process[nums, x gives x + 1]
+r = nums scale x gives x + 1, 10     // scale[nums, x gives x + 1, 10]
+show nums total .                    // total[nums]
+```
+
+- The left side must be a variable name, not a call or literal.
+- A trailing `.` is optional when the call is a whole statement.
+- `a b` is ambiguous with a module-qualified name (`time now`). It's
+  settled when the code runs: if `a` is an imported module, it's that
+  module's function; if `a` is a variable, it's a sentence-style call. A
+  name that's both is a fatal error.
+- Inside `[...]` arguments, prefer the bracket form: a sentence's own
+  arguments run to the end of the expression, `,`-separated.
+- To call an imported function qualified in this style, use the bracket
+  form instead: `data process[nums, f]`.
+
 ## None
 
 `none` is Turtle's "no value". It's what a function returns when it has no
@@ -302,7 +380,28 @@ appear in any known real program).
 ```
 <ident> = <expr> ; <expr> ; <post>      // C-style: init; condition; post
 <expr>                                   // while-style: condition only
+<ident> in <expr>                        // for-each
+<ident>, <ident> in <expr>               // for-each with index or key
 ```
+
+For-each walks a list or set (each element), a string (each character),
+or a map (each key). With two names it gives `index, element`, or
+`key, value` for a map:
+
+```
+[loop][x in nums]
+    show x .
+[loop][end]
+
+[loop][name, age in ages]
+    show name, " is ", age .
+[loop][end]
+```
+
+It walks a snapshot of the collection, so adding to or removing from it
+inside the loop can't make it skip or repeat elements. `break`,
+`continue`, and `return` work as in the other loops. Like the C-style
+counter, the loop names are restored (or removed) when the loop ends.
 
 where `<post>` is `<ident>++`, `<ident>--`, or `<ident> = <expr>`.
 
@@ -423,6 +522,13 @@ is a fatal error that shows the chain.
   since the Unix epoch, as an Integer) and `sleep[<amount> [, <unit>]]`
   (pauses; `<unit>` is `"seconds"`, the default, or `"ms"`; returns
   `none`). Builtin functions can be called but not used as values.
+- `import system` provides `args[]` (the command-line arguments after the
+  script path) and `exists`/`isFile`/`isFolder` (see
+  [`stdlib.md`](stdlib.md#system-library)).
+- `import data` provides `process`, `keep`, and `copy`, which apply a
+  function across a list, set, or map (see
+  [`stdlib.md`](stdlib.md#data-library)). They're ordinary functions,
+  usually called sentence-style: `nums process x gives x + 1 .`
 
 Using a math method or `now`/`sleep` without the matching import is a fatal
 error naming exactly which import is missing.

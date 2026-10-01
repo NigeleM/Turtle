@@ -33,6 +33,9 @@ func main() {
 	}
 
 	it := evaluator.New(filepath.Dir(path))
+	if len(os.Args) > 2 {
+		it.Args = os.Args[2:] // everything after the script path: system's args[]
+	}
 	if err := it.Run(program); err != nil {
 		fmt.Fprintln(os.Stderr, "turtle:", err)
 		os.Exit(1)

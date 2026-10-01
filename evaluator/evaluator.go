@@ -35,7 +35,8 @@ var noneResult = ExecResult{Signal: SigNone}
 // of allocating a fresh bufio.Scanner per input prompt).
 type Interpreter struct {
 	Global  *object.Environment
-	Dir     string // directory imports/[read]/[write] paths resolve relative to
+	Dir     string   // directory imports/[read]/[write] paths resolve relative to
+	Args    []string // command-line arguments after the script path (system's args[])
 	stdin   *bufio.Scanner
 	modules map[string]*object.Module // loaded .t modules, by resolved path
 	loading []string                  // .t modules mid-import, outermost first
@@ -60,11 +61,15 @@ func NewWithStdin(dir string, r io.Reader) *Interpreter {
 // builtinModules maps a name recognized by "import <name>" to a native
 // capability instead of a <name>.t file on disk: "math" provides the
 // sqrt/abs/round/floor/ceil/pow/random number methods, "time" provides
-// the now[]/sleep[ms] builtin functions. Anything else falls through to
+// the now[]/sleep[ms] builtin functions, "data" provides process/keep/copy
+// (see datalib.go), "system" provides args/exists/isFile/isFolder (see
+// systemlib.go). Anything else falls through to
 // the file-based import.
 var builtinModules = map[string]*object.Module{
-	"math": {Name: "math", Methods: []string{"sqrt", "abs", "round", "floor", "ceil", "pow", "random"}},
-	"time": {Name: "time", Funcs: []string{"now", "sleep"}},
+	"math":   {Name: "math", Methods: []string{"sqrt", "abs", "round", "floor", "ceil", "pow", "random"}},
+	"time":   {Name: "time", Funcs: []string{"now", "sleep"}},
+	"data":   {Name: "data", Funcs: []string{"process", "keep", "copy"}},
+	"system": {Name: "system", Funcs: []string{"args", "exists", "isFile", "isFolder"}},
 }
 
 // requireModule fails with a clear message naming the missing import,
@@ -272,6 +277,9 @@ func (it *Interpreter) evalIf(s *ast.IfStatement, env *object.Environment) ExecR
 // each other's iteration state, since Turtle has no block scoping and
 // loop variables live in the same environment as everything else.
 func (it *Interpreter) evalLoop(s *ast.LoopStatement, env *object.Environment) ExecResult {
+	if s.Kind == ast.LoopEach {
+		return it.evalEach(s, env)
+	}
 	if s.Kind == ast.LoopCStyle && s.Init != nil {
 		var varName string
 		if initAssign, ok := s.Init.(*ast.AssignStatement); ok {
@@ -306,6 +314,70 @@ func (it *Interpreter) evalLoop(s *ast.LoopStatement, env *object.Environment) E
 		}
 		if s.Kind == ast.LoopCStyle && s.Post != nil {
 			it.evalStatement(s.Post, env)
+		}
+	}
+	return noneResult
+}
+
+// evalEach runs "[loop][x in c]" / "[loop][a, b in c]". With one name, x
+// is each element of a list or set, each character of a string, or each
+// key of a map. With two, they're (index, element) — or (key, value) for a
+// map. It walks a snapshot, so adding to or removing from c inside the
+// loop can't make it skip or repeat. Like the C-style loop, the loop
+// names are restored to their previous values (or removed) afterwards.
+func (it *Interpreter) evalEach(s *ast.LoopStatement, env *object.Environment) ExecResult {
+	var firsts, seconds []object.Object
+	isMap := false
+	switch c := it.evalExpression(s.Iterable, env).(type) {
+	case *object.List:
+		seconds = append(seconds, c.Elements...)
+	case *object.Set:
+		seconds = append(seconds, c.Elements...)
+	case *object.String:
+		for _, r := range c.Value {
+			seconds = append(seconds, &object.String{Value: string(r)})
+		}
+	case *object.Map:
+		isMap = true
+		for _, k := range c.Keys {
+			firsts = append(firsts, &object.String{Value: k})
+			seconds = append(seconds, c.Values[k])
+		}
+	default:
+		fatalf("'[loop][... in ...]' needs a list, set, map, or string, got %s", c.Type())
+	}
+	if firsts == nil {
+		for i := range seconds {
+			firsts = append(firsts, &object.Integer{Value: int64(i)})
+		}
+	}
+	if len(s.Vars) == 1 && isMap {
+		seconds = firsts // one name over a map: its keys
+	}
+
+	for _, name := range s.Vars {
+		outerVal, hadOuter := env.Get(name)
+		defer func(name string) {
+			if hadOuter {
+				env.Set(name, outerVal)
+			} else {
+				env.Delete(name)
+			}
+		}(name)
+	}
+	for i := range seconds {
+		if len(s.Vars) == 2 {
+			env.Set(s.Vars[0], firsts[i])
+			env.Set(s.Vars[1], seconds[i])
+		} else {
+			env.Set(s.Vars[0], seconds[i])
+		}
+		res := it.evalBlock(s.Body, env)
+		if res.Signal == SigBreak {
+			break
+		}
+		if res.Signal == SigReturn {
+			return res
 		}
 	}
 	return noneResult

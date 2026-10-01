@@ -20,6 +20,7 @@ import (
 
 const (
 	LOWEST int = iota
+	METHOD     // "x at m": binds loosest, so "a + b at upper" is (a + b) at upper
 	OR
 	AND
 	EQUALS
@@ -30,6 +31,7 @@ const (
 )
 
 var precedences = map[token.Type]int{
+	token.AT:       METHOD,
 	token.OR:       OR,
 	token.AND:      AND,
 	token.EQ:       EQUALS,
@@ -65,23 +67,24 @@ func New(l *lexer.Lexer) *Parser {
 	p := &Parser{l: l}
 
 	p.prefixParseFns = map[token.Type]prefixParseFn{
-		token.IDENT:  p.parseIdentifier,
-		token.INT:    p.parseIntegerLiteral,
-		token.FLOAT:  p.parseFloatLiteral,
-		token.STRING: p.parseStringLiteral,
-		token.TRUE:   p.parseBoolean,
-		token.FALSE:  p.parseBoolean,
-		token.NONE:   p.parseNone,
-		token.MINUS:  p.parsePrefixExpression,
-		token.BANG:   p.parsePrefixExpression,
-		token.LPAREN: p.parseGroupedExpression,
-		token.LIST:   p.parseListLiteral,
-		token.SET:    p.parseSetLiteral,
-		token.MAP:    p.parseMapLiteral,
-		token.MIN:    p.parseMinMaxLength,
-		token.MAX:    p.parseMinMaxLength,
-		token.LENGTH: p.parseMinMaxLength,
-		token.CHANGE: p.parseChangeExpression,
+		token.IDENT:    p.parseIdentifier,
+		token.INT:      p.parseIntegerLiteral,
+		token.FLOAT:    p.parseFloatLiteral,
+		token.STRING:   p.parseStringLiteral,
+		token.TRUE:     p.parseBoolean,
+		token.FALSE:    p.parseBoolean,
+		token.NONE:     p.parseNone,
+		token.MINUS:    p.parsePrefixExpression,
+		token.BANG:     p.parsePrefixExpression,
+		token.LPAREN:   p.parseGroupedExpression,
+		token.LIST:     p.parseListLiteral,
+		token.SET:      p.parseSetLiteral,
+		token.MAP:      p.parseMapLiteral,
+		token.MIN:      p.parseMinMaxLength,
+		token.MAX:      p.parseMinMaxLength,
+		token.LENGTH:   p.parseMinMaxLength,
+		token.CHANGE:   p.parseChangeExpression,
+		token.LBRACKET: p.parseBracketFunctionLiteral,
 	}
 	p.infixParseFns = map[token.Type]infixParseFn{
 		token.PLUS:     p.parseInfixExpression,
@@ -97,6 +100,7 @@ func New(l *lexer.Lexer) *Parser {
 		token.NOT_EQ:   p.parseInfixExpression,
 		token.AND:      p.parseInfixExpression,
 		token.OR:       p.parseInfixExpression,
+		token.AT:       p.parseMethodCallExpression,
 	}
 
 	p.nextToken()
@@ -294,6 +298,9 @@ func (p *Parser) parseIdentifierLeadStatement() ast.Statement {
 		tok := p.curToken
 		expr := p.parseExpression(LOWEST)
 		p.nextToken()
+		if p.curTokenIs(token.PERIOD) {
+			p.nextToken()
+		}
 		if call, ok := expr.(*ast.CallExpression); ok {
 			return &ast.CallStatement{Token: tok, Call: call}
 		}
@@ -334,7 +341,9 @@ func (p *Parser) parseIsStatement() ast.Statement {
 	name := p.curToken.Literal
 	p.nextToken() // name -> IS
 	p.nextToken() // IS -> first token of receiver
-	receiver := p.parseExpression(LOWEST)
+	// METHOD, not LOWEST: the statement form "r is x at m arg, arg ." parses
+	// its own unbracketed args below, so the receiver mustn't consume "at".
+	receiver := p.parseExpression(METHOD)
 
 	if p.peekTokenIs(token.AT) {
 		p.nextToken() // -> AT
@@ -762,7 +771,16 @@ func (p *Parser) parseLoopStatement() ast.Statement {
 	}
 	p.nextToken() // -> first token of header
 
-	kind, init, cond, post := p.parseLoopHeader()
+	var kind ast.LoopKind
+	var init, post ast.Statement
+	var cond, iterable ast.Expression
+	var vars []string
+	if p.isEachHeader() {
+		kind = ast.LoopEach
+		vars, iterable = p.parseEachHeader()
+	} else {
+		kind, init, cond, post = p.parseLoopHeader()
+	}
 	if !p.expectPeek(token.RBRACKET) {
 		return nil
 	}
@@ -788,7 +806,31 @@ func (p *Parser) parseLoopStatement() ast.Statement {
 		return nil
 	}
 	p.nextToken()
-	return &ast.LoopStatement{Token: tok, Kind: kind, Init: init, Condition: cond, Post: post, Body: body}
+	return &ast.LoopStatement{Token: tok, Kind: kind, Init: init, Condition: cond, Post: post, Vars: vars, Iterable: iterable, Body: body}
+}
+
+// isEachHeader reports whether the loop header at curToken is the
+// for-each form: "x in <expr>" or "a, b in <expr>".
+func (p *Parser) isEachHeader() bool {
+	if !p.curTokenIs(token.IDENT) {
+		return false
+	}
+	if p.peekTokenIs(token.IN) {
+		return true
+	}
+	return p.peekTokenIs(token.COMMA) && p.peekN(2).Type == token.IDENT && p.peekN(3).Type == token.IN
+}
+
+func (p *Parser) parseEachHeader() ([]string, ast.Expression) {
+	vars := []string{p.curToken.Literal}
+	if p.peekTokenIs(token.COMMA) {
+		p.nextToken()
+		p.nextToken()
+		vars = append(vars, p.curToken.Literal)
+	}
+	p.nextToken() // -> IN
+	p.nextToken() // -> first token of the collection expression
+	return vars, p.parseExpression(LOWEST)
 }
 
 // headerHasSemicolon reports whether the loop header starting at
@@ -1018,23 +1060,153 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 // a header's closing '[' is always the last token on its line. That
 // line-boundary is what tells the two apart here.
 //
-// Two identifiers side by side on one line ("time now") are a name
-// qualified by its module — never otherwise valid, since every word that
-// can follow a name (is, at, to, of, ...) is a keyword, not an IDENT.
+// Two identifiers side by side on one line are either a name qualified by
+// its module ("time now[]") or a sentence-style call ("nums process f",
+// meaning process[nums, f]). The parser can't tell which — that depends
+// on whether the first name is an imported module or a variable — so both
+// become a node with Module set and the evaluator decides. Neither form
+// was otherwise valid: every word that can follow a name (is, at, to,
+// of, ...) is a keyword, not an IDENT.
+//
+// "x gives ..." is a one-parameter anonymous function.
 func (p *Parser) parseIdentifier() ast.Expression {
 	tok := p.curToken
+	if p.peekTokenIs(token.GIVES) && p.peekToken.Line == tok.Line {
+		p.nextToken()
+		return p.parseFunctionBody(tok, []string{tok.Literal})
+	}
 	module := ""
 	if p.isQualifiedName() {
 		module = tok.Literal
 		p.nextToken()
 	}
 	name := p.curToken
-	if p.peekTokenIs(token.LBRACKET) && p.peekToken.Line == name.Line && p.peekN(2).Line == p.peekToken.Line {
+	if p.peekTokenIs(token.LBRACKET) && p.peekToken.Line == name.Line && !p.bracketStartsFunction(1) && p.peekN(2).Line == p.peekToken.Line {
 		p.nextToken()
 		args := p.parseExpressionList(token.RBRACKET)
 		return &ast.CallExpression{Token: tok, Module: module, Name: name.Literal, Arguments: args}
 	}
+	if module != "" && p.peekStartsArgument() {
+		var args []ast.Expression
+		p.nextToken()
+		args = append(args, p.parseExpression(LOWEST))
+		for p.peekTokenIs(token.COMMA) {
+			p.nextToken()
+			p.nextToken()
+			args = append(args, p.parseExpression(LOWEST))
+		}
+		return &ast.CallExpression{Token: tok, Module: module, Name: name.Literal, Arguments: args}
+	}
 	return &ast.Identifier{Token: tok, Module: module, Value: name.Literal}
+}
+
+// peekStartsArgument reports whether the next token, on the same line,
+// can begin a sentence-style call's first argument. '-' is excluded so
+// "a b - 1" stays a subtraction.
+func (p *Parser) peekStartsArgument() bool {
+	if p.peekToken.Line != p.curToken.Line {
+		return false
+	}
+	switch p.peekToken.Type {
+	case token.IDENT, token.INT, token.FLOAT, token.STRING, token.TRUE, token.FALSE,
+		token.NONE, token.LPAREN, token.LIST, token.SET, token.MAP, token.CHANGE,
+		token.MIN, token.MAX, token.LENGTH, token.BANG:
+		return true
+	case token.LBRACKET:
+		return p.bracketStartsFunction(1)
+	}
+	return false
+}
+
+// bracketStartsFunction reports whether the '[' at peekN(i) opens an
+// anonymous function's parameter list: "[a, b] gives", or "[] gives" for
+// none.
+func (p *Parser) bracketStartsFunction(i int) bool {
+	if p.peekN(i).Type != token.LBRACKET {
+		return false
+	}
+	if p.peekN(i+1).Type == token.RBRACKET {
+		return p.peekN(i+2).Type == token.GIVES
+	}
+	for i++; ; i += 2 {
+		if p.peekN(i).Type != token.IDENT {
+			return false
+		}
+		switch p.peekN(i + 1).Type {
+		case token.COMMA:
+			continue
+		case token.RBRACKET:
+			return p.peekN(i+2).Type == token.GIVES
+		default:
+			return false
+		}
+	}
+}
+
+// parseBracketFunctionLiteral parses "[a, b] gives ...". curToken is '['.
+func (p *Parser) parseBracketFunctionLiteral() ast.Expression {
+	tok := p.curToken
+	if !p.bracketStartsFunction(0) {
+		p.errorf("unexpected '[' in expression (a list needs the list keyword: list [...])")
+		return nil
+	}
+	var params []string
+	if p.peekTokenIs(token.RBRACKET) {
+		p.nextToken()
+	}
+	for !p.curTokenIs(token.RBRACKET) {
+		p.nextToken()
+		params = append(params, p.curToken.Literal)
+		p.nextToken()
+	}
+	p.nextToken() // ']' -> GIVES
+	return p.parseFunctionBody(tok, params)
+}
+
+// parseFunctionBody parses what follows "gives" (curToken): an expression
+// on the same line, or, if "gives" ends its line, a block of statements
+// closed by "gives [end]" — the same shape as a def body.
+func (p *Parser) parseFunctionBody(tok token.Token, params []string) ast.Expression {
+	if p.peekTokenIs(token.EOF) || p.peekToken.Line != p.curToken.Line {
+		body := p.parseBlockUntil(p.isGivesEnd)
+		if !p.curTokenIs(token.GIVES) {
+			p.errorf("expected 'gives [end]' to close the function, got %s (%q)", p.curToken.Type, p.curToken.Literal)
+			return nil
+		}
+		p.nextToken() // -> '['
+		p.nextToken() // -> END
+		p.nextToken() // -> ']'
+		return &ast.FunctionLiteral{Token: tok, Parameters: params, Body: body}
+	}
+	p.nextToken()
+	gtok := p.curToken
+	expr := p.parseExpression(LOWEST)
+	body := &ast.BlockStatement{Token: gtok, Statements: []ast.Statement{&ast.ReturnStatement{Token: gtok, Value: expr}}}
+	return &ast.FunctionLiteral{Token: tok, Parameters: params, Body: body}
+}
+
+func (p *Parser) isGivesEnd() bool {
+	return p.curTokenIs(token.GIVES) &&
+		p.peekN(1).Type == token.LBRACKET &&
+		p.peekN(2).Type == token.END &&
+		p.peekN(3).Type == token.RBRACKET
+}
+
+// parseMethodCallExpression parses "x at method" or "x at method[args]"
+// inside any expression (curToken is AT). The statement form's
+// unbracketed args ("r is x at slice 0, 3 .") are handled by
+// parseIsStatement instead.
+func (p *Parser) parseMethodCallExpression(receiver ast.Expression) ast.Expression {
+	tok := p.curToken
+	p.nextToken()
+	method := p.curToken.Literal
+	mc := &ast.MethodCallExpression{Token: tok, Receiver: receiver, Method: method}
+	if p.peekTokenIs(token.LBRACKET) && p.peekToken.Line == p.curToken.Line {
+		p.nextToken()
+		mc.Arguments = p.parseExpressionList(token.RBRACKET)
+		mc.Bracketed = true
+	}
+	return mc
 }
 
 func (p *Parser) isQualifiedName() bool {

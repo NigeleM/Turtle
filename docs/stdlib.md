@@ -200,6 +200,83 @@ of that name exists.
 Plain `<result> is <receiver> .` (no `at`) is just assignment/aliasing —
 `<result>` becomes another reference to the same underlying value.
 
+## Data library
+
+`import data` (or `import data [process, keep, copy]`) provides three
+functions. `process` and `keep` change the collection **in place** and
+also return it. Use `copy` first to keep the original.
+
+| Function | Args | Effect |
+|---|---|---|
+| `process` | collection, function | replaces each element (list/set) or each value (map) with the function's result; a set is deduplicated afterwards |
+| `keep` | collection, function | keeps only the elements (list/set) or entries (map) for which the function gives a truthy result: a filter |
+| `copy` | collection | a new list/set/map with the same elements |
+
+For a map, the function takes the value (`x gives ...`), or the key and the
+value (`[k, v] gives ...`).
+
+```
+import data
+
+nums = list [5, 3, 8, 1]
+nums process x gives x + 1 .        // [ 6, 4, 9, 2 ]
+nums keep x gives x > 3 .           // [ 6, 4, 9 ]
+
+words = list ["hey", "do"]
+words process x gives x at upper .  // [ HEY, DO ]
+
+nums process double .               // any function value works
+
+ages = map ["Alice": 30, "Bob": 25]
+labels = copy[ages]
+labels process [name, age] gives name + " is " + age .
+ages keep [name, age] gives age > 26 .   // { Alice: 30 }
+
+nums process [x] gives              // block form for longer logic
+    if ] x > 5 [
+        return x * 2
+    if [end]
+    return x
+gives [end]
+```
+
+These are ordinary functions, so you can write your own in a `.t` library
+and call them the same sentence style. See
+[`reference.md`](reference.md#sentence-style-calls).
+
+## System library
+
+`import system` (or `import system [args, exists]`):
+
+| Function | Args | Returns |
+|---|---|---|
+| `args[]` | — | a `list` of the command-line arguments after the script path, as strings (empty if none) |
+| `exists[path]` | path string | Boolean: is there a file or folder at `path` |
+| `isFile[path]` | path string | Boolean: is `path` a regular file |
+| `isFolder[path]` | path string | Boolean: is `path` a folder |
+
+Paths resolve like `[read]`/`[write]`: relative to the script's own folder
+unless absolute. That's the script's folder, not the folder you ran
+`turtle` from. Check a file before reading it, since a missing file is a
+fatal error for `[read]`:
+
+```
+// turtle tool.t notes.txt sub missing.txt
+import system
+
+[loop][name in args[]]
+    if ] name exists [
+        if ] isFolder[name] [
+            show name, " is a folder" .
+        else ]
+            show name, " is a file" .
+        if [end]
+    else ]
+        show name, " does not exist" .
+    if [end]
+[loop][end]
+```
+
 ## Files
 
 Paths are quoted strings or barewords (`file.txt`, `data/in.csv`),

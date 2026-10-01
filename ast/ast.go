@@ -148,14 +148,17 @@ type LoopKind int
 const (
 	LoopCStyle LoopKind = iota
 	LoopWhile
+	LoopEach
 )
 
 type LoopStatement struct {
 	Token     token.Token
 	Kind      LoopKind
 	Init      Statement  // LoopCStyle only, may be nil
-	Condition Expression // required for both kinds
+	Condition Expression // LoopCStyle and LoopWhile
 	Post      Statement  // LoopCStyle only, may be nil
+	Vars      []string   // LoopEach only: "x" or "k, v" in "[loop][k, v in m]"
+	Iterable  Expression // LoopEach only
 	Body      *BlockStatement
 }
 
@@ -294,6 +297,18 @@ type BooleanLiteral struct {
 func (bl *BooleanLiteral) expressionNode()      {}
 func (bl *BooleanLiteral) TokenLiteral() string { return bl.Token.Literal }
 
+// FunctionLiteral is an anonymous function: "x gives x + 1",
+// "[a, b] gives a + b", or the block form "[x] gives" ... "gives [end]".
+// An expression body is stored as a one-statement block returning it.
+type FunctionLiteral struct {
+	Token      token.Token
+	Parameters []string
+	Body       *BlockStatement
+}
+
+func (fl *FunctionLiteral) expressionNode()      {}
+func (fl *FunctionLiteral) TokenLiteral() string { return fl.Token.Literal }
+
 type NoneLiteral struct{ Token token.Token }
 
 func (nl *NoneLiteral) expressionNode()      {}
@@ -318,7 +333,10 @@ type InfixExpression struct {
 func (ie *InfixExpression) expressionNode()      {}
 func (ie *InfixExpression) TokenLiteral() string { return ie.Token.Literal }
 
-// CallExpression is "name[args]", or "module name[args]" when Module is set.
+// CallExpression is "name[args]", or, when Module is set, either
+// "module name[args]" (a function from an imported module) or the
+// sentence-style "subject verb args" (verb[subject, args...]). Which one
+// is decided at run time: Module names an imported module, or a variable.
 type CallExpression struct {
 	Token     token.Token
 	Module    string
@@ -359,6 +377,7 @@ type MethodCallExpression struct {
 	Receiver  Expression
 	Method    string
 	Arguments []Expression
+	Bracketed bool // args were given as "x at m[args]" (expression form)
 }
 
 func (mc *MethodCallExpression) expressionNode()      {}
