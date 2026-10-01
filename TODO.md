@@ -4,25 +4,24 @@ Forward-looking punch list. For what's already done, see `PROGRESS.md`.
 
 ## 1. Expand the standard library
 
-README's own roadmap already names the gap: string functions, time
-functions, and HTTP were all marked "Not Completed" in the legacy
-interpreter and never had any real implementation to port (empty
-`[string]`/`[time]`/`[http]` stub branches, no logic behind them). This is
-new design work, not a port.
+Done so far: strings (methods), `math`, `time`, `data` (`process`, `keep`,
+`copy`), `system` (`args`, `exists`, `isFile`, `isFolder`). See
+`docs/stdlib.md`.
 
-- [ ] String functions (case conversion, trim, split/join, substring,
-      contains, etc. — needs a decision on syntax: extend the existing
-      `is <receiver> at <method>` pattern the way list/set/map already
-      work, or something new)
-- [ ] Time functions (now/format/sleep/etc.)
-- [ ] HTTP (lowest priority — biggest surface area, least precedent in
-      the existing language)
+Next, roughly in priority order:
 
-**Next step**: bring concrete example syntax for whichever of these you
-want first (a snippet is faster to build against than a description — see
-`docs/contributing.md` for why). Each new function is a small, mostly
-mechanical addition once the syntax is settled (see the worked examples in
-`docs/contributing.md`).
+- [ ] **Error handling** — every runtime error still ends the program, and
+      runaway recursion crashes Go with a stack dump instead of a Turtle
+      error. Highest-value gap; the rest of this list leans on it.
+- [ ] JSON (read/write), then SQLite (pure-Go `modernc.org/sqlite` to keep
+      `CGO_ENABLED=0` releases) — rows could come back as assembled values
+- [ ] `data`: `reduce`, sort by a function, range generator, the
+      discrete-math tier (powerset, combinations, ...) proposed 2026-09-30
+- [ ] Assembled types: "is this an Order?" check, looping over fields,
+      default field values
+- [ ] Clear error for a reserved word used as a `def`/`assemble` name
+      (today: a cascade of parse errors)
+- [ ] HTTP (lowest priority — biggest surface area)
 
 ## 2. Fix the CI/release pipeline — DONE (2026-09-29)
 

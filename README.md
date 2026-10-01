@@ -77,8 +77,39 @@ t = time now[]                 // naming the module always works, and is require
                                // when two imports both provide "now"
 ```
 
+Working with data: `gives` makes a quick function, and library functions
+read like sentences:
+
+```
+import data
+import system [args, exists]
+
+assemble Order [item, qty, price]    // your own type with named fields
+
+orders = list [Order["pen", 3, 1.5], Order["pad", 1, 4.0], Order["mug", 5, 8.0]]
+orders keep o gives qty of o > 2 .   // a filter: keeps pen and mug
+
+total = 0
+[loop][o in orders]                  // for-each
+    total = total + qty of o * price of o
+[loop][end]
+show total .                         // 44.5
+
+names = list ["ana", "bo"]
+names process n gives n at upper .   // [ ANA, BO ]
+show names + list ["CY"] .           // [ ANA, BO, CY ]
+
+[loop][path in args[]]               // turtle report.t notes.txt ...
+    if ] path exists [
+        show path, " found" .
+    if [end]
+[loop][end]
+```
+
 Full rules: [`docs/reference.md`](docs/reference.md) (Functions, Closures,
-None, Modules).
+Anonymous functions, Sentence-style calls, None, Assembled types, Loops,
+Modules) and [`docs/stdlib.md`](docs/stdlib.md) (Data library, System
+library).
 
 ## Documentation
 
