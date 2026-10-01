@@ -26,7 +26,8 @@ around unmodified for reference.
 | For-each loops (`[loop][x in nums]`) | Done |
 | `+`/`-` on lists, sets, maps | Done |
 | Standard library: data (`process`, `keep`, `copy`) | Done |
-| Standard library: system (command-line `args`, `exists`/`isFile`/`isFolder`) | Done |
+| Standard library: system (`args`, `exit`, `env`, `scriptFolder`, `contents`, `exists`/`isFile`/`isFolder`) | Done |
+| Standard library: strings (`find`, `substring`, `isinstring`, `join`) | Done |
 | Assembled types (`assemble Order [item, qty]`, `qty of o`) | Done |
 | Data structures (list/set/map) | Done |
 | Type conversion (`change`) | Done |

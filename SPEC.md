@@ -112,6 +112,14 @@ sum = add[1, 2]
 - **(new)** `assemble Name [fields]` declares a named type; `Name[...]`
   builds one, `field of v` reads a field, `field of v = x` changes it.
   See `docs/reference.md` §Assembled types.
+- **(changed)** File paths in `[read]`/`[write]`/`[append]`/`[directory]`
+  resolve from the folder `turtle` was run in, not the script's folder
+  (imports still resolve next to the script). A single bare word as a
+  path uses the variable of that name if one exists.
+- **(changed)** `length of`/`min of`/`max of` apply to the value right
+  after `of`: `length of a == 0` is `(length of a) == 0`.
+- **(new)** `system` gained `exit[code]`, `env[name]`, `scriptFolder[]`;
+  new `strings` library: `find`, `substring`, `isinstring`, `join`.
 - **(new)** For-each loops `[loop][x in c]` / `[loop][k, v in c]`, and
   `+`/`-` on two lists, sets, or maps. See `docs/reference.md`.
 - **(new)** A function without `return`, or with a bare `return`, yields

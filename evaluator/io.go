@@ -12,7 +12,38 @@ import (
 	"Turtle/parser"
 )
 
+// resolvePath resolves a file path used by [read]/[write]/[append]/
+// [directory] and system's exists/isFile/isFolder: relative to the folder
+// turtle was run from, like any command-line tool — so
+// "turtle ~/tools/count.t notes.txt" finds ./notes.txt. Scripts that want
+// files next to themselves can build the path from system's
+// scriptFolder[].
 func (it *Interpreter) resolvePath(p string) string {
+	if filepath.IsAbs(p) {
+		return p
+	}
+	return filepath.Join(it.WorkDir, p)
+}
+
+// evalPath evaluates a file statement's path. A path written as a single
+// bare word ("[read] name to lines") is the value of the variable of that
+// name if one exists, so a path from args[] or a computed string works;
+// otherwise it's that literal filename, as before. Anything with a "."
+// or "/" in it ("notes.txt", "data/in.csv") is always literal.
+func (it *Interpreter) evalPath(e ast.Expression, env *object.Environment) string {
+	if id, ok := e.(*ast.Identifier); ok {
+		if v, ok := env.Get(id.Value); ok {
+			return v.Inspect()
+		}
+		return id.Value
+	}
+	return it.evalExpression(e, env).Inspect()
+}
+
+// resolveImportPath resolves "import name" relative to the script's own
+// folder, so a program and its .t libraries can be moved together and run
+// from anywhere.
+func (it *Interpreter) resolveImportPath(p string) string {
 	if filepath.IsAbs(p) {
 		return p
 	}
@@ -20,7 +51,7 @@ func (it *Interpreter) resolvePath(p string) string {
 }
 
 func (it *Interpreter) evalFileRead(s *ast.FileReadStatement, env *object.Environment) {
-	path := it.resolvePath(it.evalExpression(s.File, env).Inspect())
+	path := it.resolvePath(it.evalPath(s.File, env))
 	data, err := os.ReadFile(path)
 	if err != nil {
 		fatalf("[read] %s: %v", path, err)
@@ -36,7 +67,7 @@ func (it *Interpreter) evalFileRead(s *ast.FileReadStatement, env *object.Enviro
 }
 
 func (it *Interpreter) evalFileWrite(s *ast.FileWriteStatement, env *object.Environment) {
-	path := it.resolvePath(it.evalExpression(s.File, env).Inspect())
+	path := it.resolvePath(it.evalPath(s.File, env))
 	var lines []string
 	for _, item := range s.Content {
 		if item.IsVar {
@@ -71,7 +102,7 @@ func (it *Interpreter) evalFileWrite(s *ast.FileWriteStatement, env *object.Envi
 }
 
 func (it *Interpreter) evalDirectory(s *ast.DirectoryStatement, env *object.Environment) {
-	path := it.resolvePath(it.evalExpression(s.Path, env).Inspect())
+	path := it.resolvePath(it.evalPath(s.Path, env))
 	entries, err := os.ReadDir(path)
 	if err != nil {
 		fatalf("[directory] %s: %v", path, err)
@@ -106,7 +137,7 @@ func (it *Interpreter) loadModule(name string) *object.Module {
 	if mod, ok := builtinModules[name]; ok {
 		return mod
 	}
-	path := it.resolvePath(name + ".t")
+	path := it.resolveImportPath(name + ".t")
 	if mod, ok := it.modules[path]; ok {
 		return mod
 	}

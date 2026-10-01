@@ -924,6 +924,11 @@ func (p *Parser) parsePathExpression() ast.Expression {
 	if p.curTokenIs(token.STRING) {
 		return &ast.StringLiteral{Token: tok, Value: tok.Literal}
 	}
+	if tok.Type == token.IDENT && !p.peekTokenIs(token.PERIOD) && !p.peekTokenIs(token.SLASH) && !p.peekTokenIs(token.MINUS) {
+		// A lone word: a variable holding the path if one exists when this
+		// runs, else the literal filename (see Interpreter.evalPath).
+		return &ast.Identifier{Token: tok, Value: tok.Literal}
+	}
 	var sb strings.Builder
 	sb.WriteString(tok.Literal)
 	for p.peekTokenIs(token.PERIOD) || p.peekTokenIs(token.SLASH) || p.peekTokenIs(token.MINUS) {
@@ -1227,7 +1232,7 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 		p.errorf("could not parse %q as integer", p.curToken.Literal)
 		return nil
 	}
-	return &ast.IntegerLiteral{Token: p.curToken, Value: v}
+	return p.maybeSentence(&ast.IntegerLiteral{Token: p.curToken, Value: v})
 }
 
 func (p *Parser) parseFloatLiteral() ast.Expression {
@@ -1236,11 +1241,38 @@ func (p *Parser) parseFloatLiteral() ast.Expression {
 		p.errorf("could not parse %q as float", p.curToken.Literal)
 		return nil
 	}
-	return &ast.FloatLiteral{Token: p.curToken, Value: v}
+	return p.maybeSentence(&ast.FloatLiteral{Token: p.curToken, Value: v})
 }
 
 func (p *Parser) parseStringLiteral() ast.Expression {
-	return &ast.StringLiteral{Token: p.curToken, Value: p.curToken.Literal}
+	return p.maybeSentence(&ast.StringLiteral{Token: p.curToken, Value: p.curToken.Literal})
+}
+
+// maybeSentence turns a literal directly followed by a name on the same
+// line into a sentence-style call with the literal as its subject:
+// "lo" isinstring line is isinstring["lo", line]. A literal followed by a
+// name was never otherwise valid.
+func (p *Parser) maybeSentence(subject ast.Expression) ast.Expression {
+	if !p.peekTokenIs(token.IDENT) || p.peekToken.Line != p.curToken.Line {
+		return subject
+	}
+	tok := p.curToken
+	p.nextToken()
+	name := p.curToken.Literal
+	var args []ast.Expression
+	if p.peekTokenIs(token.LBRACKET) && p.peekToken.Line == p.curToken.Line && !p.bracketStartsFunction(1) {
+		p.nextToken()
+		args = p.parseExpressionList(token.RBRACKET)
+	} else if p.peekStartsArgument() {
+		p.nextToken()
+		args = append(args, p.parseExpression(LOWEST))
+		for p.peekTokenIs(token.COMMA) {
+			p.nextToken()
+			p.nextToken()
+			args = append(args, p.parseExpression(LOWEST))
+		}
+	}
+	return &ast.CallExpression{Token: tok, Subject: subject, Name: name, Arguments: args}
 }
 
 func (p *Parser) parseBoolean() ast.Expression {
@@ -1351,7 +1383,9 @@ func (p *Parser) parseMinMaxLength() ast.Expression {
 		return nil
 	}
 	p.nextToken()
-	arg := p.parseExpression(LOWEST)
+	// PREFIX, like "field of x": "length of a == 0" is (length of a) == 0,
+	// and "length of a + 1" is (length of a) + 1.
+	arg := p.parseExpression(PREFIX)
 	switch tok.Type {
 	case token.MIN:
 		return &ast.MinExpression{Token: tok, Arg: arg}

@@ -34,6 +34,10 @@ with `import system` and `args[]` (see
 ./turtle report.t data.txt --verbose
 ```
 
+File paths in a script (`[read] data.txt ...`) are relative to the folder
+you run `turtle` from, like any command-line tool. `import` always looks
+next to the script.
+
 If you omit the path, `turtle` looks for the most recently modified `.t` or
 `.T` file in the current directory and runs that instead:
 

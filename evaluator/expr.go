@@ -352,6 +352,9 @@ func (it *Interpreter) evalCall(ce *ast.CallExpression, env *object.Environment)
 	for i, a := range ce.Arguments {
 		args[i] = it.evalExpression(a, env)
 	}
+	if ce.Subject != nil {
+		return it.callByName(ce.Name, append([]object.Object{it.evalExpression(ce.Subject, env)}, args...), env)
+	}
 	if ce.Module != "" {
 		if subject, ok := sentenceSubject(env, ce.Module); ok {
 			return it.callByName(ce.Name, append([]object.Object{subject}, args...), env)
@@ -438,7 +441,7 @@ func (it *Interpreter) callImported(im *object.Import, name string, args []objec
 	if fn, ok := im.Module.Function(name); ok {
 		return it.callFunction(fn, name, args)
 	}
-	return it.callBuiltin(name, args)
+	return it.callBuiltin(im.Module.Name, name, args)
 }
 
 // resolveImported finds the import that provides function name to an
@@ -489,29 +492,37 @@ func importedFunctionValue(im *object.Import, name string) object.Object {
 	return fn
 }
 
-// callBuiltin runs a builtin module function ("now[]", "sleep[amount [,
-// unit]]", data's process/keep/copy) once resolution has already
-// confirmed it's imported.
-func (it *Interpreter) callBuiltin(name string, args []object.Object) object.Object {
-	switch name {
-	case "now":
-		if len(args) != 0 {
-			fatalf("'now' expects 0 arguments, got %d", len(args))
+// callBuiltin runs function name from builtin module once resolution has
+// already confirmed it's imported. Dispatch is by module first, so two
+// builtin modules can each have a function of the same name.
+func (it *Interpreter) callBuiltin(module, name string, args []object.Object) object.Object {
+	switch module {
+	case "time":
+		switch name {
+		case "now":
+			if len(args) != 0 {
+				fatalf("'now' expects 0 arguments, got %d", len(args))
+			}
+			return &object.Integer{Value: time.Now().UnixMilli()}
+		case "sleep":
+			evalSleep(args)
+			return object.NoneValue
 		}
-		return &object.Integer{Value: time.Now().UnixMilli()}
-	case "sleep":
-		evalSleep(args)
-		return object.NoneValue
-	case "process":
-		return it.dataProcess(args)
-	case "keep":
-		return it.dataKeep(args)
-	case "copy":
-		return dataCopy(args)
-	case "args", "exists", "isFile", "isFolder":
+	case "data":
+		switch name {
+		case "process":
+			return it.dataProcess(args)
+		case "keep":
+			return it.dataKeep(args)
+		case "copy":
+			return dataCopy(args)
+		}
+	case "system":
 		return it.callSystem(name, args)
+	case "strings":
+		return callStrings(name, args)
 	}
-	fatalf("no builtin function %q", name)
+	fatalf("no builtin function %q in %q", name, module)
 	return nil
 }
 

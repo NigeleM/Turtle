@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"bufio"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -56,6 +57,7 @@ func runFull(t *testing.T, dir, src, stdin string, args []string) (string, error
 	}()
 
 	it := NewWithStdin(dir, strings.NewReader(stdin))
+	it.WorkDir = dir
 	it.Args = args
 	runErr := it.Run(program)
 
@@ -1097,5 +1099,180 @@ show x of n .`, wantErr: "'x of' needs an assembled value, got INTEGER"},
 				t.Errorf("got %q, want %q", out, c.want)
 			}
 		})
+	}
+}
+
+func TestStringsLibrary(t *testing.T) {
+	cases := []struct{ name, src, want, wantErr string }{
+		{name: "find", src: `import strings
+s = "hello world"
+show s find "wor" .
+show s find "xyz" .
+show find["héllo", "llo"] .`, want: "6\n-1\n2\n"},
+		{name: "substring", src: `import strings
+s = "Hello, World"
+show s substring 0, 5 .
+show s substring (-5) .
+show substring[s, 7] .`, want: "Hello\nWorld\nWorld\n"},
+		{name: "isinstring, literal on the left", src: `import strings
+line = "hello world"
+show "wor" isinstring line .
+show "xyz" isinstring line .`, want: "true\nfalse\n"},
+		{name: "join", src: `import strings
+words = list ["a", "b", "c"]
+show words join ", " .
+show join[words] .
+show join[list [1, 2.5, true], "-"] .
+show join[list [], ","] == "" .`, want: "a, b, c\nabc\n1-2.5-true\ntrue\n"},
+		{name: "join needs a list", src: `import strings
+show join["abc", ","] .`, wantErr: "'join' needs a list or set, got STRING"},
+		{name: "partial import", src: `import strings [join]
+show find["ab", "b"] .`, wantErr: `"find" isn't imported`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := run(t, c.src, "")
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("want error containing %q, got %v", c.wantErr, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
+func TestCommandLineTool(t *testing.T) {
+	work := t.TempDir()
+	if err := os.WriteFile(filepath.Join(work, "notes.txt"), []byte("one\ntwo\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("TURTLE_TEST_VAR", "on")
+	if err := os.MkdirAll(filepath.Join(work, "sub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(work, "sub", "a.txt"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("exit code ends the program", func(t *testing.T) {
+		out, err := runFull(t, work, `import system
+show "before" .
+exit[3]
+show "after" .`, "", nil)
+		var ex ExitRequest
+		if !errors.As(err, &ex) || ex.Code != 3 {
+			t.Fatalf("want ExitRequest{3}, got %v", err)
+		}
+		if out != "before\n" {
+			t.Errorf("got %q", out)
+		}
+	})
+	t.Run("exit with no code is 0", func(t *testing.T) {
+		_, err := runFull(t, work, "import system\nexit[]\n", "", nil)
+		var ex ExitRequest
+		if !errors.As(err, &ex) || ex.Code != 0 {
+			t.Fatalf("want ExitRequest{0}, got %v", err)
+		}
+	})
+	cases := []struct {
+		name, src string
+		args      []string
+		want      string
+		wantErr   string
+	}{
+		{name: "env", src: `import system
+show env["TURTLE_TEST_VAR"] .
+show env["TURTLE_SURELY_UNSET_123"] .`, want: "on\nnone\n"},
+		{name: "read a file named by an argument", src: `import system
+name is args[] at get 0 .
+[read] name to lines [end]
+show lines .`, args: []string{"notes.txt"}, want: "[ one, two ]\n"},
+		{name: "bare word with no such variable is a filename", src: `[write] plain
+"x"
+[end]
+[read] plain to l [end]
+show l .`, want: "[ x ]\n"},
+		{name: "contents", src: `import system
+show contents["sub"] .
+c = contents[]
+show c at find["notes.txt"] .
+f = "sub"
+n = f contents
+show length of n .`, want: "[ a.txt ]\ntrue\n1\n"},
+		{name: "contents of a missing folder", src: `import system
+show contents["nope"] .`, wantErr: "'contents' nope:"},
+		{name: "exit code must be an integer", src: `import system
+exit["no"]`, wantErr: "'exit' code must be an integer"},
+		{name: "length of binds tightly", src: `a = list []
+if ] length of a == 0 [
+    show "empty" .
+if [end]
+show length of list [1, 2] + 1 .`, want: "empty\n3\n"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := runFull(t, work, c.src, "", c.args)
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("want error containing %q, got %v", c.wantErr, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
+// File paths resolve from where turtle runs (WorkDir), imports from the
+// script's folder (Dir) — the two differ when a tool is run from
+// elsewhere.
+func TestPathsVersusImports(t *testing.T) {
+	scriptDir, work := t.TempDir(), t.TempDir()
+	if err := os.WriteFile(filepath.Join(scriptDir, "helpers.t"), []byte("def hi[]\n    return \"hi\"\ndef [end]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(work, "data.txt"), []byte("work\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	p := parser.New(lexer.New(`import helpers
+import system
+[read] data.txt to l [end]
+show hi[], " ", l .
+show exists["helpers.t"] .
+show scriptFolder[] == "` + scriptDir + `" .`))
+	program := p.ParseProgram()
+	if errs := p.Errors(); len(errs) > 0 {
+		t.Fatal(errs)
+	}
+	r, w, _ := os.Pipe()
+	orig := os.Stdout
+	os.Stdout = w
+	it := New(scriptDir)
+	it.WorkDir = work
+	runErr := it.Run(program)
+	w.Close()
+	os.Stdout = orig
+	buf := new(strings.Builder)
+	sc := bufio.NewScanner(r)
+	for sc.Scan() {
+		buf.WriteString(sc.Text() + "\n")
+	}
+	if runErr != nil {
+		t.Fatal(runErr)
+	}
+	if want := "hi [ work ]\nfalse\ntrue\n"; buf.String() != want {
+		t.Errorf("got %q, want %q", buf.String(), want)
 	}
 }

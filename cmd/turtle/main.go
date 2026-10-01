@@ -37,6 +37,9 @@ func main() {
 		it.Args = os.Args[2:] // everything after the script path: system's args[]
 	}
 	if err := it.Run(program); err != nil {
+		if ex, ok := err.(evaluator.ExitRequest); ok {
+			os.Exit(ex.Code)
+		}
 		fmt.Fprintln(os.Stderr, "turtle:", err)
 		os.Exit(1)
 	}

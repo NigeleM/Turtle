@@ -4,9 +4,11 @@ Forward-looking punch list. For what's already done, see `PROGRESS.md`.
 
 ## 1. Expand the standard library
 
-Done so far: strings (methods), `math`, `time`, `data` (`process`, `keep`,
-`copy`), `system` (`args`, `exists`, `isFile`, `isFolder`). See
-`docs/stdlib.md`.
+Done so far: string methods, `strings` (`find`, `substring`, `isinstring`,
+`join`), `math`, `time`, `data` (`process`, `keep`, `copy`), `system`
+(`args`, `exit`, `env`, `scriptFolder`, `contents`, `exists`, `isFile`,
+`isFolder`).
+See `docs/stdlib.md`.
 
 Next, roughly in priority order:
 
