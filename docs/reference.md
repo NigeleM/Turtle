@@ -315,7 +315,10 @@ r = nums scale x gives x + 1, 10     // scale[nums, x gives x + 1, 10]
 show nums total .                    // total[nums]
 ```
 
-- The left side must be a variable name, not a call or literal.
+- The left side is a variable name, or a string or number literal
+  (`"lo" isinstring line`). It can't be a call: store the result first.
+- A `-` right after the function name means subtraction (`a b - 1`), so
+  a negative first argument needs parentheses: `s substring (-5)`.
 - A trailing `.` is optional when the call is a whole statement.
 - `a b` is ambiguous with a module-qualified name (`time now`). It's
   settled when the code runs: if `a` is an imported module, it's that
@@ -352,8 +355,7 @@ qty of o = 10
   access chains right to left: `x of finish of line` is
   `x of (finish of line)`, and `x of finish of line = 7` changes it.
   `of` binds tighter than any operator, so `qty of o * price of o`
-  multiplies two fields. (`length of`/`min of`/`max of` take their whole
-  following expression instead.)
+  multiplies two fields. `length of`/`min of`/`max of` bind the same way.
 - **Errors name the fields.** A wrong number of values gives "Order needs
   3 value(s), one per field (item, qty, price), got 2". An unknown field
   gives "Order has no field "prise" (its fields: item, qty, price)".
@@ -509,6 +511,11 @@ Plain `<ident> is <expr> .` (no `at`) is assignment/aliasing.
 ```
 
 `<path>` is a quoted string or a bareword like `file.txt` / `data/in.csv`.
+A bareword that's a single name with no `.` or `/` (`[read] name to
+lines`) uses the variable of that name if one exists, so a path from
+`args[]` or built at runtime works; otherwise it's that literal filename.
+Relative paths resolve from the folder `turtle` was run in (see
+[`stdlib.md`](stdlib.md#system-library)).
 `[write]`/`[append]` body lines are one item each: a quoted string is
 written verbatim, a bare identifier is replaced with that variable's
 current value; items are newline-joined.
@@ -569,8 +576,11 @@ is a fatal error that shows the chain.
   (pauses; `<unit>` is `"seconds"`, the default, or `"ms"`; returns
   `none`). Builtin functions can be called but not used as values.
 - `import system` provides `args[]` (the command-line arguments after the
-  script path) and `exists`/`isFile`/`isFolder` (see
+  script path), `exists`/`isFile`/`isFolder`, `contents[path]`,
+  `exit[code]`, `env[name]` and `scriptFolder[]` (see
   [`stdlib.md`](stdlib.md#system-library)).
+- `import strings` provides `find`, `substring`, `isinstring` and `join`
+  (see [`stdlib.md`](stdlib.md#strings-library)).
 - `import data` provides `process`, `keep`, and `copy`, which apply a
   function across a list, set, or map (see
   [`stdlib.md`](stdlib.md#data-library)). They're ordinary functions,

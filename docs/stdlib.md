@@ -40,7 +40,9 @@ arbitrary expression).
 
 `length of`/`min of`/`max of` are also ordinary expressions usable anywhere
 (`x = 1 + length of nums`) — they only print when they're the entire
-statement.
+statement. They apply to the value right after `of`, so
+`length of nums == 0` is `(length of nums) == 0`; use parentheses for
+anything bigger: `length of (a + b)`.
 
 ### Method-call form
 
@@ -244,6 +246,35 @@ These are ordinary functions, so you can write your own in a `.t` library
 and call them the same sentence style. See
 [`reference.md`](reference.md#sentence-style-calls).
 
+## Strings library
+
+`import strings` (or `import strings [find, join]`) provides string
+functions that read well sentence-style. Three share their behaviour with
+string methods: `find` is `indexOf`, `substring` is `slice`, `isinstring`
+is `contains`. All indices count characters, not bytes.
+
+| Function | Args | Returns |
+|---|---|---|
+| `find[text, part]` | two strings | index of the first `part` in `text`, or `-1` |
+| `substring[text, start [, end]]` | string, integer(s) | the characters `[start, end)`; negative counts from the end, `end` defaults to the end, out-of-range bounds clamp (same rules as `slice`) |
+| `isinstring[part, text]` | two strings | Boolean: does `text` contain `part` |
+| `join[items [, separator]]` | list or set, optional string | one string: each element's shown form, with `separator` (default `""`) between them |
+
+```
+import strings
+
+line = "hello world"
+show line find "wor" .           // 6
+show line substring 0, 5 .       // hello
+show line substring (-5) .       // world: parenthesize a negative first argument
+show "wor" isinstring line .     // true
+words is line at split " " .
+show words join ", " .           // hello, world
+```
+
+`isinstring` takes the part first, so it reads as a sentence with the
+literal on the left: `"wor" isinstring line`.
+
 ## System library
 
 `import system` (or `import system [args, exists]`):
@@ -254,11 +285,63 @@ and call them the same sentence style. See
 | `exists[path]` | path string | Boolean: is there a file or folder at `path` |
 | `isFile[path]` | path string | Boolean: is `path` a regular file |
 | `isFolder[path]` | path string | Boolean: is `path` a folder |
+| `exit[code]` | optional integer (default `0`) | ends the program immediately with that exit code; `0` means success, anything else failure |
+| `env[name]` | variable name string | the environment variable's value as a string, or `none` if it isn't set |
+| `scriptFolder[]` | — | the full path of the folder the running script is in |
+| `contents[path]` | optional folder path (default `"."`) | a `list` of the names of the files and folders inside, sorted (names only, not full paths); a missing folder is a fatal error. The same listing as the `[directory]` statement, usable inline |
 
-Paths resolve like `[read]`/`[write]`: relative to the script's own folder
-unless absolute. That's the script's folder, not the folder you ran
-`turtle` from. Check a file before reading it, since a missing file is a
-fatal error for `[read]`:
+**Paths resolve from the folder you ran `turtle` in**, like any
+command-line tool, unless absolute. That applies here and to `[read]`,
+`[write]`, `[append]` and `[directory]`. So
+`turtle ~/tools/count.t notes.txt` reads `./notes.txt`. (`import` is
+different: it always looks next to the script, so a program and its
+libraries can be moved together.) To use a file that sits next to the
+script, build its path from `scriptFolder[]`:
+
+```
+import system
+config = scriptFolder[] + "/config.txt"
+[read] config to lines [end]
+```
+
+A complete tool, with usage message and exit codes:
+
+```
+// turtle count.t notes.txt
+import system
+import strings
+
+a = args[]
+if ] length of a == 0 [
+    show "usage: count.t <file>" .
+    exit[2]
+if [end]
+name is a at get 0 .
+if ] !(name exists) [
+    show "missing: " + name .
+    exit[1]
+if [end]
+[read] name to lines [end]
+show name, ": ", length of lines, " lines" .
+show lines join " | " .
+```
+
+Listing a folder:
+
+```
+import system
+show contents[] .                    // the folder turtle was run in
+[loop][name in contents["sub"]]
+    if ] isFolder["sub/" + name] [
+        show name, "/" .
+    else ]
+        show name .
+    if [end]
+[loop][end]
+```
+
+Check a file before reading it, since a missing file is a fatal error for
+`[read]`:
 
 ```
 // turtle tool.t notes.txt sub missing.txt
@@ -280,9 +363,11 @@ import system
 ## Files
 
 Paths are quoted strings or barewords (`file.txt`, `data/in.csv`),
-resolved relative to the directory the running script lives in (not the
-process's current working directory). Any I/O failure (file not found,
-permission denied, etc.) is a fatal error.
+resolved relative to the folder `turtle` was run in, like any command-line
+tool (use `system`'s `scriptFolder[]` for files next to the script). A
+single bare word with no `.` or `/` uses the variable of that name if one
+exists. Any I/O failure (file not found, permission denied, etc.) is a
+fatal error. Check first with `system`'s `exists[path]`.
 
 ```
 [read] <path> to <ident> [end]
@@ -344,7 +429,8 @@ import <name>
 import <name> [<f>, <g>]
 ```
 
-Reads `<name>.t` (relative to the current script's directory) and runs it
+Reads `<name>.t` (relative to the script's own folder, wherever `turtle`
+was run from) and runs it
 once, in its own scope. Its top-level functions become available to your
 program: all of them, or only the ones listed in `[...]`. Its top-level
 variables stay private to it. When two imports export the same function

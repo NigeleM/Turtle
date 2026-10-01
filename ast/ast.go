@@ -339,6 +339,7 @@ func (ie *InfixExpression) TokenLiteral() string { return ie.Token.Literal }
 // is decided at run time: Module names an imported module, or a variable.
 type CallExpression struct {
 	Token     token.Token
+	Subject   Expression // a literal subject: "lo" isinstring line
 	Module    string
 	Name      string
 	Arguments []Expression

@@ -35,7 +35,8 @@ var noneResult = ExecResult{Signal: SigNone}
 // of allocating a fresh bufio.Scanner per input prompt).
 type Interpreter struct {
 	Global  *object.Environment
-	Dir     string   // directory imports/[read]/[write] paths resolve relative to
+	Dir     string   // the script's directory: imports resolve relative to it
+	WorkDir string   // where turtle was run from: file paths resolve relative to it
 	Args    []string // command-line arguments after the script path (system's args[])
 	stdin   *bufio.Scanner
 	modules map[string]*object.Module // loaded .t modules, by resolved path
@@ -50,9 +51,11 @@ func New(dir string) *Interpreter {
 // os.Stdin — used by tests to feed a program's input prompts without
 // touching the real stdin.
 func NewWithStdin(dir string, r io.Reader) *Interpreter {
+	wd, _ := os.Getwd()
 	return &Interpreter{
 		Global:  object.NewGlobalEnvironment(),
 		Dir:     dir,
+		WorkDir: wd,
 		stdin:   bufio.NewScanner(r),
 		modules: map[string]*object.Module{},
 	}
@@ -62,14 +65,16 @@ func NewWithStdin(dir string, r io.Reader) *Interpreter {
 // capability instead of a <name>.t file on disk: "math" provides the
 // sqrt/abs/round/floor/ceil/pow/random number methods, "time" provides
 // the now[]/sleep[ms] builtin functions, "data" provides process/keep/copy
-// (see datalib.go), "system" provides args/exists/isFile/isFolder (see
-// systemlib.go). Anything else falls through to
+// (see datalib.go), "system" provides command-line and filesystem functions
+// (see systemlib.go), "strings" provides find/substring/isinstring/join
+// (see stringslib.go). Anything else falls through to
 // the file-based import.
 var builtinModules = map[string]*object.Module{
-	"math":   {Name: "math", Methods: []string{"sqrt", "abs", "round", "floor", "ceil", "pow", "random"}},
-	"time":   {Name: "time", Funcs: []string{"now", "sleep"}},
-	"data":   {Name: "data", Funcs: []string{"process", "keep", "copy"}},
-	"system": {Name: "system", Funcs: []string{"args", "exists", "isFile", "isFolder"}},
+	"math":    {Name: "math", Methods: []string{"sqrt", "abs", "round", "floor", "ceil", "pow", "random"}},
+	"time":    {Name: "time", Funcs: []string{"now", "sleep"}},
+	"data":    {Name: "data", Funcs: []string{"process", "keep", "copy"}},
+	"system":  {Name: "system", Funcs: []string{"args", "exists", "isFile", "isFolder", "exit", "env", "scriptFolder", "contents"}},
+	"strings": {Name: "strings", Funcs: []string{"find", "substring", "isinstring", "join"}},
 }
 
 // requireModule fails with a clear message naming the missing import,
@@ -124,11 +129,22 @@ func fatalf(format string, args ...interface{}) {
 // the "turtle: " prefix the caller adds). A panic that isn't a fatalError
 // is a real bug, not a Turtle runtime error, and is re-panicked rather
 // than swallowed.
+// ExitRequest is what Run returns when the program called system's
+// exit[code]: not a failure to report, just the exit code the CLI should
+// end the process with.
+type ExitRequest struct{ Code int }
+
+func (e ExitRequest) Error() string { return fmt.Sprintf("exit %d", e.Code) }
+
 func (it *Interpreter) Run(program *ast.Program) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if fe, ok := r.(fatalError); ok {
 				err = fe
+				return
+			}
+			if ex, ok := r.(ExitRequest); ok {
+				err = ex
 				return
 			}
 			panic(r)
