@@ -189,7 +189,7 @@ r is s at replace "b", "X" .
 show p .
 show hasB .
 show idxC .
-show r .`, "[ a, b, c ]\ntrue\n4\na,X,c\n"},
+show r .`, "[ \"a\", \"b\", \"c\" ]\ntrue\n4\na,X,c\n"},
 		{"isNumber true", `ok is "42" at isNumber .
 show ok .`, "true\n"},
 		{"isNumber false", `ok is "abc" at isNumber .
@@ -266,7 +266,7 @@ show p .
 
 n is 10 at random .
 show n >= 0 && n < 10 .`
-	want := "4\n7\n5\n4\n5\n1024\ntrue\n"
+	want := "4.0\n7\n5\n4\n5\n1024\ntrue\n"
 	out, err := run(t, src, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -705,7 +705,7 @@ show f[3] .`, want: "mylib loaded\n31\n"},
 		{name: "builtin partial import", src: `import math [sqrt]
 r is 16 at sqrt .
 show r .
-r is 2 at pow 3 .`, want: "4\n", wantErr: `"pow" isn't imported — add it to "import math [...]"`},
+r is 2 at pow 3 .`, want: "4.0\n", wantErr: `"pow" isn't imported — add it to "import math [...]"`},
 		{name: "builtin function partial import", src: `import time [sleep]
 sleep[0.001]
 show now[] .`, wantErr: `"now" isn't imported — add it to "import time [...]"`},
@@ -798,7 +798,7 @@ show nums .`, want: "[ 6, 4, 9, 2 ]\n"},
 		{name: "process with method in body", src: `import data
 words = list ["hey", "do"]
 words process x gives x at upper .
-show words .`, want: "[ HEY, DO ]\n"},
+show words .`, want: "[ \"HEY\", \"DO\" ]\n"},
 		{name: "process with named function", src: `import data
 def double[x]
     return x * 2
@@ -820,7 +820,7 @@ ages = map ["Alice": 30, "Bob": 25]
 ages process x gives x + 1 .
 show ages .
 ages process [k, v] gives k + "=" + v .
-show ages .`, want: "{ Alice: 31, Bob: 26 }\n{ Alice: Alice=31, Bob: Bob=26 }\n"},
+show ages .`, want: "{ \"Alice\": 31, \"Bob\": 26 }\n{ \"Alice\": \"Alice=31\", \"Bob\": \"Bob=26\" }\n"},
 		{name: "process set dedups", src: `import data
 s = set [1, 2, 3, 4]
 s process x gives x % 2 .
@@ -834,7 +834,7 @@ s keep x gives x != 2 .
 show s .
 m = map ["a": 1, "b": 5]
 m keep [k, v] gives v > 2 .
-show m .`, want: "[ 5, 8 ]\n{ 1, 3 }\n{ b: 5 }\n"},
+show m .`, want: "[ 5, 8 ]\n{ 1, 3 }\n{ \"b\": 5 }\n"},
 		{name: "copy leaves original", src: `import data
 orig = list [1, 2]
 big = copy[orig]
@@ -950,8 +950,8 @@ func TestCollectionOperators(t *testing.T) {
 		{"list -", `show list [1, 2, 3, 2] - list [2] .`, "[ 1, 3 ]\n"},
 		{"set +", `show set [1, 2] + set [2, 3] .`, "{ 1, 2, 3 }\n"},
 		{"set -", `show set [1, 2, 3] - set [2] .`, "{ 1, 3 }\n"},
-		{"map + keeps first on shared key", `show map ["a": 1, "b": 2] + map ["b": 99, "c": 3] .`, "{ a: 1, b: 2, c: 3 }\n"},
-		{"map - by key", `show map ["a": 1, "b": 2] - map ["b": 0] .`, "{ a: 1 }\n"},
+		{"map + keeps first on shared key", `show map ["a": 1, "b": 2] + map ["b": 99, "c": 3] .`, "{ \"a\": 1, \"b\": 2, \"c\": 3 }\n"},
+		{"map - by key", `show map ["a": 1, "b": 2] - map ["b": 0] .`, "{ \"a\": 1 }\n"},
 		{"operands unchanged", `a = list [1]
 b = a + list [2]
 show a .`, "[ 1 ]\n"},
@@ -990,7 +990,7 @@ func TestSystemLibrary(t *testing.T) {
 		{name: "args", src: `import system
 a = args[]
 show a .
-show length of a .`, args: []string{"one", "two words"}, want: "[ one, two words ]\n2\n"},
+show length of a .`, args: []string{"one", "two words"}, want: "[ \"one\", \"two words\" ]\n2\n"},
 		{name: "no args is an empty list", src: `import system
 show length of args[] .`, want: "0\n"},
 		{name: "exists, isFile, isFolder", src: `import system
@@ -1034,11 +1034,11 @@ func TestAssemble(t *testing.T) {
 		{name: "construct, show, read fields", src: `assemble Order [item, qty, price]
 o = Order["pen", 3, 1.5]
 show o .
-show qty of o * price of o .`, want: "Order { item: pen, qty: 3, price: 1.5 }\n4.5\n"},
+show qty of o * price of o .`, want: "Order { item: \"pen\", qty: 3, price: 1.5 }\n4.5\n"},
 		{name: "change a field", src: `assemble Order [item, qty]
 o = Order["pen", 3]
 qty of o = 10
-show o .`, want: "Order { item: pen, qty: 10 }\n"},
+show o .`, want: "Order { item: \"pen\", qty: 10 }\n"},
 		{name: "shared reference, copy separates", src: `import data
 assemble P [v]
 a = P[1]
@@ -1193,19 +1193,19 @@ show env["TURTLE_SURELY_UNSET_123"] .`, want: "on\nnone\n"},
 		{name: "read a file named by an argument", src: `import system
 name is args[] at get 0 .
 [read] name to lines [end]
-show lines .`, args: []string{"notes.txt"}, want: "[ one, two ]\n"},
+show lines .`, args: []string{"notes.txt"}, want: "[ \"one\", \"two\" ]\n"},
 		{name: "bare word with no such variable is a filename", src: `[write] plain
 "x"
 [end]
 [read] plain to l [end]
-show l .`, want: "[ x ]\n"},
+show l .`, want: "[ \"x\" ]\n"},
 		{name: "contents", src: `import system
 show contents["sub"] .
 c = contents[]
 show c at find["notes.txt"] .
 f = "sub"
 n = f contents
-show length of n .`, want: "[ a.txt ]\ntrue\n1\n"},
+show length of n .`, want: "[ \"a.txt\" ]\ntrue\n1\n"},
 		{name: "contents of a missing folder", src: `import system
 show contents["nope"] .`, wantErr: "'contents' nope:"},
 		{name: "exit code must be an integer", src: `import system
@@ -1272,7 +1272,273 @@ show scriptFolder[] == "` + scriptDir + `" .`))
 	if runErr != nil {
 		t.Fatal(runErr)
 	}
-	if want := "hi [ work ]\nfalse\ntrue\n"; buf.String() != want {
+	if want := "hi [ \"work\" ]\nfalse\ntrue\n"; buf.String() != want {
 		t.Errorf("got %q, want %q", buf.String(), want)
+	}
+}
+
+func TestStressFixes(t *testing.T) {
+	cases := []struct{ name, src, want, wantErr string }{
+		{name: "closures made in for-each keep their pass's value", src: `def make[]
+    fs = list []
+    [loop][x in list [1, 2, 3]]
+        add [] gives x to fs .
+    [loop][end]
+    return fs
+def [end]
+fs = make[]
+a is fs at get 0 .
+c is fs at get 2 .
+show a[], c[] .`, want: "13\n"},
+		{name: "closure made in c-style loop survives the loop", src: `fs = list []
+[loop][i = 0 ; i < 3 ; i++]
+    add [] gives i to fs .
+[loop][end]
+f is fs at get 0 .
+show f[] .`, want: "3\n"},
+		{name: "loop body assignments still reach outside", src: `t = 0
+[loop][x in list [1, 2, 3]]
+    t = t + x
+    last = x
+[loop][end]
+show t, last .`, want: "63\n"},
+		{name: "loop names don't touch outside names", src: `x = "outer"
+i = "outer"
+[loop][x in list [1]]
+[loop][end]
+[loop][i = 0 ; i < 2 ; i++]
+[loop][end]
+show x, i .`, want: "outerouter\n"},
+		{name: "def inside a top-level loop is still top-level", src: `[loop][x in list [1]]
+    def f[]
+        return 5
+    def [end]
+[loop][end]
+show f[] .`, want: "5\n"},
+		{name: "runaway recursion is a clean error", src: `def f[n]
+    return f[n + 1]
+def [end]
+f[0]`, wantErr: "recursion too deep"},
+		{name: "get rejects negative indexes", src: `l = list [1, 2, 3]
+a is l at get -1 .`, wantErr: "index -1 out of range for list (length 3)"},
+		{name: "slice still counts from the end", src: `l = list [1, 2, 3, 4]
+a is l at slice -2 .
+s is "Hello, World" at slice -5 .
+show a, s .`, want: "[ 3, 4 ]World\n"},
+		{name: "floats show as floats", src: `import math
+show 4.0, " ", 2.5 * 2, " ", 7 / 2, " ", 1.5 .
+r is 16 at sqrt .
+p is 2 at pow 10 .
+q is 2 at pow -1 .
+show r, " ", p, " ", q .`, want: "4.0 5.0 3 1.5\n4.0 1024 0.5\n"},
+		{name: "function arg count says function", src: `import strings
+show find["a"] .`, wantErr: `function "find" expects 2 argument(s)`},
+		{name: "map keys keep their type", src: `m = map [1: "int", "1": "str", 2.5: "f", true: "b"]
+show length of m .
+a is m at get 1 .
+b is m at get "1" .
+c is m at get 1.0 .
+show a, b, c .
+[loop][k in map [1: "a", 2: "b"]]
+    show k + 1 .
+[loop][end]
+show min of map [3: "c", 10: "x", 2: "b"] .
+i is map ["a": 1] at invert .
+v is i at get 1 .
+show v .`, want: "4\nintstrint\n2\n3\n2\na\n"},
+		{name: "missing map key error quotes strings", src: `m = map [1: "a"]
+v is m at get "1" .`, wantErr: `key "1" not found in map`},
+		{name: "big set stays correct", src: `s = set []
+[loop][i = 0 ; i < 3000 ; i++]
+    add i to s .
+    add i to s .
+[loop][end]
+remove 5 from s .
+add 5 to s .
+add 5 to s .
+show length of s .
+f is s at find 2999 .
+g is s at find 3000 .
+show f, g .`, want: "3000\ntruefalse\n"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := run(t, c.src, "")
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("want error containing %q, got %v", c.wantErr, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
+func TestSentenceCallsWithoutParentheses(t *testing.T) {
+	cases := []struct{ name, src, want string }{
+		{"one argument inside brackets", `import strings
+def pair[a, b]
+    return a + "|" + b
+def [end]
+t = "Hello"
+show pair[t find "l", 7] .`, "2|7\n"},
+		{"outside brackets takes all arguments", `import strings
+t = "Hello, World"
+show t substring 0, 5 .`, "Hello\n"},
+		{"inside list and map literals", `import strings
+t = "Hello"
+show list [t find "e", t find "o"] .
+show map ["at": t find "l"] .`, "[ 1, 4 ]\n{ \"at\": 2 }\n"},
+		{"negative argument", `import strings
+t = "Hello, World"
+show t substring -5 .
+show list [t substring -5, 1] .`, "World\n[ \"World\", 1 ]\n"},
+		{"spaced or unspaced minus is subtraction", `def total[xs]
+    t = 0
+    [loop][x in xs]
+        t = t + x
+    [loop][end]
+    return t
+def [end]
+n = list [1, 2]
+show n total - 1 .
+show n total-1 .`, "2\n2\n"},
+		{"not before a sentence", `import system
+name = "surely-missing.file"
+if ] !name exists [
+    show "missing" .
+if [end]`, "missing\n"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := run(t, c.src, "")
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
+// testdata/everything.t checks its own results and exits 1 on any failure.
+func TestEverythingScript(t *testing.T) {
+	dir, err := filepath.Abs("../testdata")
+	if err != nil {
+		t.Fatal(err)
+	}
+	src, err := os.ReadFile(filepath.Join(dir, "everything.t"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	work := t.TempDir()
+	if err := os.WriteFile(filepath.Join(work, "everything.t"), src, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	p := parser.New(lexer.New(string(src)))
+	program := p.ParseProgram()
+	if errs := p.Errors(); len(errs) > 0 {
+		t.Fatal(errs)
+	}
+	r, w, _ := os.Pipe()
+	orig := os.Stdout
+	os.Stdout = w
+	it := NewWithStdin(dir, strings.NewReader("5\n"))
+	it.WorkDir = work
+	it.Args = []string{"first", "second arg"}
+	runErr := it.Run(program)
+	w.Close()
+	os.Stdout = orig
+	var out strings.Builder
+	sc := bufio.NewScanner(r)
+	for sc.Scan() {
+		out.WriteString(sc.Text() + "\n")
+	}
+	if runErr != nil || !strings.Contains(out.String(), "failures: 0") {
+		t.Fatalf("everything.t failed (err %v):\n%s", runErr, out.String())
+	}
+}
+
+func TestTypedDisplayAndIntegerLimits(t *testing.T) {
+	cases := []struct{ name, src, want, wantErr string }{
+		{name: "strings quoted inside collections only", src: `show map [1: "a", "1": "b", true: list ["x", 3, none]] .
+show "plain" .
+assemble P [name]
+show P["Ana"] .`, want: "{ 1: \"a\", \"1\": \"b\", true: [ \"x\", 3, none ] }\nplain\nP { name: \"Ana\" }\n"},
+		{name: "limits themselves are fine", src: `hi = 9223372036854775807
+lo = -9223372036854775807 - 1
+show hi, " ", lo .`, want: "9223372036854775807 -9223372036854775808\n"},
+		{name: "add overflow", src: `show 9223372036854775807 + 1 .`, wantErr: "integer overflow: 9223372036854775807 + 1 is past the integer limits"},
+		{name: "subtract overflow", src: `lo = -9223372036854775807 - 1
+show lo - 1 .`, wantErr: "integer overflow"},
+		{name: "multiply overflow", src: `show 4611686018427387904 * 2 .`, wantErr: "integer overflow"},
+		{name: "negate overflow", src: `lo = -9223372036854775807 - 1
+show -lo .`, wantErr: "integer overflow"},
+		{name: "floats go further", src: `show 9223372036854775807 * 10.0 > 9223372036854775807 .`, want: "true\n"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := run(t, c.src, "")
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("want error containing %q, got %v", c.wantErr, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
+func TestIsEmpty(t *testing.T) {
+	src := `show list [] at isEmpty, list [1] at isEmpty .
+show set [] at isEmpty, set [1] at isEmpty .
+show map [] at isEmpty, map ["a": 1] at isEmpty .
+show "" at isEmpty, "x" at isEmpty .
+found = list []
+if ] found at isEmpty [
+    show "nothing found" .
+if [end]
+e is found at isEmpty .
+show e .`
+	out, err := run(t, src, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "truefalse\ntruefalse\ntruefalse\ntruefalse\nnothing found\ntrue\n"
+	if out != want {
+		t.Errorf("got %q, want %q", out, want)
+	}
+}
+
+func TestEmptyCollectionsAreFalsy(t *testing.T) {
+	src := `[loop][c in list [list [], set [], map [], "", 0, none, list [0], set [""], map ["a": none], "x"]]
+    if ] c [
+        show "T" .
+    else ]
+        show "F" .
+    if [end]
+[loop][end]
+show !list [] .
+show list [] || "default" .`
+	out, err := run(t, src, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "F\nF\nF\nF\nF\nF\nT\nT\nT\nT\ntrue\ntrue\n"
+	if out != want {
+		t.Errorf("got %q, want %q", out, want)
 	}
 }

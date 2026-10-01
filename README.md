@@ -97,8 +97,8 @@ total = 0
 show total .                         // 44.5
 
 names = list ["ana", "bo"]
-names process n gives n at upper .   // [ ANA, BO ]
-show names + list ["CY"] .           // [ ANA, BO, CY ]
+names process n gives n at upper .   // [ "ANA", "BO" ]
+show names + list ["CY"] .           // [ "ANA", "BO", "CY" ]
 
 [loop][path in args[]]               // turtle report.t notes.txt ...
     if ] path exists [

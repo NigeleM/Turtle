@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -76,18 +77,14 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 	case *ast.SetLiteral:
 		set := &object.Set{}
 		for _, el := range e.Elements {
-			v := it.evalExpression(el, env)
-			if !set.Contains(v) {
-				set.Elements = append(set.Elements, v)
-			}
+			set.Add(it.evalExpression(el, env))
 		}
 		return set
 
 	case *ast.MapLiteral:
 		m := object.NewMap()
 		for i, k := range e.Keys {
-			key := object.Key(it.evalExpression(k, env))
-			m.Set(key, it.evalExpression(e.Values[i], env))
+			m.Put(it.evalExpression(k, env), it.evalExpression(e.Values[i], env))
 		}
 		return m
 
@@ -114,6 +111,9 @@ func evalPrefix(op string, right object.Object) object.Object {
 	case "-":
 		switch v := right.(type) {
 		case *object.Integer:
+			if v.Value == math.MinInt64 {
+				overflow("-", v.Value, 0)
+			}
 			return &object.Integer{Value: -v.Value}
 		case *object.Float:
 			return &object.Float{Value: -v.Value}
@@ -149,7 +149,7 @@ func evalInfix(op string, left, right object.Object) object.Object {
 		rf, rIsInt, rIsNum := numeric(right)
 		if lIsNum && rIsNum {
 			if lIsInt && rIsInt {
-				return &object.Integer{Value: left.(*object.Integer).Value + right.(*object.Integer).Value}
+				return &object.Integer{Value: addInt(left.(*object.Integer).Value, right.(*object.Integer).Value)}
 			}
 			return &object.Float{Value: lf + rf}
 		}
@@ -168,12 +168,12 @@ func evalInfix(op string, left, right object.Object) object.Object {
 		switch op {
 		case "-":
 			if bothInt {
-				return &object.Integer{Value: left.(*object.Integer).Value - right.(*object.Integer).Value}
+				return &object.Integer{Value: subInt(left.(*object.Integer).Value, right.(*object.Integer).Value)}
 			}
 			return &object.Float{Value: lf - rf}
 		case "*":
 			if bothInt {
-				return &object.Integer{Value: left.(*object.Integer).Value * right.(*object.Integer).Value}
+				return &object.Integer{Value: mulInt(left.(*object.Integer).Value, right.(*object.Integer).Value)}
 			}
 			return &object.Float{Value: lf * rf}
 		case "/":
@@ -181,6 +181,9 @@ func evalInfix(op string, left, right object.Object) object.Object {
 				r := right.(*object.Integer).Value
 				if r == 0 {
 					fatalf("division by zero")
+				}
+				if r == -1 && left.(*object.Integer).Value == math.MinInt64 {
+					overflow("/", math.MinInt64, -1)
 				}
 				return &object.Integer{Value: left.(*object.Integer).Value / r}
 			}
@@ -422,6 +425,11 @@ func (it *Interpreter) callFunction(fn *object.Function, name string, args []obj
 	if len(args) != len(fn.Parameters) {
 		fatalf("function %q expects %d argument(s), got %d", name, len(fn.Parameters), len(args))
 	}
+	it.depth++
+	defer func() { it.depth-- }()
+	if it.depth > maxCallDepth {
+		fatalf("recursion too deep: more than %d calls in progress (in %q) — is a recursive function missing its stopping case?", maxCallDepth, name)
+	}
 	defEnv := fn.Env
 	if defEnv == nil {
 		defEnv = it.Global
@@ -568,4 +576,45 @@ func (it *Interpreter) assemblyField(fe *ast.FieldExpression, env *object.Enviro
 		fatalf("%s has no field %q (its fields: %s)", a.Shape.Name, fe.Field, strings.Join(a.Shape.Fields, ", "))
 	}
 	return a, i
+}
+
+// Integers are 64-bit, the industry standard (Java's long, C#'s long,
+// Go's int64, Rust's i64): -9223372036854775808 to 9223372036854775807.
+// Going past either end is an error rather than silently wrapping around
+// to the other end, the way Swift and Rust (in debug builds) handle it.
+
+func addInt(a, b int64) int64 {
+	r := a + b
+	if (a > 0 && b > 0 && r < 0) || (a < 0 && b < 0 && r >= 0) {
+		overflow("+", a, b)
+	}
+	return r
+}
+
+func subInt(a, b int64) int64 {
+	r := a - b
+	if (a >= 0 && b < 0 && r < 0) || (a < 0 && b > 0 && r >= 0) {
+		overflow("-", a, b)
+	}
+	return r
+}
+
+func mulInt(a, b int64) int64 {
+	if a == 0 || b == 0 {
+		return 0
+	}
+	r := a * b
+	if r/b != a || (a == -1 && b == math.MinInt64) || (b == -1 && a == math.MinInt64) {
+		overflow("*", a, b)
+	}
+	return r
+}
+
+func overflow(op string, a, b int64) {
+	expr := fmt.Sprintf("%d %s %d", a, op, b)
+	if op == "-" && b == 0 {
+		expr = fmt.Sprintf("-(%d)", a)
+	}
+	fatalf("integer overflow: %s is past the integer limits (%d to %d); use a float (e.g. 1.0) for bigger numbers",
+		expr, int64(math.MinInt64), int64(math.MaxInt64))
 }

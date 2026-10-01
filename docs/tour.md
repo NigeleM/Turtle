@@ -295,7 +295,7 @@ name it once with `assemble`:
 assemble Order [item, qty, price]
 
 o = Order["pen", 3, 1.5]     // one value per field, in order
-show o .                     // Order { item: pen, qty: 3, price: 1.5 }
+show o .                     // Order { item: "pen", qty: 3, price: 1.5 }
 show qty of o .              // 3
 qty of o = 10                // fields can be changed
 
@@ -360,7 +360,7 @@ at all — they unlock built-in capability instead:
 import math
 
 r is 16 at sqrt .
-show r .              // 4
+show r .              // 4.0
 
 n is 10 at random .
 show n .               // some integer in [0, 10)

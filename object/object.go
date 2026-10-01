@@ -35,10 +35,30 @@ func (i *Integer) Inspect() string { return strconv.FormatInt(i.Value, 10) }
 
 type Float struct{ Value float64 }
 
-func (f *Float) Type() Type      { return FLOAT }
-func (f *Float) Inspect() string { return strconv.FormatFloat(f.Value, 'f', -1, 64) }
+func (f *Float) Type() Type { return FLOAT }
+
+// Inspect always shows a float as a float: 4.0, not 4, so it's never
+// mistaken for an integer.
+func (f *Float) Inspect() string {
+	s := strconv.FormatFloat(f.Value, 'f', -1, 64)
+	if !strings.ContainsAny(s, ".eEIN") { // integral and finite (not Inf/NaN)
+		s += ".0"
+	}
+	return s
+}
 
 type String struct{ Value string }
+
+// Shown is how a value appears inside a list, set, map or assembled value:
+// like Inspect, except that a string is quoted, so you can see its type —
+// list [1, "1"] shows as [ 1, "1" ]. A string shown on its own (show "hi")
+// isn't quoted.
+func Shown(o Object) string {
+	if s, ok := o.(*String); ok {
+		return strconv.Quote(s.Value)
+	}
+	return o.Inspect()
+}
 
 func (s *String) Type() Type      { return STRING }
 func (s *String) Inspect() string { return s.Value }
@@ -60,26 +80,41 @@ func (l *List) Type() Type { return LIST }
 func (l *List) Inspect() string {
 	parts := make([]string, len(l.Elements))
 	for i, e := range l.Elements {
-		parts[i] = e.Inspect()
+		parts[i] = Shown(e)
 	}
 	return "[ " + strings.Join(parts, ", ") + " ]"
 }
 
 // Set is Turtle's `set [...]` — insertion-ordered, deduplicated by Equal
 // (so set [1, 2] and set [2, 1] are equal, and 1 and "1" are distinct).
-type Set struct{ Elements []Object }
+//
+// index makes membership checks fast: elements grouped by Key, confirmed
+// with Equal. It's built on first use and kept up to date by Add; any
+// other change to Elements must call Changed so it's rebuilt. Reordering
+// in place (sort, reverse) needs no call, since membership is the same.
+type Set struct {
+	Elements []Object
+	index    map[string][]Object
+}
 
 func (s *Set) Type() Type { return SET }
 func (s *Set) Inspect() string {
 	parts := make([]string, len(s.Elements))
 	for i, e := range s.Elements {
-		parts[i] = e.Inspect()
+		parts[i] = Shown(e)
 	}
 	return "{ " + strings.Join(parts, ", ") + " }"
 }
 
 func (s *Set) Contains(v Object) bool {
-	for _, e := range s.Elements {
+	if s.index == nil {
+		s.index = map[string][]Object{}
+		for _, e := range s.Elements {
+			k := Key(e)
+			s.index[k] = append(s.index[k], e)
+		}
+	}
+	for _, e := range s.index[Key(v)] {
 		if Equal(e, v) {
 			return true
 		}
@@ -87,36 +122,82 @@ func (s *Set) Contains(v Object) bool {
 	return false
 }
 
-// Map is Turtle's `map [...]` — insertion-ordered (fixes the legacy
-// interpreter's randomized Go-map iteration order).
-type Map struct {
-	Keys   []string
-	Values map[string]Object
+// Add appends v unless an equal element is already present, reporting
+// whether it was added.
+func (s *Set) Add(v Object) bool {
+	if s.Contains(v) {
+		return false
+	}
+	s.Elements = append(s.Elements, v)
+	k := Key(v)
+	s.index[k] = append(s.index[k], v)
+	return true
 }
 
-func NewMap() *Map { return &Map{Values: map[string]Object{}} }
+// Changed must be called after any change to Elements other than Add or
+// reordering.
+func (s *Set) Changed() { s.index = nil }
+
+// Map is Turtle's `map [...]` — insertion-ordered (fixes the legacy
+// interpreter's randomized Go-map iteration order). Keys can be any value
+// and keep their type: map [1: "a"] has the integer key 1, distinct from
+// the string "1". Internally each key is stored under its Key string
+// (Keys, Values), with the original key value in KeyObjs.
+type Map struct {
+	Keys    []string
+	Values  map[string]Object
+	KeyObjs map[string]Object
+}
+
+func NewMap() *Map {
+	return &Map{Values: map[string]Object{}, KeyObjs: map[string]Object{}}
+}
 
 func (m *Map) Type() Type { return MAP }
 func (m *Map) Inspect() string {
 	parts := make([]string, len(m.Keys))
 	for i, k := range m.Keys {
-		parts[i] = fmt.Sprintf("%s: %s", k, m.Values[k].Inspect())
+		parts[i] = fmt.Sprintf("%s: %s", Shown(m.KeyOf(k)), Shown(m.Values[k]))
 	}
 	return "{ " + strings.Join(parts, ", ") + " }"
 }
 
-func (m *Map) Set(key string, val Object) {
-	if _, exists := m.Values[key]; !exists {
-		m.Keys = append(m.Keys, key)
+// Put sets key to val, adding key at the end if it's new.
+func (m *Map) Put(key, val Object) {
+	k := Key(key)
+	if _, exists := m.Values[k]; !exists {
+		m.Keys = append(m.Keys, k)
+		m.KeyObjs[k] = key
 	}
-	m.Values[key] = val
+	m.Values[k] = val
 }
 
-func (m *Map) Delete(key string) bool {
+// Get returns the value stored for key.
+func (m *Map) Get(key Object) (Object, bool) {
+	v, ok := m.Values[Key(key)]
+	return v, ok
+}
+
+// KeyOf returns the original key value for an internal key string.
+func (m *Map) KeyOf(k string) Object {
+	if obj, ok := m.KeyObjs[k]; ok {
+		return obj
+	}
+	return &String{Value: k}
+}
+
+// Delete removes key, reporting whether it was there.
+func (m *Map) Delete(key Object) bool {
+	return m.DeleteKey(Key(key))
+}
+
+// DeleteKey removes the entry stored under internal key string key.
+func (m *Map) DeleteKey(key string) bool {
 	if _, exists := m.Values[key]; !exists {
 		return false
 	}
 	delete(m.Values, key)
+	delete(m.KeyObjs, key)
 	for i, k := range m.Keys {
 		if k == key {
 			m.Keys = append(m.Keys[:i], m.Keys[i+1:]...)
@@ -195,7 +276,7 @@ func (a *Assembly) Type() Type { return Type(a.Shape.Name) }
 func (a *Assembly) Inspect() string {
 	parts := make([]string, len(a.Values))
 	for i, v := range a.Values {
-		parts[i] = a.Shape.Fields[i] + ": " + v.Inspect()
+		parts[i] = a.Shape.Fields[i] + ": " + Shown(v)
 	}
 	return a.Shape.Name + " { " + strings.Join(parts, ", ") + " }"
 }

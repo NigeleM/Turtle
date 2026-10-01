@@ -75,11 +75,27 @@ maps regardless of order (`set [1, 2] == set [2, 1]`). Everything else
 needs the same type and value, so `1 != "1"`, `none == none`, and `none`
 never equals `0`, `""`, or `"none"`. The same equality is used for set
 deduplication and membership and for `count`/`index`/`find`/`remove`.
-Map keys are stored by their shown form, except that equal sets always
-make the same key.
+Map keys can be any value and keep their type: in `map [1: "a", "1":
+"b"]` the integer `1` and the string `"1"` are two different keys, and
+looping over a map or `getKeys` gives back integers as integers. Equal
+values are the same key (`1` and `1.0`; `set [1, 2]` and `set [2, 1]`).
 
-Truthiness (conditions, `&&`, `||`, `!`): `false`, `0`, `0.0`, `""`, and
-`none` are falsy; everything else is truthy.
+Values show as their type. An integer shows as `4`, a float always with a
+decimal point, `4.0`, so `2.5 * 2` shows `5.0`. Inside a list, set, map
+or assembled value, text is quoted so it can't be mistaken for a number:
+`show list [1, "1"] .` prints `[ 1, "1" ]`. Text on its own isn't quoted:
+`show "hi" .` prints `hi`.
+
+Integers are 64-bit, the industry standard (Java's and C#'s `long`, Go's
+`int64`, Rust's `i64`): from `-9223372036854775808` to
+`9223372036854775807`. A result past either limit is an "integer
+overflow" error, never a silent wrap-around; use a float (`1.0`) for
+bigger numbers. An integer literal past the limit is a parse error.
+
+Truthiness (conditions, `&&`, `||`, `!`), the Python rule: `false`,
+`none`, `0`, `0.0`, `""`, and an empty list, set or map are falsy;
+everything else is truthy. So `if ] matches [` means "if there are any
+matches". `matches at isEmpty` asks the same thing explicitly.
 
 `+` and `-` on two collections of the same kind always make a new one;
 neither side changes:
@@ -190,7 +206,9 @@ def [end]
 ```
 
 Call: `<name>[<expr>, ...]`. Each call gets a fresh scope seeded with its
-parameters. Scoping is **lexical**: a name that isn't a parameter or local
+parameters. At most 100,000 calls can be in progress at once; past that
+is a "recursion too deep" error (usually a recursive function missing its
+stopping case). Scoping is **lexical**: a name that isn't a parameter or local
 is looked up in the scope the function was *defined* in — for a top-level
 function that's the global scope, so every function body can read
 top-level variables; it never sees the *caller's* locals. A parameter/local
@@ -317,15 +335,20 @@ show nums total .                    // total[nums]
 
 - The left side is a variable name, or a string or number literal
   (`"lo" isinstring line`). It can't be a call: store the result first.
-- A `-` right after the function name means subtraction (`a b - 1`), so
-  a negative first argument needs parentheses: `s substring (-5)`.
+- A negative first argument works when the `-` is attached to it:
+  `s substring -5`. A spaced `-` (`a b - 1`) or one attached to the name
+  (`a b-1`) means subtraction.
 - A trailing `.` is optional when the call is a whole statement.
 - `a b` is ambiguous with a module-qualified name (`time now`). It's
   settled when the code runs: if `a` is an imported module, it's that
   module's function; if `a` is a variable, it's a sentence-style call. A
   name that's both is a fatal error.
-- Inside `[...]` arguments, prefer the bracket form: a sentence's own
-  arguments run to the end of the expression, `,`-separated.
+- Outside brackets, a sentence's arguments run to the end of the
+  expression, `,`-separated: `show t substring 0, 5 .`. Inside `[...]`
+  (call arguments, list/set/map literals) it takes **one** argument, so
+  the commas stay the outer list's: `check["x", t find "W", 7]` is
+  `check["x", find[t, "W"], 7]`. For two or more arguments there, use the
+  bracket form: `substring[t, 0, 5]`.
 - To call an imported function qualified in this style, use the bracket
   form instead: `data process[nums, f]`.
 
@@ -346,7 +369,7 @@ its constructor: a function that takes one value per field.
 assemble Order [item, qty, price]
 
 o = Order["pen", 3, 1.5]
-show o .                     // Order { item: pen, qty: 3, price: 1.5 }
+show o .                     // Order { item: "pen", qty: 3, price: 1.5 }
 show qty of o * price of o . // 4.5
 qty of o = 10
 ```
@@ -448,17 +471,23 @@ or a map (each key). With two names it gives `index, element`, or
 
 It walks a snapshot of the collection, so adding to or removing from it
 inside the loop can't make it skip or repeat elements. `break`,
-`continue`, and `return` work as in the other loops. Like the C-style
-counter, the loop names are restored (or removed) when the loop ends.
+`continue`, and `return` work as in the other loops.
+
+Loop names (`x`, or `k, v`) belong to the loop: a variable of the same
+name outside isn't touched, and they're gone once the loop ends. Each pass
+has its own copy, so a function made inside the loop
+(`add [] gives x to fs .`) keeps the value it saw. Every other assignment
+in the body works as if the loop weren't there: `t = t + x` updates `t`
+outside.
 
 where `<post>` is `<ident>++`, `<ident>--`, or `<ident> = <expr>`.
 
 Every `[loop][...]` — nested or not — requires its own matching
 `[loop][end]`; there is no shared-closer shortcut. The induction variable
 (C-style form) is a real, live variable, visible and updated in `show`/
-expressions on every pass; it's automatically saved and restored around the
-loop, so a nested loop reusing the same variable name as its parent doesn't
-clobber the parent's iteration.
+expressions on every pass. Like for-each names, it belongs to the loop: a
+nested loop reusing the same name doesn't clobber its parent's counter, an
+outside variable of that name is untouched, and it's gone after the loop.
 
 ## Data structures
 

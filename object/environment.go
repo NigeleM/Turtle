@@ -18,6 +18,7 @@ type Environment struct {
 	outer     *Environment
 	functions map[string]*Function
 	imports   []*Import
+	loop      bool // a loop's scope: see NewLoopEnvironment
 }
 
 func NewGlobalEnvironment() *Environment {
@@ -31,6 +32,32 @@ func NewGlobalEnvironment() *Environment {
 // function definition, reused by every call).
 func NewEnclosedEnvironment(outer *Environment) *Environment {
 	return &Environment{vars: map[string]Object{}, outer: outer}
+}
+
+// NewLoopEnvironment returns the scope for one pass of a loop (for-each)
+// or one whole loop (C-style). It holds only the loop's own names (the
+// counter, or the for-each names), defined with Define. Every other
+// assignment in the body passes through to the enclosing scope, exactly
+// as if the loop had no scope of its own. Because each pass has its own
+// scope, a closure created in the loop keeps the loop name it saw, even
+// after the loop ends.
+func NewLoopEnvironment(outer *Environment) *Environment {
+	return &Environment{vars: map[string]Object{}, outer: outer, loop: true}
+}
+
+// Define binds name in this exact scope (a loop's own names).
+func (e *Environment) Define(name string, val Object) {
+	e.vars[name] = val
+}
+
+// IsTopLevel reports whether code running in e is at a file's top level:
+// e is the global scope, or only loop scopes sit between e and it. A def
+// or assemble there is a top-level one.
+func (e *Environment) IsTopLevel() bool {
+	for e.loop {
+		e = e.outer
+	}
+	return e.outer == nil
 }
 
 // NewCallEnvironment returns a fresh call scope enclosing e.
@@ -72,6 +99,12 @@ func (e *Environment) Get(name string) (Object, bool) {
 // mutates it in place, since that goes through the same
 // *object.List/Set/Map value Get() returned, not through Set.)
 func (e *Environment) Set(name string, val Object) {
+	for e.loop {
+		if _, own := e.vars[name]; own {
+			break
+		}
+		e = e.outer
+	}
 	e.vars[name] = val
 }
 

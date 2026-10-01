@@ -118,6 +118,20 @@ sum = add[1, 2]
   path uses the variable of that name if one exists.
 - **(changed)** `length of`/`min of`/`max of` apply to the value right
   after `of`: `length of a == 0` is `(length of a) == 0`.
+- **(changed)** Floats always show a decimal point (`4.0`, `2.5 * 2` is
+  `5.0`); `pow` of whole numbers is an integer. Map keys keep their type
+  (`1` and `"1"` are different keys).
+  Loop names live in the loop's own scope, so closures made in a loop keep
+  their values. Runaway recursion stops with "recursion too deep" at
+  100,000 calls in progress.
+- **(changed)** An empty list, set or map is falsy, like `""` and `0`
+  (the Python rule); new `isEmpty` method on lists, sets, maps, strings.
+- **(changed)** Inside lists, sets, maps and assembled values, text shows
+  quoted (`[ 1, "1" ]`). Integer arithmetic past the 64-bit limits is an
+  "integer overflow" error instead of wrapping around.
+- **(changed)** Inside `[...]`, a sentence-style call takes one argument;
+  a `-` attached to a number after a function name is a negative
+  argument (`s substring -5`). No parentheses needed.
 - **(new)** `system` gained `exit[code]`, `env[name]`, `scriptFolder[]`;
   new `strings` library: `find`, `substring`, `isinstring`, `join`.
 - **(new)** For-each loops `[loop][x in c]` / `[loop][k, v in c]`, and

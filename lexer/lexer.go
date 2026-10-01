@@ -53,9 +53,10 @@ func (l *Lexer) peekChar2() byte {
 
 // NextToken returns the next token in the input.
 func (l *Lexer) NextToken() token.Token {
+	before := l.pos
 	l.skipWhitespaceAndComments()
 
-	tok := token.Token{Line: l.line}
+	tok := token.Token{Line: l.line, SpaceBefore: l.pos != before || l.pos == 0}
 	startOfLine := l.atLineStart
 	l.atLineStart = false
 

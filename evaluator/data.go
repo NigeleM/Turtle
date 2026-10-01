@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 	"sort"
@@ -28,9 +29,7 @@ func (it *Interpreter) evalDataOp(s *ast.DataOpStatement, env *object.Environmen
 		case *object.List:
 			t.Elements = append(t.Elements, val)
 		case *object.Set:
-			if !t.Contains(val) {
-				t.Elements = append(t.Elements, val)
-			}
+			t.Add(val)
 		default:
 			fatalf("'add ... to %s' needs a list or set, got %s", s.Target, target.Type())
 		}
@@ -41,17 +40,18 @@ func (it *Interpreter) evalDataOp(s *ast.DataOpStatement, env *object.Environmen
 			t.Elements = removeFirst(t.Elements, val)
 		case *object.Set:
 			t.Elements = removeFirst(t.Elements, val)
+			t.Changed()
 		default:
 			fatalf("'remove ... from %s' needs a list or set, got %s", s.Target, target.Type())
 		}
 	case ast.OpDelete:
-		key := object.Key(it.evalExpression(s.Value, env))
+		key := it.evalExpression(s.Value, env)
 		m, ok := target.(*object.Map)
 		if !ok {
 			fatalf("'delete ... from %s' needs a map, got %s", s.Target, target.Type())
 		}
 		if !m.Delete(key) {
-			fatalf("key %q not found in map %s", key, s.Target)
+			fatalf("key %s not found in map %s", showKey(key), s.Target)
 		}
 	case ast.OpSort:
 		switch t := target.(type) {
@@ -141,7 +141,7 @@ func (it *Interpreter) reduceExtreme(argExpr ast.Expression, env *object.Environ
 		candidates = v.Elements
 	case *object.Map:
 		for _, k := range v.Keys {
-			candidates = append(candidates, &object.String{Value: k})
+			candidates = append(candidates, v.KeyOf(k))
 		}
 	default:
 		fatalf("'min/max of' needs a list, set, or map, got %s", obj.Type())
@@ -198,10 +198,36 @@ func (it *Interpreter) evalMethodCall(mc *ast.MethodCallExpression, env *object.
 	}
 }
 
+// showKey formats a map key for an error message: strings quoted, so
+// key "1" and key 1 read differently.
+func showKey(k object.Object) string {
+	if s, ok := k.(*object.String); ok {
+		return fmt.Sprintf("%q", s.Value)
+	}
+	return k.Inspect()
+}
+
 func requireArgs(method string, args []object.Object, n int) {
 	if len(args) != n {
 		fatalf("method %q expects %d argument(s), got %d", method, n, len(args))
 	}
+}
+
+// requireFuncArgs is requireArgs for library functions (find[...]), so
+// the message doesn't call them methods.
+func requireFuncArgs(name string, args []object.Object, n int) {
+	if len(args) != n {
+		fatalf("function %q expects %d argument(s), got %d", name, n, len(args))
+	}
+}
+
+// listIndex checks a get index: 0 up to length-1. Unlike slice, get
+// doesn't count from the end — a negative index is out of range.
+func listIndex(kind string, idx, n int) int {
+	if idx < 0 || idx >= n {
+		fatalf("index %d out of range for %s (length %d)", idx, kind, n)
+	}
+	return idx
 }
 
 func asIndex(method string, obj object.Object) int {
@@ -214,6 +240,9 @@ func asIndex(method string, obj object.Object) int {
 
 func listMethod(l *object.List, method string, args []object.Object) object.Object {
 	switch method {
+	case "isEmpty":
+		requireArgs(method, args, 0)
+		return &object.Boolean{Value: len(l.Elements) == 0}
 	case "add":
 		requireArgs(method, args, 1)
 		l.Elements = append(l.Elements, args[0])
@@ -277,11 +306,7 @@ func listMethod(l *object.List, method string, args []object.Object) object.Obje
 		return l
 	case "get":
 		requireArgs(method, args, 1)
-		idx := asIndex(method, args[0])
-		if idx < 0 || idx >= len(l.Elements) {
-			fatalf("index %d out of range for list (length %d)", idx, len(l.Elements))
-		}
-		return l.Elements[idx]
+		return l.Elements[listIndex("list", asIndex(method, args[0]), len(l.Elements))]
 	case "slice":
 		if len(args) < 1 || len(args) > 2 {
 			fatalf("%q expects 1 or 2 argument(s), got %d", method, len(args))
@@ -305,11 +330,12 @@ func listMethod(l *object.List, method string, args []object.Object) object.Obje
 
 func setMethod(s *object.Set, method string, args []object.Object) object.Object {
 	switch method {
+	case "isEmpty":
+		requireArgs(method, args, 0)
+		return &object.Boolean{Value: len(s.Elements) == 0}
 	case "add":
 		requireArgs(method, args, 1)
-		if !s.Contains(args[0]) {
-			s.Elements = append(s.Elements, args[0])
-		}
+		s.Add(args[0])
 		return s
 	case "len", "length":
 		return &object.Integer{Value: int64(len(s.Elements))}
@@ -317,6 +343,7 @@ func setMethod(s *object.Set, method string, args []object.Object) object.Object
 		return &object.String{Value: s.Inspect()}
 	case "clear":
 		s.Elements = nil
+		s.Changed()
 		return s
 	case "count":
 		requireArgs(method, args, 1)
@@ -341,6 +368,7 @@ func setMethod(s *object.Set, method string, args []object.Object) object.Object
 	case "remove":
 		requireArgs(method, args, 1)
 		s.Elements = removeFirst(s.Elements, args[0])
+		s.Changed()
 		return s
 	case "reverse":
 		reverseElements(s.Elements)
@@ -351,6 +379,7 @@ func setMethod(s *object.Set, method string, args []object.Object) object.Object
 		}
 		last := s.Elements[len(s.Elements)-1]
 		s.Elements = s.Elements[:len(s.Elements)-1]
+		s.Changed()
 		return last
 	case "find":
 		requireArgs(method, args, 1)
@@ -365,14 +394,11 @@ func setMethod(s *object.Set, method string, args []object.Object) object.Object
 			fatalf("index %d out of range for set (length %d)", idx, len(s.Elements))
 		}
 		s.Elements = append(s.Elements[:idx:idx], append([]object.Object{args[0]}, s.Elements[idx:]...)...)
+		s.Changed()
 		return s
 	case "get":
 		requireArgs(method, args, 1)
-		idx := asIndex(method, args[0])
-		if idx < 0 || idx >= len(s.Elements) {
-			fatalf("index %d out of range for set (length %d)", idx, len(s.Elements))
-		}
-		return s.Elements[idx]
+		return s.Elements[listIndex("set", asIndex(method, args[0]), len(s.Elements))]
 	case "union":
 		requireArgs(method, args, 1)
 		other, ok := args[0].(*object.Set)
@@ -381,9 +407,7 @@ func setMethod(s *object.Set, method string, args []object.Object) object.Object
 		}
 		result := &object.Set{Elements: append([]object.Object{}, s.Elements...)}
 		for _, e := range other.Elements {
-			if !result.Contains(e) {
-				result.Elements = append(result.Elements, e)
-			}
+			result.Add(e)
 		}
 		return result
 	case "intersection":
@@ -443,12 +467,14 @@ func setMethod(s *object.Set, method string, args []object.Object) object.Object
 
 func mapMethod(m *object.Map, method string, args []object.Object) object.Object {
 	switch method {
+	case "isEmpty":
+		requireArgs(method, args, 0)
+		return &object.Boolean{Value: len(m.Keys) == 0}
 	case "get":
 		requireArgs(method, args, 1)
-		key := object.Key(args[0])
-		v, ok := m.Values[key]
+		v, ok := m.Get(args[0])
 		if !ok {
-			fatalf("key %q not found in map", key)
+			fatalf("key %s not found in map", showKey(args[0]))
 		}
 		return v
 	case "getValues":
@@ -460,24 +486,23 @@ func mapMethod(m *object.Map, method string, args []object.Object) object.Object
 	case "getKeys":
 		list := &object.List{}
 		for _, k := range m.Keys {
-			list.Elements = append(list.Elements, &object.String{Value: k})
+			list.Elements = append(list.Elements, m.KeyOf(k))
 		}
 		return list
 	case "add":
 		requireArgs(method, args, 2)
-		m.Set(object.Key(args[0]), args[1])
+		m.Put(args[0], args[1])
 		return m
 	case "delete":
 		requireArgs(method, args, 1)
-		key := object.Key(args[0])
-		if !m.Delete(key) {
-			fatalf("key %q not found in map", key)
+		if !m.Delete(args[0]) {
+			fatalf("key %s not found in map", showKey(args[0]))
 		}
 		return m
 	case "invert":
 		result := object.NewMap()
 		for _, k := range m.Keys {
-			result.Set(object.Key(m.Values[k]), &object.String{Value: k})
+			result.Put(m.Values[k], m.KeyOf(k))
 		}
 		return result
 	case "toString":
@@ -489,6 +514,9 @@ func mapMethod(m *object.Map, method string, args []object.Object) object.Object
 
 func stringMethod(s *object.String, method string, args []object.Object) object.Object {
 	switch method {
+	case "isEmpty":
+		requireArgs(method, args, 0)
+		return &object.Boolean{Value: s.Value == ""}
 	case "isNumber":
 		requireArgs(method, args, 0)
 		_, err := strconv.ParseFloat(strings.TrimSpace(s.Value), 64)
@@ -505,11 +533,7 @@ func stringMethod(s *object.String, method string, args []object.Object) object.
 	case "get":
 		requireArgs(method, args, 1)
 		runes := []rune(s.Value)
-		i := asIndex(method, args[0])
-		if i < 0 || i >= len(runes) {
-			fatalf("%q index %d out of range (length %d)", method, i, len(runes))
-		}
-		return &object.String{Value: string(runes[i])}
+		return &object.String{Value: string(runes[listIndex("string", asIndex(method, args[0]), len(runes))])}
 	case "slice":
 		return stringSlice(s, method, args)
 	case "split":
@@ -631,12 +655,18 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 	case "pow":
 		requireModule(env, "math", "pow")
 		requireArgs(method, args, 1)
-		base, _, _ := numeric(receiver)
-		exp, _, ok := numeric(args[0])
+		base, baseInt, _ := numeric(receiver)
+		exp, expInt, ok := numeric(args[0])
 		if !ok {
 			fatalf("%q argument must be a number, got %s", method, args[0].Type())
 		}
-		return &object.Float{Value: math.Pow(base, exp)}
+		r := math.Pow(base, exp)
+		// A whole number to a non-negative whole power is a whole number:
+		// 2 at pow 10 is 1024, not 1024.0 (as long as it fits an integer).
+		if baseInt && expInt && exp >= 0 && math.Abs(r) < 1<<53 {
+			return &object.Integer{Value: int64(r)}
+		}
+		return &object.Float{Value: r}
 	case "random":
 		requireModule(env, "math", "random")
 		requireArgs(method, args, 0)

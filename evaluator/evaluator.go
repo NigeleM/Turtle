@@ -40,6 +40,7 @@ type Interpreter struct {
 	Args    []string // command-line arguments after the script path (system's args[])
 	stdin   *bufio.Scanner
 	modules map[string]*object.Module // loaded .t modules, by resolved path
+	depth   int                       // function calls in progress (see maxCallDepth)
 	loading []string                  // .t modules mid-import, outermost first
 }
 
@@ -60,6 +61,12 @@ func NewWithStdin(dir string, r io.Reader) *Interpreter {
 		modules: map[string]*object.Module{},
 	}
 }
+
+// maxCallDepth caps how many function calls can be in progress at once,
+// so runaway recursion is a Turtle error instead of Go running out of
+// stack and crashing with a stack dump. Well below that crash point even
+// for large function bodies.
+const maxCallDepth = 100000
 
 // builtinModules maps a name recognized by "import <name>" to a native
 // capability instead of a <name>.t file on disk: "math" provides the
@@ -230,7 +237,7 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		// enclosing call's scope, so it can be returned or passed along
 		// and still read that call's locals after it has finished.
 		fn := &object.Function{Name: s.Name, Parameters: s.Parameters, Body: s.Body, Env: env}
-		if env.IsRoot() {
+		if env.IsTopLevel() {
 			env.DefineFunction(fn)
 		} else {
 			env.Set(s.Name, fn)
@@ -243,7 +250,7 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		// inside a function body.
 		shape := &object.Shape{Name: s.Name, Fields: s.Fields}
 		fn := &object.Function{Name: s.Name, Parameters: s.Fields, Shape: shape, Env: env}
-		if env.IsRoot() {
+		if env.IsTopLevel() {
 			env.DefineFunction(fn)
 		} else {
 			env.Set(s.Name, fn)
@@ -303,35 +310,24 @@ func (it *Interpreter) evalIf(s *ast.IfStatement, env *object.Environment) ExecR
 	return noneResult
 }
 
-// evalLoop runs a loop. For the C-style form it shadows the induction
-// variable for the duration of the loop and restores whatever value (or
-// absence) it had beforehand once the loop finishes — otherwise two
-// loops nested with the same induction-variable name (a real pattern
-// seen in historical Turtle scripts, e.g. both using "i") would clobber
-// each other's iteration state, since Turtle has no block scoping and
-// loop variables live in the same environment as everything else.
+// evalLoop runs a loop. The C-style form's counter lives in a loop scope
+// of its own (object.NewLoopEnvironment), so it never touches a variable
+// of the same name outside — two nested loops both using "i" (a real
+// pattern in historical Turtle scripts) don't clobber each other — and a
+// closure made in the loop can still read it after the loop ends. Every
+// other assignment in the body goes to the enclosing scope as usual.
 func (it *Interpreter) evalLoop(s *ast.LoopStatement, env *object.Environment) ExecResult {
 	if s.Kind == ast.LoopEach {
 		return it.evalEach(s, env)
 	}
 	if s.Kind == ast.LoopCStyle && s.Init != nil {
-		var varName string
-		if initAssign, ok := s.Init.(*ast.AssignStatement); ok {
-			varName = initAssign.Name
+		loopEnv := object.NewLoopEnvironment(env)
+		if a, ok := s.Init.(*ast.AssignStatement); ok {
+			loopEnv.Define(a.Name, it.evalExpression(a.Value, env))
+		} else {
+			it.evalStatement(s.Init, loopEnv)
 		}
-		var outerVal object.Object
-		var hadOuter bool
-		if varName != "" {
-			outerVal, hadOuter = env.Get(varName)
-			defer func() {
-				if hadOuter {
-					env.Set(varName, outerVal)
-				} else {
-					env.Delete(varName)
-				}
-			}()
-		}
-		it.evalStatement(s.Init, env)
+		env = loopEnv
 	}
 	for {
 		if s.Condition != nil {
@@ -357,8 +353,10 @@ func (it *Interpreter) evalLoop(s *ast.LoopStatement, env *object.Environment) E
 // is each element of a list or set, each character of a string, or each
 // key of a map. With two, they're (index, element) — or (key, value) for a
 // map. It walks a snapshot, so adding to or removing from c inside the
-// loop can't make it skip or repeat. Like the C-style loop, the loop
-// names are restored to their previous values (or removed) afterwards.
+// loop can't make it skip or repeat. Each pass gets its own loop scope
+// holding just the loop names (see object.NewLoopEnvironment): outside
+// variables of the same name are untouched, and a closure made in a pass
+// keeps that pass's values.
 func (it *Interpreter) evalEach(s *ast.LoopStatement, env *object.Environment) ExecResult {
 	var firsts, seconds []object.Object
 	isMap := false
@@ -374,7 +372,7 @@ func (it *Interpreter) evalEach(s *ast.LoopStatement, env *object.Environment) E
 	case *object.Map:
 		isMap = true
 		for _, k := range c.Keys {
-			firsts = append(firsts, &object.String{Value: k})
+			firsts = append(firsts, c.KeyOf(k))
 			seconds = append(seconds, c.Values[k])
 		}
 	default:
@@ -389,24 +387,15 @@ func (it *Interpreter) evalEach(s *ast.LoopStatement, env *object.Environment) E
 		seconds = firsts // one name over a map: its keys
 	}
 
-	for _, name := range s.Vars {
-		outerVal, hadOuter := env.Get(name)
-		defer func(name string) {
-			if hadOuter {
-				env.Set(name, outerVal)
-			} else {
-				env.Delete(name)
-			}
-		}(name)
-	}
 	for i := range seconds {
+		pass := object.NewLoopEnvironment(env)
 		if len(s.Vars) == 2 {
-			env.Set(s.Vars[0], firsts[i])
-			env.Set(s.Vars[1], seconds[i])
+			pass.Define(s.Vars[0], firsts[i])
+			pass.Define(s.Vars[1], seconds[i])
 		} else {
-			env.Set(s.Vars[0], seconds[i])
+			pass.Define(s.Vars[0], seconds[i])
 		}
-		res := it.evalBlock(s.Body, env)
+		res := it.evalBlock(s.Body, pass)
 		if res.Signal == SigBreak {
 			break
 		}
@@ -427,6 +416,12 @@ func isTruthy(obj object.Object) bool {
 		return v.Value != 0
 	case *object.String:
 		return v.Value != ""
+	case *object.List:
+		return len(v.Elements) > 0
+	case *object.Set:
+		return len(v.Elements) > 0
+	case *object.Map:
+		return len(v.Keys) > 0
 	case *object.None:
 		return false
 	default:

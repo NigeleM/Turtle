@@ -17,7 +17,7 @@ import (
 func callStrings(name string, args []object.Object) object.Object {
 	switch name {
 	case "find":
-		requireArgs(name, args, 2)
+		requireFuncArgs(name, args, 2)
 		text := asStringArg(name, args[0])
 		return &object.Integer{Value: int64(runeIndexOf(text, asStringArg(name, args[1])))}
 	case "substring":
@@ -30,7 +30,7 @@ func callStrings(name string, args []object.Object) object.Object {
 		}
 		return stringSlice(text, name, args[1:])
 	case "isinstring":
-		requireArgs(name, args, 2)
+		requireFuncArgs(name, args, 2)
 		part := asStringArg(name, args[0])
 		return &object.Boolean{Value: strings.Contains(asStringArg(name, args[1]), part)}
 	case "join":
