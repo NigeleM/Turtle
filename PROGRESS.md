@@ -415,3 +415,31 @@ the misplaced binary to the correct path, removed the bogus nested
 `/usr/local/bin/usr/` directory) so `turtle` works from the terminal here
 right now, independent of whether/when a new tagged release goes out with
 the packaging fix.
+
+## 2026-09-30 – 10-01: functions as values, modules, and the data/system libraries
+
+Language features, each with tests and docs (`docs/reference.md` is the
+full rulebook):
+
+- **Functions as values and closures** (lexical scope; captured variables
+  are read-only by assignment, like globals), **`none`**, bare `return`.
+- **Module namespacing**: each `.t` module runs once in its own scope and
+  exports only its top-level functions; `import m [a, b]`; `m name[...]`
+  to qualify; an unqualified call to a name two imports share is an error.
+- **Structural equality** (`set [1, 2] == set [2, 1]`; `1 != "1"`).
+- **`gives`** anonymous functions and **sentence-style calls**
+  (`nums process f` = `process[nums, f]`). Library verbs are ordinary
+  functions rather than keywords, so `.t` libraries can define their own.
+- **For-each loops**, **`+`/`-` on lists/sets/maps**, `x at m` in any
+  expression.
+- **`data`** (`process`, `keep`, `copy`) and **`system`** (`args`,
+  `exists`, `isFile`, `isFolder`) libraries.
+- **`assemble`** named types with fields (`qty of o`, `qty of o = 5`).
+
+New reserved words: `none`, `gives`, `in`, `assemble`. Importing a file
+no longer exposes its variables.
+
+Regression check: all `testdata/` scripts print exactly what the
+pre-session build (`11c1977`) printed. Note: `timeout` isn't installed on
+this Mac. An early version of that check silently compared two "command
+not found" errors; it now uses `perl -e 'alarm N; exec @ARGV'`.
