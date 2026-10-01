@@ -231,6 +231,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return stmt
 	case token.DEF:
 		return p.parseFunctionDef()
+	case token.ASSEMBLE:
+		return p.parseAssembleStatement()
 	case token.IF:
 		return p.parseIfStatement()
 	case token.IMPORT:
@@ -288,6 +290,9 @@ func (p *Parser) parseBracketStatement() ast.Statement {
 // ---- assignment / input / is / bare call --------------------------------
 
 func (p *Parser) parseIdentifierLeadStatement() ast.Statement {
+	if p.peekTokenIs(token.OF) && p.peekToken.Line == p.curToken.Line {
+		return p.parseFieldStatement()
+	}
 	if p.peekTokenIs(token.ASSIGN) {
 		return p.parseAssignOrInputStatement()
 	}
@@ -1071,6 +1076,9 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 // "x gives ..." is a one-parameter anonymous function.
 func (p *Parser) parseIdentifier() ast.Expression {
 	tok := p.curToken
+	if p.peekTokenIs(token.OF) && p.peekToken.Line == tok.Line {
+		return p.parseFieldExpression()
+	}
 	if p.peekTokenIs(token.GIVES) && p.peekToken.Line == tok.Line {
 		p.nextToken()
 		return p.parseFunctionBody(tok, []string{tok.Literal})
@@ -1352,4 +1360,66 @@ func (p *Parser) parseMinMaxLength() ast.Expression {
 	default:
 		return &ast.LengthExpression{Token: tok, Arg: arg}
 	}
+}
+
+// ---- assembled types ----------------------------------------------------
+
+// parseAssembleStatement parses "assemble Order [item, qty, price]".
+func (p *Parser) parseAssembleStatement() ast.Statement {
+	tok := p.curToken
+	if !p.expectPeek(token.IDENT) {
+		return nil
+	}
+	name := p.curToken.Literal
+	if !p.expectPeek(token.LBRACKET) {
+		return nil
+	}
+	var fields []string
+	seen := map[string]bool{}
+	for !p.peekTokenIs(token.RBRACKET) {
+		if !p.expectPeek(token.IDENT) {
+			return nil
+		}
+		f := p.curToken.Literal
+		if seen[f] {
+			p.errorf("assemble %s: field %q listed twice", name, f)
+		}
+		seen[f] = true
+		fields = append(fields, f)
+		if p.peekTokenIs(token.COMMA) {
+			p.nextToken()
+		}
+	}
+	p.nextToken() // -> ']'
+	p.nextToken()
+	if p.curTokenIs(token.PERIOD) {
+		p.nextToken()
+	}
+	return &ast.AssembleStatement{Token: tok, Name: name, Fields: fields}
+}
+
+// parseFieldExpression parses "field of <value>" (curToken is the field
+// name). The value binds tightly, so "qty of o * price of o" is
+// (qty of o) * (price of o), and "x of p of line" is x of (p of line).
+func (p *Parser) parseFieldExpression() ast.Expression {
+	tok := p.curToken
+	p.nextToken() // -> OF
+	p.nextToken() // -> first token of the value
+	return &ast.FieldExpression{Token: tok, Field: tok.Literal, Object: p.parseExpression(PREFIX)}
+}
+
+// parseFieldStatement parses "qty of o = <expr>" — changing one field.
+func (p *Parser) parseFieldStatement() ast.Statement {
+	tok := p.curToken
+	target := p.parseFieldExpression().(*ast.FieldExpression)
+	if !p.expectPeek(token.ASSIGN) {
+		return nil
+	}
+	p.nextToken()
+	val := p.parseExpression(LOWEST)
+	p.nextToken()
+	if p.curTokenIs(token.PERIOD) {
+		p.nextToken()
+	}
+	return &ast.FieldAssignStatement{Token: tok, Target: target, Value: val}
 }

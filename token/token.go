@@ -89,6 +89,7 @@ const (
 	CONTINUE Type = "CONTINUE"
 	GIVES    Type = "GIVES"
 	IN       Type = "IN"
+	ASSEMBLE Type = "ASSEMBLE"
 )
 
 var keywords = map[string]Type{
@@ -130,6 +131,7 @@ var keywords = map[string]Type{
 	"continue":  CONTINUE,
 	"gives":     GIVES,
 	"in":        IN,
+	"assemble":  ASSEMBLE,
 }
 
 // LookupIdent returns the keyword Type for literal, or IDENT if it isn't

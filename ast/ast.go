@@ -421,3 +421,35 @@ type ChangeExpression struct {
 
 func (c *ChangeExpression) expressionNode()      {}
 func (c *ChangeExpression) TokenLiteral() string { return c.Token.Literal }
+
+// AssembleStatement is "assemble Order [item, qty, price]".
+type AssembleStatement struct {
+	Token  token.Token
+	Name   string
+	Fields []string
+}
+
+func (as *AssembleStatement) statementNode()       {}
+func (as *AssembleStatement) TokenLiteral() string { return as.Token.Literal }
+func (as *AssembleStatement) Line() int            { return as.Token.Line }
+
+// FieldExpression is "qty of o": one field of an assembled value.
+type FieldExpression struct {
+	Token  token.Token
+	Field  string
+	Object Expression
+}
+
+func (fe *FieldExpression) expressionNode()      {}
+func (fe *FieldExpression) TokenLiteral() string { return fe.Token.Literal }
+
+// FieldAssignStatement is "qty of o = 5".
+type FieldAssignStatement struct {
+	Token  token.Token
+	Target *FieldExpression
+	Value  Expression
+}
+
+func (fa *FieldAssignStatement) statementNode()       {}
+func (fa *FieldAssignStatement) TokenLiteral() string { return fa.Token.Literal }
+func (fa *FieldAssignStatement) Line() int            { return fa.Token.Line }

@@ -72,7 +72,7 @@ func (it *Interpreter) keepElements(fn *object.Function, elems []object.Object) 
 // "big = copy[nums]" then "big process x gives x * 10 ." leaves nums alone.
 func dataCopy(args []object.Object) object.Object {
 	if len(args) != 1 {
-		fatalf("'copy' expects 1 argument (a list, set, or map), got %d", len(args))
+		fatalf("'copy' expects 1 argument (a list, set, map, or assembled value), got %d", len(args))
 	}
 	switch c := args[0].(type) {
 	case *object.List:
@@ -85,8 +85,10 @@ func dataCopy(args []object.Object) object.Object {
 			m.Set(k, c.Values[k])
 		}
 		return m
+	case *object.Assembly:
+		return &object.Assembly{Shape: c.Shape, Values: append([]object.Object{}, c.Values...)}
 	}
-	fatalf("'copy' needs a list, set, or map, got %s", args[0].Type())
+	fatalf("'copy' needs a list, set, map, or assembled value, got %s", args[0].Type())
 	return nil
 }
 

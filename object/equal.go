@@ -9,7 +9,8 @@ import (
 // deduplication and membership, and list/set searches (count, index,
 // find, remove). Numbers compare by value across Integer/Float (1 ==
 // 1.0); functions by identity; lists element by element in order; sets
-// and maps regardless of order. Anything else needs the same type and
+// and maps regardless of order; assemblies when they're the same assembled
+// type with equal fields. Anything else needs the same type and
 // the same value — so 1 and "1" are different, even though both show
 // as 1.
 func Equal(a, b Object) bool {
@@ -54,6 +55,17 @@ func Equal(a, b Object) bool {
 		return true
 	case *Function:
 		return a == b
+	case *Assembly:
+		bv, ok := b.(*Assembly)
+		if !ok || av.Shape != bv.Shape {
+			return false
+		}
+		for i := range av.Values {
+			if !Equal(av.Values[i], bv.Values[i]) {
+				return false
+			}
+		}
+		return true
 	}
 	return a.Type() == b.Type() && a.Inspect() == b.Inspect()
 }
@@ -77,6 +89,12 @@ func Key(obj Object) string {
 			parts[i] = Key(e)
 		}
 		return "[ " + strings.Join(parts, ", ") + " ]"
+	case *Assembly:
+		parts := make([]string, len(v.Values))
+		for i, e := range v.Values {
+			parts[i] = v.Shape.Fields[i] + ": " + Key(e)
+		}
+		return v.Shape.Name + " { " + strings.Join(parts, ", ") + " }"
 	}
 	return obj.Inspect()
 }

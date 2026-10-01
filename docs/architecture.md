@@ -181,6 +181,12 @@ qualified `m name` (two identifiers on one line, recorded in
 `qualifiedImport`. The `math`/`time` gates in `requireModule` check the
 *current file's* imports.
 
+`assemble Name [fields]` creates an `object.Shape` and stores its
+constructor as an ordinary `*object.Function` with `Shape` set, in the
+function table or as a local exactly like a `def`. That's why import,
+export, clash and value rules need no special cases. `callFunction` builds
+an `object.Assembly` instead of running a body when `Shape` is set.
+
 Each call gets `object.NewEnclosedEnvironment(fn.Env)` — a fresh, empty
 variable map.
 This is a deliberate fix: the legacy interpreter stored one mutable

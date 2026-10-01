@@ -20,7 +20,7 @@ non-terminal; `[x]` is optional; `{x}` is zero-or-more; `|` is alternation.
 - **Reserved words** (cannot be used as identifiers): `true false none show if
   else def end loop return list set map import sys to from at of is add
   change remove delete sort reverse insert min max length read write append
-  directory break continue gives in`. Type names used after `change ... to` —
+  directory break continue gives in assemble`. Type names used after `change ... to` —
   `integer`, `float`, `string`, `ascii`, `char`, `hex` — are **not** reserved;
   like method names (`get`, `union`, ...) they're plain identifiers whose
   meaning is only special right after `to`.
@@ -325,6 +325,52 @@ show nums total .                    // total[nums]
   arguments run to the end of the expression, `,`-separated.
 - To call an imported function qualified in this style, use the bracket
   form instead: `data process[nums, f]`.
+
+## Assembled types
+
+```
+assemble <Name> [<field>, ...]
+
+<Name>[<expr>, ...]          // make one: exactly one value per field, in order
+<field> of <expr>            // read a field
+<field> of <expr> = <expr>   // change a field
+```
+
+`assemble` declares a named type with fixed fields, and `<Name>` becomes
+its constructor: a function that takes one value per field.
+
+```
+assemble Order [item, qty, price]
+
+o = Order["pen", 3, 1.5]
+show o .                     // Order { item: pen, qty: 3, price: 1.5 }
+show qty of o * price of o . // 4.5
+qty of o = 10
+```
+
+- **Fields hold any value**, including other assembled values. Field
+  access chains right to left: `x of finish of line` is
+  `x of (finish of line)`, and `x of finish of line = 7` changes it.
+  `of` binds tighter than any operator, so `qty of o * price of o`
+  multiplies two fields. (`length of`/`min of`/`max of` take their whole
+  following expression instead.)
+- **Errors name the fields.** A wrong number of values gives "Order needs
+  3 value(s), one per field (item, qty, price), got 2". An unknown field
+  gives "Order has no field "prise" (its fields: item, qty, price)".
+  Using `of` on a value that isn't assembled is also an error.
+- **Assembled values are references**, like lists and maps: after `b = a`,
+  changing a field through `b` changes `a` too. `data`'s `copy[a]` makes
+  an independent copy.
+- **Equality**: two values are `==` when they come from the same
+  `assemble` declaration and their fields are equal. Same-named types
+  from different declarations are never equal. Equal values are one
+  element in a set and the same map key.
+- **The constructor is a function**, so it follows the function rules: a
+  top-level `assemble` is exported by its module and imported like any
+  function (`import shapes [Point]`, `shapes Point[1, 2]` on a clash); one
+  inside a function body is local to it; `mk = Order` stores it as a
+  value; and `show Order .` prints `assemble Order`.
+- Field names must be distinct, and can't be reserved words.
 
 ## None
 

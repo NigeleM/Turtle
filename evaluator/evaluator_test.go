@@ -1023,3 +1023,79 @@ show exists[5] .`, wantErr: "'exists' needs a path string"},
 		})
 	}
 }
+
+func TestAssemble(t *testing.T) {
+	dir := moduleDir(t, map[string]string{
+		"shapes": `assemble Point [x, y]`,
+	})
+	cases := []struct{ name, src, want, wantErr string }{
+		{name: "construct, show, read fields", src: `assemble Order [item, qty, price]
+o = Order["pen", 3, 1.5]
+show o .
+show qty of o * price of o .`, want: "Order { item: pen, qty: 3, price: 1.5 }\n4.5\n"},
+		{name: "change a field", src: `assemble Order [item, qty]
+o = Order["pen", 3]
+qty of o = 10
+show o .`, want: "Order { item: pen, qty: 10 }\n"},
+		{name: "shared reference, copy separates", src: `import data
+assemble P [v]
+a = P[1]
+b = a
+v of b = 2
+c = copy[a]
+v of c = 3
+show v of a, v of b, v of c .`, want: "223\n"},
+		{name: "equality is structural within one type", src: `assemble P [v]
+assemble Q [v]
+show P[1] == P[1] .
+show P[1] == P[2] .
+show P[1] == Q[1] .
+s = set [P[1], P[1]]
+show length of s .`, want: "true\nfalse\nfalse\n1\n"},
+		{name: "nested fields", src: `assemble P [x, y]
+assemble L [a, b]
+l = L[P[0, 0], P[3, 4]]
+show x of b of l .
+x of b of l = 7
+show l .`, want: "3\nL { a: P { x: 0, y: 0 }, b: P { x: 7, y: 4 } }\n"},
+		{name: "imported from a module", src: `import shapes [Point]
+p = Point[1, 2]
+show y of p .`, want: "2\n"},
+		{name: "local to a function", src: `def make[]
+    assemble Pair [a, b]
+    return Pair[1, 2]
+def [end]
+show make[] .`, want: "Pair { a: 1, b: 2 }\n"},
+		{name: "constructor is a value", src: `assemble P [v]
+mk = P
+show mk[5] .
+show mk .`, want: "P { v: 5 }\nassemble P\n"},
+		{name: "wrong value count", src: `assemble A [x, y]
+a = A[1]`, wantErr: "A needs 2 value(s), one per field (x, y), got 1"},
+		{name: "unknown field", src: `assemble A [x]
+a = A[1]
+show z of a .`, wantErr: `A has no field "z" (its fields: x)`},
+		{name: "unknown field on change", src: `assemble A [x]
+a = A[1]
+z of a = 2`, wantErr: `A has no field "z"`},
+		{name: "field of a non-assembled value", src: `n = 5
+show x of n .`, wantErr: "'x of' needs an assembled value, got INTEGER"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := runIn(t, dir, c.src, "")
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("want error containing %q, got %v", c.wantErr, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}

@@ -141,17 +141,61 @@ var NoneValue = &None{}
 // Env is the scope the def ran in, which is what makes a nested def a
 // closure: its body can read the enclosing call's locals even after that
 // call has returned.
+//
+// A Function with Shape set is the constructor an "assemble" declaration
+// makes: calling it builds an Assembly instead of running a body. It's a
+// function so that it's called, imported, exported and clash-checked
+// exactly like one.
 type Function struct {
 	Name       string
 	Parameters []string
 	Body       *ast.BlockStatement
 	Env        *Environment
+	Shape      *Shape
 }
 
 func (f *Function) Type() Type { return FUNCTION }
 func (f *Function) Inspect() string {
+	if f.Shape != nil {
+		return "assemble " + f.Name
+	}
 	if f.Name == "" {
 		return "gives function"
 	}
 	return "def " + f.Name
+}
+
+// Shape is what "assemble Order [item, qty, price]" declares: a named set
+// of fields. Each declaration is its own Shape, so two declarations that
+// happen to share a name (in different modules) are different types.
+type Shape struct {
+	Name   string
+	Fields []string
+}
+
+// Index returns the position of field, or -1.
+func (s *Shape) Index(field string) int {
+	for i, f := range s.Fields {
+		if f == field {
+			return i
+		}
+	}
+	return -1
+}
+
+// Assembly is a value of an assembled type, e.g. Order["pen", 3, 1.5].
+// Like lists and maps it's a reference: assigning it to another name
+// shares it, so changing a field through either name changes both.
+type Assembly struct {
+	Shape  *Shape
+	Values []Object // in Shape.Fields order
+}
+
+func (a *Assembly) Type() Type { return Type(a.Shape.Name) }
+func (a *Assembly) Inspect() string {
+	parts := make([]string, len(a.Values))
+	for i, v := range a.Values {
+		parts[i] = a.Shape.Fields[i] + ": " + v.Inspect()
+	}
+	return a.Shape.Name + " { " + strings.Join(parts, ", ") + " }"
 }
