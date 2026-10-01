@@ -7,6 +7,10 @@ type Token struct {
 	Type    Type
 	Literal string
 	Line    int
+	// SpaceBefore is true when whitespace (or a comment, or the start of
+	// a line) comes right before this token. It tells "nums get -1" (a
+	// negative argument) from "a b - 1" (subtraction).
+	SpaceBefore bool
 }
 
 const (

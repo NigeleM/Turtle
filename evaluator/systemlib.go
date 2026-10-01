@@ -36,7 +36,7 @@ func (it *Interpreter) callSystem(name string, args []object.Object) object.Obje
 		}
 		panic(ExitRequest{Code: int(code)})
 	case "env":
-		requireArgs(name, args, 1)
+		requireFuncArgs(name, args, 1)
 		v, ok := os.LookupEnv(asStringArg(name, args[0]))
 		if !ok {
 			return object.NoneValue
@@ -62,7 +62,7 @@ func (it *Interpreter) callSystem(name string, args []object.Object) object.Obje
 		}
 		return list
 	case "scriptFolder":
-		requireArgs(name, args, 0)
+		requireFuncArgs(name, args, 0)
 		abs, err := filepath.Abs(it.Dir)
 		if err != nil {
 			abs = it.Dir

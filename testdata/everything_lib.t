@@ -1,0 +1,21 @@
+// Helper module for everything.t: exports functions and an assembled
+// type; its variables stay private.
+assemble Point [x, y]
+
+SCALE = 10
+
+def scaled[n]
+    return n * SCALE
+def [end]
+
+def now[]
+    return "lib now"
+def [end]
+
+def total[xs]
+    t = 0
+    [loop][x in xs]
+        t = t + x
+    [loop][end]
+    return t
+def [end]

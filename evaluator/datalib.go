@@ -23,17 +23,15 @@ func (it *Interpreter) dataProcess(args []object.Object) object.Object {
 			c.Elements[i] = it.callFunction(fn, "process", []object.Object{e})
 		}
 	case *object.Set:
-		var out []object.Object
+		out := &object.Set{}
 		for _, e := range c.Elements {
-			v := it.callFunction(fn, "process", []object.Object{e})
-			if !containsEqual(out, v) {
-				out = append(out, v)
-			}
+			out.Add(it.callFunction(fn, "process", []object.Object{e}))
 		}
-		c.Elements = out
+		c.Elements = out.Elements
+		c.Changed()
 	case *object.Map:
 		for _, k := range c.Keys {
-			c.Values[k] = it.callFunction(fn, "process", mapFunctionArgs("process", fn, k, c.Values[k]))
+			c.Values[k] = it.callFunction(fn, "process", mapFunctionArgs("process", fn, c.KeyOf(k), c.Values[k]))
 		}
 	}
 	return coll
@@ -48,10 +46,11 @@ func (it *Interpreter) dataKeep(args []object.Object) object.Object {
 		c.Elements = it.keepElements(fn, c.Elements)
 	case *object.Set:
 		c.Elements = it.keepElements(fn, c.Elements)
+		c.Changed()
 	case *object.Map:
 		for _, k := range append([]string{}, c.Keys...) {
-			if !isTruthy(it.callFunction(fn, "keep", mapFunctionArgs("keep", fn, k, c.Values[k]))) {
-				c.Delete(k)
+			if !isTruthy(it.callFunction(fn, "keep", mapFunctionArgs("keep", fn, c.KeyOf(k), c.Values[k]))) {
+				c.DeleteKey(k)
 			}
 		}
 	}
@@ -82,7 +81,7 @@ func dataCopy(args []object.Object) object.Object {
 	case *object.Map:
 		m := object.NewMap()
 		for _, k := range c.Keys {
-			m.Set(k, c.Values[k])
+			m.Put(c.KeyOf(k), c.Values[k])
 		}
 		return m
 	case *object.Assembly:
@@ -108,24 +107,15 @@ func collectionAndFunction(name string, args []object.Object) (object.Object, *o
 	return args[0], fn
 }
 
-func mapFunctionArgs(name string, fn *object.Function, key string, val object.Object) []object.Object {
+func mapFunctionArgs(name string, fn *object.Function, key, val object.Object) []object.Object {
 	switch len(fn.Parameters) {
 	case 1:
 		return []object.Object{val}
 	case 2:
-		return []object.Object{&object.String{Value: key}, val}
+		return []object.Object{key, val}
 	}
 	fatalf("'%s' over a map needs a function of the value (x gives ...) or of the key and value ([k, v] gives ...), got %d parameters", name, len(fn.Parameters))
 	return nil
-}
-
-func containsEqual(elems []object.Object, v object.Object) bool {
-	for _, e := range elems {
-		if object.Equal(e, v) {
-			return true
-		}
-	}
-	return false
 }
 
 // collectionOp implements + and - on two lists, sets, or maps. ok is
@@ -148,8 +138,9 @@ func collectionOp(op string, left, right object.Object) (object.Object, bool) {
 			return &object.List{Elements: append(append([]object.Object{}, l.Elements...), r.Elements...)}, true
 		}
 		out := &object.List{}
+		drop := &object.Set{Elements: r.Elements} // for fast membership checks
 		for _, e := range l.Elements {
-			if !containsEqual(r.Elements, e) {
+			if !drop.Contains(e) {
 				out.Elements = append(out.Elements, e)
 			}
 		}
@@ -162,14 +153,12 @@ func collectionOp(op string, left, right object.Object) (object.Object, bool) {
 		out := &object.Set{}
 		for _, e := range l.Elements {
 			if op == "+" || !r.Contains(e) {
-				out.Elements = append(out.Elements, e)
+				out.Add(e)
 			}
 		}
 		if op == "+" {
 			for _, e := range r.Elements {
-				if !out.Contains(e) {
-					out.Elements = append(out.Elements, e)
-				}
+				out.Add(e)
 			}
 		}
 		return out, true
@@ -181,13 +170,13 @@ func collectionOp(op string, left, right object.Object) (object.Object, bool) {
 		out := object.NewMap()
 		for _, k := range l.Keys {
 			if _, inRight := r.Values[k]; op == "+" || !inRight {
-				out.Set(k, l.Values[k])
+				out.Put(l.KeyOf(k), l.Values[k])
 			}
 		}
 		if op == "+" {
 			for _, k := range r.Keys {
 				if _, inLeft := l.Values[k]; !inLeft {
-					out.Set(k, r.Values[k])
+					out.Put(r.KeyOf(k), r.Values[k])
 				}
 			}
 		}

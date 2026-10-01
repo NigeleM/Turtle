@@ -59,6 +59,12 @@ type Parser struct {
 
 	errors []string
 
+	// inBrackets is true while parsing a comma-separated list inside
+	// [...] (call arguments, list/set/map literals). There a sentence-style
+	// call takes only one argument, so the list's own commas aren't
+	// swallowed: check["x", t find "W", 7] is check["x", find[t, "W"], 7].
+	inBrackets bool
+
 	prefixParseFns map[token.Type]prefixParseFn
 	infixParseFns  map[token.Type]infixParseFn
 }
@@ -200,6 +206,8 @@ func (p *Parser) ParseProgram() *ast.Program {
 // block's own opening token) until stop() reports true. It never
 // consumes whatever satisfies stop(); the caller inspects/consumes it.
 func (p *Parser) parseBlockUntil(stop func() bool) *ast.BlockStatement {
+	defer func(was bool) { p.inBrackets = was }(p.inBrackets)
+	p.inBrackets = false // a block inside brackets ([x] gives ...) is ordinary code
 	block := &ast.BlockStatement{Token: p.curToken}
 	p.nextToken()
 	for !stop() && !p.curTokenIs(token.EOF) {
@@ -1103,7 +1111,7 @@ func (p *Parser) parseIdentifier() ast.Expression {
 		var args []ast.Expression
 		p.nextToken()
 		args = append(args, p.parseExpression(LOWEST))
-		for p.peekTokenIs(token.COMMA) {
+		for !p.inBrackets && p.peekTokenIs(token.COMMA) {
 			p.nextToken()
 			p.nextToken()
 			args = append(args, p.parseExpression(LOWEST))
@@ -1114,11 +1122,16 @@ func (p *Parser) parseIdentifier() ast.Expression {
 }
 
 // peekStartsArgument reports whether the next token, on the same line,
-// can begin a sentence-style call's first argument. '-' is excluded so
-// "a b - 1" stays a subtraction.
+// can begin a sentence-style call's first argument. A '-' counts only
+// when it's spaced from the name but attached to what follows: "s get -1"
+// passes -1, while "a b - 1" and "a b-1" stay subtractions.
 func (p *Parser) peekStartsArgument() bool {
 	if p.peekToken.Line != p.curToken.Line {
 		return false
+	}
+	if p.peekToken.Type == token.MINUS {
+		next := p.peekN(2)
+		return p.peekToken.SpaceBefore && !next.SpaceBefore && next.Line == p.peekToken.Line
 	}
 	switch p.peekToken.Type {
 	case token.IDENT, token.INT, token.FLOAT, token.STRING, token.TRUE, token.FALSE,
@@ -1214,7 +1227,9 @@ func (p *Parser) parseMethodCallExpression(receiver ast.Expression) ast.Expressi
 	p.nextToken()
 	method := p.curToken.Literal
 	mc := &ast.MethodCallExpression{Token: tok, Receiver: receiver, Method: method}
-	if p.peekTokenIs(token.LBRACKET) && p.peekToken.Line == p.curToken.Line {
+	// Same rule as function calls: real arguments start on the '[' line;
+	// a '[' that ends its line closes an if-header ("if ] x at isEmpty [").
+	if p.peekTokenIs(token.LBRACKET) && p.peekToken.Line == p.curToken.Line && p.peekN(2).Line == p.peekToken.Line {
 		p.nextToken()
 		mc.Arguments = p.parseExpressionList(token.RBRACKET)
 		mc.Bracketed = true
@@ -1229,7 +1244,7 @@ func (p *Parser) isQualifiedName() bool {
 func (p *Parser) parseIntegerLiteral() ast.Expression {
 	v, err := strconv.ParseInt(p.curToken.Literal, 10, 64)
 	if err != nil {
-		p.errorf("could not parse %q as integer", p.curToken.Literal)
+		p.errorf("integer %s is past the integer limits (-9223372036854775808 to 9223372036854775807); write it as a float, e.g. %s.0", p.curToken.Literal, p.curToken.Literal)
 		return nil
 	}
 	return p.maybeSentence(&ast.IntegerLiteral{Token: p.curToken, Value: v})
@@ -1266,7 +1281,7 @@ func (p *Parser) maybeSentence(subject ast.Expression) ast.Expression {
 	} else if p.peekStartsArgument() {
 		p.nextToken()
 		args = append(args, p.parseExpression(LOWEST))
-		for p.peekTokenIs(token.COMMA) {
+		for !p.inBrackets && p.peekTokenIs(token.COMMA) {
 			p.nextToken()
 			p.nextToken()
 			args = append(args, p.parseExpression(LOWEST))
@@ -1308,6 +1323,8 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 }
 
 func (p *Parser) parseExpressionList(end token.Type) []ast.Expression {
+	defer func(was bool) { p.inBrackets = was }(p.inBrackets)
+	p.inBrackets = true
 	var list []ast.Expression
 	if p.peekTokenIs(end) {
 		p.nextToken()
@@ -1350,6 +1367,8 @@ func (p *Parser) parseMapLiteral() ast.Expression {
 		return nil
 	}
 	m := &ast.MapLiteral{Token: tok}
+	defer func(was bool) { p.inBrackets = was }(p.inBrackets)
+	p.inBrackets = true
 	if p.peekTokenIs(token.RBRACKET) {
 		p.nextToken()
 		return m

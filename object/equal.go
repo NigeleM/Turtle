@@ -1,7 +1,9 @@
 package object
 
 import (
+	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -70,31 +72,48 @@ func Equal(a, b Object) bool {
 	return a.Type() == b.Type() && a.Inspect() == b.Inspect()
 }
 
-// Key is the string a value is stored under as a map key. It's the value's
-// shown form, except that a set's elements are put in a fixed order first,
-// so equal sets are always the same key whatever order they were built
-// in.
+// Key is the internal string a value is stored under as a map key (and
+// grouped by in a set's index). Equal values always have the same Key:
+// a set's elements are put in a fixed order first, and a whole-number
+// float matches its integer (2.0 == 2). Strings are quoted, so the
+// string "1" and the integer 1 are different keys.
 func Key(obj Object) string {
 	switch v := obj.(type) {
+	case *String:
+		return strconv.Quote(v.Value)
+	case *Float:
+		if v.Value == float64(int64(v.Value)) {
+			return strconv.FormatInt(int64(v.Value), 10)
+		}
+		return v.Inspect()
 	case *Set:
 		parts := make([]string, len(v.Elements))
 		for i, e := range v.Elements {
 			parts[i] = Key(e)
 		}
 		sort.Strings(parts)
-		return "{ " + strings.Join(parts, ", ") + " }"
+		return "{" + strings.Join(parts, ",") + "}"
 	case *List:
 		parts := make([]string, len(v.Elements))
 		for i, e := range v.Elements {
 			parts[i] = Key(e)
 		}
-		return "[ " + strings.Join(parts, ", ") + " ]"
+		return "[" + strings.Join(parts, ",") + "]"
+	case *Map:
+		parts := make([]string, len(v.Keys))
+		for i, k := range v.Keys {
+			parts[i] = k + ":" + Key(v.Values[k])
+		}
+		sort.Strings(parts)
+		return "map{" + strings.Join(parts, ",") + "}"
 	case *Assembly:
 		parts := make([]string, len(v.Values))
 		for i, e := range v.Values {
-			parts[i] = v.Shape.Fields[i] + ": " + Key(e)
+			parts[i] = v.Shape.Fields[i] + ":" + Key(e)
 		}
-		return v.Shape.Name + " { " + strings.Join(parts, ", ") + " }"
+		return v.Shape.Name + "{" + strings.Join(parts, ",") + "}"
+	case *Function:
+		return fmt.Sprintf("function %p", v)
 	}
 	return obj.Inspect()
 }

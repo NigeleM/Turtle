@@ -443,3 +443,23 @@ Regression check: all `testdata/` scripts print exactly what the
 pre-session build (`11c1977`) printed. Note: `timeout` isn't installed on
 this Mac. An early version of that check silently compared two "command
 not found" errors; it now uses `perl -e 'alarm N; exec @ARGV'`.
+
+## 2026-10-01: stress test and the fixes it drove
+
+`testdata/everything.t` (with `everything_lib.t`) uses every feature and
+checks its own results, exiting 1 on any failure; `go test` runs it.
+111 separate edge-case probes found these, now fixed:
+
+- Closures made inside a loop lost the loop variable once the loop ended
+  (loops now give their names their own scope per pass).
+- Runaway recursion crashed Go; now "recursion too deep" at 100,000 calls.
+- Sets were O(n) per membership check; now indexed.
+- Floats show as floats (`4.0`); text inside collections is quoted
+  (`[ 1, "1" ]`); map keys keep their type; 64-bit integer overflow is an
+  error, not a wrap-around; empty list/set/map are falsy; `isEmpty`.
+- Sentence-style calls need no parentheses: one argument inside `[...]`,
+  and `s substring -5` passes a negative argument.
+- A method call ending an if-header (`if ] x at isEmpty [`) misread the
+  header's closing `[`.
+
+Still open: a clear error for a reserved word used as a name.

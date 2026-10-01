@@ -223,3 +223,11 @@ func TestAssembleDuplicateFieldIsAnError(t *testing.T) {
 		t.Fatalf("want one duplicate-field error, got %v", errs)
 	}
 }
+
+func TestIntegerLiteralPastLimit(t *testing.T) {
+	p := New(lexer.New("show 99999999999999999999 .\n"))
+	p.ParseProgram()
+	if errs := p.Errors(); len(errs) == 0 || !strings.Contains(errs[0], "past the integer limits") {
+		t.Fatalf("want a limits error, got %v", errs)
+	}
+}

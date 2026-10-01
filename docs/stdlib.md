@@ -17,8 +17,8 @@ ages = map ["Alice": 30, "Bob": 25]
 
 `show`ing any of them prints:
 - list: `[ 3, 1, 2 ]`
-- set: `{ a, b }`
-- map: `{ Alice: 30, Bob: 25 }` (insertion order, always — this is
+- set: `{ "a", "b" }`
+- map: `{ "Alice": 30, "Bob": 25 }` (insertion order, always — this is
   deterministic, unlike the legacy interpreter's randomized map iteration)
 
 ### Statement-form operations
@@ -41,8 +41,8 @@ arbitrary expression).
 `length of`/`min of`/`max of` are also ordinary expressions usable anywhere
 (`x = 1 + length of nums`) — they only print when they're the entire
 statement. They apply to the value right after `of`, so
-`length of nums == 0` is `(length of nums) == 0`; use parentheses for
-anything bigger: `length of (a + b)`.
+`length of nums == 0` compares the length with 0. For the length of a
+computed value, store it first: `ab = a + b` then `length of ab`.
 
 ### Method-call form
 
@@ -56,6 +56,7 @@ anything bigger: `length of (a + b)`.
 |---|---|---|
 | `add` | value | the list (mutated) |
 | `len` / `length` | — | element count (Integer) |
+| `isEmpty` | — | Boolean: `true` when there are no elements |
 | `toString` | — | display string |
 | `clear` | — | the list, now empty |
 | `count` | value | number of matching elements (Integer) |
@@ -66,7 +67,7 @@ anything bigger: `length of (a + b)`.
 | `pop` | — | the **removed last element** (fatal if empty) |
 | `find` | value | Boolean, whether present |
 | `insert` | value, index | the list, with value inserted |
-| `get` | index | the element at that index (fatal if out of range) |
+| `get` | index | the element at that index, from `0`; fatal if out of range (including negative indexes; use `slice` to count from the end) |
 | `slice` | start [, end] | a new `list`, the elements `[start, end)`; same negative-index/clamping rules as string's `slice` below |
 
 #### set
@@ -92,10 +93,11 @@ methods per type.)
 |---|---|---|
 | `get` | key | the value (fatal if key not found) |
 | `getValues` | — | a list of values, insertion order |
-| `getKeys` | — | a list of keys (as strings), insertion order |
+| `getKeys` | — | a list of the keys, insertion order, each with its own type |
+| `isEmpty` | — | Boolean: `true` when the map has no entries |
 | `add` | key, value | the map, with the entry set |
 | `delete` | key | the map, with the entry removed (fatal if not found) |
-| `invert` | — | new map: values become keys, keys become (string) values |
+| `invert` | — | new map: values become keys, keys become values |
 | `toString` | — | display string |
 
 #### string
@@ -107,8 +109,9 @@ All indices are Unicode code points (runes), not bytes — consistent with
 | Method | Args | Returns |
 |---|---|---|
 | `upper` / `lower` | — | case-converted string |
+| `isEmpty` | — | Boolean: `true` for `""` |
 | `trim` | — | leading/trailing whitespace stripped |
-| `get` | index | the one-character string at that index (fatal if out of range) |
+| `get` | index | the one-character string at that index, from `0`; fatal if out of range (including negative) |
 | `slice` | start [, end] | substring `[start, end)`; see below |
 | `split` | separator | a `list` of substrings |
 | `contains` | substring | Boolean |
@@ -155,13 +158,13 @@ fatal error naming exactly which import is missing.
 | `round` | — | nearest integer (half rounds away from zero) |
 | `floor` | — | next integer toward negative infinity |
 | `ceil` | — | next integer toward positive infinity |
-| `pow` | exponent | receiver raised to exponent, as a `float` |
+| `pow` | exponent | receiver raised to exponent: an `integer` when both are whole numbers and the exponent isn't negative, otherwise a `float` |
 | `random` | — | a random integer in `[0, receiver)`; the receiver is the exclusive upper bound and must be a positive integer |
 
 ```
 import math
 
-r is 16 at sqrt .        // 4
+r is 16 at sqrt .        // 4.0 (sqrt always gives a float)
 p is 2 at pow 10 .       // 1024
 n is 10 at random .      // some integer in [0, 10)
 ```
@@ -225,14 +228,14 @@ nums process x gives x + 1 .        // [ 6, 4, 9, 2 ]
 nums keep x gives x > 3 .           // [ 6, 4, 9 ]
 
 words = list ["hey", "do"]
-words process x gives x at upper .  // [ HEY, DO ]
+words process x gives x at upper .  // [ "HEY", "DO" ]
 
 nums process double .               // any function value works
 
 ages = map ["Alice": 30, "Bob": 25]
 labels = copy[ages]
 labels process [name, age] gives name + " is " + age .
-ages keep [name, age] gives age > 26 .   // { Alice: 30 }
+ages keep [name, age] gives age > 26 .   // { "Alice": 30 }
 
 nums process [x] gives              // block form for longer logic
     if ] x > 5 [
@@ -266,7 +269,7 @@ import strings
 line = "hello world"
 show line find "wor" .           // 6
 show line substring 0, 5 .       // hello
-show line substring (-5) .       // world: parenthesize a negative first argument
+show line substring -5 .         // world: -5 counts from the end
 show "wor" isinstring line .     // true
 words is line at split " " .
 show words join ", " .           // hello, world
@@ -317,7 +320,7 @@ if ] length of a == 0 [
     exit[2]
 if [end]
 name is a at get 0 .
-if ] !(name exists) [
+if ] !name exists [
     show "missing: " + name .
     exit[1]
 if [end]
