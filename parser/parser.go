@@ -65,6 +65,11 @@ type Parser struct {
 	// swallowed: check["x", t find "W", 7] is check["x", find[t, "W"], 7].
 	inBrackets bool
 
+	// inIsReceiver is true while parsing the receiver of
+	// "r is x at m args ." at its top level, where the statement itself
+	// handles "at" and its unbracketed args.
+	inIsReceiver bool
+
 	prefixParseFns map[token.Type]prefixParseFn
 	infixParseFns  map[token.Type]infixParseFn
 }
@@ -224,6 +229,13 @@ func (p *Parser) parseBlockUntil(stop func() bool) *ast.BlockStatement {
 }
 
 func (p *Parser) parseStatement() ast.Statement {
+	// "max = 5", "list is ...": a reserved word used as a variable name.
+	// One clear error instead of a cascade from parsing it as a keyword.
+	if p.isReservedWord(p.curToken) && (p.peekTokenIs(token.ASSIGN) || p.peekTokenIs(token.IS)) && p.peekToken.Line == p.curToken.Line {
+		p.reservedNameError(p.curToken, "a variable")
+		p.skipLine()
+		return nil
+	}
 	switch p.curToken.Type {
 	case token.SHOW:
 		return p.parseShowStatement()
@@ -356,7 +368,9 @@ func (p *Parser) parseIsStatement() ast.Statement {
 	p.nextToken() // IS -> first token of receiver
 	// METHOD, not LOWEST: the statement form "r is x at m arg, arg ." parses
 	// its own unbracketed args below, so the receiver mustn't consume "at".
+	p.inIsReceiver = true
 	receiver := p.parseExpression(METHOD)
+	p.inIsReceiver = false
 
 	if p.peekTokenIs(token.AT) {
 		p.nextToken() // -> AT
@@ -374,6 +388,11 @@ func (p *Parser) parseIsStatement() ast.Statement {
 		}
 		if !p.requirePeriod() {
 			return nil
+		}
+		// "r is !s at contains "a" ." negates the method call, not s.
+		if pre, ok := receiver.(*ast.PrefixExpression); ok && pre.Operator == "!" {
+			call := &ast.MethodCallExpression{Token: tok, Receiver: pre.Right, Method: method, Arguments: args}
+			return &ast.AssignStatement{Token: tok, Name: name, Value: &ast.PrefixExpression{Token: pre.Token, Operator: "!", Right: call}}
 		}
 		return &ast.AssignStatement{
 			Token: tok, Name: name,
@@ -609,7 +628,12 @@ func (p *Parser) parseMinMaxLengthStatement() ast.Statement {
 
 func (p *Parser) parseFunctionDef() ast.Statement {
 	tok := p.curToken
-	if !p.expectPeek(token.IDENT) {
+	if p.isReservedWord(p.peekToken) {
+		// Report it, then keep parsing as if it were a name so the body
+		// doesn't produce a cascade of follow-on errors.
+		p.reservedNameError(p.peekToken, "a function")
+		p.nextToken()
+	} else if !p.expectPeek(token.IDENT) {
 		return nil
 	}
 	name := p.curToken.Literal
@@ -619,10 +643,12 @@ func (p *Parser) parseFunctionDef() ast.Statement {
 	var params []string
 	if !p.peekTokenIs(token.RBRACKET) {
 		p.nextToken()
+		p.checkName(p.curToken, "a parameter")
 		params = append(params, p.curToken.Literal)
 		for p.peekTokenIs(token.COMMA) {
 			p.nextToken()
 			p.nextToken()
+			p.checkName(p.curToken, "a parameter")
 			params = append(params, p.curToken.Literal)
 		}
 	}
@@ -825,10 +851,18 @@ func (p *Parser) parseLoopStatement() ast.Statement {
 // isEachHeader reports whether the loop header at curToken is the
 // for-each form: "x in <expr>" or "a, b in <expr>".
 func (p *Parser) isEachHeader() bool {
+	if p.isReservedWord(p.curToken) && (p.peekTokenIs(token.IN) || p.peekTokenIs(token.COMMA)) {
+		p.reservedNameError(p.curToken, "a loop variable")
+		return true // parse it as for-each anyway, so nothing cascades
+	}
 	if !p.curTokenIs(token.IDENT) {
 		return false
 	}
 	if p.peekTokenIs(token.IN) {
+		return true
+	}
+	if p.peekTokenIs(token.COMMA) && p.peekN(3).Type == token.IN && p.isReservedWord(p.peekN(2)) {
+		p.reservedNameError(p.peekN(2), "a loop variable")
 		return true
 	}
 	return p.peekTokenIs(token.COMMA) && p.peekN(2).Type == token.IDENT && p.peekN(3).Type == token.IN
@@ -1105,7 +1139,7 @@ func (p *Parser) parseIdentifier() ast.Expression {
 	if p.peekTokenIs(token.LBRACKET) && p.peekToken.Line == name.Line && !p.bracketStartsFunction(1) && p.peekN(2).Line == p.peekToken.Line {
 		p.nextToken()
 		args := p.parseExpressionList(token.RBRACKET)
-		return &ast.CallExpression{Token: tok, Module: module, Name: name.Literal, Arguments: args}
+		return p.maybeSentence(&ast.CallExpression{Token: tok, Module: module, Name: name.Literal, Arguments: args})
 	}
 	if module != "" && p.peekStartsArgument() {
 		var args []ast.Expression
@@ -1263,9 +1297,10 @@ func (p *Parser) parseStringLiteral() ast.Expression {
 	return p.maybeSentence(&ast.StringLiteral{Token: p.curToken, Value: p.curToken.Literal})
 }
 
-// maybeSentence turns a literal directly followed by a name on the same
-// line into a sentence-style call with the literal as its subject:
-// "lo" isinstring line is isinstring["lo", line]. A literal followed by a
+// maybeSentence turns a literal or a call result directly followed by a
+// name on the same line into a sentence-style call with it as the
+// subject: "lo" isinstring line is isinstring["lo", line], and
+// copy[nums] process f is process[copy[nums], f]. A value followed by a
 // name was never otherwise valid.
 func (p *Parser) maybeSentence(subject ast.Expression) ast.Expression {
 	if !p.peekTokenIs(token.IDENT) || p.peekToken.Line != p.curToken.Line {
@@ -1302,6 +1337,15 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 	tok := p.curToken
 	p.nextToken()
 	right := p.parseExpression(PREFIX)
+	// "!" applies to a whole method call: "!r at isEmpty" is
+	// !(r at isEmpty), like Python's "not r.isEmpty()". (The is-statement
+	// form with unbracketed args is handled in parseIsStatement.)
+	if tok.Type == token.BANG && !p.inIsReceiver {
+		for p.peekTokenIs(token.AT) {
+			p.nextToken()
+			right = p.parseMethodCallExpression(right)
+		}
+	}
 	return &ast.PrefixExpression{Token: tok, Operator: tok.Literal, Right: right}
 }
 
@@ -1349,7 +1393,7 @@ func (p *Parser) parseListLiteral() ast.Expression {
 		return nil
 	}
 	elems := p.parseExpressionList(token.RBRACKET)
-	return &ast.ListLiteral{Token: tok, Elements: elems}
+	return p.maybeSentence(&ast.ListLiteral{Token: tok, Elements: elems})
 }
 
 func (p *Parser) parseSetLiteral() ast.Expression {
@@ -1358,7 +1402,7 @@ func (p *Parser) parseSetLiteral() ast.Expression {
 		return nil
 	}
 	elems := p.parseExpressionList(token.RBRACKET)
-	return &ast.SetLiteral{Token: tok, Elements: elems}
+	return p.maybeSentence(&ast.SetLiteral{Token: tok, Elements: elems})
 }
 
 func (p *Parser) parseMapLiteral() ast.Expression {
@@ -1371,7 +1415,7 @@ func (p *Parser) parseMapLiteral() ast.Expression {
 	p.inBrackets = true
 	if p.peekTokenIs(token.RBRACKET) {
 		p.nextToken()
-		return m
+		return p.maybeSentence(m)
 	}
 	p.nextToken()
 	for {
@@ -1393,7 +1437,7 @@ func (p *Parser) parseMapLiteral() ast.Expression {
 	if !p.expectPeek(token.RBRACKET) {
 		return nil
 	}
-	return m
+	return p.maybeSentence(m)
 }
 
 func (p *Parser) parseMinMaxLength() ast.Expression {
@@ -1420,7 +1464,10 @@ func (p *Parser) parseMinMaxLength() ast.Expression {
 // parseAssembleStatement parses "assemble Order [item, qty, price]".
 func (p *Parser) parseAssembleStatement() ast.Statement {
 	tok := p.curToken
-	if !p.expectPeek(token.IDENT) {
+	if p.isReservedWord(p.peekToken) {
+		p.reservedNameError(p.peekToken, "an assembled type")
+		p.nextToken()
+	} else if !p.expectPeek(token.IDENT) {
 		return nil
 	}
 	name := p.curToken.Literal
@@ -1429,8 +1476,13 @@ func (p *Parser) parseAssembleStatement() ast.Statement {
 	}
 	var fields []string
 	seen := map[string]bool{}
-	for !p.peekTokenIs(token.RBRACKET) {
-		if !p.expectPeek(token.IDENT) {
+	for !p.peekTokenIs(token.RBRACKET) && !p.peekTokenIs(token.EOF) {
+		p.nextToken()
+		if p.isReservedWord(p.curToken) {
+			p.reservedNameError(p.curToken, "a field")
+		} else if !p.curTokenIs(token.IDENT) {
+			p.errorf("expected a field name in assemble %s, got %s (%q)", name, p.curToken.Type, p.curToken.Literal)
+			p.skipLine()
 			return nil
 		}
 		f := p.curToken.Literal
@@ -1475,4 +1527,34 @@ func (p *Parser) parseFieldStatement() ast.Statement {
 		p.nextToken()
 	}
 	return &ast.FieldAssignStatement{Token: tok, Target: target, Value: val}
+}
+
+// ---- reserved words used as names --------------------------------------
+
+// isReservedWord reports whether tok is a keyword (show, list, max, ...)
+// rather than a name.
+func (p *Parser) isReservedWord(tok token.Token) bool {
+	return tok.Type != token.IDENT && token.LookupIdent(tok.Literal) != token.IDENT
+}
+
+func (p *Parser) reservedNameError(tok token.Token, what string) {
+	p.errors = append(p.errors, fmt.Sprintf("line %d: %q is a reserved word, so it can't be used as %s name — pick another name (e.g. %s_value)",
+		tok.Line, tok.Literal, what, tok.Literal))
+}
+
+// checkName reports a reserved word where a name is expected.
+func (p *Parser) checkName(tok token.Token, what string) {
+	if p.isReservedWord(tok) {
+		p.reservedNameError(tok, what)
+	}
+}
+
+// skipLine moves past the rest of the current line, to resume parsing at
+// the next statement after an error.
+func (p *Parser) skipLine() {
+	line := p.curToken.Line
+	for !p.peekTokenIs(token.EOF) && p.peekToken.Line == line {
+		p.nextToken()
+	}
+	p.nextToken()
 }

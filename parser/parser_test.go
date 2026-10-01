@@ -231,3 +231,24 @@ func TestIntegerLiteralPastLimit(t *testing.T) {
 		t.Fatalf("want a limits error, got %v", errs)
 	}
 }
+
+func TestReservedWordAsNameIsOneClearError(t *testing.T) {
+	cases := map[string]string{
+		"max = 5\nshow 1 .\n":                       "a variable",
+		"total is 5 .\nmin is 3 .\n":                "a variable",
+		"def show[a]\n    return a\ndef [end]\n":    "a function",
+		"def f[list]\n    return 1\ndef [end]\n":    "a parameter",
+		"assemble Order [item, length]\n":           "a field",
+		"assemble list [a]\n":                       "an assembled type",
+		"[loop][max in list [1]]\n[loop][end]\n":    "a loop variable",
+		"[loop][i, max in list [1]]\n[loop][end]\n": "a loop variable",
+	}
+	for src, what := range cases {
+		p := New(lexer.New(src))
+		p.ParseProgram()
+		errs := p.Errors()
+		if len(errs) != 1 || !strings.Contains(errs[0], "is a reserved word, so it can't be used as "+what+" name") {
+			t.Errorf("%q: want one %q error, got %v", src, what, errs)
+		}
+	}
+}

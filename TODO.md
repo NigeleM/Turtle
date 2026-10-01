@@ -21,8 +21,8 @@ Next, roughly in priority order:
       discrete-math tier (powerset, combinations, ...) proposed 2026-09-30
 - [ ] Assembled types: "is this an Order?" check, looping over fields,
       default field values
-- [ ] Clear error for a reserved word used as a `def`/`assemble` name
-      (today: a cascade of parse errors)
+- [ ] Delete files (`system`), found by the stress test; see
+      `docs/stress-test-log.md`
 - [ ] HTTP (lowest priority — biggest surface area)
 
 ## 2. Fix the CI/release pipeline — DONE (2026-09-29)
