@@ -76,14 +76,16 @@ const maxCallDepth = 100000
 // the now[]/sleep[ms] builtin functions, "data" provides process/keep/copy
 // (see datalib.go), "system" provides command-line and filesystem functions
 // (see systemlib.go), "strings" provides find/substring/isinstring/join
-// (see stringslib.go). Anything else falls through to
+// (see stringslib.go), "json" provides load/json_text/json_read/
+// json_write/json_get (see jsonlib.go). Anything else falls through to
 // the file-based import.
 var builtinModules = map[string]*object.Module{
 	"math":    {Name: "math", Methods: []string{"sqrt", "abs", "round", "floor", "ceil", "pow", "random"}},
-	"time":    {Name: "time", Funcs: []string{"now", "sleep"}},
+	"time":    {Name: "time", Funcs: []string{"now", "sleep", "today", "today_utc", "make_date", "to_date", "add_time", "time_between", "format_date", "wait_until", "every"}},
 	"data":    {Name: "data", Funcs: []string{"process", "keep", "copy"}},
 	"system":  {Name: "system", Funcs: []string{"args", "exists", "isFile", "isFolder", "exit", "env", "scriptFolder", "contents", "erase", "warn"}},
 	"strings": {Name: "strings", Funcs: []string{"find", "substring", "isinstring", "join"}},
+	"json":    {Name: "json", Funcs: []string{"load", "json_text", "json_read", "json_write", "json_get"}},
 }
 
 // requireModule fails with a clear message naming the missing import,
@@ -147,6 +149,8 @@ const (
 	kindKey    = "key"    // map key not found
 	kindName   = "name"   // undefined variable, function, method, module or field
 	kindType   = "type"   // the wrong kind of value or number of arguments
+	kindJSON   = "json"   // text that isn't valid JSON
+	kindDate   = "date"   // text that isn't a date, or a date that doesn't exist
 	kindCustom = "custom" // the program's own, from fail "..."
 )
 
@@ -364,6 +368,9 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		obj := it.evalExpression(s.Target.Object, env)
 		if _, ok := obj.(*object.Error); ok {
 			fatalf("an error's parts can't be changed (%s of an error is read-only)", s.Target.Field)
+		}
+		if _, ok := obj.(*object.Date); ok {
+			fatalf("a date's parts can't be changed (%s of a date is read-only); make a new one with add_time or make_date", s.Target.Field)
 		}
 		a, i := fieldOf(obj, s.Target.Field)
 		a.Values[i] = it.evalExpression(s.Value, env)

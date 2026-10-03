@@ -89,12 +89,12 @@ Prints the prompt, reads one line from stdin, assigns it as a string.
 ## Functions
 
 ```
-def add[a, b]
+def plus[a, b]
   result = a + b
   return result
 def [end]
 
-sum = add[1, 2]
+sum = plus[1, 2]
 ```
 
 - A function body sees its declared parameters as local variables and
@@ -142,6 +142,13 @@ sum = add[1, 2]
   to glue the collection's display form to text. `none + none` is `none`;
   `none` plus anything else is a `type` error (was `"x=" + none` →
   `"x=none"`).
+- **(new)** `time` gained dates: `today`, `today_utc`, `make_date`,
+  `to_date`, `add_time`, `time_between`, `format_date`, `wait_until`,
+  `every`; a new date value with parts (`year of d`); error kind `date`.
+- **(new)** `json` library: `load`, `json_text`, `json_read`,
+  `json_write`, `json_get`; new error kind `json`. Strings can be
+  single-quoted; a `{` before a quote or `}` is a plain brace, so JSON
+  needs no escapes.
 - **(new)** `change ... to set` / `change ... to list` convert between
   lists and sets (duplicates dropped, first-seen order kept).
 - **(new)** String interpolation `"Hi {name}"` (`\{` for a plain brace);

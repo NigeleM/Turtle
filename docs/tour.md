@@ -58,6 +58,9 @@ Put a value straight into a string with `{...}`:
 show "x = {x}, y = {y}, total = {x + y}" .
 ```
 
+Strings can also use single quotes, handy when the text has double
+quotes in it: `show 'She said "hi"' .`
+
 ## Reading input
 
 ```
@@ -194,12 +197,12 @@ that existed in the original implementation.)
 ## Functions
 
 ```
-def add[a, b]
+def plus[a, b]
     result = a + b
     return result
 def [end]
 
-sum = add[1, 2]
+sum = plus[1, 2]
 show sum .
 ```
 
@@ -265,7 +268,7 @@ show factorial[5] .    // 120
 ```
 
 `return` can be used directly inside a larger expression at the call site
-(`x = add[1, 2] + 3`), and a call with no arguments still needs the
+(`x = plus[1, 2] + 3`), and a call with no arguments still needs the
 brackets: `def greet[] ... def [end]`, called as `greet[]`.
 
 ## Data structures
@@ -340,6 +343,31 @@ The code under `handle` runs only if something went wrong.
 `handle [] error .` handles every kind. `kind of error`,
 `line of error` and `message of error` give the parts. Raise your own
 with `fail "message"`. See the reference for the list of kinds.
+
+## Dates and time
+
+`import time` gives dates you can add to and compare:
+
+```
+import time
+now_day = today[]
+due = add_time[now_day, 30, "days"]
+show "due {due}, a {weekday of due}" .
+show time_between[now_day, due, "days"] .   // 30
+every[1, "hours", check_inbox]              // run a function every hour
+```
+
+## JSON
+
+`import json` reads and writes JSON, as maps and lists:
+
+```
+import json
+user = json_read["user.json"]
+show json_get[user, "address", "city"] .   // none if it isn't there
+json_write["copy.json", user]
+data = load['{"name": "Ann", "tags": ["a", "b"]}']
+```
 
 ## Files
 

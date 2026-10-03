@@ -1,0 +1,21 @@
+{
+  "store": "Turtle Books",
+  "categories": {
+    "name": "all",
+    "children": [
+      {"name": "fiction", "children": [
+        {"name": "sci-fi", "children": []},
+        {"name": "mystery", "children": []}
+      ]},
+      {"name": "tech", "children": [
+        {"name": "go", "children": []}
+      ]}
+    ]
+  },
+  "items": [
+    {"sku": "B1", "title": "Dune", "price": 950, "stock": 3, "tags": ["sci-fi", "classic"]},
+    {"sku": "B2", "title": "The Go Book", "price": 3000, "stock": 1, "tags": ["tech"]},
+    {"sku": "B3", "title": "Gone Girl", "price": 1225, "stock": 0, "tags": ["mystery"]},
+    {"sku": "B4", "title": "Foundation", "price": 800, "stock": 10, "tags": ["sci-fi", "classic", "sci-fi"]}
+  ]
+}

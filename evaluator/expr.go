@@ -71,6 +71,13 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 
 	case *ast.FieldExpression:
 		obj := it.evalExpression(e.Object, env)
+		if d, ok := obj.(*object.Date); ok {
+			v, ok := d.Field(e.Field)
+			if !ok {
+				fatalKind(kindName, "a date has no part %q (its parts: %s)", e.Field, object.DateFields)
+			}
+			return v
+		}
 		if er, ok := obj.(*object.Error); ok {
 			v, ok := er.Field(e.Field)
 			if !ok {
@@ -250,7 +257,12 @@ func evalInfix(op string, left, right object.Object) object.Object {
 		if lok && rok {
 			return &object.Boolean{Value: compareStr(op, ls.Value, rs.Value)}
 		}
-		fatalf("operator %q needs two numbers or two strings, got %s and %s", op, left.Type(), right.Type())
+		ld, lok := left.(*object.Date)
+		rd, rok := right.(*object.Date)
+		if lok && rok {
+			return &object.Boolean{Value: compareNum(op, float64(ld.Time.Unix()), float64(rd.Time.Unix()))}
+		}
+		fatalf("operator %q needs two numbers, two strings or two dates, got %s and %s", op, left.Type(), right.Type())
 	case "==":
 		return &object.Boolean{Value: valuesEqual(left, right)}
 	case "!=":
@@ -572,16 +584,7 @@ func importedFunctionValue(im *object.Import, name string) object.Object {
 func (it *Interpreter) callBuiltin(module, name string, args []object.Object) object.Object {
 	switch module {
 	case "time":
-		switch name {
-		case "now":
-			if len(args) != 0 {
-				fatalf("'now' expects 0 arguments, got %d", len(args))
-			}
-			return &object.Integer{Value: time.Now().UnixMilli()}
-		case "sleep":
-			evalSleep(args)
-			return object.NoneValue
-		}
+		return it.callTime(name, args)
 	case "data":
 		switch name {
 		case "process":
@@ -595,6 +598,8 @@ func (it *Interpreter) callBuiltin(module, name string, args []object.Object) ob
 		return it.callSystem(name, args)
 	case "strings":
 		return callStrings(name, args)
+	case "json":
+		return it.callJSON(name, args)
 	}
 	fatalKind(kindName, "no builtin function %q in %q", name, module)
 	return nil

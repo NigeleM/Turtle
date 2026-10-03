@@ -319,7 +319,6 @@ func TestParseInterpolation(t *testing.T) {
 	}
 	cases := map[string]string{
 		`show "a {b" .`:    "needs a closing '}'",
-		`show "a {} b" .`:  "put a name or expression inside the braces",
 		`show "a {1 +}" .`: "the expression isn't finished",
 		`show "a {1 2}" .`: "unexpected",
 	}
@@ -329,5 +328,32 @@ func TestParseInterpolation(t *testing.T) {
 		if errs := p.Errors(); len(errs) == 0 || !strings.Contains(errs[0], want) {
 			t.Errorf("%q: want %q, got %v", src, want, errs)
 		}
+	}
+}
+
+func TestParsePlainBraces(t *testing.T) {
+	cases := map[string]string{
+		`show "{}" .`:                  "{}",
+		`show "a { } b" .`:             "a { } b",
+		`show '{"a": 1}' .`:            `{"a": 1}`,
+		`show "{\"a\": {\"b\": 1}}" .`: `{"a": {"b": 1}}`,
+		"show '{\n  \"a\": 1\n}' .":    "{\n  \"a\": 1\n}",
+		`show "end {" .`:               "end {",
+	}
+	for src, want := range cases {
+		show := parseOK(t, src).Statements[0].(*ast.ShowStatement)
+		lit, ok := show.Expressions[0].(*ast.StringLiteral)
+		if !ok || lit.Value != want {
+			t.Errorf("%s: want plain %q, got %#v", src, want, show.Expressions[0])
+		}
+	}
+	// A brace before anything else still interpolates, spaces allowed.
+	show := parseOK(t, `show '{"k": {x}, "y": { y }}' .`).Statements[0].(*ast.ShowStatement)
+	is, ok := show.Expressions[0].(*ast.InterpolatedString)
+	if !ok || len(is.Parts) != 5 {
+		t.Fatalf("got %#v", show.Expressions[0])
+	}
+	if first := is.Parts[0].(*ast.StringLiteral).Value; first != `{"k": ` {
+		t.Errorf("first part %q", first)
 	}
 }

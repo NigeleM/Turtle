@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"Turtle/ast"
 )
@@ -22,6 +23,7 @@ const (
 	FUNCTION Type = "FUNCTION"
 	NONE     Type = "NONE"
 	ERROR    Type = "ERROR"
+	DATE     Type = "DATE"
 )
 
 type Object interface {
@@ -326,3 +328,38 @@ func (e *Error) Field(name string) (Object, bool) {
 	}
 	return nil, false
 }
+
+// Date is a moment in time, from the time library (today[], make_date,
+// to_date, add_time). It shows as "2026-10-03 14:05:00" in its own clock
+// (local, or UTC for today_utc[]), compares with < > ==, and "year of",
+// "month of", "day of", "hour of", "minute of", "second of" and
+// "weekday of" read its parts. Dates are whole seconds.
+type Date struct{ Time time.Time }
+
+func (d *Date) Type() Type      { return DATE }
+func (d *Date) Inspect() string { return d.Time.Format("2006-01-02 15:04:05") }
+
+// Field returns the date's part called name.
+func (d *Date) Field(name string) (Object, bool) {
+	t := d.Time
+	switch name {
+	case "year":
+		return &Integer{Value: int64(t.Year())}, true
+	case "month":
+		return &Integer{Value: int64(t.Month())}, true
+	case "day":
+		return &Integer{Value: int64(t.Day())}, true
+	case "hour":
+		return &Integer{Value: int64(t.Hour())}, true
+	case "minute":
+		return &Integer{Value: int64(t.Minute())}, true
+	case "second":
+		return &Integer{Value: int64(t.Second())}, true
+	case "weekday":
+		return &String{Value: t.Weekday().String()}, true
+	}
+	return nil, false
+}
+
+// DateFields lists the parts Field knows, for error messages.
+const DateFields = "year, month, day, hour, minute, second, weekday"

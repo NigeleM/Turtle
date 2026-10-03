@@ -46,6 +46,25 @@ case "contains":
 That's it. Update the method table in `docs/stdlib.md`, add a line to a
 `testdata/*.t` script exercising it, done.
 
+## Worked example: a new builtin library
+
+Libraries like `json` and `time` are Go code behind `import <name>`; no
+parser change is needed, since calls are ordinary `name[args]`.
+
+1. Add the module and its function names to `builtinModules` in
+   `evaluator/evaluator.go`. The names gate the import: `import json
+   [load]` and the "needs import json first" message both come from here.
+2. Write `evaluator/<name>lib.go` with a `call<Name>(name, args)` that
+   switches on the function name. Use the helpers: `requireFuncArgs`,
+   `asStringArg`, `asIntArg`; fail with `fatalf` (kind `type`) or
+   `fatalKind(kind..., ...)`.
+3. Dispatch to it from `callBuiltin` in `evaluator/expr.go`.
+4. A new kind of error (like `json`, `date`) needs a `kind...` constant in
+   `evaluator.go` and its name in `errorKinds` in `parser/parser.go`, so
+   `handle [<kind>] e .` accepts it.
+5. Document it in `docs/stdlib.md` (table, rules, a runnable example),
+   add tests, and a section in `testdata/everything.t`.
+
 ## Worked example: a new statement keyword
 
 Say you want a `sleep <expr> .` statement (pause execution for N

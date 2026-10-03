@@ -1,0 +1,9 @@
+[
+  {"id": 1, "customer": "ann", "coupon": "TEN",  "lines": [{"sku": "B1", "qty": 2}, {"sku": "B4", "qty": 1}]},
+  {"id": 2, "customer": "bo",  "coupon": null,   "lines": [{"sku": "B2", "qty": 1}]},
+  {"id": 3, "customer": "ann", "coupon": "HALF", "lines": [{"sku": "B9", "qty": 1}]},
+  {"id": 4, "customer": "cy",  "coupon": null,   "lines": [{"sku": "B3", "qty": 1}]},
+  {"id": 5, "customer": "dee", "coupon": "BOGUS","lines": [{"sku": "B4", "qty": "two"}]},
+  {"id": 6, "customer": "bo",  "coupon": "HALF", "lines": [{"sku": "B4", "qty": 4}, {"sku": "B1", "qty": 1}]},
+  {"id": 7, "customer": "eve", "coupon": null,   "lines": []}
+]

@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Equal is Turtle's one notion of value equality, used by ==/!=, set
@@ -57,6 +58,9 @@ func Equal(a, b Object) bool {
 		return true
 	case *Function:
 		return a == b
+	case *Date:
+		bv, ok := b.(*Date)
+		return ok && av.Time.Equal(bv.Time)
 	case *Assembly:
 		bv, ok := b.(*Assembly)
 		if !ok || av.Shape != bv.Shape {
@@ -79,6 +83,9 @@ func Equal(a, b Object) bool {
 // string "1" and the integer 1 are different keys.
 func Key(obj Object) string {
 	switch v := obj.(type) {
+	case *Date:
+		// The same moment is the same key, whichever clock shows it.
+		return "date:" + v.Time.UTC().Format(time.RFC3339)
 	case *String:
 		return strconv.Quote(v.Value)
 	case *Float:

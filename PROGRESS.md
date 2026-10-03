@@ -515,3 +515,28 @@ safe [end]
 - `change x to set` / `change x to list` convert between lists and sets
   (duplicates dropped, first-seen order kept; same kind gives a copy).
   Put in `change` rather than `data`, at the user's call.
+
+## 2026-10-03: JSON library, single-quoted strings
+
+- `import json`: `load[text]`, `json_text[value]`, `json_read[path]`,
+  `json_write[path, value]` (indented), `json_get[value, keys...]`
+  (returns none on a missing step). Names chosen by the user. Objects
+  keep key order; whole numbers load as integers; null is none. Bad JSON
+  is a new error kind, `json`, with line and column.
+- Strings can be `'single-quoted'`, so JSON in code needs no backslashes.
+- A `{` followed (after spaces) by a quote or `}`, or by nothing, is a
+  plain brace, not interpolation: `'{"a": 1}'` and `"{}"` just work.
+- HTTP is the next wave; `load` already takes any text.
+
+## 2026-10-03: dates in the time library
+
+- New date value: shows as `2026-10-03 14:05:00`, parts via `of`
+  (`year`, `month`, `day`, `hour`, `minute`, `second`, `weekday`),
+  compares with `< >`, works as a map key, written to JSON as text.
+- `today[]` (local), `today_utc[]`, `make_date[...]`, `to_date[text]`,
+  `add_time[d, n, unit]`, `time_between[a, b, unit]`,
+  `format_date[d, pattern]`, `wait_until[d]`, `every[n, unit, job]`.
+  Shape chosen by the user. Months clamp to the month's end; days keep
+  the clock time across daylight saving.
+- New error kind `date` for bad date text or impossible dates.
+

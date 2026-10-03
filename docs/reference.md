@@ -14,7 +14,9 @@ non-terminal; `[x]` is optional; `{x}` is zero-or-more; `|` is alternation.
   comment that may span multiple lines. Both are stripped by the lexer.
 - **Identifiers**: `<letter|_> {letter|digit|_}`.
 - **Numbers**: `<digits>` (integer) or `<digits>.<digits>` (float).
-- **Strings**: double-quoted. Escapes: `\n`, `\t`, `\"`, `\\`, `\{`, `\}`.
+- **Strings**: `"double"` or `'single'` quoted (the same kind of string;
+  inside single quotes a `"` needs no escape). Escapes: `\n`, `\t`, `\"`,
+  `\'`, `\\`, `\{`, `\}`.
   `{<expr>}` inside a string is interpolation (see §Strings).
 - **Booleans**: `true`, `false`.
 - **None**: `none` — the single "no value" value (type `NONE`).
@@ -210,14 +212,28 @@ show "a plain \{brace\}" .                       // a plain {brace}
 ```
 
 - Any expression works inside the braces except one that contains a
-  quoted string: the `"` would end the outer string. Put the text in a
-  variable first.
-- It works in every string: `show`, assignments, `return`, `?` prompts,
-  and the lines of a `[write]`/`[append]` block.
-- `\{` is a plain brace. A `{` with no closing `}`, empty braces `{}`, or
-  an unfinished expression is a parse error. A `}` on its own is plain
-  text. Scripts written before interpolation that have a `{` in a string
-  need it written as `\{`.
+  quoted string: the quote would end the outer string. Put the text in a
+  variable first. Spaces inside are fine: `{ name }`.
+- It works in every string, single- or double-quoted: `show`,
+  assignments, `return`, `?` prompts, and the lines of a
+  `[write]`/`[append]` block.
+- **Plain braces.** A `{` is just a brace when the next non-space
+  character is a quote or `}`, or nothing follows it. So JSON never needs
+  escaping, and `"{}"` is `{}`:
+
+  ```
+  data = load['{"name": "Ann", "tags": ["a", "b"]}']
+  show "{}" .                                // {}
+  ```
+
+  `\{` is always a plain brace; use it for other text with braces,
+  like `"set \{1, 2}"`. A `{` with no closing `}` or an unfinished
+  expression is a parse error. A `}` on its own is plain text.
+
+**Single quotes** make text full of double quotes readable:
+`'She said "hi"'`, `'{"a": 1}'`. They're the same strings as
+double-quoted ones, with the same escapes and interpolation; only the
+quote that ends them differs.
 
 ## Return / break / continue
 
@@ -471,7 +487,7 @@ the program carries on after `safe [end]`, which takes no period, like
 ```
 safe
     [read] settings.txt to lines [end]
-    count = change lines at get 0 to integer
+    count = change lines at get[0] to integer
 handle [file, number] problem .
     show "using defaults: ", problem .   // line 2: [read] settings.txt: no such file or folder
     count = 10
@@ -489,6 +505,8 @@ safe [end]
 | `key`    | map key not found                                        |
 | `name`   | undefined variable, function, method, module or field    |
 | `type`   | the wrong kind of value (`"a" * 2`) or number of arguments |
+| `json`   | text that isn't valid JSON (`json` library)              |
+| `date`   | text that isn't a date, or a date that doesn't exist (`time` library) |
 | `custom` | your own, from `fail`                                    |
 
 An error of a kind that isn't listed isn't handled: it goes on to an
@@ -678,11 +696,13 @@ import <name>                  // everything the module exports
 import <name> [<f>, <g>, ...]  // only the listed names
 ```
 
-`<name>` is a builtin module (`math`, `time`) or a file `<name>.t`,
+`<name>` is a builtin module (`math`, `time`, `data`, `strings`, `system`,
+`json`; see [`stdlib.md`](stdlib.md)) or a file `<name>.t`,
 resolved relative to the current script's directory. A module in a
 subfolder is written with `/`: `import lib/utils` reads `lib/utils.t`,
 and its qualified name is the last part, `utils half[4]`. Because builtin names
-win, don't name your own module file `math.t` or `time.t`.
+win, don't name your own module file after one (`math.t`, `json.t`, ...);
+`import lib/json` is an error for the same reason.
 
 **What a module exports.** A `.t` module exports its top-level functions,
 and only those. It runs once, in its own global scope, the first time any

@@ -11,10 +11,11 @@
 // code 1 if any check failed.
 
 import math
-import time [now, sleep]
+import time [now, sleep, make_date, add_time, time_between, format_date, today]
 import data
 import strings
 import system
+import json
 import everything_lib [scaled, total, Point, now]
 
 failures = list []
@@ -293,6 +294,32 @@ dupes = list [3, 1, 3, 2, 1]
 check["list to set", change dupes to set, set [3, 1, 2]]
 check["set to list", change set [3, 1, 2] to list, list [3, 1, 2]]
 show "change list set ok" .
+
+// ---------- json ----------
+doc = load['{"name": "Ann", "tags": ["a", "b"], "n": null, "inner": {}}']
+check["json load", json_get[doc, "tags", 1], "b"]
+check["json null", json_get[doc, "n"], none]
+check["json missing", json_get[doc, "nope", 0], none]
+check["json text", json_text[doc], '{"name":"Ann","tags":["a","b"],"n":null,"inner":{}}']
+json_write["everything_out.json", doc]
+check["json round trip", json_read["everything_out.json"], doc]
+safe
+    bad = load["[1, 2"]
+handle [json] err .
+safe [end]
+check["json error kind", kind of err, "json"]
+show "json ok" .
+
+// ---------- dates ----------
+start_day = make_date[2026, 1, 31]
+due_day = add_time[start_day, 30, "days"]
+check["add days", due_day, make_date[2026, 3, 2]]
+check["add a month clamps", add_time[start_day, 1, "months"], make_date[2026, 2, 28]]
+check["days between", time_between[start_day, due_day, "days"], 30]
+check["date part", weekday of start_day, "Saturday"]
+check["format", format_date[due_day, "DD/MM/YYYY"], "02/03/2026"]
+check["compare dates", today[] > start_day, true]
+show "dates ok" .
 
 // ---------- files and system ----------
 out = "everything_out.txt"
