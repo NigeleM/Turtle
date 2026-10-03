@@ -56,6 +56,6 @@ func callStrings(name string, args []object.Object) object.Object {
 		}
 		return &object.String{Value: strings.Join(parts, sep)}
 	}
-	fatalf("no strings function %q", name)
+	fatalKind(kindName, "no strings function %q", name)
 	return nil
 }

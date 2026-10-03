@@ -234,14 +234,15 @@ func TestIntegerLiteralPastLimit(t *testing.T) {
 
 func TestReservedWordAsNameIsOneClearError(t *testing.T) {
 	cases := map[string]string{
-		"max = 5\nshow 1 .\n":                       "a variable",
-		"total is 5 .\nmin is 3 .\n":                "a variable",
-		"def show[a]\n    return a\ndef [end]\n":    "a function",
-		"def f[list]\n    return 1\ndef [end]\n":    "a parameter",
-		"assemble Order [item, length]\n":           "a field",
-		"assemble list [a]\n":                       "an assembled type",
-		"[loop][max in list [1]]\n[loop][end]\n":    "a loop variable",
-		"[loop][i, max in list [1]]\n[loop][end]\n": "a loop variable",
+		"max = 5\nshow 1 .\n":                             "a variable",
+		"total is 5 .\nmin is 3 .\n":                      "a variable",
+		"def show[a]\n    return a\ndef [end]\n":          "a function",
+		"def f[list]\n    return 1\ndef [end]\n":          "a parameter",
+		"assemble Order [item, length]\n":                 "a field",
+		"assemble list [a]\n":                             "an assembled type",
+		"[loop][max in list [1]]\n[loop][end]\n":          "a loop variable",
+		"[loop][i, max in list [1]]\n[loop][end]\n":       "a loop variable",
+		"safe\n    x = 1\nhandle [] list .\nsafe [end]\n": "an error variable",
 	}
 	for src, what := range cases {
 		p := New(lexer.New(src))
@@ -249,6 +250,84 @@ func TestReservedWordAsNameIsOneClearError(t *testing.T) {
 		errs := p.Errors()
 		if len(errs) != 1 || !strings.Contains(errs[0], "is a reserved word, so it can't be used as "+what+" name") {
 			t.Errorf("%q: want one %q error, got %v", src, what, errs)
+		}
+	}
+}
+
+func TestParseSafeHandle(t *testing.T) {
+	prog := parseOK(t, `safe
+    x = 1 / 0
+    show x .
+handle [math, file] problem .
+    show problem .
+safe [end]
+show "after" .`)
+	if len(prog.Statements) != 2 {
+		t.Fatalf("want 2 statements, got %d", len(prog.Statements))
+	}
+	ss, ok := prog.Statements[0].(*ast.SafeStatement)
+	if !ok || len(ss.Body.Statements) != 2 || len(ss.Handler.Statements) != 1 || ss.Name != "problem" ||
+		len(ss.Kinds) != 2 || ss.Kinds[0] != "math" || ss.Kinds[1] != "file" {
+		t.Fatalf("got %#v", prog.Statements[0])
+	}
+	ss = parseOK(t, "safe\n    x = 1\nhandle [] e .\nsafe [end]\n").Statements[0].(*ast.SafeStatement)
+	if len(ss.Kinds) != 0 || ss.Name != "e" || len(ss.Handler.Statements) != 0 {
+		t.Fatalf("got %#v", ss)
+	}
+	if _, ok := parseOK(t, `fail "no " + x`).Statements[0].(*ast.FailStatement); !ok {
+		t.Fatal("want a FailStatement")
+	}
+}
+
+func TestParseSafeHandleErrors(t *testing.T) {
+	cases := map[string]string{
+		"handle [] e .\n":                          "'handle' needs a 'safe' above it",
+		"safe\n    x = 1\nshow x .\n":              "needs a 'handle [...] error .' line to close it",
+		"safe\n    x = 1\nhandle [maths] e .\n":    `"maths" isn't a kind of error`,
+		"safe\n    x = 1\nhandle [] e\nshow 1 .\n": "expected next token to be .",
+		"safe [end]\n":                             "'safe [end]' needs a 'safe' block",
+		"fail\nshow 1 .\n":                         "'fail' needs a message",
+	}
+	for src, want := range cases {
+		p := New(lexer.New(src))
+		p.ParseProgram()
+		errs := p.Errors()
+		if len(errs) == 0 || !strings.Contains(errs[0], want) {
+			t.Errorf("%q: want error containing %q, got %v", src, want, errs)
+		}
+	}
+}
+
+func TestParseSubfolderImport(t *testing.T) {
+	is, ok := parseOK(t, "import lib/text/utils [a]\n").Statements[0].(*ast.ImportStatement)
+	if !ok || is.Path != "lib/text/utils" || len(is.Names) != 1 {
+		t.Fatalf("got %#v", is)
+	}
+}
+
+func TestParseInterpolation(t *testing.T) {
+	show := parseOK(t, `show "a {x + 1} b\{c" .`).Statements[0].(*ast.ShowStatement)
+	is, ok := show.Expressions[0].(*ast.InterpolatedString)
+	if !ok || len(is.Parts) != 3 {
+		t.Fatalf("got %#v", show.Expressions[0])
+	}
+	if last := is.Parts[2].(*ast.StringLiteral).Value; last != " b{c" {
+		t.Errorf("last part %q", last)
+	}
+	if _, ok := is.Parts[1].(*ast.InfixExpression); !ok {
+		t.Errorf("middle part %#v", is.Parts[1])
+	}
+	cases := map[string]string{
+		`show "a {b" .`:    "needs a closing '}'",
+		`show "a {} b" .`:  "put a name or expression inside the braces",
+		`show "a {1 +}" .`: "the expression isn't finished",
+		`show "a {1 2}" .`: "unexpected",
+	}
+	for src, want := range cases {
+		p := New(lexer.New(src))
+		p.ParseProgram()
+		if errs := p.Errors(); len(errs) == 0 || !strings.Contains(errs[0], want) {
+			t.Errorf("%q: want %q, got %v", src, want, errs)
 		}
 	}
 }

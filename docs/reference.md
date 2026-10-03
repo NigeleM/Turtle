@@ -14,13 +14,14 @@ non-terminal; `[x]` is optional; `{x}` is zero-or-more; `|` is alternation.
   comment that may span multiple lines. Both are stripped by the lexer.
 - **Identifiers**: `<letter|_> {letter|digit|_}`.
 - **Numbers**: `<digits>` (integer) or `<digits>.<digits>` (float).
-- **Strings**: double-quoted. Escapes: `\n`, `\t`, `\"`, `\\`.
+- **Strings**: double-quoted. Escapes: `\n`, `\t`, `\"`, `\\`, `\{`, `\}`.
+  `{<expr>}` inside a string is interpolation (see §Strings).
 - **Booleans**: `true`, `false`.
 - **None**: `none` — the single "no value" value (type `NONE`).
 - **Reserved words** (cannot be used as identifiers): `true false none show if
   else def end loop return list set map import sys to from at of is add
   change remove delete sort reverse insert min max length read write append
-  directory break continue gives in assemble`. Type names used after `change ... to` —
+  directory break continue gives in assemble safe handle fail warn`. Type names used after `change ... to` —
   `integer`, `float`, `string`, `ascii`, `char`, `hex` — are **not** reserved;
   like method names (`get`, `union`, ...) they're plain identifiers whose
   meaning is only special right after `to`.
@@ -61,8 +62,11 @@ Precedence, low to high:
 | 8 (highest) | primary: literals, identifiers, calls, `(...)` grouping |
 
 `+` is overloaded: numeric addition when both operands are numbers; on two
-lists, sets, or maps it combines them (below); otherwise string
-concatenation (either side coerced via its natural string form).
+lists, two sets, or two maps it combines them (below); otherwise string
+concatenation (either side coerced via its natural string form). A list,
+set or map added to anything else, including text or a different kind of
+collection, is a `type` error: `list [1] + 1` and `"n=" + nums` stop the
+program. `none` only adds to `none` (see §None). Values taken out of a list add like any other value.
 `-` and `*` require two numbers. `/` does integer division when both sides
 are integers, float division otherwise; division by zero is a fatal error.
 `%` is modulo: integer `%` integer stays an integer, anything else falls
@@ -141,9 +145,9 @@ change <ident> to <type> .            // mutates <ident> in place
 <ident> = change <expr> to <type>     // expression form, no mutation
 ```
 
-`<type>` is one of `integer`, `float`, `string`, `ascii`, `char`, `hex`.
-These are ordinary identifiers, not reserved words — they only mean
-anything right after `change ... to`.
+`<type>` is one of `integer`, `float`, `string`, `ascii`, `char`, `hex`,
+`list`, `set`. The first six are ordinary identifiers, not reserved words —
+they only mean anything right after `change ... to`.
 
 The statement form requires the source to be a plain identifier (like the
 target of `add ... to <ident> .`) and rewrites that variable's value
@@ -171,8 +175,18 @@ target name covers both directions of a pair:
 | `char` | integer | the one-character string for that code point |
 | `hex` | integer | lowercase hex digits, no `0x` prefix |
 | `hex` | string | parsed as hex (`0x` prefix optional) back to an integer |
+| `set` | list | a new set: duplicates dropped, each kept where it first appeared |
+| `list` | set | a new list, in the set's order |
+| `list` / `set` | the same kind | a copy, so changing it doesn't change the original |
 
 Any other combination is a fatal error naming the source and target types.
+
+```
+nums = list [3, 1, 3, 2, 1]
+unique = change nums to set     // { 3, 1, 2 }
+back = change unique to list    // [ 3, 1, 2 ]
+change nums to set .            // nums itself becomes { 3, 1, 2 }
+```
 
 ## Show
 
@@ -182,6 +196,28 @@ show <expr> {, <expr>} .
 
 Each piece is evaluated and its display form concatenated, in order, with
 no separator inserted.
+
+## Strings
+
+`{<expr>}` inside a string puts the value of `<expr>` there, shown the
+way `show` shows it:
+
+```
+name = "Ann"
+show "Hi {name}, you have {qty * 2} items" .   // Hi Ann, you have 6 items
+show "{x of p} {nums at len} {w substring 3}" .
+show "a plain \{brace\}" .                       // a plain {brace}
+```
+
+- Any expression works inside the braces except one that contains a
+  quoted string: the `"` would end the outer string. Put the text in a
+  variable first.
+- It works in every string: `show`, assignments, `return`, `?` prompts,
+  and the lines of a `[write]`/`[append]` block.
+- `\{` is a plain brace. A `{` with no closing `}`, empty braces `{}`, or
+  an unfinished expression is a parse error. A `}` on its own is plain
+  text. Scripts written before interpolation that have a `{` in a string
+  need it written as `\{`.
 
 ## Return / break / continue
 
@@ -407,9 +443,89 @@ qty of o = 10
 
 `none` is Turtle's "no value". It's what a function returns when it has no
 `return` or uses a bare `return`, and what the time module's `sleep[...]`
-returns. It shows as `none`, is falsy, equals only itself, and concatenates
-as `"none"` (`"x=" + none` is `"x=none"`). Arithmetic and ordering
-comparisons on `none` are fatal type errors.
+returns. It shows as `none`, is falsy, and equals only itself.
+`none + none` is `none`; `none` added to anything else (`"x=" + none`,
+`5 + none`) is a `type` error, as are other arithmetic and ordering
+comparisons on `none`. To put it in text, use interpolation or `show`:
+`"x={x}"`, `show "x=", x .`.
+
+## Errors: `safe` / `handle` / `fail`
+
+```
+safe
+    <statement> ...
+handle [<kind>, ...] <name> .
+    <statement> ...
+safe [end]
+
+fail <expr>
+```
+
+`safe` runs the code under it. If a statement there hits an error whose
+kind is listed, the rest of that code is skipped, the error is stored in
+`<name>` (any name), and the code under `handle` runs. Without an error,
+the code under `handle` is skipped and `<name>` is `none`. Either way,
+the program carries on after `safe [end]`, which takes no period, like
+`def [end]` and `if [end]`.
+
+```
+safe
+    [read] settings.txt to lines [end]
+    count = change lines at get 0 to integer
+handle [file, number] problem .
+    show "using defaults: ", problem .   // line 2: [read] settings.txt: no such file or folder
+    count = 10
+safe [end]
+```
+
+**Kinds** (`handle [] e .` handles every kind):
+
+| kind     | for example                                              |
+|----------|----------------------------------------------------------|
+| `file`   | a missing file, a file that can't be written, end of input |
+| `number` | `change "abc" to integer`                                |
+| `math`   | division or modulo by zero, integer overflow, `sqrt` of a negative |
+| `index`  | list index out of range, `pop` or `min of` on an empty collection |
+| `key`    | map key not found                                        |
+| `name`   | undefined variable, function, method, module or field    |
+| `type`   | the wrong kind of value (`"a" * 2`) or number of arguments |
+| `custom` | your own, from `fail`                                    |
+
+An error of a kind that isn't listed isn't handled: it goes on to an
+enclosing `safe`, or stops the program as usual. So does an error in
+the code under `handle` itself. A kind that doesn't
+exist (`handle [maths] e .`) is a parse error.
+
+**The error value** shows as its full message (`show e .` prints
+`line 2: division by zero`), and has three parts: `kind of e` (`"math"`),
+`line of e` (`2`), `file of e` (`"report.t"`, or `"lib/utils.t"` for an
+error inside an imported module) and `message of e` (`"division by
+zero"`). It's truthy, and still set after `safe [end]`.
+
+**Where.** An error inside an imported module names its file:
+`lib/utils.t line 2: division by zero`. One in the main script just says
+`line 2: ...`. This holds whether the program stops on it or a `handle`
+shows it, and for parse errors in a module too.
+
+**`fail <expr>`** raises an error of kind `custom` whose message is the
+value of `<expr>`. Like `return`, it takes no period. Unhandled, it stops
+the program with that message.
+
+```
+def withdraw[amount]
+    if ] amount > balance [
+        fail "not enough money"
+    if [end]
+    return balance - amount
+def [end]
+```
+
+- Errors raised inside function calls, however deep, reach the `safe`
+  around the call. Variables set before the error keep their values.
+- `return`, `break` and `continue` under `safe` or `handle` work as usual.
+- The error variable follows assignment rules: inside a function it's
+  local.
+- Parse errors are never handled; neither is `system`'s `exit[code]`.
 
 ## Conditionals
 
@@ -563,7 +679,9 @@ import <name> [<f>, <g>, ...]  // only the listed names
 ```
 
 `<name>` is a builtin module (`math`, `time`) or a file `<name>.t`,
-resolved relative to the current script's directory. Because builtin names
+resolved relative to the current script's directory. A module in a
+subfolder is written with `/`: `import lib/utils` reads `lib/utils.t`,
+and its qualified name is the last part, `utils half[4]`. Because builtin names
 win, don't name your own module file `math.t` or `time.t`.
 
 **What a module exports.** A `.t` module exports its top-level functions,

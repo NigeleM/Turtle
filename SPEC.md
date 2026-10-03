@@ -132,6 +132,22 @@ sum = add[1, 2]
 - **(changed)** Inside `[...]`, a sentence-style call takes one argument;
   a `-` attached to a number after a function name is a negative
   argument (`s substring -5`). No parentheses needed.
+- **(new)** Error handling: `safe ... handle [kinds] name . ... safe [end]`
+  runs the handle code only when the safe code hits an error of a listed
+  kind, with the error in `name` (`none` when there was no error); `fail "message"` raises your own. Runtime
+  errors now have a kind (file, number, math, index, key, name, type,
+  custom). See `docs/reference.md` §Errors.
+- **(changed)** `+` with a list, set or map on one side and anything else
+  (text, a number, another kind of collection) is a `type` error; it used
+  to glue the collection's display form to text. `none + none` is `none`;
+  `none` plus anything else is a `type` error (was `"x=" + none` →
+  `"x=none"`).
+- **(new)** `change ... to set` / `change ... to list` convert between
+  lists and sets (duplicates dropped, first-seen order kept).
+- **(new)** String interpolation `"Hi {name}"` (`\{` for a plain brace);
+  `import lib/utils` for modules in subfolders; errors inside a module
+  name its file (`lib/utils.t line 2: ...`); `system` gained `erase[path]`
+  and the `warn ... .` statement (show to stderr).
 - **(new)** `system` gained `exit[code]`, `env[name]`, `scriptFolder[]`;
   new `strings` library: `find`, `substring`, `isinstring`, `join`.
 - **(new)** For-each loops `[loop][x in c]` / `[loop][k, v in c]`, and

@@ -12,17 +12,17 @@ See `docs/stdlib.md`.
 
 Next, roughly in priority order:
 
-- [ ] **Error handling** — every runtime error still ends the program, and
-      runaway recursion crashes Go with a stack dump instead of a Turtle
-      error. Highest-value gap; the rest of this list leans on it.
+- [x] **Error handling** — `safe` / `handle [kinds] e .` / `fail`
+      (2026-10-03). See `docs/reference.md` §Errors.
 - [ ] JSON (read/write), then SQLite (pure-Go `modernc.org/sqlite` to keep
       `CGO_ENABLED=0` releases) — rows could come back as assembled values
 - [ ] `data`: `reduce`, sort by a function, range generator, the
       discrete-math tier (powerset, combinations, ...) proposed 2026-09-30
 - [ ] Assembled types: "is this an Order?" check, looping over fields,
       default field values
-- [ ] Delete files (`system`), found by the stress test; see
-      `docs/stress-test-log.md`
+- [x] Delete files: `system`'s `erase[path]` (2026-10-03)
+- [x] stderr (`warn ... .`), string interpolation, subfolder imports,
+      module file names in errors (2026-10-03)
 - [ ] HTTP (lowest priority — biggest surface area)
 
 ## 2. Fix the CI/release pipeline — DONE (2026-09-29)

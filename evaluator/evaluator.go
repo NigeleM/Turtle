@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 
 	"Turtle/ast"
 	"Turtle/object"
@@ -38,6 +39,7 @@ type Interpreter struct {
 	Dir     string   // the script's directory: imports resolve relative to it
 	WorkDir string   // where turtle was run from: file paths resolve relative to it
 	Args    []string // command-line arguments after the script path (system's args[])
+	Script  string   // the main script's file name, for "file of" an error
 	stdin   *bufio.Scanner
 	modules map[string]*object.Module // loaded .t modules, by resolved path
 	depth   int                       // function calls in progress (see maxCallDepth)
@@ -80,7 +82,7 @@ var builtinModules = map[string]*object.Module{
 	"math":    {Name: "math", Methods: []string{"sqrt", "abs", "round", "floor", "ceil", "pow", "random"}},
 	"time":    {Name: "time", Funcs: []string{"now", "sleep"}},
 	"data":    {Name: "data", Funcs: []string{"process", "keep", "copy"}},
-	"system":  {Name: "system", Funcs: []string{"args", "exists", "isFile", "isFolder", "exit", "env", "scriptFolder", "contents"}},
+	"system":  {Name: "system", Funcs: []string{"args", "exists", "isFile", "isFolder", "exit", "env", "scriptFolder", "contents", "erase", "warn"}},
 	"strings": {Name: "strings", Funcs: []string{"find", "substring", "isinstring", "join"}},
 }
 
@@ -91,10 +93,10 @@ var builtinModules = map[string]*object.Module{
 func requireModule(env *object.Environment, module, what string) {
 	im, ok := env.FindImport(module)
 	if !ok {
-		fatalf("%q needs \"import %s\" first", what, module)
+		fatalKind(kindName, "%q needs \"import %s\" first", what, module)
 	}
 	if !im.Allows(what) {
-		fatalf("%q isn't imported — add it to \"import %s [...]\"", what, module)
+		fatalKind(kindName, "%q isn't imported — add it to \"import %s [...]\"", what, module)
 	}
 }
 
@@ -108,14 +110,45 @@ func requireModule(env *object.Environment, module, what string) {
 // evaluation in flight.
 var currentLine int
 
+// currentFile is the file whose code is running, as errors name it: ""
+// for the main script, "lib/utils.t" for an imported module. Function
+// calls and imports switch it (see callFunction, loadModule).
+var currentFile string
+
 // fatalError is what fatalf panics with. Run recovers exactly this type at
 // the top of a program's evaluation and turns it into a returned error —
 // any other panic (a genuine interpreter bug, not a deliberate runtime
 // error) is left to propagate and crash normally, so a real bug is never
 // silently swallowed.
-type fatalError struct{ msg string }
+//
+// Every fatalError also has a kind (file, number, math, ...), which is
+// what lets a safe block handle some errors and let others through.
+type fatalError struct {
+	msg  string // the full message, "line 3: division by zero"
+	text string // the message without its line, "division by zero"
+	kind string
+	line int
+	file string // "" for the main script
+	// parse is set for a parse error in an imported module: like one in
+	// the main script, no safe block handles it.
+	parse bool
+}
 
 func (e fatalError) Error() string { return e.msg }
+
+// The kinds of runtime error, as written in handle [file, math] error .
+// Anything not given a kind by fatalKind is kindType: a value of the
+// wrong type, or the wrong number of arguments.
+const (
+	kindFile   = "file"   // missing file, can't write, end of input
+	kindNumber = "number" // text that isn't a number: change "abc" to integer
+	kindMath   = "math"   // division by zero, overflow, sqrt of a negative
+	kindIndex  = "index"  // index out of range, pop or min of an empty collection
+	kindKey    = "key"    // map key not found
+	kindName   = "name"   // undefined variable, function, method, module or field
+	kindType   = "type"   // the wrong kind of value or number of arguments
+	kindCustom = "custom" // the program's own, from fail "..."
+)
 
 // fatalf reports a runtime error and unwinds the current evaluation via
 // panic/recover (see Run) rather than calling os.Exit directly — that's
@@ -124,11 +157,27 @@ func (e fatalError) Error() string { return e.msg }
 // (cmd/turtle/main.go) still exits 1 with this exact message, since it's
 // the only thing at the top that doesn't recover.
 func fatalf(format string, args ...interface{}) {
-	msg := fmt.Sprintf(format, args...)
-	if currentLine > 0 {
-		msg = fmt.Sprintf("line %d: %s", currentLine, msg)
+	fatalKind(kindType, format, args...)
+}
+
+// fatalKind is fatalf for an error of a particular kind.
+func fatalKind(kind, format string, args ...interface{}) {
+	text := fmt.Sprintf(format, args...)
+	panic(fatalError{msg: place(currentFile, currentLine) + text, text: text, kind: kind, line: currentLine, file: currentFile})
+}
+
+// place is the "where" an error message starts with: "line 3: " in the
+// main script, "lib/utils.t line 3: " in an imported module.
+func place(file string, line int) string {
+	switch {
+	case line <= 0 && file == "":
+		return ""
+	case line <= 0:
+		return file + ": "
+	case file == "":
+		return fmt.Sprintf("line %d: ", line)
 	}
-	panic(fatalError{msg})
+	return fmt.Sprintf("%s line %d: ", file, line)
 }
 
 // Run evaluates program to completion, or returns the fatalf error that
@@ -161,6 +210,45 @@ func (it *Interpreter) Run(program *ast.Program) (err error) {
 	return nil
 }
 
+// evalSafe runs a safe block. An error of a kind its handle line lists
+// (any kind, for handle [] e .) stops the block, is stored in the
+// handle's variable, and runs the handle code; with no error the handle
+// code is skipped and the variable is none. Other errors, and system's
+// exit[code], go on up untouched. A return, break or continue inside
+// either part still works.
+func (it *Interpreter) evalSafe(s *ast.SafeStatement, env *object.Environment) ExecResult {
+	res, fe, failed := it.evalProtected(s, env)
+	if !failed {
+		env.Set(s.Name, object.NoneValue)
+		return res
+	}
+	file := fe.file
+	if file == "" {
+		file = it.Script
+	}
+	env.Set(s.Name, &object.Error{Kind: fe.kind, File: file, InModule: fe.file != "", Line: fe.line, Message: fe.text})
+	// Outside evalProtected, so an error in the handle code isn't handled
+	// by its own safe block.
+	return it.evalBlock(s.Handler, env)
+}
+
+// evalProtected runs a safe block's body, recovering an error of a kind
+// its handle line lists.
+func (it *Interpreter) evalProtected(s *ast.SafeStatement, env *object.Environment) (res ExecResult, fe fatalError, failed bool) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			return
+		}
+		e, ok := r.(fatalError)
+		if !ok || e.parse || (len(s.Kinds) > 0 && !slices.Contains(s.Kinds, e.kind)) {
+			panic(r)
+		}
+		res, fe, failed = noneResult, e, true
+	}()
+	return it.evalBlock(s.Body, env), fatalError{}, false
+}
+
 func (it *Interpreter) evalStatements(stmts []ast.Statement, env *object.Environment) ExecResult {
 	for _, stmt := range stmts {
 		res := it.evalStatement(stmt, env)
@@ -186,24 +274,31 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		return noneResult
 
 	case *ast.InputStatement:
-		fmt.Print(s.Prompt)
+		fmt.Print(it.evalExpression(s.Prompt, env).Inspect())
 		if !it.stdin.Scan() {
 			// EOF (or a read error) on stdin: there's nothing left to
 			// read, ever, so returning "" here would make any loop that
 			// re-prompts on bad input (e.g. retrying invalid numeric
 			// input) spin forever re-reading empty strings instead of
 			// terminating.
-			fatalf("unexpected end of input reading %q", s.Name)
+			fatalKind(kindFile, "unexpected end of input reading %q", s.Name)
 		}
 		env.Set(s.Name, &object.String{Value: it.stdin.Text()})
 		return noneResult
 
 	case *ast.ShowStatement:
+		if s.Stderr {
+			requireModule(env, "system", "warn")
+		}
 		out := ""
 		for _, e := range s.Expressions {
 			out += it.evalExpression(e, env).Inspect()
 		}
-		fmt.Println(out)
+		if s.Stderr {
+			fmt.Fprintln(os.Stderr, out)
+		} else {
+			fmt.Println(out)
+		}
 		return noneResult
 
 	case *ast.ExpressionStatement:
@@ -257,8 +352,20 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		}
 		return noneResult
 
+	case *ast.SafeStatement:
+		return it.evalSafe(s, env)
+
+	case *ast.FailStatement:
+		val := it.evalExpression(s.Value, env)
+		fatalKind(kindCustom, "%s", val.Inspect())
+		return noneResult
+
 	case *ast.FieldAssignStatement:
-		a, i := it.assemblyField(s.Target, env)
+		obj := it.evalExpression(s.Target.Object, env)
+		if _, ok := obj.(*object.Error); ok {
+			fatalf("an error's parts can't be changed (%s of an error is read-only)", s.Target.Field)
+		}
+		a, i := fieldOf(obj, s.Target.Field)
 		a.Values[i] = it.evalExpression(s.Value, env)
 		return noneResult
 

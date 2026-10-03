@@ -1,8 +1,12 @@
 package evaluator
 
 import (
+	"errors"
+	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
+	pathpkg "path"
 	"path/filepath"
 	"strings"
 
@@ -50,11 +54,27 @@ func (it *Interpreter) resolveImportPath(p string) string {
 	return filepath.Join(it.Dir, p)
 }
 
+// fileProblem says briefly what went wrong with a file, without the full
+// resolved path Go's own message repeats.
+func fileProblem(err error) string {
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		return "no such file or folder"
+	case errors.Is(err, fs.ErrPermission):
+		return "permission denied"
+	}
+	var pe *fs.PathError
+	if errors.As(err, &pe) {
+		return pe.Err.Error()
+	}
+	return err.Error()
+}
+
 func (it *Interpreter) evalFileRead(s *ast.FileReadStatement, env *object.Environment) {
-	path := it.resolvePath(it.evalPath(s.File, env))
-	data, err := os.ReadFile(path)
+	name := it.evalPath(s.File, env)
+	data, err := os.ReadFile(it.resolvePath(name))
 	if err != nil {
-		fatalf("[read] %s: %v", path, err)
+		fatalKind(kindFile, "[read] %s: %s", name, fileProblem(err))
 	}
 	text := strings.TrimRight(string(data), "\n")
 	list := &object.List{}
@@ -67,13 +87,16 @@ func (it *Interpreter) evalFileRead(s *ast.FileReadStatement, env *object.Enviro
 }
 
 func (it *Interpreter) evalFileWrite(s *ast.FileWriteStatement, env *object.Environment) {
-	path := it.resolvePath(it.evalPath(s.File, env))
+	name := it.evalPath(s.File, env)
+	path := it.resolvePath(name)
 	var lines []string
 	for _, item := range s.Content {
-		if item.IsVar {
+		if item.Expr != nil {
+			lines = append(lines, it.evalExpression(item.Expr, env).Inspect())
+		} else if item.IsVar {
 			v, ok := env.Get(item.Name)
 			if !ok {
-				fatalf("[write]/[append]: undefined variable %q", item.Name)
+				fatalKind(kindName, "[write]/[append]: undefined variable %q", item.Name)
 			}
 			lines = append(lines, v.Inspect())
 		} else {
@@ -97,15 +120,15 @@ func (it *Interpreter) evalFileWrite(s *ast.FileWriteStatement, env *object.Envi
 		err = os.WriteFile(path, []byte(content), 0644)
 	}
 	if err != nil {
-		fatalf("[write]/[append] %s: %v", path, err)
+		fatalKind(kindFile, "[write]/[append] %s: %s", name, fileProblem(err))
 	}
 }
 
 func (it *Interpreter) evalDirectory(s *ast.DirectoryStatement, env *object.Environment) {
-	path := it.resolvePath(it.evalPath(s.Path, env))
-	entries, err := os.ReadDir(path)
+	name := it.evalPath(s.Path, env)
+	entries, err := os.ReadDir(it.resolvePath(name))
 	if err != nil {
-		fatalf("[directory] %s: %v", path, err)
+		fatalKind(kindFile, "[directory] %s: %s", name, fileProblem(err))
 	}
 	list := &object.List{}
 	for _, e := range entries {
@@ -125,9 +148,12 @@ func (it *Interpreter) evalDirectory(s *ast.DirectoryStatement, env *object.Envi
 // an error (see resolveImported).
 func (it *Interpreter) evalImport(s *ast.ImportStatement, env *object.Environment) {
 	mod := it.loadModule(s.Path)
+	if other, ok := env.FindImport(mod.Name); ok && other.Module != mod {
+		fatalKind(kindName, "import %s: this file already imports another module called %q — rename one of the files", s.Path, mod.Name)
+	}
 	for _, n := range s.Names {
 		if !mod.Exports(n) {
-			fatalf("import %s: module %q has no %q", s.Path, s.Path, n)
+			fatalKind(kindName, "import %s: module %q has no %q", s.Path, s.Path, n)
 		}
 	}
 	env.AddImport(mod, s.Names)
@@ -137,7 +163,10 @@ func (it *Interpreter) loadModule(name string) *object.Module {
 	if mod, ok := builtinModules[name]; ok {
 		return mod
 	}
-	path := it.resolveImportPath(name + ".t")
+	if _, ok := builtinModules[pathpkg.Base(name)]; ok {
+		fatalKind(kindName, "import %s: %q is the name of a builtin module — rename the file", name, pathpkg.Base(name))
+	}
+	path := it.resolveImportPath(filepath.FromSlash(name) + ".t")
 	if mod, ok := it.modules[path]; ok {
 		return mod
 	}
@@ -147,22 +176,38 @@ func (it *Interpreter) loadModule(name string) *object.Module {
 			for j := range chain {
 				chain[j] = strings.TrimSuffix(filepath.Base(chain[j]), ".t")
 			}
-			fatalf("import %s: circular import (%s)", name, strings.Join(chain, " -> "))
+			fatalKind(kindName, "import %s: circular import (%s)", name, strings.Join(chain, " -> "))
 		}
+	}
+	file := name + ".t"
+	if rel, err := filepath.Rel(it.Dir, path); err == nil {
+		file = filepath.ToSlash(rel)
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
-		fatalf("import %s: %v", name, err)
+		fatalKind(kindFile, "import %s: %s: %s", name, file, fileProblem(err))
 	}
 	p := parser.New(lexer.New(string(data)))
 	program := p.ParseProgram()
 	if errs := p.Errors(); len(errs) > 0 {
-		fatalf("import %s: %s", name, errs[0])
+		// errs[0] is "line N: ...": name the module's file and line.
+		var line int
+		text := errs[0]
+		if _, err := fmt.Sscanf(text, "line %d: ", &line); err == nil {
+			text = strings.TrimPrefix(text, fmt.Sprintf("line %d: ", line))
+		}
+		panic(fatalError{msg: place(file, line) + text, text: text, kind: kindFile, line: line, file: file, parse: true})
 	}
-	mod := &object.Module{Name: name, Env: object.NewGlobalEnvironment()}
+	mod := &object.Module{Name: pathpkg.Base(name), Env: object.NewGlobalEnvironment()}
+	mod.Env.SetFile(file)
 	it.loading = append(it.loading, path)
+	prevFile, prevLine := currentFile, currentLine
+	currentFile = file
+	defer func() { // also when a safe block handles an error from the module
+		it.loading = it.loading[:len(it.loading)-1]
+		currentFile, currentLine = prevFile, prevLine
+	}()
 	it.evalStatements(program.Statements, mod.Env)
-	it.loading = it.loading[:len(it.loading)-1]
 	it.modules[path] = mod
 	return mod
 }

@@ -28,6 +28,18 @@ func runIn(t *testing.T, dir, src, stdin string) (string, error) {
 	return runFull(t, dir, src, stdin, nil)
 }
 
+// runScript is runIn for a script named main.t, as "file of" an error
+// in it reports.
+func runScript(t *testing.T, dir, src string) (string, error) {
+	t.Helper()
+	scriptName = "main.t"
+	defer func() { scriptName = "" }()
+	return runFull(t, dir, src, "", nil)
+}
+
+// scriptName is the Script runFull gives the interpreter.
+var scriptName string
+
 // runFull is runIn plus command-line arguments for system's args[].
 func runFull(t *testing.T, dir, src, stdin string, args []string) (string, error) {
 	t.Helper()
@@ -58,6 +70,7 @@ func runFull(t *testing.T, dir, src, stdin string, args []string) (string, error
 
 	it := NewWithStdin(dir, strings.NewReader(stdin))
 	it.WorkDir = dir
+	it.Script = scriptName
 	it.Args = args
 	runErr := it.Run(program)
 
@@ -597,7 +610,9 @@ else ]
     show "no" .
 if [end]
 show !none .`, "no\ntrue\n"},
-		{"concat", `show "x=" + none .`, "x=none\n"},
+		{"none + none is none", `show none + none .`, "none\n"},
+		{"shows inside text by interpolation", `x = none
+show "x={x}" .`, "x=none\n"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -955,7 +970,11 @@ func TestCollectionOperators(t *testing.T) {
 		{"operands unchanged", `a = list [1]
 b = a + list [2]
 show a .`, "[ 1 ]\n"},
-		{"string + list still concatenates", `show "x" + list [1] .`, "x[ 1 ]\n"},
+		{"values taken out of lists add normally", `a = list [1, 2]
+b = list [10, 20]
+x = a at get[0]
+y = b at get[1]
+show x + y .`, "21\n"},
 		{"method call in expression", `show "hi" at upper .
 t = "Hello, World" at slice[0, 5]
 show t .`, "HI\nHello\n"},
@@ -1081,7 +1100,7 @@ show z of a .`, wantErr: `A has no field "z" (its fields: x)`},
 a = A[1]
 z of a = 2`, wantErr: `A has no field "z"`},
 		{name: "field of a non-assembled value", src: `n = 5
-show x of n .`, wantErr: "'x of' needs an assembled value, got INTEGER"},
+show x of n .`, wantErr: "'x of' needs an assembled value or an error, got INTEGER"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -1564,5 +1583,522 @@ show orig, big .`
 	want := "[ [ 1 ] ]\ntrue\ntrue\n1|a|2.0\n[ 1, 2 ][ 10, 20 ]\n"
 	if out != want {
 		t.Errorf("got %q, want %q", out, want)
+	}
+}
+
+func TestSafeHandle(t *testing.T) {
+	dir := moduleDir(t, map[string]string{
+		"broken": "x = 1 / 0\n",
+	})
+	cases := []struct{ name, src, want, wantErr string }{
+		{name: "no error skips the handle code", src: `safe
+    x = 1
+handle [] e .
+    show "not reached" .
+safe [end]
+show e .`, want: "none\n"},
+		{name: "error stops the block and runs the handle code", src: `safe
+    x = 1 / 0
+    show "not reached" .
+handle [math] e .
+    show e .
+safe [end]
+show "after" .`, want: "line 2: division by zero\nafter\n"},
+		{name: "kind, line and message", src: `safe
+    [read] no_such_file.txt to lines [end]
+handle [file] e .
+    show kind of e .
+    show line of e .
+    show message of e .
+safe [end]`, want: "file\n2\n[read] no_such_file.txt: no such file or folder\n"},
+		{name: "empty handle code", src: `safe
+    x = 1 / 0
+handle [] e .
+safe [end]
+show kind of e .`, want: "math\n"},
+		{name: "empty list handles any kind", src: `safe
+    y = nothing_here
+handle [] e .
+    show kind of e .
+safe [end]`, want: "name\n"},
+		{name: "several kinds", src: `safe
+    n = change "abc" to integer
+handle [math, number] e .
+    show kind of e .
+safe [end]`, want: "number\n"},
+		{name: "index and key", src: `l = list [1]
+safe
+    v is l at get 5 .
+handle [index] e .
+    show kind of e .
+safe [end]
+m = map ["a":1]
+safe
+    v is m at get "b" .
+handle [key] e .
+    show kind of e .
+safe [end]`, want: "index\nkey\n"},
+		{name: "type", src: `safe
+    x = "a" * 2
+handle [type] e .
+    show kind of e .
+safe [end]`, want: "type\n"},
+		{name: "unlisted kind still stops the program", src: `safe
+    x = 1 / 0
+handle [file] e .
+    show "not reached" .
+safe [end]
+show "not reached" .`, wantErr: "line 2: division by zero"},
+		{name: "error in the handle code is not handled by its own safe", src: `safe
+    x = 1 / 0
+handle [] e .
+    y = missing
+safe [end]`, wantErr: `line 4: undefined variable "missing"`},
+		{name: "fail raises custom", src: `def withdraw[amount]
+    if ] amount > 100 [
+        fail "not enough money"
+    if [end]
+    return 100 - amount
+def [end]
+safe
+    left = withdraw[500]
+handle [custom] e .
+    show e .
+    show kind of e .
+safe [end]`, want: "line 3: not enough money\ncustom\n"},
+		{name: "unhandled fail stops the program", src: `fail "bad input " + 5`, wantErr: "line 1: bad input 5"},
+		{name: "fail in the handle code passes it on", src: `safe
+    safe
+        x = 1 / 0
+    handle [math] inner .
+        fail "gave up: " + message of inner
+    safe [end]
+handle [custom] outer .
+    show outer .
+safe [end]`, want: "line 5: gave up: division by zero\n"},
+		{name: "nested: inner passes it on", src: `safe
+    safe
+        x = 1 / 0
+    handle [file] inner .
+        show "not reached" .
+    safe [end]
+    show "not reached" .
+handle [math] outer .
+    show outer .
+safe [end]`, want: "line 3: division by zero\n"},
+		{name: "return inside safe and handle", src: `def f[n]
+    safe
+        return 10 / n
+    handle [math] e .
+        return -1
+    safe [end]
+def [end]
+show f[2] .
+show f[0] .`, want: "5\n-1\n"},
+		{name: "break and continue inside safe", src: `[loop][i = 0; i < 6; i++]
+    safe
+        if ] i == 1 [
+            continue
+        if [end]
+        if ] i == 4 [
+            break
+        if [end]
+        k = i - 2
+        x = 10 / k
+        show i .
+    handle [] e .
+        show "skip " + i .
+        continue
+    safe [end]
+[loop][end]`, want: "0\nskip 2\n3\n"},
+		{name: "handled inside a deep call", src: `def down[n]
+    if ] n == 0 [
+        fail "bottom"
+    if [end]
+    return down[n - 1]
+def [end]
+safe
+    down[50]
+handle [] e .
+    show message of e .
+safe [end]`, want: "bottom\n"},
+		{name: "error variable is local in a function", src: `def f[]
+    safe
+        x = 1 / 0
+    handle [] problem .
+        return kind of problem
+    safe [end]
+def [end]
+show f[] .`, want: "math\n"},
+		{name: "unknown error field", src: `safe
+    x = 1 / 0
+handle [] e .
+    show code of e .
+safe [end]`, wantErr: `an error has no field "code" (its fields: kind, file, line, message)`},
+		{name: "failed import can be handled and tried again", src: `safe
+    import broken
+handle [math] e .
+    show e .
+safe [end]
+safe
+    import broken
+handle [math] e .
+    show e .
+safe [end]`, want: "broken.t line 1: division by zero\nbroken.t line 1: division by zero\n"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := runIn(t, dir, c.src, "")
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("want error containing %q, got %v (output %q)", c.wantErr, err, out)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
+func TestSafeDoesNotHandleExit(t *testing.T) {
+	_, err := run(t, `import system
+safe
+    exit[4]
+handle [] e .
+    show "not reached" .
+safe [end]`, "")
+	var ex ExitRequest
+	if !errors.As(err, &ex) || ex.Code != 4 {
+		t.Fatalf("want ExitRequest{4}, got %v", err)
+	}
+}
+
+func TestStringInterpolation(t *testing.T) {
+	cases := []struct{ name, src, want string }{
+		{"names and expressions", `name = "Ann"
+qty = 3
+show "Hi {name}, {qty * 2} items" .`, "Hi Ann, 6 items\n"},
+		{"escaped braces", `show "\{x\} {1 + 1}" .`, "{x} 2\n"},
+		{"field, method and sentence call", `import strings
+assemble P [x]
+p = P[4]
+l = list [1, 2]
+w = "turtle"
+show "{x of p} {l at len} {w substring 3}" .`, "4 2 tle\n"},
+		{"values show like show does", `l = list [1, "a"]
+show "{l} {none} {2.0}" .`, "[ 1, \"a\" ] none 2.0\n"},
+		{"in a function result", `def greet[who]
+    return "Hi {who}!"
+def [end]
+show greet["Bo"] .`, "Hi Bo!\n"},
+		{"plain string unchanged", `show "no braces here }" .`, "no braces here }\n"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := run(t, c.src, "")
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
+func TestInterpolationInPromptAndWrite(t *testing.T) {
+	dir := t.TempDir()
+	out, err := runIn(t, dir, `who = "Ann"
+age = ? "Age for {who}? "
+[write] out.txt
+"{who} is {age}"
+[end]
+[read] out.txt to lines [end]
+show lines .`, "7\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out != "Age for Ann? [ \"Ann is 7\" ]\n" {
+		t.Errorf("got %q", out)
+	}
+}
+
+func TestErrorsNameTheModuleFile(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "lib"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	files := map[string]string{
+		"lib/utils.t": "def half[n]\n    return 10 / n\ndef [end]\n",
+		"lib/bad.t":   "x = 1\nshow x\n",
+	}
+	for name, src := range files {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(src), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cases := []struct{ name, src, want, wantErr string }{
+		{name: "subfolder import, qualified by its last name", src: `import lib/utils
+show half[4] .
+show utils half[5] .`, want: "2\n2\n"},
+		{name: "unhandled error in a module names it", src: `import lib/utils
+x = half[0]`, wantErr: "lib/utils.t line 2: division by zero"},
+		{name: "handled error in a module", src: `import lib/utils
+safe
+    x = half[0]
+handle [math] e .
+    show e .
+    show file of e .
+    show line of e .
+safe [end]`, want: "lib/utils.t line 2: division by zero\nlib/utils.t\n2\n"},
+		{name: "error in the main script", src: `safe
+    x = nope
+handle [] e .
+    show e .
+    show file of e .
+safe [end]`, want: "line 2: undefined variable \"nope\"\nmain.t\n"},
+		{name: "after a call, errors name the caller's line", src: `import lib/utils
+x = 1
+show half[2] / 0 .`, wantErr: "line 3: division by zero"},
+		{name: "parse error in a module", src: `import lib/bad`, wantErr: "lib/bad.t line 2: expected next token to be ."},
+		{name: "missing module", src: `import lib/nothing`, wantErr: "line 1: import lib/nothing: lib/nothing.t: no such file or folder"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := runScript(t, dir, c.src)
+			if c.wantErr != "" {
+				if err == nil || err.Error() != c.wantErr && !strings.HasPrefix(err.Error(), c.wantErr) {
+					t.Fatalf("want error starting %q, got %v", c.wantErr, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
+func TestEraseAndWarn(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "build", "deep"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range []string{"old.txt", "build/a.txt", "build/deep/b.txt"} {
+		if err := os.WriteFile(filepath.Join(dir, f), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	out, err := runIn(t, dir, `import system
+erase["old.txt"]
+erase["build"]
+show exists["old.txt"], " ", exists["build"] .
+warn "to stderr, not stdout" .
+safe
+    erase["old.txt"]
+handle [file] e .
+    show e .
+safe [end]
+safe
+    erase["."]
+handle [file] e .
+    show e .
+safe [end]`, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "false false\n" +
+		"line 7: erase old.txt: no such file or folder\n" +
+		"line 12: erase .: won't erase the folder turtle is running in, or a folder above it\n"
+	if out != want {
+		t.Errorf("got %q, want %q", out, want)
+	}
+	for _, c := range []struct{ src, want string }{
+		{`warn "x" .`, `"warn" needs "import system" first`},
+		{"import system [args]\nerase[\"x\"]", `"erase" isn't imported`},
+	} {
+		if _, err := runIn(t, dir, c.src, ""); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%q: want %q, got %v", c.src, c.want, err)
+		}
+	}
+}
+
+func TestReviewFixes(t *testing.T) {
+	dir := t.TempDir()
+	for _, sub := range []string{"a", "b", "lib"} {
+		if err := os.MkdirAll(filepath.Join(dir, sub), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	files := map[string]string{
+		"a/utils.t":  "def f[]\n    return 1\ndef [end]\n",
+		"b/utils.t":  "def g[]\n    return 2\ndef [end]\n",
+		"lib/math.t": "def h[]\n    return 3\ndef [end]\n",
+		"lib/bad.t":  "x = 1\nshow x\n",
+	}
+	for name, src := range files {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(src), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cases := []struct{ name, src, want, wantErr string }{
+		{name: "two imports with the same last name", src: "import a/utils\nimport b/utils",
+			wantErr: `import b/utils: this file already imports another module called "utils"`},
+		{name: "same module imported twice is fine", src: "import a/utils\nimport a/utils [f]\nshow f[] .", want: "1\n"},
+		{name: "module named like a builtin", src: "import lib/math",
+			wantErr: `import lib/math: "math" is the name of a builtin module`},
+		{name: "parse error in a module is never handled", src: `safe
+    import lib/bad
+handle [] e .
+    show "not reached" .
+safe [end]`, wantErr: "lib/bad.t line 2: expected next token to be ."},
+		{name: "an error's parts are read-only", src: `safe
+    x = 1 / 0
+handle [] e .
+    kind of e = "file"
+safe [end]`, wantErr: "an error's parts can't be changed (kind of an error is read-only)"},
+		{name: "field change evaluates its target once", src: `assemble P [x]
+calls = list []
+p = P[1]
+def get_p[]
+    add 1 to calls .
+    return p
+def [end]
+x of get_p[] = 5
+show x of p, " ", length of calls .`, want: "5 1\n"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := runIn(t, dir, c.src, "")
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("want error containing %q, got %v (output %q)", c.wantErr, err, out)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
+func TestEraseGuardThroughSymlink(t *testing.T) {
+	real := t.TempDir()
+	work := filepath.Join(real, "work")
+	if err := os.Mkdir(work, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(t.TempDir(), "link")
+	if err := os.Symlink(real, link); err != nil {
+		t.Skip("no symlinks:", err)
+	}
+	// work is <real>/work; the script names it through the link.
+	_, err := runIn(t, work, "import system\nerase[\""+filepath.Join(link, "work")+"\"]", "")
+	if err == nil || !strings.Contains(err.Error(), "won't erase the folder turtle is running in") {
+		t.Fatalf("want the guard, got %v", err)
+	}
+	if _, err := os.Stat(work); err != nil {
+		t.Fatalf("work folder is gone: %v", err)
+	}
+}
+
+func TestPlusMixingCollectionsIsATypeError(t *testing.T) {
+	for _, src := range []string{
+		`x = "x" + list [1]`,
+		`x = list [1] + "x"`,
+		`x = list [1, 2] + 1`,
+		`x = 1.5 + set [1]`,
+		`x = map ["a": 1] + true`,
+		`x = list [1] + set [1]`,
+		`x = set [1] + map ["a": 1]`,
+		`x = list [1] + none`,
+	} {
+		_, err := run(t, src, "")
+		if err == nil || !strings.Contains(err.Error(), "a list, set or map only adds to another of its own kind") {
+			t.Errorf("%s: want a type error, got %v", src, err)
+		}
+	}
+	out, err := run(t, `safe
+    x = list [1] + 1
+handle [type] e .
+    show kind of e .
+safe [end]`, "")
+	if err != nil || out != "type\n" {
+		t.Fatalf("got %q, %v", out, err)
+	}
+}
+
+func TestPlusWithNoneIsATypeError(t *testing.T) {
+	for _, src := range []string{
+		`x = "x=" + none`,
+		`x = none + "x"`,
+		`x = 5 + none`,
+		`x = none + 2.5`,
+		`x = true + none`,
+	} {
+		_, err := run(t, src, "")
+		if err == nil || !strings.Contains(err.Error(), "none only adds to none; check for it first, e.g. if ] x != none [") {
+			t.Errorf("%s: want a type error, got %v", src, err)
+		}
+	}
+	_, err := run(t, `x = list [1] + 1`, "")
+	if err == nil || !strings.Contains(err.Error(), "e.g. list [1] + list [2]") {
+		t.Errorf("collection error should show an example, got %v", err)
+	}
+}
+
+func TestChangeListAndSet(t *testing.T) {
+	cases := []struct{ name, src, want, wantErr string }{
+		{name: "list to set drops duplicates, keeps first order", src: `nums = list [3, 1, 3, 2, 1]
+show change nums to set .
+show nums .`, want: "{ 3, 1, 2 }\n[ 3, 1, 3, 2, 1 ]\n"},
+		{name: "set to list", src: `s = set [5, 4, 5]
+show change s to list .`, want: "[ 5, 4 ]\n"},
+		{name: "statement form changes the variable", src: `nums = list [1, 1, 2]
+change nums to set .
+show nums .
+change nums to list .
+show nums .`, want: "{ 1, 2 }\n[ 1, 2 ]\n"},
+		{name: "same kind is a copy", src: `a = list [1]
+b = change a to list
+add 2 to b .
+s = set [1]
+t = change s to set
+add 2 to t .
+show a, " ", b, " ", s, " ", t .`, want: "[ 1 ] [ 1, 2 ] { 1 } { 1, 2 }\n"},
+		{name: "equal values count once", src: `show change list [1, 1.0, "1"] to set .`, want: "{ 1, \"1\" }\n"},
+		{name: "empty", src: `show change list [] to set .`, want: "{  }\n"},
+		{name: "number to list", src: `x = change 5 to list`, wantErr: "change: can't convert INTEGER to list"},
+		{name: "map to set", src: `x = change map ["a": 1] to set`, wantErr: "change: can't convert MAP to set"},
+		{name: "unknown target lists the types", src: `x = change 5 to tuple`, wantErr: "want integer, float, string, ascii, char, hex, list, or set"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := run(t, c.src, "")
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("want error containing %q, got %v", c.wantErr, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
 	}
 }

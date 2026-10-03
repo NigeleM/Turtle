@@ -15,7 +15,7 @@ import (
 func (it *Interpreter) getVar(env *object.Environment, name string) object.Object {
 	v, ok := env.Get(name)
 	if !ok {
-		fatalf("undefined variable %q", name)
+		fatalKind(kindName, "undefined variable %q", name)
 	}
 	return v
 }
@@ -51,7 +51,7 @@ func (it *Interpreter) evalDataOp(s *ast.DataOpStatement, env *object.Environmen
 			fatalf("'delete ... from %s' needs a map, got %s", s.Target, target.Type())
 		}
 		if !m.Delete(key) {
-			fatalf("key %s not found in map %s", showKey(key), s.Target)
+			fatalKind(kindKey, "key %s not found in map %s", showKey(key), s.Target)
 		}
 	case ast.OpSort:
 		switch t := target.(type) {
@@ -83,7 +83,7 @@ func (it *Interpreter) evalDataOp(s *ast.DataOpStatement, env *object.Environmen
 		}
 		idx := int(idxObj.Value)
 		if idx < 0 || idx > len(list.Elements) {
-			fatalf("index %d out of range for list %s (length %d)", idx, s.Target, len(list.Elements))
+			fatalKind(kindIndex, "index %d out of range for list %s (length %d)", idx, s.Target, len(list.Elements))
 		}
 		list.Elements = append(list.Elements[:idx:idx], append([]object.Object{val}, list.Elements[idx:]...)...)
 	}
@@ -147,7 +147,7 @@ func (it *Interpreter) reduceExtreme(argExpr ast.Expression, env *object.Environ
 		fatalf("'min/max of' needs a list, set, or map, got %s", obj.Type())
 	}
 	if len(candidates) == 0 {
-		fatalf("'min/max of' called on an empty collection")
+		fatalKind(kindIndex, "'min/max of' called on an empty collection")
 	}
 	best := candidates[0]
 	for _, c := range candidates[1:] {
@@ -225,7 +225,7 @@ func requireFuncArgs(name string, args []object.Object, n int) {
 // doesn't count from the end — a negative index is out of range.
 func listIndex(kind string, idx, n int) int {
 	if idx < 0 || idx >= n {
-		fatalf("index %d out of range for %s (length %d)", idx, kind, n)
+		fatalKind(kindIndex, "index %d out of range for %s (length %d)", idx, kind, n)
 	}
 	return idx
 }
@@ -283,7 +283,7 @@ func listMethod(l *object.List, method string, args []object.Object) object.Obje
 		return l
 	case "pop":
 		if len(l.Elements) == 0 {
-			fatalf("'pop' called on an empty list")
+			fatalKind(kindIndex, "'pop' called on an empty list")
 		}
 		last := l.Elements[len(l.Elements)-1]
 		l.Elements = l.Elements[:len(l.Elements)-1]
@@ -300,7 +300,7 @@ func listMethod(l *object.List, method string, args []object.Object) object.Obje
 		requireArgs(method, args, 2)
 		idx := asIndex(method, args[1])
 		if idx < 0 || idx > len(l.Elements) {
-			fatalf("index %d out of range for list (length %d)", idx, len(l.Elements))
+			fatalKind(kindIndex, "index %d out of range for list (length %d)", idx, len(l.Elements))
 		}
 		l.Elements = append(l.Elements[:idx:idx], append([]object.Object{args[0]}, l.Elements[idx:]...)...)
 		return l
@@ -324,7 +324,7 @@ func listMethod(l *object.List, method string, args []object.Object) object.Obje
 		out.Elements = append(out.Elements, l.Elements[start:end]...)
 		return out
 	}
-	fatalf("unknown list method %q", method)
+	fatalKind(kindName, "unknown list method %q", method)
 	return nil
 }
 
@@ -375,7 +375,7 @@ func setMethod(s *object.Set, method string, args []object.Object) object.Object
 		return s
 	case "pop":
 		if len(s.Elements) == 0 {
-			fatalf("'pop' called on an empty set")
+			fatalKind(kindIndex, "'pop' called on an empty set")
 		}
 		last := s.Elements[len(s.Elements)-1]
 		s.Elements = s.Elements[:len(s.Elements)-1]
@@ -391,7 +391,7 @@ func setMethod(s *object.Set, method string, args []object.Object) object.Object
 		}
 		idx := asIndex(method, args[1])
 		if idx < 0 || idx > len(s.Elements) {
-			fatalf("index %d out of range for set (length %d)", idx, len(s.Elements))
+			fatalKind(kindIndex, "index %d out of range for set (length %d)", idx, len(s.Elements))
 		}
 		s.Elements = append(s.Elements[:idx:idx], append([]object.Object{args[0]}, s.Elements[idx:]...)...)
 		s.Changed()
@@ -461,7 +461,7 @@ func setMethod(s *object.Set, method string, args []object.Object) object.Object
 		}
 		return &object.Boolean{Value: true}
 	}
-	fatalf("unknown set method %q", method)
+	fatalKind(kindName, "unknown set method %q", method)
 	return nil
 }
 
@@ -474,7 +474,7 @@ func mapMethod(m *object.Map, method string, args []object.Object) object.Object
 		requireArgs(method, args, 1)
 		v, ok := m.Get(args[0])
 		if !ok {
-			fatalf("key %s not found in map", showKey(args[0]))
+			fatalKind(kindKey, "key %s not found in map", showKey(args[0]))
 		}
 		return v
 	case "getValues":
@@ -496,7 +496,7 @@ func mapMethod(m *object.Map, method string, args []object.Object) object.Object
 	case "delete":
 		requireArgs(method, args, 1)
 		if !m.Delete(args[0]) {
-			fatalf("key %s not found in map", showKey(args[0]))
+			fatalKind(kindKey, "key %s not found in map", showKey(args[0]))
 		}
 		return m
 	case "invert":
@@ -508,7 +508,7 @@ func mapMethod(m *object.Map, method string, args []object.Object) object.Object
 	case "toString":
 		return &object.String{Value: m.Inspect()}
 	}
-	fatalf("unknown map method %q", method)
+	fatalKind(kindName, "unknown map method %q", method)
 	return nil
 }
 
@@ -558,7 +558,7 @@ func stringMethod(s *object.String, method string, args []object.Object) object.
 	case "toString":
 		return s
 	}
-	fatalf("unknown string method %q", method)
+	fatalKind(kindName, "unknown string method %q", method)
 	return nil
 }
 
@@ -626,7 +626,7 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		requireArgs(method, args, 0)
 		f, _, _ := numeric(receiver)
 		if f < 0 {
-			fatalf("'sqrt' of a negative number (%v)", f)
+			fatalKind(kindMath, "'sqrt' of a negative number (%v)", f)
 		}
 		return &object.Float{Value: math.Sqrt(f)}
 	case "abs":
@@ -675,10 +675,10 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 			fatalf("%q needs an integer receiver (the exclusive upper bound), got %s", method, receiver.Type())
 		}
 		if n.Value <= 0 {
-			fatalf("%q needs a positive upper bound, got %d", method, n.Value)
+			fatalKind(kindMath, "%q needs a positive upper bound, got %d", method, n.Value)
 		}
 		return &object.Integer{Value: rand.Int63n(n.Value)}
 	}
-	fatalf("unknown number method %q", method)
+	fatalKind(kindName, "unknown number method %q", method)
 	return nil
 }

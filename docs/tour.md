@@ -25,7 +25,8 @@ pi = 3.14159
 ```
 
 Numbers are integers or floats. `+` does double duty: numeric addition when
-both sides are numbers, string concatenation otherwise:
+both sides are numbers, string concatenation otherwise. (Lists, sets and
+maps only add to their own kind; `list [1] + 1` is an error.)
 
 ```
 a = 1 + 2 * (3 + 4)     // 15 — normal precedence, parens work
@@ -49,6 +50,12 @@ the string literals themselves:
 
 ```
 show "x = ", x, ", y = ", y .
+```
+
+Put a value straight into a string with `{...}`:
+
+```
+show "x = {x}, y = {y}, total = {x + y}" .
 ```
 
 ## Reading input
@@ -86,6 +93,13 @@ show change "A" to ascii .     // 65
 show change 66 to char .       // B
 show change 255 to hex .       // ff
 show change "ff" to hex .      // 255
+```
+
+`list` and `set` convert between the two. A quick way to drop duplicates:
+
+```
+nums = list [3, 1, 3, 2, 1]
+show change nums to set .      // { 3, 1, 2 }
 ```
 
 ## Conditionals
@@ -306,6 +320,27 @@ A misspelled field (`prise of o`) or a missing value (`Order["pen", 3]`)
 is an error that names the fields, rather than a silently wrong map.
 Two `Order`s with the same fields are `==`.
 
+## When things go wrong: `safe` and `handle`
+
+An error, like a missing file or dividing by zero, normally stops the
+program. To deal with it yourself, put the code in a `safe` block. Under
+`handle`, list the kinds of error you expect, name the error, and write
+what to do if one happens. `safe [end]` closes it:
+
+```
+safe
+    [read] scores.txt to lines [end]
+handle [file] error .
+    show "no scores yet: ", error .
+    lines = list []
+safe [end]
+```
+
+The code under `handle` runs only if something went wrong.
+`handle [] error .` handles every kind. `kind of error`,
+`line of error` and `message of error` give the parts. Raise your own
+with `fail "message"`. See the reference for the list of kinds.
+
 ## Files
 
 ```
@@ -348,6 +383,8 @@ some of its functions, list them:
 ```
 import util [parse, format]
 ```
+
+Modules in a subfolder use `/`: `import lib/utils` reads `lib/utils.t`.
 
 If two imports export a function with the same name, say which one you
 mean by putting the module name in front: `util format[x]`. Calling the

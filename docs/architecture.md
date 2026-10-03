@@ -221,14 +221,23 @@ know how to "return" — only the enclosing function call does, in
 
 ### Errors
 
-There's no recoverable error type — `fatalf` (evaluator package) prints to
-stderr and calls `os.Exit(1)`. This matches the legacy interpreter's own
-philosophy of crashing hard on most real errors, deliberately chosen over
-building a full recoverable-exception system for a scripting language
-this size. The one exception: legacy would `os.Exit(1)` on things like a
-missing map key from *deep inside* a rendering/display helper with no
-context; the rewrite raises these from the specific operation that failed,
-with a message naming the operation and the value involved.
+A runtime error is a `fatalError` panic: `fatalf`/`fatalKind`
+(evaluator.go) build it with the message, its kind (`file`, `number`,
+`math`, `index`, `key`, `name`, `type`, `custom`), and the line and file
+it happened in. Two package-level variables track where code is running:
+`currentLine` (set by every statement) and `currentFile` ("" for the main
+script, "lib/utils.t" for a module; switched by `callFunction` and
+`loadModule`, which restore both when they return or unwind).
+
+`Interpreter.Run` recovers a `fatalError` and returns it; the CLI prints
+it and exits 1. A `safe` block (`evalSafe`/`evalProtected`) recovers one
+first if its kind is listed, stores an `object.Error` in the handle
+variable, and runs the handle code outside the recover, so an error there
+isn't handled by its own block. Three things are never handled: a panic
+that isn't a `fatalError` (an interpreter bug), `ExitRequest` (system's
+`exit[code]`), and a parse error in an imported module (`fatalError.parse`).
+Errors come from the specific operation that failed, with a message
+naming the operation and the value involved.
 
 ## Testing
 
