@@ -139,9 +139,11 @@ func (l *Lexer) NextToken() token.Token {
 		tok.Type, tok.Literal = token.RPAREN, ")"
 	case '?':
 		tok.Type, tok.Literal = token.QUESTION, "?"
-	case '"':
+	case '"', '\'':
+		// 'single quotes' are the same string, so text full of double
+		// quotes (JSON, speech) needs no escapes: '{"name": "Ann"}'.
 		tok.Type = token.STRING
-		tok.Literal = l.readString()
+		tok.Literal = l.readString(l.ch)
 		return tok
 	case 0:
 		tok.Type, tok.Literal = token.EOF, ""
@@ -275,10 +277,10 @@ func (l *Lexer) readNumberStartingWithDot() string {
 	return l.input[start:l.pos]
 }
 
-func (l *Lexer) readString() string {
+func (l *Lexer) readString(quote byte) string {
 	var sb strings.Builder
 	l.readChar() // skip opening quote
-	for l.ch != '"' && l.ch != 0 {
+	for l.ch != quote && l.ch != 0 {
 		if l.ch == '\\' {
 			switch l.peekChar() {
 			case 'n':
@@ -287,8 +289,8 @@ func (l *Lexer) readString() string {
 			case 't':
 				sb.WriteByte('\t')
 				l.readChar()
-			case '"':
-				sb.WriteByte('"')
+			case '"', '\'':
+				sb.WriteByte(l.peekChar())
 				l.readChar()
 			case '\\':
 				sb.WriteByte('\\')

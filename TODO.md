@@ -5,16 +5,25 @@ Forward-looking punch list. For what's already done, see `PROGRESS.md`.
 ## 1. Expand the standard library
 
 Done so far: string methods, `strings` (`find`, `substring`, `isinstring`,
-`join`), `math`, `time`, `data` (`process`, `keep`, `copy`), `system`
-(`args`, `exit`, `env`, `scriptFolder`, `contents`, `exists`, `isFile`,
-`isFolder`).
+`join`), `math`, `time` (`now`, `sleep`, dates: `today`, `make_date`,
+`to_date`, `add_time`, `time_between`, `format_date`, `wait_until`,
+`every`), `data` (`process`, `keep`, `copy`), `system` (`args`, `exit`,
+`env`, `scriptFolder`, `contents`, `exists`, `isFile`, `isFolder`,
+`erase`, `warn`), `json` (`load`, `json_text`, `json_read`, `json_write`,
+`json_get`).
 See `docs/stdlib.md`.
 
 Next, roughly in priority order:
 
 - [x] **Error handling** — `safe` / `handle [kinds] e .` / `fail`
       (2026-10-03). See `docs/reference.md` §Errors.
-- [ ] JSON (read/write), then SQLite (pure-Go `modernc.org/sqlite` to keep
+- [x] JSON: `import json` (2026-10-03)
+- [x] Dates in `time`: arithmetic, formatting, `wait_until`, `every`
+      (2026-10-03)
+- [ ] OS scheduling (cron / Task Scheduler) so jobs run after the script
+      ends; `every` covers in-script repeats today
+- [ ] HTTP (`get`/`post` returning text for `load`; error kind `http`)
+- [ ] SQLite (pure-Go `modernc.org/sqlite` to keep
       `CGO_ENABLED=0` releases) — rows could come back as assembled values
 - [ ] `data`: `reduce`, sort by a function, range generator, the
       discrete-math tier (powerset, combinations, ...) proposed 2026-09-30

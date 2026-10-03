@@ -117,3 +117,19 @@ func TestReservedWordsAreNotIdentifiers(t *testing.T) {
 		}
 	}
 }
+
+func TestSingleQuotedStrings(t *testing.T) {
+	cases := map[string]string{
+		`'{"name": "Ann"}'`: `{"name": "Ann"}`,
+		`'it\'s'`:           "it's",
+		`"it's"`:            "it's",
+		`"say \'hi\'"`:      "say 'hi'",
+		`'a\nb'`:            "a\nb",
+	}
+	for src, want := range cases {
+		tok := New(src).NextToken()
+		if tok.Type != token.STRING || tok.Literal != want {
+			t.Errorf("%s: got %s %q, want STRING %q", src, tok.Type, tok.Literal, want)
+		}
+	}
+}

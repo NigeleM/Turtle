@@ -460,7 +460,7 @@ func (p *Parser) parseReturnStatement() ast.Statement {
 
 // errorKinds are the names a handle statement can list; they match the
 // kinds the evaluator gives its runtime errors.
-var errorKinds = []string{"file", "number", "math", "index", "key", "name", "type", "custom"}
+var errorKinds = []string{"file", "number", "math", "index", "key", "name", "type", "json", "date", "custom"}
 
 // parseSafeStatement parses
 //
@@ -1417,7 +1417,9 @@ func (p *Parser) parseStringLiteral() ast.Expression {
 
 // stringExpression turns a STRING token into a StringLiteral, or an
 // InterpolatedString when it has {expr} parts: "Total: {qty * price}".
-// \{ is a literal brace.
+// A '{' is a plain brace when the next non-space character is a quote or
+// '}', or nothing follows: JSON ('{"a": 1}', "{}") never needs escaping,
+// and an expression never starts with a quote. \{ is always a plain brace.
 func (p *Parser) stringExpression(tok token.Token) ast.Expression {
 	text := tok.Literal
 	literal := func(s string) *ast.StringLiteral {
@@ -1427,14 +1429,21 @@ func (p *Parser) stringExpression(tok token.Token) ast.Expression {
 		return literal(text)
 	}
 	var parts []ast.Expression
+	plain := "" // text so far that's literal, including plain braces
 	for {
 		open := strings.IndexByte(text, '{')
 		if open < 0 {
 			break
 		}
-		if open > 0 {
-			parts = append(parts, literal(text[:open]))
+		if plainBrace(text[open+1:]) {
+			plain += text[:open+1]
+			text = text[open+1:]
+			continue
 		}
+		if s := plain + text[:open]; s != "" {
+			parts = append(parts, literal(s))
+		}
+		plain = ""
 		end := strings.IndexByte(text[open:], '}')
 		if end < 0 {
 			p.errors = append(p.errors, fmt.Sprintf("line %d: a '{' in a string needs a closing '}' (write \\{ for a plain brace)", tok.Line))
@@ -1443,10 +1452,20 @@ func (p *Parser) stringExpression(tok token.Token) ast.Expression {
 		parts = append(parts, p.interpolatedPart(tok, text[open+1:open+end]))
 		text = text[open+end+1:]
 	}
-	if text != "" {
-		parts = append(parts, literal(text))
+	if len(parts) == 0 {
+		return literal(plain + text)
+	}
+	if s := plain + text; s != "" {
+		parts = append(parts, literal(s))
 	}
 	return &ast.InterpolatedString{Token: tok, Parts: parts}
+}
+
+// plainBrace reports whether a '{' followed by rest is a plain brace: the
+// next non-space character is a quote or '}', or there's none.
+func plainBrace(rest string) bool {
+	rest = strings.TrimLeft(rest, " \t\r\n")
+	return rest == "" || rest[0] == '"' || rest[0] == '\'' || rest[0] == '}'
 }
 
 // interpolatedPart parses the expression inside one {...} of a string.

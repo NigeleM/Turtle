@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"Turtle/lexer"
 	"Turtle/parser"
@@ -2100,5 +2101,288 @@ show a, " ", b, " ", s, " ", t .`, want: "[ 1 ] [ 1, 2 ] { 1 } { 1, 2 }\n"},
 				t.Errorf("got %q, want %q", out, c.want)
 			}
 		})
+	}
+}
+
+func TestJSONLibrary(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "in.json"), []byte("{\n  \"users\": [\n    {\"name\": \"Bo\", \"age\": 7}\n  ],\n  \"bad\": \n}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "good.json"), []byte(`{"users": [{"name": "Bo", "age": 7}], "n": null}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cases := []struct{ name, src, want, wantErr string }{
+		{name: "load types", src: `import json
+d = load['{"s": "x", "i": 3, "f": 2.5, "w": 2.0, "b": true, "n": null, "l": [1, "a"], "m": {}}']
+show d .`, want: `{ "s": "x", "i": 3, "f": 2.5, "w": 2.0, "b": true, "n": none, "l": [ 1, "a" ], "m": {  } }` + "\n"},
+		{name: "key order kept", src: `import json
+show load['{"z": 1, "a": 2, "m": 3}'] at getKeys .`, want: `[ "z", "a", "m" ]` + "\n"},
+		{name: "numbers", src: `import json
+show load["1e3"], " ", load["-4"], " ", load["99999999999999999999"] .`, want: "1000.0 -4 100000000000000000000.0\n"},
+		{name: "json_text one line", src: `import json
+assemble P [x, y]
+show json_text[map ["a": list [1, none], "s": set [2], "p": P[1, "<&>"], 3: true]] .`,
+			want: `{"a":[1,null],"s":[2],"p":{"x":1,"y":"<&>"},"3":true}` + "\n"},
+		{name: "escapes round trip", src: `import json
+s = "line\n\"q\" \\ tab\t"
+show load[json_text[s]] == s .`, want: "true\n"},
+		{name: "json_get", src: `import json
+d = json_read["good.json"]
+show json_get[d, "users", 0, "name"] .
+show json_get[d, "users", 3, "name"] .
+show json_get[d, "users", -1] .
+show json_get[d, "nope", "x"] .
+show json_get[d, "n"] .
+show json_get[d, "users", "0"] .`, want: "Bo\nnone\nnone\nnone\nnone\nnone\n"},
+		{name: "json_get into an assembled value", src: `import json
+assemble P [x]
+show json_get[map ["p": P[5]], "p", "x"] .`, want: "5\n"},
+		{name: "write then read", src: `import json
+json_write["out.json", map ["a": list [1, 2], "b": map []]]
+[read] out.json to lines [end]
+show length of lines .
+show json_read["out.json"] .`, want: "7\n" + `{ "a": [ 1, 2 ], "b": {  } }` + "\n"},
+		{name: "bad JSON is kind json", src: `import json
+safe
+    d = load['{"a": 1,}']
+handle [json] e .
+    show kind of e .
+    show message of e .
+safe [end]`, want: "json\nload: invalid JSON at line 1, column 9: invalid character '}' looking for beginning of object key string\n"},
+		{name: "bad JSON file names the file and line", src: `import json
+d = json_read["in.json"]`, wantErr: "json_read in.json: invalid JSON at line 6, column 1: invalid character '}' looking for beginning of value"},
+		{name: "empty text", src: `import json
+d = load["  "]`, wantErr: "there's no JSON, the text is empty"},
+		{name: "cut short", src: `import json
+d = load['[1, 2']`, wantErr: "the text ended before the JSON did"},
+		{name: "extra text", src: `import json
+d = load["[1] 2"]`, wantErr: "extra text after the JSON value"},
+		{name: "missing file is kind file", src: `import json
+safe
+    d = json_read["nope.json"]
+handle [file] e .
+    show e .
+safe [end]`, want: "line 3: json_read nope.json: no such file or folder\n"},
+		{name: "function can't be JSON", src: `import json
+t = json_text[x gives x]`, wantErr: "json_text: a FUNCTION can't be written as JSON"},
+		{name: "boolean key can't be JSON", src: `import json
+t = json_text[map [true: 1]]`, wantErr: "a map key that's a BOOLEAN can't be a JSON key"},
+		{name: "self-containing list", src: `import json
+l = list [1]
+add l to l .
+t = json_text[l]`, wantErr: "the value contains itself"},
+		{name: "same list twice is fine", src: `import json
+l = list [1]
+show json_text[list [l, l]] .`, want: "[[1],[1]]\n"},
+		{name: "needs import", src: `d = load["1"]`, wantErr: `"load" needs "import json" first`},
+		{name: "load needs text", src: `import json
+d = load[5]`, wantErr: `"load" argument must be a string, got INTEGER`},
+		{name: "json_get needs a key", src: `import json
+d = json_get[map []]`, wantErr: "'json_get' expects a value and at least one key or index"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := runIn(t, dir, c.src, "")
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("want error containing %q, got %v (output %q)", c.wantErr, err, out)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
+// testdata/shop is a whole program (main script, two modules in lib/,
+// JSON data in data/) that checks its own results; it runs in a copy so
+// the report and log it writes and erases never touch testdata.
+func TestShopProgram(t *testing.T) {
+	src, err := filepath.Abs("../testdata/shop")
+	if err != nil {
+		t.Fatal(err)
+	}
+	work := t.TempDir()
+	err = filepath.WalkDir(src, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(src, path)
+		if d.IsDir() {
+			return os.MkdirAll(filepath.Join(work, rel), 0o755)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(filepath.Join(work, rel), data, 0o644)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	script, err := os.ReadFile(filepath.Join(work, "shop.t"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := runFull(t, work, string(script), "Sam\n", []string{"--verbose"})
+	if err != nil || !strings.Contains(out, "failures: 0") {
+		t.Fatalf("shop.t failed (err %v):\n%s", err, out)
+	}
+	for _, f := range []string{"shop_report.json", "shop_log.txt"} {
+		if _, err := os.Stat(filepath.Join(work, f)); err == nil {
+			t.Errorf("%s wasn't erased", f)
+		}
+	}
+}
+
+func TestTimeLibrary(t *testing.T) {
+	cases := []struct{ name, src, want, wantErr string }{
+		{name: "make_date shows and has parts", src: `import time
+d = make_date[2026, 1, 31, 9, 5, 7]
+show d .
+show year of d, " ", month of d, " ", day of d, " ", hour of d, " ", minute of d, " ", second of d, " ", weekday of d .`,
+			want: "2026-01-31 09:05:07\n2026 1 31 9 5 7 Saturday\n"},
+		{name: "add_time units", src: `import time
+d = make_date[2026, 1, 31]
+show add_time[d, 30, "days"] .
+show add_time[d, -7, "days"] .
+show add_time[d, 2, "weeks"] .
+show add_time[d, 90, "minutes"] .
+show add_time[d, 1, "hour"] .
+show add_time[d, 45, "seconds"] .`,
+			want: "2026-03-02 00:00:00\n2026-01-24 00:00:00\n2026-02-14 00:00:00\n2026-01-31 01:30:00\n2026-01-31 01:00:00\n2026-01-31 00:00:45\n"},
+		{name: "months stay in the month", src: `import time
+show add_time[make_date[2026, 1, 31], 1, "months"] .
+show add_time[make_date[2028, 1, 31], 1, "months"] .
+show add_time[make_date[2026, 3, 31], -1, "months"] .
+show add_time[make_date[2024, 2, 29], 1, "years"] .
+show add_time[make_date[2026, 11, 15], 3, "months"] .`,
+			want: "2026-02-28 00:00:00\n2028-02-29 00:00:00\n2026-02-28 00:00:00\n2025-02-28 00:00:00\n2027-02-15 00:00:00\n"},
+		{name: "time_between", src: `import time
+a = make_date[2026, 1, 31]
+b = add_time[a, 30, "days"]
+show time_between[a, b, "days"], " ", time_between[b, a, "days"], " ", time_between[a, b, "weeks"], " ", time_between[a, b, "hours"] .
+show time_between[a, make_date[2026, 2, 28], "months"], " ", time_between[make_date[2026, 1, 15], make_date[2026, 2, 14], "months"] .
+show time_between[make_date[2000, 6, 15], make_date[2026, 6, 14], "years"], " ", time_between[make_date[2000, 6, 15], make_date[2026, 6, 15], "years"] .
+show time_between[make_date[2026, 5, 1], make_date[2026, 1, 1], "months"] .`,
+			want: "30 -30 4 720\n1 0\n25 26\n-4\n"},
+		{name: "format_date", src: `import time
+d = make_date[2026, 3, 5, 14, 7, 0]
+show format_date[d, "Weekday, Month D YYYY at hh:mm"] .
+show format_date[d, "Wkd DD/MM/YYYY ss"] .
+show format_date[d, "Mon M"] .`,
+			want: "Thursday, March 5 2026 at 14:07\nThu 05/03/2026 00\nMar 3\n"},
+		{name: "to_date forms", src: `import time
+show to_date["2026-10-03"] .
+show to_date[" 2026-10-03 14:05 "] .
+show to_date["2026-10-03 14:05:09"] .
+show to_date["2026-10-03T14:05:09"] .
+show to_date["2026-10-03T14:05:09Z"] .`,
+			want: "2026-10-03 00:00:00\n2026-10-03 14:05:00\n2026-10-03 14:05:09\n2026-10-03 14:05:09\n2026-10-03 14:05:09\n"},
+		{name: "compare, equal, map key, set", src: `import time
+a = make_date[2026, 1, 1]
+b = make_date[2026, 1, 2]
+show a < b, " ", b >= a, " ", a == make_date[2026, 1, 1], " ", a != b .
+m = map [a: "new year"]
+show m at get[make_date[2026, 1, 1]] .
+show length of set [a, b, make_date[2026, 1, 2]] .`,
+			want: "true true true true\nnew year\n2\n"},
+		{name: "today and today_utc are the same moment", src: `import time
+t = today[]
+u = today_utc[]
+show t == u, " ", time_between[u, t, "seconds"] <= 1, " ", now[] > 0 .`, want: "true true true\n"},
+		{name: "dates in text and JSON", src: `import time
+import json
+d = make_date[2026, 3, 2]
+show "Due " + d .
+show "Due {d}" .
+show json_text[map ["due": d]] .
+show change d to string .`,
+			want: "Due 2026-03-02 00:00:00\nDue 2026-03-02 00:00:00\n" + `{"due":"2026-03-02 00:00:00"}` + "\n2026-03-02 00:00:00\n"},
+		{name: "every until false", src: `import time
+runs = list []
+def job[]
+    add 1 to runs .
+    return length of runs < 3
+def [end]
+every[1, "seconds", job]
+show length of runs .`, want: "3\n"},
+		{name: "wait_until a past date returns at once", src: `import time
+before = now[]
+wait_until[add_time[today[], -1, "days"]]
+show now[] - before < 500 .`, want: "true\n"},
+		{name: "impossible date", src: `import time
+d = make_date[2026, 2, 30]`, wantErr: "make_date: 2026-02-30 00:00:00 isn't a real date and time"},
+		{name: "bad date text is kind date", src: `import time
+safe
+    d = to_date["next tuesday"]
+handle [date] e .
+    show kind of e .
+safe [end]`, want: "date\n"},
+		{name: "bad unit", src: `import time
+d = add_time[today[], 1, "fortnights"]`, wantErr: "'add_time' unit must be one of seconds, minutes, hours, days, weeks, months, years, got \"fortnights\""},
+		{name: "amount must be whole", src: `import time
+d = add_time[today[], 1.5, "days"]`, wantErr: "'add_time' amount must be a whole number, got FLOAT"},
+		{name: "needs a date", src: `import time
+d = add_time["2026-01-01", 1, "days"]`, wantErr: "'add_time' needs a date (from today[], make_date or to_date), got STRING"},
+		{name: "unknown part", src: `import time
+show week of today[] .`, wantErr: `a date has no part "week" (its parts: year, month, day, hour, minute, second, weekday)`},
+		{name: "parts are read-only", src: `import time
+d = today[]
+day of d = 3`, wantErr: "a date's parts can't be changed"},
+		{name: "every needs a no-parameter function", src: `import time
+every[1, "days", x gives x]`, wantErr: "'every' runs a function with no parameters, but this one takes 1"},
+		{name: "every needs a positive amount", src: `import time
+every[0, "days", [] gives false]`, wantErr: "'every' amount must be at least 1"},
+		{name: "compare a date with text", src: `import time
+x = today[] < "2026"`, wantErr: "needs two numbers, two strings or two dates, got DATE and STRING"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := run(t, c.src, "")
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("want error containing %q, got %v (output %q)", c.wantErr, err, out)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
+// Days keep the clock time across a daylight-saving change (a 23-hour
+// day still counts as one day); hours are exact.
+func TestTimeAcrossDaylightSaving(t *testing.T) {
+	ny, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		t.Skip("no time zone data:", err)
+	}
+	orig := time.Local
+	time.Local = ny
+	defer func() { time.Local = orig }()
+	out, err := run(t, `import time
+d = make_date[2026, 3, 7, 12, 0, 0]
+next = add_time[d, 1, "days"]
+show next .
+show time_between[d, next, "days"], " ", time_between[d, next, "hours"] .
+show add_time[d, 24, "hours"] .`, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "2026-03-08 12:00:00\n1 23\n2026-03-08 13:00:00\n"
+	if out != want {
+		t.Errorf("got %q, want %q", out, want)
 	}
 }

@@ -223,7 +223,7 @@ know how to "return" — only the enclosing function call does, in
 
 A runtime error is a `fatalError` panic: `fatalf`/`fatalKind`
 (evaluator.go) build it with the message, its kind (`file`, `number`,
-`math`, `index`, `key`, `name`, `type`, `custom`), and the line and file
+`math`, `index`, `key`, `name`, `type`, `json`, `date`, `custom`), and the line and file
 it happened in. Two package-level variables track where code is running:
 `currentLine` (set by every statement) and `currentFile` ("" for the main
 script, "lib/utils.t" for a module; switched by `callFunction` and

@@ -174,32 +174,95 @@ n is 10 at random .      // some integer in [0, 10)
 
 ### Builtin functions: `time`
 
-`import time` unlocks two ordinary function calls (not methods — there's
-no natural receiver for "the current time"):
+`import time` gives the clock, dates, date arithmetic, and waiting:
 
 | Function | Args | Returns |
 |---|---|---|
 | `now[]` | — | milliseconds since the Unix epoch, as an Integer |
-| `sleep[amount [, unit]]` | amount, optional unit | pauses execution for that long; returns `none` |
+| `sleep[amount [, unit]]` | amount, optional `"seconds"` (default) or `"ms"` | pauses that long; returns `none` |
+| `today[]` | — | the date and time now, in local time |
+| `today_utc[]` | — | the same moment, shown in UTC |
+| `make_date[y, m, d]` or `[y, m, d, h, mi, s]` | whole numbers | that local date and time; one that doesn't exist (Feb 30) is a `date` error |
+| `to_date[text]` | `"YYYY-MM-DD"`, optionally with ` hh:mm` or ` hh:mm:ss`, or ISO 8601 (`2026-10-03T14:05:00Z`) | the date; other text is a `date` error |
+| `add_time[date, amount, unit]` | date, whole number, unit | a new date; a negative amount goes back |
+| `time_between[a, b, unit]` | two dates, unit | how many whole units from `a` to `b` (negative if `b` is earlier) |
+| `format_date[date, pattern]` | date, pattern text | the date written with the pattern (below) |
+| `wait_until[date]` | date | sleeps until then (at once if it's past); returns `none` |
+| `every[amount, unit, job]` | whole number, unit, a function with no parameters | runs `job` now and then on a repeat, until `job` returns `false` |
 
-`sleep`'s `unit` is the string `"seconds"` (the default, when omitted) or
-`"ms"`:
+**Units:** `"seconds"`, `"minutes"`, `"hours"`, `"days"`, `"weeks"`,
+`"months"`, `"years"` (or the singular, `"day"`).
+
+**A date** shows as `2026-10-03 14:05:00`, whole seconds, in its own
+clock (local, or UTC for `today_utc[]` and `...Z` text). Read its parts
+with `of`: `year`, `month`, `day`, `hour`, `minute`, `second` (whole
+numbers) and `weekday` (`"Saturday"`). Parts are read-only; make a new date
+with `add_time` or `make_date`. Dates compare with `< > <= >= == !=` (the
+same moment is equal whichever clock shows it), can be map keys and set
+elements, join text with `+` or `{d}`, and are written to JSON as text.
 
 ```
 import time
 
-sleep[1]            // 1 second
-sleep[0.25]          // a quarter second
-sleep[250, "ms"]     // 250 milliseconds, explicitly
+d = today[]
+show d .                                     // 2026-10-03 14:05:00
+show weekday of d .                          // Saturday
 
-t1 = now[]
-sleep[0.5]
-t2 = now[]
-show t2 - t1 .    // at least 500 (now[] is always in milliseconds)
+due = add_time[d, 30, "days"]                // 30 days from now
+last_week = add_time[d, -7, "days"]
+left = time_between[d, due, "days"]          // 30
+show format_date[due, "Weekday, Month D YYYY"] .   // Monday, November 2 2026
+
+if ] today[] > due [
+    show "overdue" .
+if [end]
 ```
 
-If you've already defined your own top-level function named `now` or
-`sleep`, it always wins — the builtin only kicks in when no user function
+**Months and years stay in the month:** January 31 + 1 month is
+February 28 (29 in a leap year), not March 3; February 29 + 1 year is
+February 28. `time_between` counts months the same way, so January 31 to
+February 28 is 1 month.
+
+**Days keep the clock time** across daylight-saving changes: noon + 1 day
+is noon the next day, even when that day has 23 or 25 hours. `"hours"`
+is exact: noon + 24 hours can be 11:00 or 13:00 on those days.
+
+**`format_date` patterns:** `YYYY` year, `MM`/`M` month (`03`/`3`),
+`DD`/`D` day, `hh` hour 00-23, `mm` minute, `ss` second, `Month`
+(`March`), `Mon` (`Mar`), `Weekday` (`Thursday`), `Wkd` (`Thu`). Anything
+else is copied as is: `format_date[d, "DD/MM/YYYY hh:mm"]` → `05/03/2026 14:07`.
+
+**Automation.** `wait_until` and `every` run inside your script, so the
+script has to keep running (in a terminal, or as a service). `every`
+schedules each run from when it started, so a slow job doesn't push later
+runs back. Return `false` from the job to stop; an error in the job stops
+the program unless the job handles it with `safe`.
+
+```
+import time
+import system
+
+def backup[]
+    sys cp data.db backups/
+    warn "backed up at ", today[] .
+def [end]
+
+wait_until[add_time[today[], 1, "hours"]]    // run once, an hour from now
+backup[]
+
+every[7, "days", backup]                     // then every 7 days, forever
+```
+
+`sleep` examples:
+
+```
+sleep[1]            // 1 second
+sleep[0.25]         // a quarter second
+sleep[250, "ms"]    // 250 milliseconds
+```
+
+If you've already defined your own top-level function with one of these
+names (`now`, `today`, ...), it always wins — the builtin only kicks in when no user function
 of that name exists.
 
 Plain `<result> is <receiver> .` (no `at`) is just assignment/aliasing —
@@ -248,6 +311,67 @@ gives [end]
 These are ordinary functions, so you can write your own in a `.t` library
 and call them the same sentence style. See
 [`reference.md`](reference.md#sentence-style-calls).
+
+## JSON library
+
+`import json` (or `import json [load, json_get]`):
+
+| Function | Args | Returns |
+|---|---|---|
+| `load[text]` | JSON text | the Turtle value |
+| `json_text[value]` | any JSON-able value | JSON text on one line |
+| `json_read[path]` | file path | the file's JSON as a Turtle value |
+| `json_write[path, value]` | file path, value | writes the value as indented JSON; returns `none` |
+| `json_get[value, step, ...]` | a value, then keys and indexes | the value at the end of the path, or `none` if any step is missing |
+
+```
+import json
+
+cfg = json_read["config.json"]
+port = json_get[cfg, "server", "port"]
+if ] port == none [
+    port = 8080
+if [end]
+
+user = load['{"name": "Ann", "tags": ["admin"]}']
+show user at get["name"] .               // Ann
+tags = user at get["tags"]
+add "editor" to tags .                   // the same list, so user changes too
+json_write["user.json", user]
+show json_text[user] .                   // {"name":"Ann","tags":["admin","editor"]}
+```
+
+**JSON to Turtle:** objects become maps (keys stay in the file's order),
+arrays become lists, whole numbers become integers (`3`), other numbers
+floats (`2.5`, `1e3` → `1000.0`), `true`/`false` booleans, `null` `none`.
+
+**Turtle to JSON:** maps become objects and lists arrays; sets become
+arrays; an assembled value becomes an object of its fields
+(`Order["pen", 3]` → `{"item": "pen", "qty": 3}`); `none` becomes `null`.
+Number map keys become text keys (`1` → `"1"`), since JSON keys are
+always text; any other key, a function, or a value that contains itself
+is a `type` error.
+
+**`json_get`** takes map keys, assembled-value field names, and list
+indexes (from 0), one step each. It never fails on a missing step; it
+returns `none`, so you can check instead of using `safe`.
+
+**Errors.** Bad JSON is kind `json` and says where:
+`json_read config.json: invalid JSON at line 6, column 1: invalid
+character '}' looking for beginning of value`. A missing file is kind
+`file`.
+
+```
+safe
+    cfg = json_read["config.json"]
+handle [file, json] e .
+    warn "using defaults: ", e .
+    cfg = map []
+safe [end]
+```
+
+JSON typed into Turtle code reads best in single quotes, where `"` needs
+no escape and braces before a quote are plain: `'{"a": [1, 2]}'`.
 
 ## Strings library
 
