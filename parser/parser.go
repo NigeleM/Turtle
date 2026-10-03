@@ -10,6 +10,7 @@ package parser
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -239,6 +240,13 @@ func (p *Parser) parseStatement() ast.Statement {
 	switch p.curToken.Type {
 	case token.SHOW:
 		return p.parseShowStatement()
+	case token.WARN:
+		// warn "..." . is show for stderr (system's).
+		if stmt, ok := p.parseShowStatement().(*ast.ShowStatement); ok {
+			stmt.Stderr = true
+			return stmt
+		}
+		return nil
 	case token.RETURN:
 		return p.parseReturnStatement()
 	case token.BREAK:
@@ -249,6 +257,19 @@ func (p *Parser) parseStatement() ast.Statement {
 		stmt := &ast.ContinueStatement{Token: p.curToken}
 		p.nextToken()
 		return stmt
+	case token.SAFE:
+		if p.isSafeEnd() {
+			p.errorf("'safe [end]' needs a 'safe' block and a 'handle [...] error .' line above it")
+			p.skipLine()
+			return nil
+		}
+		return p.parseSafeStatement()
+	case token.HANDLE:
+		p.errorf("'handle' needs a 'safe' above it, starting the code it protects")
+		p.skipLine()
+		return nil
+	case token.FAIL:
+		return p.parseFailStatement()
 	case token.DEF:
 		return p.parseFunctionDef()
 	case token.ASSEMBLE:
@@ -348,7 +369,7 @@ func (p *Parser) parseAssignOrInputStatement() ast.Statement {
 		if !p.expectPeek(token.STRING) {
 			return nil
 		}
-		prompt := p.curToken.Literal
+		prompt := p.stringExpression(p.curToken)
 		p.nextToken()
 		return &ast.InputStatement{Token: tok, Name: name, Prompt: prompt}
 	}
@@ -435,12 +456,104 @@ func (p *Parser) parseReturnStatement() ast.Statement {
 	return &ast.ReturnStatement{Token: tok, Value: val}
 }
 
+// ---- safe / handle / fail ---------------------------------------------
+
+// errorKinds are the names a handle statement can list; they match the
+// kinds the evaluator gives its runtime errors.
+var errorKinds = []string{"file", "number", "math", "index", "key", "name", "type", "custom"}
+
+// parseSafeStatement parses
+//
+//	safe
+//	    <statements>
+//	handle [kind, ...] name .
+//	    <statements, run only on an error>
+//	safe [end]
+func (p *Parser) parseSafeStatement() ast.Statement {
+	tok := p.curToken
+	body := p.parseBlockUntil(func() bool { return p.curTokenIs(token.HANDLE) })
+	if !p.curTokenIs(token.HANDLE) {
+		p.errorf("'safe' on line %d needs a 'handle [...] error .' line to close it", tok.Line)
+		return nil
+	}
+	if !p.expectPeek(token.LBRACKET) {
+		return nil
+	}
+	var kinds []string
+	for !p.peekTokenIs(token.RBRACKET) {
+		p.nextToken()
+		k := p.curToken.Literal
+		if !slices.Contains(errorKinds, k) {
+			p.errorf("%q isn't a kind of error; handle can list %s, or [] for any error",
+				k, strings.Join(errorKinds, ", "))
+		}
+		kinds = append(kinds, k)
+		if !p.peekTokenIs(token.COMMA) {
+			break
+		}
+		p.nextToken()
+	}
+	if !p.expectPeek(token.RBRACKET) {
+		return nil
+	}
+	if p.isReservedWord(p.peekToken) {
+		p.reservedNameError(p.peekToken, "an error variable")
+		p.nextToken()
+	} else if !p.expectPeek(token.IDENT) {
+		return nil
+	}
+	name := p.curToken.Literal
+	if !p.expectPeek(token.PERIOD) {
+		return nil
+	}
+	handler := p.parseBlockUntil(p.isSafeEnd)
+	if !p.isSafeEnd() {
+		p.errorf("'safe' on line %d needs a 'safe [end]' after its handle code", tok.Line)
+		return nil
+	}
+	p.nextToken() // SAFE -> '['
+	p.nextToken() // '[' -> END
+	p.nextToken() // END -> ']'
+	p.nextToken() // past ']'
+	return &ast.SafeStatement{Token: tok, Body: body, Kinds: kinds, Name: name, Handler: handler}
+}
+
+// isSafeEnd reports whether curToken starts "safe [end]".
+func (p *Parser) isSafeEnd() bool {
+	return p.curTokenIs(token.SAFE) &&
+		p.peekN(1).Type == token.LBRACKET &&
+		p.peekN(2).Type == token.END &&
+		p.peekN(3).Type == token.RBRACKET
+}
+
+// parseFailStatement handles "fail <expr>". Like return, no period.
+func (p *Parser) parseFailStatement() ast.Statement {
+	tok := p.curToken
+	if p.peekTokenIs(token.EOF) || p.peekToken.Line != tok.Line {
+		p.errorf("'fail' needs a message, e.g. fail \"not enough money\"")
+		p.nextToken()
+		return nil
+	}
+	p.nextToken()
+	val := p.parseExpression(LOWEST)
+	p.nextToken()
+	return &ast.FailStatement{Token: tok, Value: val}
+}
+
 func (p *Parser) parseImportStatement() ast.Statement {
 	tok := p.curToken
 	if !p.expectPeek(token.IDENT) {
 		return nil
 	}
 	path := p.curToken.Literal
+	// import lib/utils: a module in a subfolder, path segments joined by '/'.
+	for p.peekTokenIs(token.SLASH) && p.peekToken.Line == tok.Line {
+		p.nextToken() // -> '/'
+		if !p.expectPeek(token.IDENT) {
+			return nil
+		}
+		path += "/" + p.curToken.Literal
+	}
 	var names []string
 	if p.peekTokenIs(token.LBRACKET) && p.peekToken.Line == p.curToken.Line {
 		p.nextToken() // -> '['
@@ -964,7 +1077,7 @@ func (p *Parser) parsePostClause() ast.Statement {
 func (p *Parser) parsePathExpression() ast.Expression {
 	tok := p.curToken
 	if p.curTokenIs(token.STRING) {
-		return &ast.StringLiteral{Token: tok, Value: tok.Literal}
+		return p.stringExpression(tok)
 	}
 	if tok.Type == token.IDENT && !p.peekTokenIs(token.PERIOD) && !p.peekTokenIs(token.SLASH) && !p.peekTokenIs(token.MINUS) {
 		// A lone word: a variable holding the path if one exists when this
@@ -1030,7 +1143,12 @@ func (p *Parser) parseFileWriteStatement(isAppend bool) ast.Statement {
 	for !(p.curTokenIs(token.LBRACKET) && p.peekTokenIs(token.END)) && !p.curTokenIs(token.EOF) {
 		switch p.curToken.Type {
 		case token.STRING:
-			items = append(items, ast.ContentItem{Literal: p.curToken.Literal})
+			switch e := p.stringExpression(p.curToken).(type) {
+			case *ast.StringLiteral:
+				items = append(items, ast.ContentItem{Literal: e.Value})
+			default:
+				items = append(items, ast.ContentItem{Expr: e})
+			}
 		case token.IDENT:
 			items = append(items, ast.ContentItem{Name: p.curToken.Literal, IsVar: true})
 		default:
@@ -1294,7 +1412,67 @@ func (p *Parser) parseFloatLiteral() ast.Expression {
 }
 
 func (p *Parser) parseStringLiteral() ast.Expression {
-	return p.maybeSentence(&ast.StringLiteral{Token: p.curToken, Value: p.curToken.Literal})
+	return p.maybeSentence(p.stringExpression(p.curToken))
+}
+
+// stringExpression turns a STRING token into a StringLiteral, or an
+// InterpolatedString when it has {expr} parts: "Total: {qty * price}".
+// \{ is a literal brace.
+func (p *Parser) stringExpression(tok token.Token) ast.Expression {
+	text := tok.Literal
+	literal := func(s string) *ast.StringLiteral {
+		return &ast.StringLiteral{Token: tok, Value: strings.ReplaceAll(s, string(token.LiteralBrace), "{")}
+	}
+	if !strings.Contains(text, "{") {
+		return literal(text)
+	}
+	var parts []ast.Expression
+	for {
+		open := strings.IndexByte(text, '{')
+		if open < 0 {
+			break
+		}
+		if open > 0 {
+			parts = append(parts, literal(text[:open]))
+		}
+		end := strings.IndexByte(text[open:], '}')
+		if end < 0 {
+			p.errors = append(p.errors, fmt.Sprintf("line %d: a '{' in a string needs a closing '}' (write \\{ for a plain brace)", tok.Line))
+			return literal(tok.Literal)
+		}
+		parts = append(parts, p.interpolatedPart(tok, text[open+1:open+end]))
+		text = text[open+end+1:]
+	}
+	if text != "" {
+		parts = append(parts, literal(text))
+	}
+	return &ast.InterpolatedString{Token: tok, Parts: parts}
+}
+
+// interpolatedPart parses the expression inside one {...} of a string.
+func (p *Parser) interpolatedPart(tok token.Token, src string) ast.Expression {
+	fail := func(why string) ast.Expression {
+		p.errors = append(p.errors, fmt.Sprintf("line %d: {%s} in a string: %s", tok.Line, src, why))
+		return &ast.StringLiteral{Token: tok}
+	}
+	if strings.TrimSpace(src) == "" {
+		return fail("put a name or expression inside the braces")
+	}
+	sub := New(lexer.New(src))
+	if sub.curTokenIs(token.EOF) {
+		return fail("put a name or expression inside the braces")
+	}
+	expr := sub.parseExpression(LOWEST)
+	if len(sub.errors) > 0 {
+		if strings.Contains(sub.errors[0], "EOF") {
+			return fail("the expression isn't finished")
+		}
+		return fail(strings.TrimPrefix(sub.errors[0], "line 1: "))
+	}
+	if !sub.peekTokenIs(token.EOF) {
+		return fail(fmt.Sprintf("unexpected %q", sub.peekToken.Literal))
+	}
+	return expr
 }
 
 // maybeSentence turns a literal or a call result directly followed by a

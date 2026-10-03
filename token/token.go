@@ -94,7 +94,16 @@ const (
 	GIVES    Type = "GIVES"
 	IN       Type = "IN"
 	ASSEMBLE Type = "ASSEMBLE"
+	SAFE     Type = "SAFE"
+	HANDLE   Type = "HANDLE"
+	FAIL     Type = "FAIL"
+	WARN     Type = "WARN"
 )
+
+// LiteralBrace stands in a STRING token's Literal for an escaped \{, so
+// the parser can tell it from a {name} interpolation. It never appears in
+// a Turtle value: the parser turns it back into '{'.
+const LiteralBrace = '\x00'
 
 var keywords = map[string]Type{
 	"true":      TRUE,
@@ -136,6 +145,10 @@ var keywords = map[string]Type{
 	"gives":     GIVES,
 	"in":        IN,
 	"assemble":  ASSEMBLE,
+	"safe":      SAFE,
+	"handle":    HANDLE,
+	"fail":      FAIL,
+	"warn":      WARN,
 }
 
 // LookupIdent returns the keyword Type for literal, or IDENT if it isn't

@@ -18,8 +18,16 @@ type Environment struct {
 	outer     *Environment
 	functions map[string]*Function
 	imports   []*Import
-	loop      bool // a loop's scope: see NewLoopEnvironment
+	loop      bool   // a loop's scope: see NewLoopEnvironment
+	file      string // root only: the module's file as errors show it, "" for the main script
 }
+
+// SetFile records which file a global environment belongs to, as errors
+// name it ("lib/utils.t"). The main script's is "".
+func (e *Environment) SetFile(name string) { e.root().file = name }
+
+// File is the file the code running in e comes from (see SetFile).
+func (e *Environment) File() string { return e.root().file }
 
 func NewGlobalEnvironment() *Environment {
 	return &Environment{vars: map[string]Object{}, functions: map[string]*Function{}}

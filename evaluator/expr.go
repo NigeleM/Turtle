@@ -20,6 +20,12 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 		return &object.Float{Value: e.Value}
 	case *ast.StringLiteral:
 		return &object.String{Value: e.Value}
+	case *ast.InterpolatedString:
+		var sb strings.Builder
+		for _, part := range e.Parts {
+			sb.WriteString(it.evalExpression(part, env).Inspect())
+		}
+		return &object.String{Value: sb.String()}
 	case *ast.BooleanLiteral:
 		return &object.Boolean{Value: e.Value}
 	case *ast.NoneLiteral:
@@ -45,7 +51,7 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 		if im := resolveImported(env, e.Value); im != nil {
 			return importedFunctionValue(im, e.Value)
 		}
-		fatalf("undefined variable %q", e.Value)
+		fatalKind(kindName, "undefined variable %q", e.Value)
 		return nil
 
 	case *ast.PrefixExpression:
@@ -64,7 +70,15 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 		return &object.Function{Parameters: e.Parameters, Body: e.Body, Env: env}
 
 	case *ast.FieldExpression:
-		a, i := it.assemblyField(e, env)
+		obj := it.evalExpression(e.Object, env)
+		if er, ok := obj.(*object.Error); ok {
+			v, ok := er.Field(e.Field)
+			if !ok {
+				fatalKind(kindName, "an error has no field %q (its fields: kind, file, line, message)", e.Field)
+			}
+			return v
+		}
+		a, i := fieldOf(obj, e.Field)
 		return a.Values[i]
 
 	case *ast.ListLiteral:
@@ -136,10 +150,33 @@ func numeric(obj object.Object) (float64, bool, bool) {
 	return 0, false, false
 }
 
+func isCollection(obj object.Object) bool {
+	switch obj.(type) {
+	case *object.List, *object.Set, *object.Map:
+		return true
+	}
+	return false
+}
+
 func evalInfix(op string, left, right object.Object) object.Object {
 	if op == "+" || op == "-" {
 		if res, ok := collectionOp(op, left, right); ok {
 			return res
+		}
+	}
+	// A list, set or map only adds to its own kind (collectionOp above),
+	// and none only to none; anything else is an error, not text glued to
+	// the value's display form.
+	if op == "+" {
+		_, lNone := left.(*object.None)
+		_, rNone := right.(*object.None)
+		switch {
+		case lNone && rNone:
+			return object.NoneValue
+		case isCollection(left) || isCollection(right):
+			fatalf("'+' can't add %s and %s — a list, set or map only adds to another of its own kind, e.g. list [1] + list [2]", left.Type(), right.Type())
+		case lNone || rNone:
+			fatalf("'+' can't add %s and %s — none only adds to none; check for it first, e.g. if ] x != none [", left.Type(), right.Type())
 		}
 	}
 	// '+' overloads to string concatenation whenever either side isn't a
@@ -180,7 +217,7 @@ func evalInfix(op string, left, right object.Object) object.Object {
 			if bothInt {
 				r := right.(*object.Integer).Value
 				if r == 0 {
-					fatalf("division by zero")
+					fatalKind(kindMath, "division by zero")
 				}
 				if r == -1 && left.(*object.Integer).Value == math.MinInt64 {
 					overflow("/", math.MinInt64, -1)
@@ -188,19 +225,19 @@ func evalInfix(op string, left, right object.Object) object.Object {
 				return &object.Integer{Value: left.(*object.Integer).Value / r}
 			}
 			if rf == 0 {
-				fatalf("division by zero")
+				fatalKind(kindMath, "division by zero")
 			}
 			return &object.Float{Value: lf / rf}
 		case "%":
 			if bothInt {
 				r := right.(*object.Integer).Value
 				if r == 0 {
-					fatalf("modulo by zero")
+					fatalKind(kindMath, "modulo by zero")
 				}
 				return &object.Integer{Value: left.(*object.Integer).Value % r}
 			}
 			if rf == 0 {
-				fatalf("modulo by zero")
+				fatalKind(kindMath, "modulo by zero")
 			}
 			return &object.Float{Value: math.Mod(lf, rf)}
 		}
@@ -274,7 +311,7 @@ func evalChange(typeName string, val object.Object) object.Object {
 		case *object.String:
 			n, err := strconv.ParseInt(strings.TrimSpace(v.Value), 10, 64)
 			if err != nil {
-				fatalf("change ... to integer: %q is not a valid integer", v.Value)
+				fatalKind(kindNumber, "change ... to integer: %q is not a valid integer", v.Value)
 			}
 			return &object.Integer{Value: n}
 		}
@@ -287,7 +324,7 @@ func evalChange(typeName string, val object.Object) object.Object {
 		case *object.String:
 			f, err := strconv.ParseFloat(strings.TrimSpace(v.Value), 64)
 			if err != nil {
-				fatalf("change ... to float: %q is not a valid float", v.Value)
+				fatalKind(kindNumber, "change ... to float: %q is not a valid float", v.Value)
 			}
 			return &object.Float{Value: f}
 		}
@@ -303,7 +340,7 @@ func evalChange(typeName string, val object.Object) object.Object {
 		}
 		runes := []rune(s.Value)
 		if len(runes) != 1 {
-			fatalf("change ... to ascii needs exactly one character, got %q", s.Value)
+			fatalKind(kindNumber, "change ... to ascii needs exactly one character, got %q", s.Value)
 		}
 		return &object.Integer{Value: int64(runes[0])}
 	case "char":
@@ -312,7 +349,7 @@ func evalChange(typeName string, val object.Object) object.Object {
 			fatalf("change ... to char needs an integer code point, got %s", val.Type())
 		}
 		if n.Value < 0 || n.Value > utf8.MaxRune {
-			fatalf("change ... to char: %d is not a valid code point", n.Value)
+			fatalKind(kindNumber, "change ... to char: %d is not a valid code point", n.Value)
 		}
 		return &object.String{Value: string(rune(n.Value))}
 	case "hex":
@@ -324,12 +361,36 @@ func evalChange(typeName string, val object.Object) object.Object {
 			s = strings.TrimPrefix(strings.TrimPrefix(s, "0x"), "0X")
 			n, err := strconv.ParseInt(s, 16, 64)
 			if err != nil {
-				fatalf("change ... to hex: %q is not valid hex", v.Value)
+				fatalKind(kindNumber, "change ... to hex: %q is not valid hex", v.Value)
 			}
 			return &object.Integer{Value: n}
 		}
+	case "list":
+		// Always a new list, so changing it never changes the original.
+		switch v := val.(type) {
+		case *object.List:
+			return &object.List{Elements: append([]object.Object{}, v.Elements...)}
+		case *object.Set:
+			return &object.List{Elements: append([]object.Object{}, v.Elements...)}
+		}
+	case "set":
+		// Duplicates are dropped; the first of each keeps its place.
+		switch v := val.(type) {
+		case *object.List:
+			s := &object.Set{}
+			for _, e := range v.Elements {
+				s.Add(e)
+			}
+			return s
+		case *object.Set:
+			s := &object.Set{}
+			for _, e := range v.Elements {
+				s.Add(e)
+			}
+			return s
+		}
 	default:
-		fatalf("change: unknown target type %q (want integer, float, string, ascii, char, or hex)", typeName)
+		fatalf("change: unknown target type %q (want integer, float, string, ascii, char, hex, list, or set)", typeName)
 	}
 	fatalf("change: can't convert %s to %s", val.Type(), typeName)
 	return nil
@@ -374,12 +435,12 @@ func sentenceSubject(env *object.Environment, name string) (object.Object, bool)
 	v, isVar := env.Get(name)
 	if _, isModule := env.FindImport(name); isModule {
 		if isVar {
-			fatalf("%q is both a variable and an imported module — rename the variable", name)
+			fatalKind(kindName, "%q is both a variable and an imported module — rename the variable", name)
 		}
 		return nil, false
 	}
 	if !isVar {
-		fatalf("unknown module or variable %q in front of a function name", name)
+		fatalKind(kindName, "unknown module or variable %q in front of a function name", name)
 	}
 	return v, true
 }
@@ -401,7 +462,7 @@ func (it *Interpreter) callByName(name string, args []object.Object, env *object
 			requireModule(env, mod.Name, name)
 		}
 	}
-	fatalf("undefined function %q", name)
+	fatalKind(kindName, "undefined function %q", name)
 	return nil
 }
 
@@ -434,6 +495,11 @@ func (it *Interpreter) callFunction(fn *object.Function, name string, args []obj
 	if defEnv == nil {
 		defEnv = it.Global
 	}
+	// The body's errors name the file it was written in, and once it
+	// returns, errors name the caller's line again, not the body's last.
+	prevFile, prevLine := currentFile, currentLine
+	currentFile = defEnv.File()
+	defer func() { currentFile, currentLine = prevFile, prevLine }()
 	callEnv := object.NewEnclosedEnvironment(defEnv)
 	for i, param := range fn.Parameters {
 		callEnv.Set(param, args[i])
@@ -472,7 +538,7 @@ func resolveImported(env *object.Environment, name string) *object.Import {
 	for i, im := range found {
 		mods[i] = im.Module.Name
 	}
-	fatalf("%q is provided by more than one import (%s) — say which one, e.g. %s %s[...]",
+	fatalKind(kindName, "%q is provided by more than one import (%s) — say which one, e.g. %s %s[...]",
 		name, strings.Join(mods, ", "), mods[0], name)
 	return nil
 }
@@ -481,13 +547,13 @@ func resolveImported(env *object.Environment, name string) *object.Import {
 func qualifiedImport(env *object.Environment, module, name string) *object.Import {
 	im, ok := env.FindImport(module)
 	if !ok {
-		fatalf("unknown module %q in \"%s %s\" — import it first", module, module, name)
+		fatalKind(kindName, "unknown module %q in \"%s %s\" — import it first", module, module, name)
 	}
 	if !im.Module.ExportsFunction(name) {
-		fatalf("module %q has no function %q", module, name)
+		fatalKind(kindName, "module %q has no function %q", module, name)
 	}
 	if !im.Allows(name) {
-		fatalf("%q isn't imported — add it to \"import %s [...]\"", name, module)
+		fatalKind(kindName, "%q isn't imported — add it to \"import %s [...]\"", name, module)
 	}
 	return im
 }
@@ -530,7 +596,7 @@ func (it *Interpreter) callBuiltin(module, name string, args []object.Object) ob
 	case "strings":
 		return callStrings(name, args)
 	}
-	fatalf("no builtin function %q in %q", name, module)
+	fatalKind(kindName, "no builtin function %q in %q", name, module)
 	return nil
 }
 
@@ -562,18 +628,15 @@ func evalSleep(args []object.Object) {
 	}
 }
 
-// assemblyField evaluates the value in "field of <value>" and finds the
-// field in it, failing clearly if the value isn't assembled or has no
-// such field.
-func (it *Interpreter) assemblyField(fe *ast.FieldExpression, env *object.Environment) (*object.Assembly, int) {
-	obj := it.evalExpression(fe.Object, env)
+// fieldOf finds field in obj, which must be an assembled value.
+func fieldOf(obj object.Object, field string) (*object.Assembly, int) {
 	a, ok := obj.(*object.Assembly)
 	if !ok {
-		fatalf("'%s of' needs an assembled value, got %s", fe.Field, obj.Type())
+		fatalf("'%s of' needs an assembled value or an error, got %s", field, obj.Type())
 	}
-	i := a.Shape.Index(fe.Field)
+	i := a.Shape.Index(field)
 	if i < 0 {
-		fatalf("%s has no field %q (its fields: %s)", a.Shape.Name, fe.Field, strings.Join(a.Shape.Fields, ", "))
+		fatalKind(kindName, "%s has no field %q (its fields: %s)", a.Shape.Name, field, strings.Join(a.Shape.Fields, ", "))
 	}
 	return a, i
 }
@@ -615,6 +678,6 @@ func overflow(op string, a, b int64) {
 	if op == "-" && b == 0 {
 		expr = fmt.Sprintf("-(%d)", a)
 	}
-	fatalf("integer overflow: %s is past the integer limits (%d to %d); use a float (e.g. 1.0) for bigger numbers",
+	fatalKind(kindMath, "integer overflow: %s is past the integer limits (%d to %d); use a float (e.g. 1.0) for bigger numbers",
 		expr, int64(math.MinInt64), int64(math.MaxInt64))
 }

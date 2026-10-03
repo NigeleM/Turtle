@@ -58,7 +58,7 @@ func (as *AssignStatement) Line() int            { return as.Token.Line }
 type InputStatement struct {
 	Token  token.Token
 	Name   string
-	Prompt string
+	Prompt Expression // a string, maybe with {name} parts
 }
 
 func (is *InputStatement) statementNode()       {}
@@ -68,6 +68,7 @@ func (is *InputStatement) Line() int            { return is.Token.Line }
 type ShowStatement struct {
 	Token       token.Token
 	Expressions []Expression
+	Stderr      bool // warn: the same, to stderr
 }
 
 func (ss *ShowStatement) statementNode()       {}
@@ -83,6 +84,39 @@ type ReturnStatement struct {
 func (rs *ReturnStatement) statementNode()       {}
 func (rs *ReturnStatement) TokenLiteral() string { return rs.Token.Literal }
 func (rs *ReturnStatement) Line() int            { return rs.Token.Line }
+
+// SafeStatement is a safe block with its handle part:
+//
+//	safe
+//	    <statements>
+//	handle [file, math] error .
+//	    <statements>
+//	safe [end]
+//
+// An error of one of Kinds (any kind, when Kinds is empty) stops Body,
+// is stored in the variable Name, and runs Handler. With no error,
+// Handler is skipped and Name is none.
+type SafeStatement struct {
+	Token   token.Token // safe
+	Body    *BlockStatement
+	Kinds   []string
+	Name    string
+	Handler *BlockStatement
+}
+
+func (ss *SafeStatement) statementNode()       {}
+func (ss *SafeStatement) TokenLiteral() string { return ss.Token.Literal }
+func (ss *SafeStatement) Line() int            { return ss.Token.Line }
+
+// FailStatement is "fail <expr>": raise a custom error with that message.
+type FailStatement struct {
+	Token token.Token
+	Value Expression
+}
+
+func (fs *FailStatement) statementNode()       {}
+func (fs *FailStatement) TokenLiteral() string { return fs.Token.Literal }
+func (fs *FailStatement) Line() int            { return fs.Token.Line }
 
 type BreakStatement struct{ Token token.Token }
 
@@ -229,6 +263,7 @@ type ContentItem struct {
 	Literal string
 	Name    string
 	IsVar   bool
+	Expr    Expression // a string with {name} parts; nil otherwise
 }
 
 type FileWriteStatement struct {
@@ -288,6 +323,16 @@ type StringLiteral struct {
 
 func (sl *StringLiteral) expressionNode()      {}
 func (sl *StringLiteral) TokenLiteral() string { return sl.Token.Literal }
+
+// InterpolatedString is a string with {expr} parts, "Hi {name}": its
+// Parts are StringLiterals and expressions, joined as show would.
+type InterpolatedString struct {
+	Token token.Token
+	Parts []Expression
+}
+
+func (is *InterpolatedString) expressionNode()      {}
+func (is *InterpolatedString) TokenLiteral() string { return is.Token.Literal }
 
 type BooleanLiteral struct {
 	Token token.Token

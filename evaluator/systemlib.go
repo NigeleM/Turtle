@@ -3,6 +3,7 @@ package evaluator
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"Turtle/object"
 )
@@ -17,9 +18,27 @@ import (
 //	exit[2]                          // end now, with exit code 2
 //	here = scriptFolder[]            // the script's own folder
 //	names = contents["sub"]          // what's in a folder ("." if omitted)
+//	erase["old.txt"]                 // delete a file, or a folder and all in it
+//	warn "can't find ", name .       // like show, but to stderr (evaluator.go)
 //
 // Paths resolve the same way [read]/[write] do: relative to the folder
 // turtle was run from, unless absolute.
+// realPath is p made absolute with the symlinks in its folders resolved
+// (/tmp/x is /private/tmp/x on macOS), so two spellings of one folder
+// compare equal. The last part isn't resolved: erasing a symlink removes
+// the link, not what it points to.
+func realPath(p string) (string, error) {
+	abs, err := filepath.Abs(p)
+	if err != nil || filepath.Dir(abs) == abs { // an error, or the root
+		return abs, err
+	}
+	dir, err := filepath.EvalSymlinks(filepath.Dir(abs))
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, filepath.Base(abs)), nil
+}
+
 func (it *Interpreter) callSystem(name string, args []object.Object) object.Object {
 	switch name {
 	case "exit":
@@ -54,13 +73,36 @@ func (it *Interpreter) callSystem(name string, args []object.Object) object.Obje
 		}
 		entries, err := os.ReadDir(it.resolvePath(path))
 		if err != nil {
-			fatalf("'contents' %s: %v", path, err)
+			fatalKind(kindFile, "'contents' %s: %s", path, fileProblem(err))
 		}
 		list := &object.List{}
 		for _, e := range entries {
 			list.Elements = append(list.Elements, &object.String{Value: e.Name()})
 		}
 		return list
+	case "erase":
+		// Deletes a file, or a folder and everything in it. There's no
+		// undo, so it refuses the folder turtle runs in and any folder
+		// above it (erase["."] would otherwise wipe the project).
+		requireFuncArgs(name, args, 1)
+		target := asStringArg(name, args[0])
+		path := it.resolvePath(target)
+		if _, err := os.Lstat(path); err != nil {
+			fatalKind(kindFile, "erase %s: %s", target, fileProblem(err))
+		}
+		abs, err1 := realPath(path)
+		wd, err2 := filepath.Abs(it.WorkDir)
+		if err2 == nil {
+			wd, err2 = filepath.EvalSymlinks(wd)
+		}
+		if err1 != nil || err2 != nil || abs == wd || abs == filepath.Dir(abs) ||
+			strings.HasPrefix(wd, abs+string(filepath.Separator)) {
+			fatalKind(kindFile, "erase %s: won't erase the folder turtle is running in, or a folder above it", target)
+		}
+		if err := os.RemoveAll(path); err != nil {
+			fatalKind(kindFile, "erase %s: %s", target, fileProblem(err))
+		}
+		return object.NoneValue
 	case "scriptFolder":
 		requireFuncArgs(name, args, 0)
 		abs, err := filepath.Abs(it.Dir)

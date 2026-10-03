@@ -21,6 +21,7 @@ const (
 	MAP      Type = "MAP"
 	FUNCTION Type = "FUNCTION"
 	NONE     Type = "NONE"
+	ERROR    Type = "ERROR"
 )
 
 type Object interface {
@@ -279,4 +280,49 @@ func (a *Assembly) Inspect() string {
 		parts[i] = a.Shape.Fields[i] + ": " + Shown(v)
 	}
 	return a.Shape.Name + " { " + strings.Join(parts, ", ") + " }"
+}
+
+// Error is what a handle statement stores when a safe block stops on an
+// error. It shows as its full message ("line 3: division by zero"), and
+// "kind of", "file of", "line of" and "message of" read its parts.
+type Error struct {
+	Kind     string // file, number, math, index, key, name, type, custom
+	File     string // the file it happened in: "report.t", "lib/utils.t"
+	InModule bool   // File is an imported module, so the message names it
+	Line     int
+	Message  string // without the place: "division by zero"
+}
+
+func (e *Error) Type() Type { return ERROR }
+
+// Inspect is the full message, as the program would have stopped with:
+// "line 3: division by zero", or "lib/utils.t line 3: ..." when it
+// happened in an imported module.
+func (e *Error) Inspect() string {
+	where := ""
+	if e.InModule {
+		where = e.File + " "
+	}
+	if e.Line > 0 {
+		return fmt.Sprintf("%sline %d: %s", where, e.Line, e.Message)
+	}
+	if where != "" {
+		return e.File + ": " + e.Message
+	}
+	return e.Message
+}
+
+// Field returns the error's part called name: kind, file, line or message.
+func (e *Error) Field(name string) (Object, bool) {
+	switch name {
+	case "kind":
+		return &String{Value: e.Kind}, true
+	case "line":
+		return &Integer{Value: int64(e.Line)}, true
+	case "file":
+		return &String{Value: e.File}, true
+	case "message":
+		return &String{Value: e.Message}, true
+	}
+	return nil, false
 }

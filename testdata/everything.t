@@ -254,6 +254,46 @@ x of finish of ln = 9
 check["nested field", x of pt, 9]
 show "assemble ok" .
 
+// ---------- errors ----------
+safe
+    z = 10 / 0
+    check["safe stops at the error", true, false]
+handle [math] err .
+    check["handled kind", kind of err, "math"]
+    check["handled message", message of err, "division by zero"]
+safe [end]
+check["error kept after safe [end]", line of err > 0, true]
+safe
+    z = 1
+handle [] err .
+    check["handle code skipped without an error", true, false]
+safe [end]
+check["no error is none", err, none]
+def careful[n]
+    if ] n < 0 [
+        fail "negative: " + n
+    if [end]
+    return n
+def [end]
+safe
+    careful[-3]
+handle [custom] err .
+    check["fail", message of err, "negative: -3"]
+safe [end]
+show "errors ok" .
+
+// ---------- strings in strings ----------
+who = "Ann"
+check["interpolation", "Hi {who}, {2 * 3}", "Hi Ann, 6"]
+check["escaped brace", "\{who\}", "\{" + "who}"]
+show "interpolation ok" .
+
+// ---------- list <-> set ----------
+dupes = list [3, 1, 3, 2, 1]
+check["list to set", change dupes to set, set [3, 1, 2]]
+check["set to list", change set [3, 1, 2] to list, list [3, 1, 2]]
+show "change list set ok" .
+
 // ---------- files and system ----------
 out = "everything_out.txt"
 [write] out

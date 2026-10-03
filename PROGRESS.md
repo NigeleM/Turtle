@@ -464,3 +464,54 @@ checks its own results, exiting 1 on any failure; `go test` runs it.
 
 A second stress run (151 probes, 148 passing; the rest are design
 limits) and its fixes are logged in `docs/stress-test-log.md`.
+
+## 2026-10-03: error handling with `safe` / `handle` / `fail`
+
+The user chose the words and the shape:
+
+```
+safe
+    [read] data.txt to lines [end]
+handle [file] error .
+    show error .
+safe [end]
+```
+
+- The code under `handle` runs only when the safe code hit an error of a
+  listed kind; `safe [end]` closes the whole thing. (A first version had
+  `handle` close the block with the code after it always running; the
+  user switched to the handle block the same day.)
+- Every runtime error now has a kind: file, number, math, index, key,
+  name, type, or custom (from `fail "message"`). `handle [] e .` takes
+  any kind; an unlisted kind still stops the program, as does an error
+  in the handle code itself.
+- `show e .` prints the message; `kind of e`, `line of e`,
+  `message of e` read the parts. With no error, `e` is `none`.
+- `return`/`break`/`continue` inside `safe` or `handle` still work;
+  `exit[code]` and parse errors are never handled. A failed import can
+  be handled.
+- File errors are shorter: `[read] nope.txt: no such file or folder`
+  instead of Go's message with the full path twice.
+
+## 2026-10-03: file names in errors, interpolation, subfolder imports, erase, warn
+
+- Errors inside an imported module name its file:
+  `lib/utils.t line 2: division by zero`, both when the program stops and
+  in a handled error (`file of e`). Parse errors in a module too. After a
+  function call returns, errors name the caller's line again (they used
+  to keep the callee's last line).
+- `"Hi {name}, {qty * 2} items"`: any expression without quotes inside
+  the braces; `\{` for a plain brace. Works in prompts and `[write]`
+  lines too.
+- `import lib/utils` reads `lib/utils.t`; the qualified name is `utils`.
+- `system`: `erase[path]` deletes a file or a whole folder (refusing the
+  folder turtle runs in and those above it), and `warn "..." .` is show
+  for stderr. Names chosen by the user.
+- `+` with a list, set or map on one side and anything else is now a
+  `type` error (`list [1] + 1` used to give "[ 1 ]1"). Same-kind
+  collections still combine.
+- `none + none` is `none`; `none` plus anything else is a `type` error
+  (`"x=" + none` used to give "x=none"). Both errors suggest the fix.
+- `change x to set` / `change x to list` convert between lists and sets
+  (duplicates dropped, first-seen order kept; same kind gives a copy).
+  Put in `change` rather than `data`, at the user's call.

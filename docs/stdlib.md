@@ -291,7 +291,19 @@ literal on the left: `"wor" isinstring line`.
 | `exit[code]` | optional integer (default `0`) | ends the program immediately with that exit code; `0` means success, anything else failure |
 | `env[name]` | variable name string | the environment variable's value as a string, or `none` if it isn't set |
 | `scriptFolder[]` | — | the full path of the folder the running script is in |
+| `erase[path]` | path string | deletes the file, or the folder and **everything in it** (no undo); returns `none`. A missing path is a `file` error. It refuses the folder `turtle` runs in and any folder above it |
 | `contents[path]` | optional folder path (default `"."`) | a `list` of the names of the files and folders inside, sorted (names only, not full paths); a missing folder is a fatal error. The same listing as the `[directory]` statement, usable inline |
+
+`warn <expr> {, <expr>} .` is `show` for stderr: same pieces, same
+period, but the line goes to standard error, so it isn't mixed into
+output that's piped or saved to a file. It needs `import system` (or
+`import system [warn]`).
+
+```
+import system
+warn "can't read ", name, ", skipping" .
+erase["build"]
+```
 
 **Paths resolve from the folder you ran `turtle` in**, like any
 command-line tool, unless absolute. That applies here and to `[read]`,

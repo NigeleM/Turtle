@@ -293,6 +293,14 @@ func (l *Lexer) readString() string {
 			case '\\':
 				sb.WriteByte('\\')
 				l.readChar()
+			case '{':
+				// A literal brace, not an interpolation: kept as a marker
+				// the parser turns back into '{' (see token.LiteralBrace).
+				sb.WriteByte(token.LiteralBrace)
+				l.readChar()
+			case '}':
+				sb.WriteByte('}')
+				l.readChar()
 			default:
 				sb.WriteByte(l.ch)
 			}

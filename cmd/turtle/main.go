@@ -33,6 +33,7 @@ func main() {
 	}
 
 	it := evaluator.New(filepath.Dir(path))
+	it.Script = filepath.Base(path)
 	if len(os.Args) > 2 {
 		it.Args = os.Args[2:] // everything after the script path: system's args[]
 	}
