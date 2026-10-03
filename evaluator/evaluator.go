@@ -77,7 +77,9 @@ const maxCallDepth = 100000
 // (see datalib.go), "system" provides command-line and filesystem functions
 // (see systemlib.go), "strings" provides find/substring/isinstring/join
 // (see stringslib.go), "json" provides load/json_text/json_read/
-// json_write/json_get (see jsonlib.go). Anything else falls through to
+// json_write/json_get (see jsonlib.go), "http" provides http_get/
+// http_post/http_request (see httplib.go), "sql" provides sql_open/
+// sql_query/sql_tables/sql_close (see sqllib.go). Anything else falls through to
 // the file-based import.
 var builtinModules = map[string]*object.Module{
 	"math":    {Name: "math", Methods: []string{"sqrt", "abs", "round", "floor", "ceil", "pow", "random"}},
@@ -86,6 +88,8 @@ var builtinModules = map[string]*object.Module{
 	"system":  {Name: "system", Funcs: []string{"args", "exists", "isFile", "isFolder", "exit", "env", "scriptFolder", "contents", "erase", "warn"}},
 	"strings": {Name: "strings", Funcs: []string{"find", "substring", "isinstring", "join"}},
 	"json":    {Name: "json", Funcs: []string{"load", "json_text", "json_read", "json_write", "json_get"}},
+	"http":    {Name: "http", Funcs: []string{"http_get", "http_post", "http_request"}},
+	"sql":     {Name: "sql", Funcs: []string{"sql_open", "sql_query", "sql_tables", "sql_close"}},
 }
 
 // requireModule fails with a clear message naming the missing import,
@@ -151,6 +155,8 @@ const (
 	kindType   = "type"   // the wrong kind of value or number of arguments
 	kindJSON   = "json"   // text that isn't valid JSON
 	kindDate   = "date"   // text that isn't a date, or a date that doesn't exist
+	kindHTTP   = "http"   // a web request that failed, or got a 4xx/5xx status
+	kindSQL    = "sql"    // a bad query, or a database problem
 	kindCustom = "custom" // the program's own, from fail "..."
 )
 

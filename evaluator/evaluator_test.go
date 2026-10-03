@@ -3,6 +3,10 @@ package evaluator
 import (
 	"bufio"
 	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -2384,5 +2388,185 @@ show add_time[d, 24, "hours"] .`, "")
 	want := "2026-03-08 12:00:00\n1 23\n2026-03-08 13:00:00\n"
 	if out != want {
 		t.Errorf("got %q, want %q", out, want)
+	}
+}
+
+func TestHTTPLibrary(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/hello":
+			fmt.Fprint(w, "hello turtle")
+		case "/users":
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprint(w, `[{"name": "Ann", "age": 30}, {"name": "Bo", "age": 7}]`)
+		case "/echo":
+			body, _ := io.ReadAll(r.Body)
+			w.Header().Set("X-Seen-Method", r.Method)
+			w.WriteHeader(201)
+			fmt.Fprintf(w, "%s|%s|%s|%s", r.Method, r.Header.Get("Content-Type"), r.Header.Get("Authorization"), body)
+		case "/missing":
+			http.Error(w, "no such page", 404)
+		case "/boom":
+			w.WriteHeader(500)
+		}
+	}))
+	defer srv.Close()
+	base := "base = \"" + srv.URL + "\"\n"
+	cases := []struct{ name, src, want, wantErr string }{
+		{name: "get text", src: `import http
+show http_get[base + "/hello"] .`, want: "hello turtle\n"},
+		{name: "get JSON into a list of maps", src: `import http
+import json
+users = load[http_get[base + "/users"]]
+show json_get[users, 1, "name"], " ", length of users .`, want: "Bo 2\n"},
+		{name: "post text", src: `import http
+show http_post[base + "/echo", "hi there"] .`, want: "POST|text/plain; charset=utf-8||hi there\n"},
+		{name: "post a map as JSON", src: `import http
+show http_post[base + "/echo", map ["name": "Ann", "tags": list ["a"]]] .`, want: `POST|application/json||{"name":"Ann","tags":["a"]}` + "\n"},
+		{name: "request with headers, status and response headers", src: `import http
+r = http_request["put", base + "/echo", "x", map ["Authorization": "Bearer t0k"]]
+show r at get["status"] .
+show r at get["body"] .
+h = r at get["headers"]
+show h at get["x-seen-method"] .`, want: "201\nPUT|text/plain; charset=utf-8|Bearer t0k|x\nPUT\n"},
+		{name: "request hands back a 404", src: `import http
+r = http_request["GET", base + "/missing"]
+show r at get["status"] .`, want: "404\n"},
+		{name: "get fails on 404 with kind http", src: `import http
+safe
+    x = http_get[base + "/missing"]
+handle [http] e .
+    show kind of e .
+    show message of e .
+safe [end]`, want: "http\nhttp_get " + srv.URL + "/missing: 404 Not Found: no such page\n"},
+		{name: "500 without a body", src: `import http
+x = http_post[base + "/boom", "x"]`, wantErr: "http_post " + srv.URL + "/boom: 500 Internal Server Error"},
+		{name: "connection refused", src: `import http
+x = http_get["http://127.0.0.1:1/"]`, wantErr: "http_get http://127.0.0.1:1/: connection refused (is the server running?)"},
+		{name: "not a web address", src: `import http
+x = http_get["ftp://example.com"]`, wantErr: `http_get: "ftp://example.com" isn't a web address`},
+		{name: "headers must be a map", src: `import http
+x = http_request["GET", base + "/hello", none, list []]`, wantErr: "'http_request' headers must be a map"},
+		{name: "body can't be a number", src: `import http
+x = http_post[base + "/echo", 5]`, wantErr: "'http_post' body must be text, or a map or list to send as JSON, got INTEGER"},
+		{name: "needs import", src: `x = http_get[base]`, wantErr: `"http_get" needs "import http" first`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := run(t, base+c.src, "")
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("want error containing %q, got %v (output %q)", c.wantErr, err, out)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
+func TestSQLLibrary(t *testing.T) {
+	dir, err := filepath.Abs("../testdata")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cases := []struct{ name, src, want, wantErr string }{
+		{name: "open, query, rows are maps", src: `import sql
+db = sql_open["books.db"]
+rows = sql_query[db, "SELECT title, price FROM books WHERE price < 1000 ORDER BY price"]
+show rows .
+show db .`, want: `[ { "title": "Café 🐢", "price": 1 }, { "title": "Foundation", "price": 800 }, { "title": "Dune", "price": 950 } ]` + "\ndatabase books.db\n"},
+		{name: "placeholders", src: `import sql
+db = sql_open["sqlite:books.db"]
+rows = sql_query[db, "SELECT sku FROM books WHERE price > ? AND title LIKE ?", list [900, "%o%"]]
+show rows .`, want: `[ { "sku": "B2" }, { "sku": "B3" } ]` + "\n"},
+		{name: "types: null, real, integer primary key", src: `import sql
+import json
+db = sql_open["books.db"]
+r = sql_query[db, "SELECT id, rating, added FROM books WHERE sku = ?", list ["B2"]]
+show json_get[r, 0, "id"], " ", json_get[r, 0, "rating"], " ", json_get[r, 0, "added"] .
+r = sql_query[db, "SELECT rating FROM books WHERE sku = 'B5'"]
+show json_get[r, 0, "rating"] .`, want: "2 none 2026-02-01\n5.0\n"},
+		{name: "aggregates", src: `import sql
+db = sql_open["books.db"]
+show sql_query[db, "SELECT count(*) AS n, sum(qty) AS total FROM orders WHERE customer = ?", list ["bo"]] .`,
+			want: `[ { "n": 3, "total": 6 } ]` + "\n"},
+		{name: "tables", src: `import sql
+db = sql_open["books.db"]
+show sql_tables[db] .`, want: `[ "books", "orders" ]` + "\n"},
+		{name: "parameter kinds", src: `import sql
+import time
+db = sql_open["books.db"]
+show sql_query[db, "SELECT ? AS a, ? AS b, ? AS c, ? AS d, ? AS e", list [true, none, 2.5, "x", make_date[2026, 1, 2]]] .`,
+			want: `[ { "a": 1, "b": none, "c": 2.5, "d": "x", "e": "2026-01-02 00:00:00" } ]` + "\n"},
+		{name: "loop over rows", src: `import sql
+db = sql_open["books.db"]
+[loop][row in sql_query[db, "SELECT title FROM books WHERE rating > 4 ORDER BY rating DESC"]]
+    show row at get["title"] .
+[loop][end]
+sql_close[db]
+sql_close[db]`, want: "Café 🐢\nDune\nFoundation\n"},
+		{name: "bad query is kind sql", src: `import sql
+db = sql_open["books.db"]
+safe
+    r = sql_query[db, "SELECT nope FROM books"]
+handle [sql] e .
+    show kind of e .
+    show message of e .
+safe [end]`, want: "sql\nsql_query: SQL: no such column: nope\n"},
+		{name: "no such table", src: `import sql
+db = sql_open["books.db"]
+r = sql_query[db, "SELECT * FROM shelves"]`, wantErr: "sql_query: no such table: shelves"},
+		{name: "wrong number of values", src: `import sql
+db = sql_open["books.db"]
+r = sql_query[db, "SELECT * FROM books WHERE price < ?"]`, wantErr: "1 ? placeholder(s) but 0 value(s)"},
+		{name: "writing isn't supported yet", src: `import sql
+db = sql_open["books.db"]
+r = sql_query[db, "DELETE FROM books"]`, wantErr: "only SELECT is supported so far, not DELETE"},
+		{name: "missing file is kind file", src: `import sql
+safe
+    db = sql_open["nope.db"]
+handle [file] e .
+    show e .
+safe [end]`, want: "line 3: sql_open nope.db: no such file (creating new databases comes with writing, in a later version)\n"},
+		{name: "not a database", src: `import sql
+db = sql_open["everything.t"]`, wantErr: "sql_open everything.t: everything.t isn't a SQLite database"},
+		{name: "postgres not yet", src: `import sql
+db = sql_open["postgres://localhost/shop"]`, wantErr: "PostgreSQL isn't supported yet"},
+		{name: "closed database", src: `import sql
+db = sql_open["books.db"]
+sql_close[db]
+r = sql_query[db, "SELECT 1"]`, wantErr: "sql_query: database books.db is closed"},
+		{name: "values must be a list", src: `import sql
+db = sql_open["books.db"]
+r = sql_query[db, "SELECT ?", 5]`, wantErr: "values for the ? placeholders must be a list"},
+		{name: "unsupported value", src: `import sql
+db = sql_open["books.db"]
+r = sql_query[db, "SELECT ?", list [list [1]]]`, wantErr: "value 1 for a ? placeholder can't be a LIST"},
+		{name: "needs a database", src: `import sql
+r = sql_query["books.db", "SELECT 1"]`, wantErr: "'sql_query' needs a database (from sql_open), got STRING"},
+		{name: "needs import", src: `db = sql_open["books.db"]`, wantErr: `"sql_open" needs "import sql" first`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := runIn(t, dir, c.src, "")
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("want error containing %q, got %v (output %q)", c.wantErr, err, out)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
 	}
 }

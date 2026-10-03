@@ -61,6 +61,8 @@ func Equal(a, b Object) bool {
 	case *Date:
 		bv, ok := b.(*Date)
 		return ok && av.Time.Equal(bv.Time)
+	case *Database:
+		return a == b
 	case *Assembly:
 		bv, ok := b.(*Assembly)
 		if !ok || av.Shape != bv.Shape {

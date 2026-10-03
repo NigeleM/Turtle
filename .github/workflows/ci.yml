@@ -29,10 +29,10 @@ jobs:
           go-version: '1.24'
 
       - name: Build
-        run: go build ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./token/...
+        run: go build ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./sqlite/... ./token/...
 
       - name: Vet
-        run: go vet ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./token/...
+        run: go vet ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./sqlite/... ./token/...
 
       - name: Test
-        run: go test ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./token/... -v
+        run: go test ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./sqlite/... ./token/... -v

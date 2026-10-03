@@ -369,6 +369,28 @@ json_write["copy.json", user]
 data = load['{"name": "Ann", "tags": ["a", "b"]}']
 ```
 
+## The web
+
+`import http` fetches pages and talks to APIs; JSON answers go straight
+into `load`:
+
+```
+import http
+import json
+users = load[http_get["https://api.example.com/users"]]
+reply = http_post["https://api.example.com/users", map ["name": "Ann"]]
+```
+
+## Databases
+
+`import sql` reads SQLite databases; rows come back as a list of maps:
+
+```
+import sql
+db = sql_open["shop.db"]
+cheap = sql_query[db, "SELECT title FROM books WHERE price < ?", list [1000]]
+```
+
 ## Files
 
 ```

@@ -142,6 +142,13 @@ sum = plus[1, 2]
   to glue the collection's display form to text. `none + none` is `none`;
   `none` plus anything else is a `type` error (was `"x=" + none` →
   `"x=none"`).
+- **(new)** `sql` library: `sql_open`, `sql_query` (rows as a list of
+  maps, `?` placeholders), `sql_tables`, `sql_close`, over a SQLite reader
+  written from scratch (`sqlite/` package); error kind `sql`. Reading only
+  for now.
+- **(new)** `http` library: `http_get`, `http_post`, `http_request`
+  (standard library only); a map or list body is sent as JSON; error kind
+  `http`.
 - **(new)** `time` gained dates: `today`, `today_utc`, `make_date`,
   `to_date`, `add_time`, `time_between`, `format_date`, `wait_until`,
   `every`; a new date value with parts (`year of d`); error kind `date`.

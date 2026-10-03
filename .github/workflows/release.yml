@@ -29,13 +29,13 @@ jobs:
 
     - name: Vet and test
       run: |
-        go vet ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./token/...
-        go test ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./token/...
+        go vet ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./sqlite/... ./token/...
+        go test ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./sqlite/... ./token/...
 
     - name: Build the binary for macOS
       run: |
         mkdir -p release
-        CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o release/turtle-darwin-arm64 ./cmd/turtle
+        CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w" -o release/turtle-darwin-arm64 ./cmd/turtle
 
     - name: Create macOS Installer
       run: |
@@ -73,13 +73,13 @@ jobs:
 
     - name: Vet and test
       run: |
-        go vet ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./token/...
-        go test ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./token/...
+        go vet ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./sqlite/... ./token/...
+        go test ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./sqlite/... ./token/...
 
     - name: Build the binary for Linux
       run: |
         mkdir -p release
-        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o release/turtle-linux-amd64 ./cmd/turtle
+        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o release/turtle-linux-amd64 ./cmd/turtle
 
     - name: Install fpm for packaging
       run: |
@@ -118,8 +118,8 @@ jobs:
 
     - name: Vet and test
       run: |
-        go vet ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./token/...
-        go test ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./token/...
+        go vet ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./sqlite/... ./token/...
+        go test ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./sqlite/... ./token/...
 
     - name: Build the binary for Windows
       run: |
@@ -127,7 +127,7 @@ jobs:
         $env:CGO_ENABLED="0"
         $env:GOOS="windows"
         $env:GOARCH="amd64"
-        go build -o release/turtle-windows-amd64.exe ./cmd/turtle
+        go build -ldflags "-s -w" -o release/turtle-windows-amd64.exe ./cmd/turtle
 
     - name: Upload Windows Release
       uses: softprops/action-gh-release@v1

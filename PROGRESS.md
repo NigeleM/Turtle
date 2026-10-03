@@ -540,3 +540,29 @@ safe [end]
   the clock time across daylight saving.
 - New error kind `date` for bad date text or impossible dates.
 
+## 2026-10-03: HTTP library
+
+- `import http`: `http_get[url]`, `http_post[url, body]` (text, or a
+  map/list sent as JSON) return the body; `http_request[method, url,
+  body, headers]` returns status/body/headers and doesn't fail on 4xx/5xx.
+  Standard library only. New error kind `http`.
+- The user ruled out OS scheduling and third-party dependencies: the
+  database layer will be written from scratch (SQLite file format first,
+  PostgreSQL wire protocol later).
+
+## 2026-10-03: SQL library, reading SQLite from scratch
+
+- New `sqlite/` package, no dependencies (the user's rule): reads the
+  SQLite file format (header, pages, table B-trees, overflow pages,
+  records, UTF-8/16 text), the schema (CREATE TABLE columns, INTEGER
+  PRIMARY KEY as rowid, ALTER TABLE-added columns), and runs SELECT with a
+  from-scratch SQL lexer, parser and executor following SQLite's rules
+  (affinity in comparisons, NULL, integer overflow to real, x/0 NULL).
+- Tested against the real sqlite3: 61 queries match exactly, at page
+  sizes 512 to 65536. The comparison found and fixed: whole REALs stored
+  as integers on disk, ASCII-only upper/lower, rowid column naming, alias
+  scoping.
+- `import sql`: `sql_open`, `sql_query` (list of maps, `?` placeholders),
+  `sql_tables`, `sql_close`. Error kind `sql`. Reading only; writing is
+  next, then GROUP BY/joins, then PostgreSQL.
+

@@ -507,6 +507,8 @@ safe [end]
 | `type`   | the wrong kind of value (`"a" * 2`) or number of arguments |
 | `json`   | text that isn't valid JSON (`json` library)              |
 | `date`   | text that isn't a date, or a date that doesn't exist (`time` library) |
+| `http`   | a web request that failed, or got a 4xx/5xx status (`http` library) |
+| `sql`    | a bad query or a database problem (`sql` library)          |
 | `custom` | your own, from `fail`                                    |
 
 An error of a kind that isn't listed isn't handled: it goes on to an
@@ -697,7 +699,7 @@ import <name> [<f>, <g>, ...]  // only the listed names
 ```
 
 `<name>` is a builtin module (`math`, `time`, `data`, `strings`, `system`,
-`json`; see [`stdlib.md`](stdlib.md)) or a file `<name>.t`,
+`json`, `http`, `sql`; see [`stdlib.md`](stdlib.md)) or a file `<name>.t`,
 resolved relative to the current script's directory. A module in a
 subfolder is written with `/`: `import lib/utils` reads `lib/utils.t`,
 and its qualified name is the last part, `utils half[4]`. Because builtin names

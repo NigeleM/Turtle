@@ -36,8 +36,9 @@ evaluator, so each stage can be reasoned about independently.
 | `lexer` | Turns source text into a `token.Token` stream |
 | `ast` | AST node types (one Go struct per statement/expression form) |
 | `parser` | Recursive-descent parser: tokens → `*ast.Program` |
-| `object` | Runtime value types (`Integer`, `Float`, `String`, `Boolean`, `List`, `Set`, `Map`, `Function`) and `Environment` (scoping) |
-| `evaluator` | Tree-walking evaluator: `*ast.Program` → executed program |
+| `object` | Runtime value types (`Integer`, `Float`, `String`, `Boolean`, `List`, `Set`, `Map`, `Function`, `Assembly`, `None`, `Error`, `Date`, `Database`) and `Environment` (scoping) |
+| `evaluator` | Tree-walking evaluator: `*ast.Program` → executed program; the builtin libraries live here (`jsonlib.go`, `timelib.go`, `httplib.go`, `sqllib.go`, ...) |
+| `sqlite` | A SQLite file reader written from scratch (no dependencies): file format, B-trees, records, schema, and a SQL `SELECT` engine. Knows nothing about Turtle values; `evaluator/sqllib.go` adapts it |
 | `cmd/turtle` | Entry point: resolves a script path, wires the above together |
 
 ## Parser conventions
@@ -223,7 +224,7 @@ know how to "return" — only the enclosing function call does, in
 
 A runtime error is a `fatalError` panic: `fatalf`/`fatalKind`
 (evaluator.go) build it with the message, its kind (`file`, `number`,
-`math`, `index`, `key`, `name`, `type`, `json`, `date`, `custom`), and the line and file
+`math`, `index`, `key`, `name`, `type`, `json`, `date`, `http`, `sql`, `custom`), and the line and file
 it happened in. Two package-level variables track where code is running:
 `currentLine` (set by every statement) and `currentFile` ("" for the main
 script, "lib/utils.t" for a module; switched by `callFunction` and
@@ -241,12 +242,19 @@ naming the operation and the value involved.
 
 ## Testing
 
-`testdata/*.t` plus `test.trt` at the repo root are the closest thing to a
-regression suite right now — real scripts (several copied from the
-project's own historical `.txt` example files, which is how the real
-if/else and loop syntax got confirmed in the first place) plus hand-written
-coverage for recursion, data structures, and loop control flow. There is
-**no automated pass/fail harness** — verification so far has been running
-each script and manually checking the output against hand-computed
-expected values. Building an actual test runner (e.g. `expected-output.txt`
-per script diffed on each run) is a known gap; see `PROGRESS.md`.
+`go test ./...` runs everything. `go vet ./...` should be clean too.
+
+- `parser/`, `lexer/`, `object/` tests cover syntax and values;
+  `evaluator/evaluator_test.go` runs Turtle source and checks its output
+  or error, for every feature and library.
+- `testdata/everything.t` uses every feature and checks its own results;
+  `testdata/shop/` is a whole program (modules in `lib/`, JSON data) with
+  its own checks. Both run in `go test`.
+- `sqlite/sqlite_test.go` builds databases with the `sqlite3` tool and
+  checks that this package's answers match real SQLite, query by query
+  and at several page sizes. It skips if `sqlite3` (3.33+) isn't
+  installed; the package itself never uses the tool.
+- `testdata/books.db` is a small committed SQLite file the Turtle-level
+  tests read.
+- The historical scripts (`*.txt`, `test.trt`, `testdata/*.t`) should keep
+  producing the same output.

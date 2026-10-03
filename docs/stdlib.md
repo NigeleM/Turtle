@@ -373,6 +373,95 @@ safe [end]
 JSON typed into Turtle code reads best in single quotes, where `"` needs
 no escape and braces before a quote are plain: `'{"a": [1, 2]}'`.
 
+## HTTP library
+
+`import http` makes web requests, using only Go's standard library:
+
+| Function | Args | Returns |
+|---|---|---|
+| `http_get[url]` | web address | the response body as text |
+| `http_post[url, body]` | web address, body | the response body as text |
+| `http_request[method, url [, body [, headers]]]` | `"GET"`, `"PUT"`, ...; address; optional body and headers map | a map with `status` (integer), `body` (text), `headers` (map, lowercase names) |
+
+**Bodies:** text is sent as is (`text/plain`); a map, list, set or
+assembled value is sent as JSON (`application/json`); `none` sends no body.
+
+**Errors** are kind `http`. `http_get` and `http_post` fail on a network
+problem or a 4xx/5xx status: `http_get https://api.example.com/x: 404 Not
+Found: no such page`. `http_request` only fails on a network problem, and
+hands back any status for you to check. A request with no answer in 30
+seconds fails.
+
+```
+import http
+import json
+
+safe
+    users = load[http_get["https://api.example.com/users"]]   // a list of maps
+handle [http, json] e .
+    warn "couldn't fetch users: ", e .
+    users = list []
+safe [end]
+
+reply = http_post["https://api.example.com/users", map ["name": "Ann"]]
+
+r = http_request["DELETE", "https://api.example.com/users/7", none, map ["Authorization": "Bearer {token}"]]
+if ] r at get["status"] != 204 [
+    show "delete failed: ", r at get["body"] .
+if [end]
+```
+
+## SQL library
+
+`import sql` reads databases, through drivers written from scratch for
+Turtle (no third-party code). Today: SQLite files. PostgreSQL is planned,
+behind the same functions.
+
+| Function | Args | Returns |
+|---|---|---|
+| `sql_open[target]` | a SQLite file path (or `"sqlite:path"`) | a database value |
+| `sql_query[db, query [, values]]` | database, a `SELECT`, and a list of values for its `?` placeholders | a list of maps, one per row, column name → value |
+| `sql_tables[db]` | database | a list of its table names |
+| `sql_close[db]` | database | `none`; closing twice is fine |
+
+```
+import sql
+
+db = sql_open["shop.db"]
+rows = sql_query[db, "SELECT title, price FROM books WHERE price < ? ORDER BY price", list [1000]]
+[loop][row in rows]
+    show row at get["title"], ": ", row at get["price"] .
+[loop][end]
+
+n = sql_query[db, "SELECT count(*) AS n FROM orders"]
+sql_close[db]
+```
+
+**Values.** `NULL` is `none`; integers, reals and text come back as
+integers, floats and text; a BLOB comes back as text. `?` values can be
+integers, floats, text, booleans (1/0), `none` (`NULL`) and dates (as
+`2026-10-03 14:05:00` text). Always pass values as `?` placeholders rather
+than building the query with `+`, so a value can never change the query.
+
+**What SQL works today** (reading only): `SELECT` with `DISTINCT`,
+expressions and `AS` names, `*`, `FROM` one table (with an alias),
+`WHERE`, `ORDER BY` (columns, expressions, result names or positions,
+`ASC`/`DESC`), `LIMIT`/`OFFSET`; operators `= != < > <= >= AND OR NOT IS
+[NOT] NULL IN BETWEEN LIKE + - * / % ||`; `CASE` and `CAST`; the
+aggregates `count sum total avg min max group_concat` over the whole
+result; and `abs coalesce ifnull nullif iif length lower upper substr
+trim ltrim rtrim replace instr round typeof hex min max`. Answers match
+real SQLite, including its type rules (a `TEXT` column holding `'5'`
+equals `5`).
+
+**Not yet:** writing (`INSERT`, `UPDATE`, `DELETE`, `CREATE TABLE`,
+creating a new file) is the next step; then `GROUP BY`, joins, and
+subqueries. A database in WAL mode with unsaved changes is refused rather
+than read stale.
+
+**Errors** are kind `sql` (`sql_query: no such table: shelves`); a missing
+file is kind `file`.
+
 ## Strings library
 
 `import strings` (or `import strings [find, join]`) provides string
