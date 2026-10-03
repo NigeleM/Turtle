@@ -24,6 +24,7 @@ const (
 	NONE     Type = "NONE"
 	ERROR    Type = "ERROR"
 	DATE     Type = "DATE"
+	DATABASE Type = "DATABASE"
 )
 
 type Object interface {
@@ -363,3 +364,15 @@ func (d *Date) Field(name string) (Object, bool) {
 
 // DateFields lists the parts Field knows, for error messages.
 const DateFields = "year, month, day, hour, minute, second, weekday"
+
+// Database is an open database connection from the sql library's
+// sql_open. Conn is the driver's connection (the object package doesn't
+// know the drivers). It shows as "database shop.db".
+type Database struct {
+	Name   string
+	Conn   any
+	Closed bool
+}
+
+func (d *Database) Type() Type      { return DATABASE }
+func (d *Database) Inspect() string { return "database " + d.Name }

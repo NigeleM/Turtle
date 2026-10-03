@@ -16,6 +16,7 @@ import data
 import strings
 import system
 import json
+import sql
 import everything_lib [scaled, total, Point, now]
 
 failures = list []
@@ -320,6 +321,22 @@ check["date part", weekday of start_day, "Saturday"]
 check["format", format_date[due_day, "DD/MM/YYYY"], "02/03/2026"]
 check["compare dates", today[] > start_day, true]
 show "dates ok" .
+
+// ---------- sql ----------
+shelf = sql_open[scriptFolder[] + "/books.db"]
+cheap = sql_query[shelf, "SELECT title FROM books WHERE price < ? ORDER BY price", list [1000]]
+check["sql rows", length of cheap, 3]
+check["sql first row", json_get[cheap, 0, "title"], "Café 🐢"]
+counts = sql_query[shelf, "SELECT count(*) AS n FROM orders"]
+check["sql count", json_get[counts, 0, "n"], 5]
+check["sql tables", sql_tables[shelf], list ["books", "orders"]]
+safe
+    bad = sql_query[shelf, "SELECT nope FROM books"]
+handle [sql] err .
+safe [end]
+check["sql error kind", kind of err, "sql"]
+sql_close[shelf]
+show "sql ok" .
 
 // ---------- files and system ----------
 out = "everything_out.txt"

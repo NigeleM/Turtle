@@ -10,7 +10,8 @@ Done so far: string methods, `strings` (`find`, `substring`, `isinstring`,
 `every`), `data` (`process`, `keep`, `copy`), `system` (`args`, `exit`,
 `env`, `scriptFolder`, `contents`, `exists`, `isFile`, `isFolder`,
 `erase`, `warn`), `json` (`load`, `json_text`, `json_read`, `json_write`,
-`json_get`).
+`json_get`), `http` (`http_get`, `http_post`, `http_request`), `sql`
+(`sql_open`, `sql_query`, `sql_tables`, `sql_close`).
 See `docs/stdlib.md`.
 
 Next, roughly in priority order:
@@ -20,11 +21,14 @@ Next, roughly in priority order:
 - [x] JSON: `import json` (2026-10-03)
 - [x] Dates in `time`: arithmetic, formatting, `wait_until`, `every`
       (2026-10-03)
-- [ ] OS scheduling (cron / Task Scheduler) so jobs run after the script
-      ends; `every` covers in-script repeats today
-- [ ] HTTP (`get`/`post` returning text for `load`; error kind `http`)
-- [ ] SQLite (pure-Go `modernc.org/sqlite` to keep
-      `CGO_ENABLED=0` releases) — rows could come back as assembled values
+- [x] HTTP: `http_get`, `http_post`, `http_request` (2026-10-03)
+- [x] `sql` library, step 1: reading real SQLite files (`sql_open`,
+      `sql_query`, `sql_tables`, `sql_close`), written from scratch
+      (2026-10-03)
+- [ ] `sql` step 2: writing SQLite files (INSERT/UPDATE/DELETE/CREATE
+      TABLE, B-tree splits, rollback journal, new files)
+- [ ] `sql` step 3: indexes kept up to date, GROUP BY, joins, subqueries
+- [ ] `sql` step 4: PostgreSQL driver (wire protocol, SCRAM auth)
 - [ ] `data`: `reduce`, sort by a function, range generator, the
       discrete-math tier (powerset, combinations, ...) proposed 2026-09-30
 - [ ] Assembled types: "is this an Order?" check, looping over fields,
@@ -32,7 +36,6 @@ Next, roughly in priority order:
 - [x] Delete files: `system`'s `erase[path]` (2026-10-03)
 - [x] stderr (`warn ... .`), string interpolation, subfolder imports,
       module file names in errors (2026-10-03)
-- [ ] HTTP (lowest priority — biggest surface area)
 
 ## 2. Fix the CI/release pipeline — DONE (2026-09-29)
 
