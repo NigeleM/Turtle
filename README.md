@@ -1,7 +1,9 @@
 # The Turtle Programming Language ⓒ 2017
 
 Turtle was my side project during community college and undergrad.
-It is copyrighted by me. My goal was to make a very simple language.
+It is copyrighted by Nigele McCoy. My goal was to make a very simple language with a paradigm shift.
+Philosophy of Turtle coming soon. 
+
 
 ## Status
 
