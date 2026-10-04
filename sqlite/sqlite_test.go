@@ -156,27 +156,32 @@ func sqliteJSON(t *testing.T, path, query string) []map[string]any {
 }
 
 // ourJSON runs a query through this package and shapes the rows like
-// sqlite3 -json does (blobs as text, like the tool).
-func ourJSON(t *testing.T, db *DB, query string) ([]map[string]any, error) {
+// sqlite3 -json does. Blob columns are left out, and named in the
+// returned set so the caller drops them from sqlite3's rows too: how the
+// tool writes blob bytes in JSON changed between versions (3.45 and
+// older write byte 0xCA as "\uffffffca"), so blobs are checked through
+// hex() in queries and exact bytes in TestTablesAndTypes instead.
+func ourJSON(t *testing.T, db *DB, query string) ([]map[string]any, map[string]bool, error) {
 	t.Helper()
 	cols, rows, err := db.Query(query, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	blobs := map[string]bool{}
+	for _, r := range rows {
+		for i, c := range cols {
+			if _, ok := r[i].([]byte); ok {
+				blobs[c] = true
+			}
+		}
 	}
 	out := []map[string]any{}
 	for _, r := range rows {
 		m := map[string]any{}
 		for i, c := range cols {
-			v := r[i]
-			if b, ok := v.([]byte); ok {
-				// sqlite3 -json shows each blob byte as one character.
-				rs := make([]rune, len(b))
-				for i, c := range b {
-					rs[i] = rune(c)
-				}
-				v = string(rs)
+			if !blobs[c] {
+				m[c] = r[i]
 			}
-			m[c] = v
 		}
 		out = append(out, m)
 	}
@@ -185,7 +190,16 @@ func ourJSON(t *testing.T, db *DB, query string) ([]map[string]any, error) {
 	if err := json.Unmarshal(data, &back); err != nil {
 		t.Fatal(err)
 	}
-	return back, nil
+	return back, blobs, nil
+}
+
+// dropColumns removes the named columns from rows.
+func dropColumns(rows []map[string]any, cols map[string]bool) {
+	for _, r := range rows {
+		for c := range cols {
+			delete(r, c)
+		}
+	}
 }
 
 func TestQueriesMatchSQLite(t *testing.T) {
@@ -197,11 +211,12 @@ func TestQueriesMatchSQLite(t *testing.T) {
 	defer db.Close()
 	for _, q := range queries {
 		want := sqliteJSON(t, path, q)
-		got, err := ourJSON(t, db, q)
+		got, blobs, err := ourJSON(t, db, q)
 		if err != nil {
 			t.Errorf("%s\n  error: %v", q, err)
 			continue
 		}
+		dropColumns(want, blobs)
 		// Without ORDER BY, SQLite may return rows in any order (it can
 		// read through an index), so compare those as sets.
 		if !strings.Contains(strings.ToUpper(q), "ORDER BY") {
@@ -308,7 +323,8 @@ func TestPageSizes(t *testing.T) {
 		}
 		for _, q := range []string{"SELECT count(*) AS c, sum(n) AS s FROM nums", "SELECT k, length(body) AS len FROM big", "SELECT * FROM books"} {
 			want := sqliteJSON(t, path, q)
-			got, err := ourJSON(t, db, q)
+			got, blobs, err := ourJSON(t, db, q)
+			dropColumns(want, blobs)
 			if err != nil || !reflect.DeepEqual(got, want) {
 				t.Errorf("page size %d, %s: got %v (%v), want %v", size, q, got, err, want)
 			}

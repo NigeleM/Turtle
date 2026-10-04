@@ -253,7 +253,12 @@ naming the operation and the value involved.
 - `sqlite/sqlite_test.go` builds databases with the `sqlite3` tool and
   checks that this package's answers match real SQLite, query by query
   and at several page sizes. It skips if `sqlite3` (3.33+) isn't
-  installed; the package itself never uses the tool.
+  installed; the package itself never uses the tool. Blob columns are
+  left out of the `-json` comparison, because sqlite3 3.45 and older
+  write bytes 0x80 and up wrongly there (`\uffffffca`). Blobs are checked
+  through `hex()` and by exact bytes in `TestTablesAndTypes` instead.
+  CI's Linux and macOS runners have an older sqlite3 than a current Mac;
+  Windows runners have none, so these tests skip there.
 - `testdata/books.db` is a small committed SQLite file the Turtle-level
   tests read.
 - The historical scripts (`*.txt`, `test.trt`, `testdata/*.t`) should keep

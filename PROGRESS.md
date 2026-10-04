@@ -566,3 +566,16 @@ safe [end]
   `sql_tables`, `sql_close`. Error kind `sql`. Reading only; writing is
   next, then GROUP BY/joins, then PostgreSQL.
 
+
+## 2026-10-04: CI fix for the sqlite tests (v0.9.140)
+
+- v0.9.139 failed `go test` in CI and the Linux/macOS release jobs, so
+  no packages were built for those (Windows passed only because its
+  runner has no `sqlite3`, so the tests skip). The cause was the test, not
+  the driver: GitHub's sqlite3 (3.45.1 on Ubuntu) writes blob bytes
+  0x80 and up as broken `\uffffffca` escapes in `-json` output, and the
+  test compared against that. Reproduced locally with a self-built
+  3.45.1.
+- The `-json` comparison now leaves out blob columns. Blobs are still
+  checked against sqlite3 through `hex(cover)`, and by exact bytes in
+  `TestTablesAndTypes`.
