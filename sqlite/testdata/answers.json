@@ -1,0 +1,862 @@
+{
+  "SELECT \"first col\", second, third FROM \"odd name\" ORDER BY \"first col\"": [
+    {
+      "first col": null,
+      "second": null,
+      "third": null
+    },
+    {
+      "first col": "a",
+      "second": 1,
+      "third": 1.5
+    },
+    {
+      "first col": "b",
+      "second": 2,
+      "third": null
+    }
+  ],
+  "SELECT * FROM \"odd name\" WHERE third IS NULL": [
+    {
+      "first col": "b",
+      "second": 2,
+      "third": null
+    },
+    {
+      "first col": null,
+      "second": null,
+      "third": null
+    }
+  ],
+  "SELECT * FROM books": [
+    {
+      "id": 1,
+      "sku": "B1",
+      "title": "Dune",
+      "price": 950,
+      "rating": 4.5,
+      "cover": "\u00ca\u00fe"
+    },
+    {
+      "id": 2,
+      "sku": "B2",
+      "title": "The Go Book",
+      "price": 3000,
+      "rating": null,
+      "cover": null
+    },
+    {
+      "id": 3,
+      "sku": "B3",
+      "title": "Gone Girl",
+      "price": 1225,
+      "rating": 3.9,
+      "cover": null
+    },
+    {
+      "id": 4,
+      "sku": "B4",
+      "title": "Foundation",
+      "price": 800,
+      "rating": 4.25,
+      "cover": ""
+    },
+    {
+      "id": 5,
+      "sku": "B5",
+      "title": "Café Ünïcode 🐢",
+      "price": 1,
+      "rating": 5.0,
+      "cover": null
+    },
+    {
+      "id": 6,
+      "sku": "B6",
+      "title": "zebra",
+      "price": null,
+      "rating": 2.0,
+      "cover": null
+    }
+  ],
+  "SELECT * FROM later": [
+    {
+      "a": "old",
+      "b": null
+    },
+    {
+      "a": "new",
+      "b": 7
+    }
+  ],
+  "SELECT 1 + 1 AS two, 'a' || 'b' AS ab, 7 / 2 AS half, 7.0 / 2 AS realhalf, NULL IS NULL AS isn": [
+    {
+      "two": 2,
+      "ab": "ab",
+      "half": 3,
+      "realhalf": 3.5,
+      "isn": 1
+    }
+  ],
+  "SELECT 10 \u003e 9 AS a, '10' \u003e '9' AS b, 1 = 1.0 AS c, 'abc' \u003c 'abd' AS d, NULL = NULL AS e": [
+    {
+      "a": 1,
+      "b": 0,
+      "c": 1,
+      "d": 1,
+      "e": null
+    }
+  ],
+  "SELECT 5 \u0026 3 AS a, 5 | 3 AS b, 1 \u003c\u003c 4 AS c, ~0 AS d": [
+    {
+      "a": 1,
+      "b": 7,
+      "c": 16,
+      "d": -1
+    }
+  ],
+  "SELECT 9223372036854775807 + 1 AS big, -9223372036854775808 - 1 AS small": [
+    {
+      "big": 9.2233720368547758e+18,
+      "small": -9.2233720368547758e+18
+    }
+  ],
+  "SELECT CASE WHEN price \u003e 1000 THEN 'high' WHEN price \u003e 900 THEN 'mid' ELSE 'low' END AS band FROM books": [
+    {
+      "band": "low"
+    },
+    {
+      "band": "low"
+    },
+    {
+      "band": "low"
+    },
+    {
+      "band": "mid"
+    },
+    {
+      "band": "high"
+    },
+    {
+      "band": "high"
+    }
+  ],
+  "SELECT CASE sku WHEN 'B1' THEN 'first' ELSE 'other' END AS x FROM books": [
+    {
+      "x": "first"
+    },
+    {
+      "x": "other"
+    },
+    {
+      "x": "other"
+    },
+    {
+      "x": "other"
+    },
+    {
+      "x": "other"
+    },
+    {
+      "x": "other"
+    }
+  ],
+  "SELECT CAST(price AS TEXT) AS t, CAST(rating AS INTEGER) AS i, CAST('12abc' AS INTEGER) AS j FROM books": [
+    {
+      "t": "950",
+      "i": 4,
+      "j": 12
+    },
+    {
+      "t": "3000",
+      "i": null,
+      "j": 12
+    },
+    {
+      "t": "1225",
+      "i": 3,
+      "j": 12
+    },
+    {
+      "t": "800",
+      "i": 4,
+      "j": 12
+    },
+    {
+      "t": "1",
+      "i": 5,
+      "j": 12
+    },
+    {
+      "t": null,
+      "i": 2,
+      "j": 12
+    }
+  ],
+  "SELECT DISTINCT price \u003e 1000 AS pricey FROM books ORDER BY pricey": [
+    {
+      "pricey": null
+    },
+    {
+      "pricey": 0
+    },
+    {
+      "pricey": 1
+    }
+  ],
+  "SELECT a FROM later WHERE b IS NULL": [
+    {
+      "a": "old"
+    }
+  ],
+  "SELECT b.title FROM books b WHERE b.price = 950": [
+    {
+      "title": "Dune"
+    }
+  ],
+  "SELECT books.title FROM books WHERE books.price = 950": [
+    {
+      "title": "Dune"
+    }
+  ],
+  "SELECT coalesce(rating, -1) AS c, ifnull(price, 0) AS p, nullif(price, 950) AS np FROM books": [
+    {
+      "c": 4.5,
+      "p": 950,
+      "np": null
+    },
+    {
+      "c": -1,
+      "p": 3000,
+      "np": 3000
+    },
+    {
+      "c": 3.9,
+      "p": 1225,
+      "np": 1225
+    },
+    {
+      "c": 4.25,
+      "p": 800,
+      "np": 800
+    },
+    {
+      "c": 5.0,
+      "p": 1,
+      "np": 1
+    },
+    {
+      "c": 2.0,
+      "p": 0,
+      "np": null
+    }
+  ],
+  "SELECT count(*) AS c FROM books WHERE price \u003e 100000": [
+    {
+      "c": 0
+    }
+  ],
+  "SELECT count(*) AS c FROM nums WHERE t LIKE 'ROW 1%'": [
+    {
+      "c": 1111
+    }
+  ],
+  "SELECT count(*) AS c FROM nums WHERE v IS NULL": [
+    {
+      "c": 1667
+    }
+  ],
+  "SELECT count(*) AS c, sum(n) AS s FROM nums": [
+    {
+      "c": 5000,
+      "s": 12502500
+    }
+  ],
+  "SELECT count(*) AS c, sum(n) AS s, max(t) AS m FROM nums": [
+    {
+      "c": 5000,
+      "s": 12502500,
+      "m": "row 999"
+    }
+  ],
+  "SELECT count(*) AS n, sum(price) AS total, avg(price) AS mean, min(title) AS first, max(rating) AS best FROM books": [
+    {
+      "n": 6,
+      "total": 5976,
+      "mean": 1195.2,
+      "first": "Café Ünïcode 🐢",
+      "best": 5.0
+    }
+  ],
+  "SELECT count(DISTINCT rating \u003e 4) AS d FROM books": [
+    {
+      "d": 2
+    }
+  ],
+  "SELECT count(rating) AS rated, total(price) AS t, group_concat(sku) AS skus FROM books": [
+    {
+      "rated": 5,
+      "t": 5976.0,
+      "skus": "B1,B2,B3,B4,B5,B6"
+    }
+  ],
+  "SELECT hex(cover) AS h FROM books": [
+    {
+      "h": "CAFE"
+    },
+    {
+      "h": ""
+    },
+    {
+      "h": ""
+    },
+    {
+      "h": ""
+    },
+    {
+      "h": ""
+    },
+    {
+      "h": ""
+    }
+  ],
+  "SELECT i FROM aff WHERE i = '10'": [
+    {
+      "i": 10
+    }
+  ],
+  "SELECT id, title FROM books WHERE price \u003e 900 ORDER BY price DESC": [
+    {
+      "id": 2,
+      "title": "The Go Book"
+    },
+    {
+      "id": 3,
+      "title": "Gone Girl"
+    },
+    {
+      "id": 1,
+      "title": "Dune"
+    }
+  ],
+  "SELECT k, length(body) AS len FROM big": [
+    {
+      "k": 1,
+      "len": 5
+    },
+    {
+      "k": 2,
+      "len": 70000
+    },
+    {
+      "k": 3,
+      "len": 5003
+    }
+  ],
+  "SELECT k, length(body) AS len, substr(body, -3) AS tail FROM big": [
+    {
+      "k": 1,
+      "len": 5,
+      "tail": "ort"
+    },
+    {
+      "k": 2,
+      "len": 70000,
+      "tail": "xxx"
+    },
+    {
+      "k": 3,
+      "len": 5003,
+      "tail": "end"
+    }
+  ],
+  "SELECT min(1, 2, 3) AS a, max('a', 'b') AS b, iif(1 \u003e 2, 'y', 'n') AS c, trim('  hi  ') AS d": [
+    {
+      "a": 1,
+      "b": "b",
+      "c": "n",
+      "d": "hi"
+    }
+  ],
+  "SELECT n FROM aff WHERE n = 5": [
+    {
+      "n": 5
+    }
+  ],
+  "SELECT n FROM nums ORDER BY n DESC LIMIT 3": [
+    {
+      "n": 5000
+    },
+    {
+      "n": 4999
+    },
+    {
+      "n": 4998
+    }
+  ],
+  "SELECT n FROM nums WHERE v = 'text4999' OR n = 2500": [
+    {
+      "n": 2500
+    },
+    {
+      "n": 4999
+    }
+  ],
+  "SELECT n, t, v FROM nums WHERE n \u003e 4990": [
+    {
+      "n": 4991,
+      "t": "row 4991",
+      "v": null
+    },
+    {
+      "n": 4992,
+      "t": "row 4992",
+      "v": 7488.0
+    },
+    {
+      "n": 4993,
+      "t": "row 4993",
+      "v": "text4993"
+    },
+    {
+      "n": 4994,
+      "t": "row 4994",
+      "v": null
+    },
+    {
+      "n": 4995,
+      "t": "row 4995",
+      "v": 7492.5
+    },
+    {
+      "n": 4996,
+      "t": "row 4996",
+      "v": "text4996"
+    },
+    {
+      "n": 4997,
+      "t": "row 4997",
+      "v": null
+    },
+    {
+      "n": 4998,
+      "t": "row 4998",
+      "v": 7497.0
+    },
+    {
+      "n": 4999,
+      "t": "row 4999",
+      "v": "text4999"
+    },
+    {
+      "n": 5000,
+      "t": "row 5000",
+      "v": null
+    }
+  ],
+  "SELECT name, type FROM sqlite_master WHERE type = 'table' ORDER BY name": [
+    {
+      "name": "aff",
+      "type": "table"
+    },
+    {
+      "name": "big",
+      "type": "table"
+    },
+    {
+      "name": "books",
+      "type": "table"
+    },
+    {
+      "name": "later",
+      "type": "table"
+    },
+    {
+      "name": "nums",
+      "type": "table"
+    },
+    {
+      "name": "odd name",
+      "type": "table"
+    }
+  ],
+  "SELECT none_col FROM aff WHERE none_col = '5'": [
+    {
+      "none_col": "5"
+    }
+  ],
+  "SELECT none_col FROM aff WHERE none_col = 5": [],
+  "SELECT price / 3 AS d, price % 7 AS m, price * 2 + 1 AS e, -price AS neg, price / 0 AS z FROM books": [
+    {
+      "d": null,
+      "m": null,
+      "e": null,
+      "neg": null,
+      "z": null
+    },
+    {
+      "d": 0,
+      "m": 1,
+      "e": 3,
+      "neg": -1,
+      "z": null
+    },
+    {
+      "d": 266,
+      "m": 2,
+      "e": 1601,
+      "neg": -800,
+      "z": null
+    },
+    {
+      "d": 316,
+      "m": 5,
+      "e": 1901,
+      "neg": -950,
+      "z": null
+    },
+    {
+      "d": 408,
+      "m": 0,
+      "e": 2451,
+      "neg": -1225,
+      "z": null
+    },
+    {
+      "d": 1000,
+      "m": 4,
+      "e": 6001,
+      "neg": -3000,
+      "z": null
+    }
+  ],
+  "SELECT r FROM aff WHERE r \u003e '6'": [
+    {
+      "r": 10.5
+    }
+  ],
+  "SELECT rating * 2 AS r2, round(rating) AS rr, round(rating, 1) AS r1, abs(-rating) AS ab FROM books": [
+    {
+      "r2": 9.0,
+      "rr": 5.0,
+      "r1": 4.5,
+      "ab": 4.5
+    },
+    {
+      "r2": null,
+      "rr": null,
+      "r1": null,
+      "ab": null
+    },
+    {
+      "r2": 7.8,
+      "rr": 4.0,
+      "r1": 3.9,
+      "ab": 3.9
+    },
+    {
+      "r2": 8.5,
+      "rr": 4.0,
+      "r1": 4.3,
+      "ab": 4.25
+    },
+    {
+      "r2": 10.0,
+      "rr": 5.0,
+      "r1": 5.0,
+      "ab": 5.0
+    },
+    {
+      "r2": 4.0,
+      "rr": 2.0,
+      "r1": 2.0,
+      "ab": 2.0
+    }
+  ],
+  "SELECT rowid FROM books WHERE rowid = 3": [
+    {
+      "id": 3
+    }
+  ],
+  "SELECT rowid, n FROM nums WHERE rowid = 3": [
+    {
+      "rowid": 3,
+      "n": 3
+    }
+  ],
+  "SELECT sku FROM books WHERE price NOT IN (950, 800)": [
+    {
+      "sku": "B2"
+    },
+    {
+      "sku": "B3"
+    },
+    {
+      "sku": "B5"
+    }
+  ],
+  "SELECT sku FROM books WHERE sku IN ('B1', 'B3', 'B9') ORDER BY sku DESC": [
+    {
+      "sku": "B3"
+    },
+    {
+      "sku": "B1"
+    }
+  ],
+  "SELECT substr(title, 2, 3) AS a, substr(title, -3) AS b, replace(title, 'o', '0') AS c, instr(title, 'o') AS d FROM books": [
+    {
+      "a": "une",
+      "b": "une",
+      "c": "Dune",
+      "d": 0
+    },
+    {
+      "a": "he ",
+      "b": "ook",
+      "c": "The G0 B00k",
+      "d": 6
+    },
+    {
+      "a": "one",
+      "b": "irl",
+      "c": "G0ne Girl",
+      "d": 2
+    },
+    {
+      "a": "oun",
+      "b": "ion",
+      "c": "F0undati0n",
+      "d": 2
+    },
+    {
+      "a": "afé",
+      "b": "e 🐢",
+      "c": "Café Ünïc0de 🐢",
+      "d": 10
+    },
+    {
+      "a": "ebr",
+      "b": "bra",
+      "c": "zebra",
+      "d": 0
+    }
+  ],
+  "SELECT sum(price) AS s, avg(price) AS a FROM books WHERE price \u003e 100000": [
+    {
+      "s": null,
+      "a": null
+    }
+  ],
+  "SELECT t FROM aff ORDER BY t": [
+    {
+      "t": "10"
+    },
+    {
+      "t": "5"
+    },
+    {
+      "t": "abc"
+    }
+  ],
+  "SELECT t FROM aff WHERE t = 5": [
+    {
+      "t": "5"
+    }
+  ],
+  "SELECT title FROM books ORDER BY title LIMIT 1, 2": [
+    {
+      "title": "Dune"
+    },
+    {
+      "title": "Foundation"
+    }
+  ],
+  "SELECT title FROM books ORDER BY title LIMIT 2": [
+    {
+      "title": "Café Ünïcode 🐢"
+    },
+    {
+      "title": "Dune"
+    }
+  ],
+  "SELECT title FROM books ORDER BY title LIMIT 2 OFFSET 3": [
+    {
+      "title": "Gone Girl"
+    },
+    {
+      "title": "The Go Book"
+    }
+  ],
+  "SELECT title FROM books WHERE NOT (price \u003e 1000) ORDER BY title": [
+    {
+      "title": "Café Ünïcode 🐢"
+    },
+    {
+      "title": "Dune"
+    },
+    {
+      "title": "Foundation"
+    }
+  ],
+  "SELECT title FROM books WHERE price \u003e 1000 OR rating \u003e 4.4 ORDER BY id": [
+    {
+      "title": "Dune"
+    },
+    {
+      "title": "The Go Book"
+    },
+    {
+      "title": "Gone Girl"
+    },
+    {
+      "title": "Café Ünïcode 🐢"
+    }
+  ],
+  "SELECT title FROM books WHERE rating IS NOT NULL AND price BETWEEN 800 AND 1300 ORDER BY title": [
+    {
+      "title": "Dune"
+    },
+    {
+      "title": "Foundation"
+    },
+    {
+      "title": "Gone Girl"
+    }
+  ],
+  "SELECT title FROM books WHERE rating IS NULL": [
+    {
+      "title": "The Go Book"
+    }
+  ],
+  "SELECT title FROM books WHERE title LIKE '%o_k%'": [
+    {
+      "title": "The Go Book"
+    }
+  ],
+  "SELECT title FROM books WHERE title LIKE 'g%' ORDER BY 1": [
+    {
+      "title": "Gone Girl"
+    }
+  ],
+  "SELECT title || ' (' || sku || ')' AS label FROM books ORDER BY label DESC": [
+    {
+      "label": "zebra (B6)"
+    },
+    {
+      "label": "The Go Book (B2)"
+    },
+    {
+      "label": "Gone Girl (B3)"
+    },
+    {
+      "label": "Foundation (B4)"
+    },
+    {
+      "label": "Dune (B1)"
+    },
+    {
+      "label": "Café Ünïcode 🐢 (B5)"
+    }
+  ],
+  "SELECT title, price FROM books ORDER BY price": [
+    {
+      "title": "zebra",
+      "price": null
+    },
+    {
+      "title": "Café Ünïcode 🐢",
+      "price": 1
+    },
+    {
+      "title": "Foundation",
+      "price": 800
+    },
+    {
+      "title": "Dune",
+      "price": 950
+    },
+    {
+      "title": "Gone Girl",
+      "price": 1225
+    },
+    {
+      "title": "The Go Book",
+      "price": 3000
+    }
+  ],
+  "SELECT typeof(price) AS a, typeof(rating) AS b, typeof(cover) AS c, typeof(title) AS d FROM books": [
+    {
+      "a": "integer",
+      "b": "real",
+      "c": "blob",
+      "d": "text"
+    },
+    {
+      "a": "integer",
+      "b": "null",
+      "c": "null",
+      "d": "text"
+    },
+    {
+      "a": "integer",
+      "b": "real",
+      "c": "null",
+      "d": "text"
+    },
+    {
+      "a": "integer",
+      "b": "real",
+      "c": "blob",
+      "d": "text"
+    },
+    {
+      "a": "integer",
+      "b": "real",
+      "c": "null",
+      "d": "text"
+    },
+    {
+      "a": "null",
+      "b": "real",
+      "c": "null",
+      "d": "text"
+    }
+  ],
+  "SELECT upper('café') AS u, lower('ÉCOLE') AS l": [
+    {
+      "u": "CAFé",
+      "l": "École"
+    }
+  ],
+  "SELECT upper(title) AS u, lower(sku) AS l, length(title) AS len FROM books ORDER BY id": [
+    {
+      "u": "DUNE",
+      "l": "b1",
+      "len": 4
+    },
+    {
+      "u": "THE GO BOOK",
+      "l": "b2",
+      "len": 11
+    },
+    {
+      "u": "GONE GIRL",
+      "l": "b3",
+      "len": 9
+    },
+    {
+      "u": "FOUNDATION",
+      "l": "b4",
+      "len": 10
+    },
+    {
+      "u": "CAFé ÜNïCODE 🐢",
+      "l": "b5",
+      "len": 14
+    },
+    {
+      "u": "ZEBRA",
+      "l": "b6",
+      "len": 5
+    }
+  ]
+}

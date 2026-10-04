@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -2412,6 +2413,14 @@ func TestHTTPLibrary(t *testing.T) {
 	}))
 	defer srv.Close()
 	base := "base = \"" + srv.URL + "\"\n"
+	// A port that was just free and is now closed refuses connections on
+	// every system; a fixed port like 1 could be filtered and time out.
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	closed := "http://" + ln.Addr().String() + "/"
+	ln.Close()
 	cases := []struct{ name, src, want, wantErr string }{
 		{name: "get text", src: `import http
 show http_get[base + "/hello"] .`, want: "hello turtle\n"},
@@ -2442,7 +2451,7 @@ safe [end]`, want: "http\nhttp_get " + srv.URL + "/missing: 404 Not Found: no su
 		{name: "500 without a body", src: `import http
 x = http_post[base + "/boom", "x"]`, wantErr: "http_post " + srv.URL + "/boom: 500 Internal Server Error"},
 		{name: "connection refused", src: `import http
-x = http_get["http://127.0.0.1:1/"]`, wantErr: "http_get http://127.0.0.1:1/: connection refused (is the server running?)"},
+x = http_get["` + closed + `"]`, wantErr: "http_get " + closed + ": connection refused (is the server running?)"},
 		{name: "not a web address", src: `import http
 x = http_get["ftp://example.com"]`, wantErr: `http_get: "ftp://example.com" isn't a web address`},
 		{name: "headers must be a map", src: `import http

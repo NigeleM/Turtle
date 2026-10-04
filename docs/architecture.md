@@ -250,15 +250,17 @@ naming the operation and the value involved.
 - `testdata/everything.t` uses every feature and checks its own results;
   `testdata/shop/` is a whole program (modules in `lib/`, JSON data) with
   its own checks. Both run in `go test`.
-- `sqlite/sqlite_test.go` builds databases with the `sqlite3` tool and
-  checks that this package's answers match real SQLite, query by query
-  and at several page sizes. It skips if `sqlite3` (3.33+) isn't
-  installed; the package itself never uses the tool. Blob columns are
-  left out of the `-json` comparison, because sqlite3 3.45 and older
-  write bytes 0x80 and up wrongly there (`\uffffffca`). Blobs are checked
-  through `hex()` and by exact bytes in `TestTablesAndTypes` instead.
-  CI's Linux and macOS runners have an older sqlite3 than a current Mac;
-  Windows runners have none, so these tests skip there.
+- `sqlite/sqlite_test.go` checks that this package's answers match real
+  SQLite, query by query and at page sizes 512 to 65536, without running
+  SQLite: `sqlite/testdata/` holds the fixture database at each page size
+  and `answers.json`, sqlite3's answer to every query. So the tests give
+  the same result on every machine, Windows included. After changing the
+  fixture or the queries, run `go test ./sqlite -update` (needs a
+  standard `sqlite3` tool) and commit `sqlite/testdata/`. Not just any
+  sqlite3 will do: GitHub's macOS one uppercases é (ICU), and 3.45 and
+  older write blobs wrongly in `-json`, which is also why blob columns are
+  checked through `hex()` and exact bytes rather than `-json`. The package
+  itself never uses the tool.
 - `testdata/books.db` is a small committed SQLite file the Turtle-level
   tests read.
 - The historical scripts (`*.txt`, `test.trt`, `testdata/*.t`) should keep

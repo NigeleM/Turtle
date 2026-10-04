@@ -579,3 +579,16 @@ safe [end]
 - The `-json` comparison now leaves out blob columns. Blobs are still
   checked against sqlite3 through `hex(cover)`, and by exact bytes in
   `TestTablesAndTypes`.
+
+## 2026-10-04: sqlite tests no longer run sqlite3 (v0.9.141)
+
+- v0.9.140's macOS release still failed: the runner's sqlite3 is Apple's
+  ICU build, so `upper('café')` gave `CAFÉ` where standard SQLite (and
+  this package) gives `CAFé`. Testing against whichever sqlite3 a machine
+  has was the real problem.
+- The fixture databases (page sizes 512 to 65536) and sqlite3's answer to
+  every query are now committed in `sqlite/testdata/`; the tests read
+  them and never run the tool, so they also run on Windows now.
+  `go test ./sqlite -update` rebuilds them with a standard sqlite3.
+- The http "connection refused" test uses a port that was just closed
+  instead of port 1, which a firewall could filter into a timeout.

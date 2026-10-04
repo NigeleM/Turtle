@@ -2,6 +2,8 @@ package sqlite
 
 import (
 	"encoding/json"
+	"flag"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,31 +14,106 @@ import (
 	"testing"
 )
 
-// The sqlite3 tool is only used here, to build test files and to check
-// answers against the real SQLite. The package itself never needs it.
-func needSQLite3(t *testing.T) string {
-	t.Helper()
-	path, err := exec.LookPath("sqlite3")
-	if err != nil {
-		t.Skip("sqlite3 tool not installed")
-	}
-	// -json output (used to compare answers) needs sqlite3 3.33 or later.
-	if out, err := exec.Command(path, "-json", ":memory:", "SELECT 1 AS x").Output(); err != nil || !strings.Contains(string(out), `"x"`) {
-		t.Skip("sqlite3 tool is too old for -json")
-	}
-	return path
+// The tests compare this package with real SQLite without running it:
+// testdata/ holds the fixture database at each page size, built by the
+// sqlite3 tool, and answers.json holds sqlite3's answer to every query.
+// So the tests behave the same on every machine, whatever sqlite3 it
+// has, or none. Builds differ: GitHub's macOS sqlite3 uppercases é with
+// ICU, where standard SQLite (and this package) changes ASCII only, and
+// 3.45 and older write blobs wrongly in -json. After changing the fixture
+// or the queries, rebuild with a standard sqlite3 (upper('é') stays 'é')
+// and commit the result:
+//
+//	go test ./sqlite -update
+var update = flag.Bool("update", false, "rebuild testdata/ with the sqlite3 tool")
+
+var pageSizes = []int{512, 1024, 4096, 65536}
+
+func fixturePath(size int) string {
+	return filepath.Join("testdata", "fixture-"+strconv.Itoa(size)+".db")
 }
 
-func buildDB(t *testing.T, script string) string {
-	t.Helper()
-	bin := needSQLite3(t)
-	path := filepath.Join(t.TempDir(), "test.db")
-	cmd := exec.Command(bin, path)
-	cmd.Stdin = strings.NewReader(script)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("sqlite3: %v\n%s", err, out)
+func TestMain(m *testing.M) {
+	flag.Parse()
+	if *update {
+		if err := rebuildTestdata(); err != nil {
+			fmt.Fprintln(os.Stderr, "rebuilding testdata:", err)
+			os.Exit(1)
+		}
 	}
-	return path
+	os.Exit(m.Run())
+}
+
+// rebuildTestdata is the only use of the sqlite3 tool; the package itself
+// never needs it.
+func rebuildTestdata() error {
+	bin, err := exec.LookPath("sqlite3")
+	if err != nil {
+		return fmt.Errorf("the sqlite3 tool isn't installed")
+	}
+	if err := os.MkdirAll("testdata", 0o755); err != nil {
+		return err
+	}
+	for _, size := range pageSizes {
+		path := fixturePath(size)
+		os.Remove(path)
+		cmd := exec.Command(bin, path)
+		cmd.Stdin = strings.NewReader("PRAGMA page_size=" + strconv.Itoa(size) + ";\n" + fixture)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("sqlite3: %v\n%s", err, out)
+		}
+	}
+	answers := map[string]json.RawMessage{}
+	for _, q := range append(queries, pageQueries...) {
+		out, err := exec.Command(bin, "-json", fixturePath(4096), q).CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("sqlite3 %q: %v\n%s", q, err, out)
+		}
+		text := strings.TrimSpace(string(out))
+		if text == "" {
+			text = "[]"
+		}
+		if !json.Valid([]byte(text)) {
+			return fmt.Errorf("sqlite3 output for %q isn't JSON:\n%s", q, out)
+		}
+		answers[q] = json.RawMessage(text)
+	}
+	data, err := json.MarshalIndent(answers, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join("testdata", "answers.json"), append(data, '\n'), 0o644)
+}
+
+func openFixture(t *testing.T, size int) *DB {
+	t.Helper()
+	db, err := Open(fixturePath(size))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { db.Close() })
+	return db
+}
+
+// sqliteAnswer is sqlite3's answer to a query, from testdata/answers.json.
+func sqliteAnswer(t *testing.T, query string) []map[string]any {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("testdata", "answers.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var answers map[string][]map[string]any
+	if err := json.Unmarshal(data, &answers); err != nil {
+		t.Fatal(err)
+	}
+	rows, ok := answers[query]
+	if !ok {
+		t.Fatalf("no answer for %q in testdata/answers.json; run go test ./sqlite -update", query)
+	}
+	if rows == nil {
+		rows = []map[string]any{}
+	}
+	return rows
 }
 
 const fixture = `
@@ -136,31 +213,13 @@ func sortRows(rows []map[string]any) {
 	})
 }
 
-// sqliteJSON runs a query through sqlite3 -json and returns the rows as
-// generic JSON values.
-func sqliteJSON(t *testing.T, path, query string) []map[string]any {
-	t.Helper()
-	cmd := exec.Command(needSQLite3(t), "-json", path, query)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("sqlite3 %q: %v\n%s", query, err, out)
-	}
-	var rows []map[string]any
-	if strings.TrimSpace(string(out)) == "" {
-		return []map[string]any{}
-	}
-	if err := json.Unmarshal(out, &rows); err != nil {
-		t.Fatalf("sqlite3 output for %q isn't JSON: %v\n%s", query, err, out)
-	}
-	return rows
-}
-
 // ourJSON runs a query through this package and shapes the rows like
 // sqlite3 -json does. Blob columns are left out, and named in the
 // returned set so the caller drops them from sqlite3's rows too: how the
 // tool writes blob bytes in JSON changed between versions (3.45 and
 // older write byte 0xCA as "\uffffffca"), so blobs are checked through
-// hex() in queries and exact bytes in TestTablesAndTypes instead.
+// hex() in queries and exact bytes in TestTablesAndTypes instead, and
+// answers.json stays right whichever sqlite3 rebuilt it.
 func ourJSON(t *testing.T, db *DB, query string) ([]map[string]any, map[string]bool, error) {
 	t.Helper()
 	cols, rows, err := db.Query(query, nil)
@@ -203,14 +262,9 @@ func dropColumns(rows []map[string]any, cols map[string]bool) {
 }
 
 func TestQueriesMatchSQLite(t *testing.T) {
-	path := buildDB(t, fixture)
-	db, err := Open(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
+	db := openFixture(t, 4096)
 	for _, q := range queries {
-		want := sqliteJSON(t, path, q)
+		want := sqliteAnswer(t, q)
 		got, blobs, err := ourJSON(t, db, q)
 		if err != nil {
 			t.Errorf("%s\n  error: %v", q, err)
@@ -230,11 +284,7 @@ func TestQueriesMatchSQLite(t *testing.T) {
 }
 
 func TestTablesAndTypes(t *testing.T) {
-	db, err := Open(buildDB(t, fixture))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
+	db := openFixture(t, 4096)
 	if got := strings.Join(db.Tables(), ","); got != "books,odd name,nums,big,later,aff" {
 		t.Errorf("tables: %s", got)
 	}
@@ -250,11 +300,7 @@ func TestTablesAndTypes(t *testing.T) {
 }
 
 func TestParameters(t *testing.T) {
-	db, err := Open(buildDB(t, fixture))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
+	db := openFixture(t, 4096)
 	_, rows, err := db.Query("SELECT title FROM books WHERE price < ? AND sku != ? ORDER BY title", []Value{int64(1000), "B5"})
 	if err != nil {
 		t.Fatal(err)
@@ -274,11 +320,7 @@ func TestParameters(t *testing.T) {
 }
 
 func TestErrors(t *testing.T) {
-	db, err := Open(buildDB(t, fixture))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
+	db := openFixture(t, 4096)
 	cases := map[string]string{
 		"SELECT * FROM nope":                            "no such table: nope",
 		"SELECT nope FROM books":                        "no such column: nope",
@@ -314,21 +356,21 @@ func TestNotADatabase(t *testing.T) {
 	}
 }
 
+// pageQueries are checked at every page size.
+var pageQueries = []string{"SELECT count(*) AS c, sum(n) AS s FROM nums", "SELECT k, length(body) AS len FROM big", "SELECT * FROM books"}
+
 func TestPageSizes(t *testing.T) {
-	for _, size := range []int{512, 1024, 4096, 65536} {
-		path := buildDB(t, "PRAGMA page_size="+strconv.Itoa(size)+";\n"+fixture)
-		db, err := Open(path)
-		if err != nil {
-			t.Fatalf("page size %d: %v", size, err)
-		}
-		for _, q := range []string{"SELECT count(*) AS c, sum(n) AS s FROM nums", "SELECT k, length(body) AS len FROM big", "SELECT * FROM books"} {
-			want := sqliteJSON(t, path, q)
+	for _, size := range pageSizes {
+		db := openFixture(t, size)
+		for _, q := range pageQueries {
+			want := sqliteAnswer(t, q)
 			got, blobs, err := ourJSON(t, db, q)
 			dropColumns(want, blobs)
+			sortRows(got)
+			sortRows(want)
 			if err != nil || !reflect.DeepEqual(got, want) {
 				t.Errorf("page size %d, %s: got %v (%v), want %v", size, q, got, err, want)
 			}
 		}
-		db.Close()
 	}
 }
