@@ -400,11 +400,7 @@ func (it *Interpreter) sqlFileRows(fn string, conn sqlConn, stmt string, rows []
 			}
 		}
 		for _, i := range pick {
-			var v any
-			if s, ok := row[i].(*object.String); ok {
-				v = s.Value
-			}
-			vals[r] = append(vals[r], v)
+			vals[r] = append(vals[r], fileValueToSQL(fn, row[i]))
 		}
 	}
 	n, err := conn.ExecRows(stmt, vals)
@@ -412,6 +408,30 @@ func (it *Interpreter) sqlFileRows(fn string, conn sqlConn, stmt string, rows []
 		fatalKind(kindSQL, "%s: %v", fn, err)
 	}
 	return &object.Integer{Value: n}
+}
+
+// fileValueToSQL turns a value read from a table file into a SQL value:
+// .csv and .tsv cells are text or none; .json values keep their kind,
+// and a list or object inside a row is stored as its JSON text.
+func fileValueToSQL(fn string, v object.Object) any {
+	switch x := v.(type) {
+	case *object.None:
+		return nil
+	case *object.String:
+		return x.Value
+	case *object.Integer:
+		return x.Value
+	case *object.Float:
+		return x.Value
+	case *object.Boolean:
+		if x.Value {
+			return int64(1)
+		}
+		return int64(0)
+	case *object.Date:
+		return x.Inspect()
+	}
+	return string(toJSON(fn, v, ""))
 }
 
 // quoteSQLName writes a table or column name for SQL: in double quotes,

@@ -87,6 +87,17 @@ check["copied", sql_load[db, "books_copy", "{here}/export_final.csv"], 6]
 diff = sql_query[db, "SELECT count(*) AS n FROM (SELECT * FROM books EXCEPT SELECT * FROM books_copy)"]
 check["the copy matches", diff, list [map ["n": 0]]]
 
+// ---------- .json files: values keep their kind ----------
+sql_save[db, "SELECT sku, title, price, stock FROM books WHERE sku = 'B1'", "{here}/export_b1.json"]
+saved = table_read["{here}/export_b1.json"]
+check["json saved a number", saved at get[0] at get["price"], 1050]
+table_write["{here}/export_new.json", list [map ["sku": "B9", "title": "Kindred", "author_id": 5, "price": 900, "stock": 2]]]
+check["json loaded", sql_load[db, "books", "{here}/export_new.json"], 1]
+check["B9 price", price_of[db, "B9"], 900]
+sql_run[db, "DELETE FROM books WHERE sku = 'B9'"]
+erase["{here}/export_b1.json"]
+erase["{here}/export_new.json"]
+
 erase["{here}/export_restock.csv"]
 erase["{here}/export_final.csv"]
 sql_close[db]

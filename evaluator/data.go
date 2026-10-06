@@ -288,7 +288,7 @@ func listMethod(l *object.List, method string, args []object.Object) object.Obje
 		last := l.Elements[len(l.Elements)-1]
 		l.Elements = l.Elements[:len(l.Elements)-1]
 		return last
-	case "find":
+	case "find", "contains":
 		requireArgs(method, args, 1)
 		for _, e := range l.Elements {
 			if object.Equal(e, args[0]) {
@@ -381,7 +381,7 @@ func setMethod(s *object.Set, method string, args []object.Object) object.Object
 		s.Elements = s.Elements[:len(s.Elements)-1]
 		s.Changed()
 		return last
-	case "find":
+	case "find", "contains":
 		requireArgs(method, args, 1)
 		return &object.Boolean{Value: s.Contains(args[0])}
 	case "insert":
@@ -467,6 +467,11 @@ func setMethod(s *object.Set, method string, args []object.Object) object.Object
 
 func mapMethod(m *object.Map, method string, args []object.Object) object.Object {
 	switch method {
+	case "contains":
+		// Whether the map has this key.
+		requireArgs(method, args, 1)
+		_, ok := m.Get(args[0])
+		return &object.Boolean{Value: ok}
 	case "isEmpty":
 		requireArgs(method, args, 0)
 		return &object.Boolean{Value: len(m.Keys) == 0}

@@ -70,7 +70,7 @@ computed value, store it first: `ab = a + b` then `length of ab`.
 | `remove` | value | the list, first match removed |
 | `reverse` | — | the list, reversed |
 | `pop` | — | the **removed last element** (fatal if empty) |
-| `find` | value | Boolean, whether present |
+| `contains` / `find` | value | Boolean, whether present: `nums at contains[3]` |
 | `insert` | value, index | the list, with value inserted |
 | `get` | index | the element at that index, from `0`; fatal if out of range (including negative indexes; use `slice` to count from the end) |
 | `slice` | start [, end] | a new `list`, the elements `[start, end)`; same negative-index/clamping rules as string's `slice` below |
@@ -97,6 +97,7 @@ methods per type.)
 | Method | Args | Returns |
 |---|---|---|
 | `get` | key | the value (fatal if key not found) |
+| `contains` | key | Boolean, whether the map has that key |
 | `getValues` | — | a list of values, insertion order |
 | `getKeys` | — | a list of the keys, insertion order, each with its own type |
 | `isEmpty` | — | Boolean: `true` when the map has no entries |
@@ -388,6 +389,7 @@ extension picks the format:
 | `.csv` (or any other) | comma-separated values | yes |
 | `.tsv` | tab-separated values | yes |
 | `.txt` | the aligned table `show table[x] .` prints, every row | no (it's for people) |
+| `.json` | a list of objects, one per row: `[ {"item": "pen", "qty": 3}, ... ]` | yes, **keeping each value's kind** |
 
 ```
 import data
@@ -402,8 +404,13 @@ show rows at get[0] .                   // { "item": "pen", "qty": "3", "price":
 - `table_write` returns how many rows it wrote and replaces the file if
   it's there. The columns are the ones `table[x]` shows (fields, keys,
   `#` and `value` for a plain list, ...).
-- Values read back are text, as in the file (`"3"`): `change` converts
-  them, and a database column declared `INTEGER` or `REAL` stores them as
+- **`.json` keeps kinds**: numbers read back as numbers, `true`/`false`
+  as booleans, `null` as `none`, and a list or object inside a row as a
+  list or map. Dates are written as text. A row missing a name has
+  `none` there; the columns are every name any row has, in the order
+  they first appear.
+- From `.csv` and `.tsv`, values read back are text, as in the file
+  (`"3"`): `change` converts them, and a database column declared `INTEGER` or `REAL` stores them as
   numbers. An empty cell is `none`, and `none` is written as an empty
   cell, so files round-trip.
 - A value with the separator, a quote or a line break is put in quotes,
@@ -689,7 +696,9 @@ month is `2026-03-03`).
 
 These move rows straight between a file and the database, in the same
 files as the data library's [table files](#table-files): `sql_save`
-writes `.csv`, `.tsv` or `.txt`; the others read `.csv` or `.tsv`. Each returns how many records it wrote or changed. A file is
+writes `.csv`, `.tsv`, `.txt` or `.json`; the others read `.csv`, `.tsv`
+or `.json`. From `.json`, numbers and booleans go in as they are, and a
+list or object inside a row is stored as its JSON text. Each returns how many records it wrote or changed. A file is
 **all or nothing**: if one line is refused (a duplicate key, a `CHECK`,
 a missing `NOT NULL` value), no line of that file is kept, even inside
 `BEGIN ... COMMIT`.

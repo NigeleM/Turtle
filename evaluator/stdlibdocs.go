@@ -176,7 +176,8 @@ table[...] shows. Change it like any variable; none shows every row.
 ### table_write[path, rows]
   Saves rows to a file, in the layout table[...] shows. The file's
   ending picks the format: .csv (comma-separated, also any other ending),
-  .tsv (tab-separated), or .txt (the aligned table, every row).
+  .tsv (tab-separated), .txt (the aligned table, every row), or .json
+  (a list of objects, one per row, keeping numbers and true/false).
   path   where to save; an existing file is replaced
   rows   anything table[...] takes
   Gives back: how many rows were written.
@@ -184,12 +185,14 @@ table[...] shows. Change it like any variable; none shows every row.
     table_write["orders.csv", orders]
 
 ### table_read[path]
-  Reads a .csv or .tsv file. Its first line names the columns.
+  Reads a .csv, .tsv or .json file. A .csv or .tsv file's first line
+  names the columns; a .json file is a list of objects, one per row.
   path   the file
-  Gives back: a list of maps, one per line, keyed by the column names
-  (the same shape sql_query gives). Every value is text ("950"); an
-  empty cell is none. Use change to turn text into numbers.
-  A badly formed file is a csv error.
+  Gives back: a list of maps, one per row, keyed by the column names
+  (the same shape sql_query gives). From .csv and .tsv every value is
+  text ("950") and an empty cell is none; use change to turn text into
+  numbers. From .json, values keep their kind (950 stays a number).
+  A badly formed file is a csv error (json for a .json file).
   Example:
     rows = table_read["orders.csv"]
     show rows at get[0] at get["item"] .
@@ -381,7 +384,8 @@ statement, or a change the database refuses, is an sql error.
 ### sql_save[db, query, path, values]
   Runs a query and saves its rows to a file: the first line names the
   columns, then one line per row. The file's ending picks the format:
-  .csv (comma-separated), .tsv (tab-separated) or .txt (an aligned table).
+  .csv (comma-separated), .tsv (tab-separated), .txt (an aligned table)
+  or .json (a list of objects, one per row).
   db       the database
   query    a SELECT, with ? where values go
   path     where to save; an existing file is replaced
@@ -391,7 +395,7 @@ statement, or a change the database refuses, is an sql error.
     sql_save[db, "SELECT * FROM books", "books.csv"]
 
 ### sql_load[db, table, path]
-  Adds a record to a table for each line of a .csv or .tsv file.
+  Adds a record to a table for each line of a .csv, .tsv or .json file.
   db      the database
   table   the table's name
   path    the file; its first line names the table's columns
@@ -402,26 +406,26 @@ statement, or a change the database refuses, is an sql error.
     sql_load[db, "books", "new_books.csv"]
 
 ### sql_update[db, table, key, path]
-  Changes records from a .csv or .tsv file: for each line, finds the
+  Changes records from a .csv, .tsv or .json file: for each line, finds the
   record whose key column has the line's key, and sets the line's other
   columns.
   db      the database
   table   the table's name
   key     the column that says which record (like "sku" or "id")
-  path    a .csv or .tsv file; it needs the key column and at least one other
+  path    a .csv, .tsv or .json file; it needs the key column and at least one other
   Gives back: how many records changed. A key not in the table changes
   nothing. All or nothing, as with sql_load.
   Example (prices.csv has sku,price):
     sql_update[db, "books", "sku", "prices.csv"]
 
 ### sql_delete[db, table, key, path]
-  Removes the records whose key column matches a line of a .csv or .tsv file. The file's other columns are ignored.
+  Removes the records whose key column matches a line of a .csv, .tsv or .json file. The file's other columns are ignored.
   Gives back: how many records were removed. All or nothing.
   Example (gone.csv has sku):
     sql_delete[db, "books", "sku", "gone.csv"]
 
 ### sql_upsert[db, table, key, path]
-  Adds or changes, from a .csv or .tsv file: a line whose key isn't in
+  Adds or changes, from a .csv, .tsv or .json file: a line whose key isn't in
   the table becomes a new record; a line whose key is there changes that
   record. The key column must be the table's PRIMARY KEY or UNIQUE.
   Gives back: how many records were added or changed. All or nothing.

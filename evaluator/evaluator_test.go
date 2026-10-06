@@ -2778,6 +2778,23 @@ func TestSQLExamples(t *testing.T) {
 	}
 }
 
+func TestJSONTableFileErrors(t *testing.T) {
+	dir := t.TempDir()
+	cases := map[string]string{
+		`{"a": 1}`:        "holds a list of objects, [ {...}, {...} ], not an object",
+		`[{"a": 1}, 5]`:   "row 2 is a number, not an object",
+		`[{"a": 1,}]`:     "invalid JSON at line 1",
+		`[{"a": [1, 2]}]`: "",
+	}
+	for text, want := range cases {
+		os.WriteFile(filepath.Join(dir, "t.json"), []byte(text), 0o644)
+		_, err := runFull(t, dir, "import data\nrows = table_read[\"t.json\"]", "", nil)
+		if want == "" && err != nil || want != "" && (err == nil || !strings.Contains(err.Error(), want)) {
+			t.Errorf("%s: want %q, got %v", text, want, err)
+		}
+	}
+}
+
 func TestTableFiles(t *testing.T) {
 	dir := t.TempDir()
 	write := func(name, text string) {
@@ -2828,7 +2845,7 @@ table_write["t.txt", list [map ["n": 1], map ["n": 22]]]
 [read] t.txt to lines [end]
 show lines .`, want: "[ \" n\", \"--\", \" 1\", \"22\" ]\n"},
 		{name: "txt can't be read", src: `import data
-r = table_read["t.txt"]`, wantErr: "reads .csv and .tsv files"},
+r = table_read["t.txt"]`, wantErr: "reads .csv, .tsv and .json files"},
 		{name: "too many values", src: `import data
 r = table_read["long.csv"]`, wantErr: "table_read long.csv: line 2 has 3 values but the header has 2 names"},
 		{name: "bad quotes are kind csv", src: `import data

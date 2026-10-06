@@ -18,10 +18,15 @@ import (
 //	.csv (and anything else)   comma-separated values, RFC 4180
 //	.tsv                       tab-separated values, quoted the same way
 //	.txt                       the aligned table show table[x] prints (writing only)
+//	.json                      a list of objects, one per row
 //
-// The first line names the columns. A value with the separator, a quote
-// or a line break is put in quotes, with quotes doubled. none is an empty
-// cell, and an empty cell reads back as none.
+// In .csv and .tsv files the first line names the columns. A value with
+// the separator, a quote or a line break is put in quotes, with quotes
+// doubled. none is an empty cell, and an empty cell reads back as none.
+// Every value reads back as text.
+//
+// A .json file keeps values' kinds: numbers, true/false, null (none),
+// text, and lists or objects inside a row. Dates are written as text.
 
 func tableFormat(path string) string {
 	switch strings.ToLower(filepath.Ext(path)) {
@@ -29,6 +34,8 @@ func tableFormat(path string) string {
 		return "tsv"
 	case ".txt":
 		return "txt"
+	case ".json":
+		return "json"
 	}
 	return "csv"
 }
@@ -40,6 +47,20 @@ func (it *Interpreter) writeTableFile(fn, path string, t textTable) int {
 	switch tableFormat(path) {
 	case "txt":
 		data = t.render(-1) + "\n"
+	case "json":
+		list := &object.List{}
+		for _, r := range t.rows {
+			m := object.NewMap()
+			for i, h := range t.header {
+				var v object.Object = object.NoneValue
+				if i < len(r) && r[i] != nil {
+					v = r[i]
+				}
+				m.Put(&object.String{Value: h}, v)
+			}
+			list.Elements = append(list.Elements, m)
+		}
+		data = string(toJSON(fn, list, "  ")) + "\n"
 	default:
 		var b strings.Builder
 		w := csv.NewWriter(&b)
@@ -79,16 +100,19 @@ func fileCell(v object.Object) string {
 	return v.Inspect()
 }
 
-// readTableFile reads a .csv or .tsv file: its header and its rows, an
-// empty cell as none.
+// readTableFile reads a .csv, .tsv or .json file: its header and its
+// rows, an empty cell as none.
 func (it *Interpreter) readTableFile(fn, path string) ([]string, [][]object.Object) {
 	format := tableFormat(path)
 	if format == "txt" {
-		fatalKind(kindFile, "%s %s: reads .csv and .tsv files (a .txt table is for people to read)", fn, path)
+		fatalKind(kindFile, "%s %s: reads .csv, .tsv and .json files (a .txt table is for people to read)", fn, path)
 	}
 	data, err := os.ReadFile(it.resolvePath(path))
 	if err != nil {
 		fatalKind(kindFile, "%s %s: %s", fn, path, fileProblem(err))
+	}
+	if format == "json" {
+		return readJSONTable(fn, path, strings.TrimPrefix(string(data), "\ufeff"))
 	}
 	r := csv.NewReader(strings.NewReader(strings.TrimPrefix(string(data), "\ufeff")))
 	r.FieldsPerRecord = -1
@@ -137,6 +161,65 @@ func (it *Interpreter) readTableFile(fn, path string) ([]string, [][]object.Obje
 	return header, rows
 }
 
+// readJSONTable reads a JSON list of objects as rows. The columns are
+// every name any row has, in the order they first appear; a row without
+// one has none there.
+func readJSONTable(fn, path, text string) ([]string, [][]object.Object) {
+	if strings.TrimSpace(text) == "" {
+		return nil, nil
+	}
+	v := parseJSON(fn+" "+path, text)
+	list, ok := v.(*object.List)
+	if !ok {
+		fatalKind(kindJSON, "%s %s: a table file holds a list of objects, [ {...}, {...} ], not %s", fn, path, jsonKindName(v))
+	}
+	var header []string
+	index := map[string]int{}
+	var maps []*object.Map
+	for i, e := range list.Elements {
+		m, ok := e.(*object.Map)
+		if !ok {
+			fatalKind(kindJSON, "%s %s: row %d is %s, not an object { ... }", fn, path, i+1, jsonKindName(e))
+		}
+		for _, k := range m.Keys {
+			name := m.KeyOf(k).(*object.String).Value
+			if _, seen := index[name]; !seen {
+				index[name] = len(header)
+				header = append(header, name)
+			}
+		}
+		maps = append(maps, m)
+	}
+	rows := make([][]object.Object, len(maps))
+	for r, m := range maps {
+		row := make([]object.Object, len(header))
+		for i := range row {
+			row[i] = object.NoneValue
+		}
+		for _, k := range m.Keys {
+			row[index[m.KeyOf(k).(*object.String).Value]] = m.Values[k]
+		}
+		rows[r] = row
+	}
+	return header, rows
+}
+
+func jsonKindName(v object.Object) string {
+	switch v.(type) {
+	case *object.List:
+		return "a list"
+	case *object.Map:
+		return "an object"
+	case *object.String:
+		return "a text value"
+	case *object.None:
+		return "null"
+	case *object.Boolean:
+		return "a true/false value"
+	}
+	return "a number"
+}
+
 func tableFileFail(fn, path string, err error) {
 	var pe *csv.ParseError
 	if errors.As(err, &pe) {
@@ -145,7 +228,7 @@ func tableFileFail(fn, path string, err error) {
 	fatalKind(kindFile, "%s %s: %v", fn, path, err)
 }
 
-// table_read[path] (data) reads a .csv or .tsv file into a list of maps,
+// table_read[path] (data) reads a .csv, .tsv or .json file into a list of maps,
 // one per line, keyed by the header's names: the shape sql_query gives,
 // so the rows go straight to table[], table_write, or a database.
 func (it *Interpreter) tableRead(args []object.Object) object.Object {
@@ -164,7 +247,7 @@ func (it *Interpreter) tableRead(args []object.Object) object.Object {
 }
 
 // table_write[path, x] (data) writes anything table[x] can show to a
-// .csv, .tsv or .txt file, and returns how many rows it wrote.
+// .csv, .tsv, .txt or .json file, and returns how many rows it wrote.
 func (it *Interpreter) tableWrite(args []object.Object) object.Object {
 	requireFuncArgs("table_write", args, 2)
 	path := asStringArg("table_write", args[0])

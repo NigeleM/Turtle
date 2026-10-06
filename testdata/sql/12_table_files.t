@@ -35,6 +35,35 @@ table_write[txt, orders]
 [read] txt to lines [end]
 check["txt is what table shows", lines at get[0], "item  qty  price"]
 
+// ---------- .json keeps each value's kind ----------
+json = "{here}/export_orders.json"
+check["json written", table_write[json, orders], 3]
+typed = table_read[json]
+check["json reads numbers as numbers", typed at get[1], map ["item": "mug", "qty": 2, "price": 8.0]]
+total = 0.0
+[loop][row in typed]
+    q = row at get["qty"]
+    p = row at get["price"]
+    total = total + q * p
+[loop][end]
+check["no change needed", total, 28.0]
+// Rows may differ: a missing name is none, nested values stay lists.
+mixed = list [map ["sku": "A", "tags": list ["new", "sale"]], map ["sku": "B", "ok": true]]
+table_write[json, mixed]
+back = table_read[json]
+check["nested list", back at get[0] at get["tags"], list ["new", "sale"]]
+check["missing name is none", back at get[0] at get["ok"], none]
+check["boolean", back at get[1] at get["ok"], true]
+erase[json]
+
+// ---------- contains: lists, sets, maps (keys), text ----------
+check["list contains", list [1, 2, 3] at contains[2], true]
+check["list doesn't contain", list [1, 2, 3] at contains[9], false]
+check["set contains", set ["a", "b"] at contains["b"], true]
+check["map contains a key", map ["Ann": 30] at contains["Ann"], true]
+check["not a value", map ["Ann": 30] at contains[30], false]
+check["text contains", "turtle" at contains["tle"], true]
+
 // ---------- other shapes ----------
 table_write[file, map ["Ann": 30, "Bo": 25]]
 check["a map: key and value", table_read[file], list [map ["key": "Ann", "value": "30"], map ["key": "Bo", "value": "25"]]]
