@@ -1,0 +1,20 @@
+// lib/verify.t: the checks every SQL example uses. failures is a list,
+// so check can add to it (functions can't reassign a global).
+import system [exit]
+
+failures = list []
+
+def check[label, got, want]
+    if ] got != want [
+        add label to failures .
+        show "  FAIL ", label, ": got ", got, ", want ", want .
+    if [end]
+def [end]
+
+// finish prints the failure count and exits with 1 if anything failed.
+def finish[]
+    show "failures: ", length of failures .
+    if ] length of failures > 0 [
+        exit[1]
+    if [end]
+def [end]

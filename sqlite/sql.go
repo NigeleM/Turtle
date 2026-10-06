@@ -2,1004 +2,115 @@ package sqlite
 
 import (
 	"bytes"
+	"fmt"
 	"math"
-	"sort"
 	"strconv"
 	"strings"
 )
 
-// Query runs one SELECT statement with ? parameters and returns the
-// column names and rows.
+// Query runs one SELECT (or WITH ... SELECT, or VALUES) with ?
+// parameters and returns the column names and rows.
 //
-// Supported: SELECT [DISTINCT] columns or expressions [AS name], or *,
-// FROM one table (or none), WHERE, ORDER BY (expressions, result names,
-// or positions; ASC/DESC), LIMIT/OFFSET, and the aggregates count, sum,
-// total, avg, min, max, group_concat over the whole result. Expressions
-// follow SQLite: comparisons apply column affinity, NULL propagates,
-// integer division truncates, x/0 is NULL.
+// Supported: SELECT [DISTINCT] columns or expressions [AS name], *, t.*;
+// FROM tables, subqueries, views and WITH tables, joined with JOIN, LEFT,
+// RIGHT, FULL, CROSS and NATURAL joins, ON or USING; WHERE; GROUP BY and
+// HAVING with the aggregates count, sum, total, avg, min, max,
+// group_concat, string_agg (DISTINCT and FILTER too); UNION [ALL],
+// INTERSECT, EXCEPT; ORDER BY (expressions, result names, positions,
+// ASC/DESC, NULLS FIRST/LAST); LIMIT/OFFSET; subqueries in expressions,
+// IN and EXISTS. Expressions follow SQLite: comparisons apply column
+// affinity and collation, NULL propagates, integer division truncates,
+// x/0 is NULL.
 func (db *DB) Query(sql string, params []Value) (cols []string, rows [][]Value, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			e, ok := r.(*Error)
-			if !ok {
-				panic(r)
-			}
-			cols, rows, err = nil, nil, e
-		}
-	}()
-	toks, err := lexSQL(sql)
-	if err != nil {
-		return nil, nil, err
+	defer catch(&err)
+	p := newParser(sql)
+	if p.acceptWord("PRAGMA") {
+		st := p.parsePragma()
+		p.endStatement()
+		return db.runPragma(st)
 	}
-	p := &sqlParser{toks: toks, src: sql}
-	if !p.isWord("SELECT") {
-		word := p.peek().text
+	if p.isWord("INSERT", "REPLACE", "UPDATE", "DELETE") {
+		// With RETURNING, a change gives back rows.
+		st := p.parseStatement()
+		p.endStatement()
+		p.checkParams(params)
+		has := false
+		switch s := st.(type) {
+		case *insertStmt:
+			has = s.returning != nil
+		case *updateStmt:
+			has = s.returning != nil
+		case *deleteStmt:
+			has = s.returning != nil
+		}
+		if !has {
+			fail("SQL: %s changes the database; run it with sql_run, or add RETURNING to get rows back", strings.ToUpper(p.toks[0].text))
+		}
+		res, err := db.execOne(st, params)
+		if err != nil {
+			return nil, nil, err
+		}
+		return res.Cols, res.Rows, nil
+	}
+	if !p.isWord("SELECT", "WITH", "VALUES") {
 		if p.peek().kind == tEOF {
 			fail("SQL: the statement is empty")
 		}
-		fail("SQL: only SELECT is supported so far, not %s (writing comes in the next version)", strings.ToUpper(word))
+		fail("SQL: %s changes the database; run it with sql_run", strings.ToUpper(p.peek().text))
 	}
 	stmt := p.parseSelect()
-	if p.peek().kind == tOp && p.peek().text == ";" {
-		p.next()
+	p.endStatement()
+	p.checkParams(params)
+	done, err := db.beginRead()
+	if err != nil {
+		return nil, nil, err
 	}
+	defer done()
+	release, err := db.readAttached()
+	if err != nil {
+		return nil, nil, err
+	}
+	defer release()
+	q := db.planQuery(stmt, nil, nil, nil)
+	return q.names, q.rows(params, nil), nil
+}
+
+// catch turns a fail() panic into the returned error.
+func catch(err *error) {
+	if r := recover(); r != nil {
+		e, ok := r.(*Error)
+		if !ok {
+			panic(r)
+		}
+		*err = e
+	}
+}
+
+func newParser(sql string) *sqlParser {
+	toks, err := lexSQL(sql)
+	if err != nil {
+		panic(err)
+	}
+	return &sqlParser{toks: toks, src: sql}
+}
+
+// endStatement checks that nothing follows the statement but a ;.
+func (p *sqlParser) endStatement() {
+	p.acceptOp(";")
 	if p.peek().kind != tEOF {
 		fail("SQL: unexpected %q after the end of the statement", p.peek().text)
 	}
+}
+
+func (p *sqlParser) checkParams(params []Value) {
 	if p.params != len(params) {
 		fail("SQL: the query has %d ? placeholder(s) but %d value(s) were given", p.params, len(params))
 	}
-	return db.run(stmt, params)
 }
 
 // fail stops the query with an error (recovered in Query).
 func fail(format string, args ...any) {
 	panic(errorf(format, args...).(*Error))
-}
-
-// ---- syntax tree --------------------------------------------------------
-
-type expr interface{}
-
-type (
-	litExpr   struct{ v Value }
-	paramExpr struct{ idx int }
-	colExpr   struct {
-		table, name string
-		idx         int  // column index, resolved against the FROM table
-		rowid       bool // the rowid itself (rowid, oid, _rowid_, or an INTEGER PRIMARY KEY)
-		aff         affinity
-	}
-	unaryExpr struct {
-		op string
-		x  expr
-	}
-	binExpr struct {
-		op   string
-		l, r expr
-	}
-	isExpr struct {
-		l, r expr
-		not  bool
-	}
-	isNullExpr struct {
-		x   expr
-		not bool
-	}
-	inExpr struct {
-		x    expr
-		list []expr
-		not  bool
-	}
-	betweenExpr struct {
-		x, lo, hi expr
-		not       bool
-	}
-	likeExpr struct {
-		x, pat, esc expr
-		not         bool
-	}
-	callExpr struct {
-		name     string // lowercase
-		args     []expr
-		star     bool // count(*)
-		distinct bool
-		agg      int // index into the aggregate states, or -1
-	}
-	caseExpr struct {
-		base  expr
-		whens [][2]expr
-		els   expr
-	}
-	castExpr struct {
-		x   expr
-		typ string
-	}
-)
-
-type resultCol struct {
-	e    expr
-	star bool
-	name string
-	bare bool // a plain column, named after the column
-}
-
-type orderTerm struct {
-	e    expr
-	desc bool
-	pos  int // 1-based result column, or 0
-}
-
-type selectStmt struct {
-	distinct  bool
-	cols      []resultCol
-	fromName  string
-	fromAlias string
-	where     expr
-	order     []orderTerm
-	limit     expr
-	offset    expr
-}
-
-// ---- parser -------------------------------------------------------------
-
-type sqlParser struct {
-	toks   []token
-	pos    int
-	src    string
-	params int // ? placeholders seen
-}
-
-func (p *sqlParser) peek() token { return p.toks[p.pos] }
-func (p *sqlParser) next() token {
-	t := p.toks[p.pos]
-	if p.pos < len(p.toks)-1 {
-		p.pos++
-	}
-	return t
-}
-func (p *sqlParser) isWord(words ...string) bool { return isWord(p.peek(), words...) }
-func (p *sqlParser) isOp(op string) bool {
-	return p.peek().kind == tOp && p.peek().text == op
-}
-func (p *sqlParser) acceptWord(w string) bool {
-	if p.isWord(w) {
-		p.next()
-		return true
-	}
-	return false
-}
-func (p *sqlParser) acceptOp(op string) bool {
-	if p.isOp(op) {
-		p.next()
-		return true
-	}
-	return false
-}
-func (p *sqlParser) expectWord(w string) {
-	if !p.acceptWord(w) {
-		fail("SQL: expected %s near %q", w, p.peek().text)
-	}
-}
-func (p *sqlParser) expectOp(op string) {
-	if !p.acceptOp(op) {
-		fail("SQL: expected %q near %q", op, p.peek().text)
-	}
-}
-
-// clauseWords end an expression or a result column's bare alias.
-var clauseWords = []string{"FROM", "WHERE", "ORDER", "LIMIT", "OFFSET", "GROUP", "HAVING", "UNION", "EXCEPT", "INTERSECT", "AS", "ASC", "DESC", "AND", "OR", "NOT", "ON", "JOIN"}
-
-func (p *sqlParser) parseSelect() *selectStmt {
-	p.expectWord("SELECT")
-	s := &selectStmt{}
-	if p.acceptWord("DISTINCT") {
-		s.distinct = true
-	} else {
-		p.acceptWord("ALL")
-	}
-	for {
-		if p.acceptOp("*") {
-			s.cols = append(s.cols, resultCol{star: true})
-		} else {
-			start := p.peek().pos
-			e := p.parseExpr()
-			end := p.toks[p.pos-1].end
-			c := resultCol{e: e, name: strings.TrimSpace(p.src[start:end])}
-			if col, ok := e.(*colExpr); ok {
-				c.name = col.name
-				c.bare = true
-			}
-			if p.acceptWord("AS") {
-				c.name = p.expectName()
-			} else if p.peek().kind == tIdent && (p.peek().quoted || !p.isWord(clauseWords...)) {
-				c.name = p.next().text
-			}
-			s.cols = append(s.cols, c)
-		}
-		if !p.acceptOp(",") {
-			break
-		}
-	}
-	if p.acceptWord("FROM") {
-		s.fromName = p.expectName()
-		if p.acceptOp(".") { // schema.table: main.books
-			s.fromName = p.expectName()
-		}
-		if p.acceptWord("AS") {
-			s.fromAlias = p.expectName()
-		} else if p.peek().kind == tIdent && (p.peek().quoted || !p.isWord(clauseWords...)) {
-			s.fromAlias = p.next().text
-		}
-		if p.isOp(",") || p.isWord("JOIN") {
-			fail("SQL: joins aren't supported yet")
-		}
-	}
-	if p.acceptWord("WHERE") {
-		s.where = p.parseExpr()
-	}
-	if p.isWord("GROUP") {
-		fail("SQL: GROUP BY isn't supported yet")
-	}
-	if p.acceptWord("ORDER") {
-		p.expectWord("BY")
-		for {
-			t := orderTerm{e: p.parseExpr()}
-			if lit, ok := t.e.(*litExpr); ok {
-				if n, ok := lit.v.(int64); ok {
-					t.pos = int(n)
-				}
-			}
-			if p.acceptWord("DESC") {
-				t.desc = true
-			} else {
-				p.acceptWord("ASC")
-			}
-			s.order = append(s.order, t)
-			if !p.acceptOp(",") {
-				break
-			}
-		}
-	}
-	if p.acceptWord("LIMIT") {
-		s.limit = p.parseExpr()
-		if p.acceptWord("OFFSET") {
-			s.offset = p.parseExpr()
-		} else if p.acceptOp(",") { // LIMIT offset, count
-			s.offset, s.limit = s.limit, p.parseExpr()
-		}
-	}
-	if p.isWord("UNION", "EXCEPT", "INTERSECT") {
-		fail("SQL: %s isn't supported yet", strings.ToUpper(p.peek().text))
-	}
-	return s
-}
-
-func (p *sqlParser) expectName() string {
-	t := p.next()
-	if t.kind != tIdent {
-		fail("SQL: expected a name near %q", t.text)
-	}
-	return t.text
-}
-
-func (p *sqlParser) parseExpr() expr { return p.parseOr() }
-
-func (p *sqlParser) parseOr() expr {
-	l := p.parseAnd()
-	for p.acceptWord("OR") {
-		l = &binExpr{op: "OR", l: l, r: p.parseAnd()}
-	}
-	return l
-}
-
-func (p *sqlParser) parseAnd() expr {
-	l := p.parseNot()
-	for p.acceptWord("AND") {
-		l = &binExpr{op: "AND", l: l, r: p.parseNot()}
-	}
-	return l
-}
-
-func (p *sqlParser) parseNot() expr {
-	if p.acceptWord("NOT") {
-		return &unaryExpr{op: "NOT", x: p.parseNot()}
-	}
-	return p.parseEquality()
-}
-
-func (p *sqlParser) parseEquality() expr {
-	l := p.parseComparison()
-	for {
-		switch {
-		case p.isOp("=") || p.isOp("==") || p.isOp("!=") || p.isOp("<>"):
-			op := p.next().text
-			if op == "==" {
-				op = "="
-			} else if op == "<>" {
-				op = "!="
-			}
-			l = &binExpr{op: op, l: l, r: p.parseComparison()}
-		case p.isWord("IS"):
-			p.next()
-			not := p.acceptWord("NOT")
-			if p.acceptWord("NULL") {
-				l = &isNullExpr{x: l, not: not}
-			} else {
-				l = &isExpr{l: l, r: p.parseComparison(), not: not}
-			}
-		case p.isWord("ISNULL"):
-			p.next()
-			l = &isNullExpr{x: l}
-		case p.isWord("NOTNULL"):
-			p.next()
-			l = &isNullExpr{x: l, not: true}
-		case p.isWord("NOT") && p.pos+1 < len(p.toks) && isWord(p.toks[p.pos+1], "IN", "LIKE", "BETWEEN", "NULL"):
-			p.next()
-			l = p.parseNegatable(l, true)
-		case p.isWord("IN", "LIKE", "BETWEEN"):
-			l = p.parseNegatable(l, false)
-		default:
-			return l
-		}
-	}
-}
-
-// parseNegatable parses [NOT] IN / LIKE / BETWEEN / NULL after l.
-func (p *sqlParser) parseNegatable(l expr, not bool) expr {
-	switch {
-	case p.acceptWord("NULL"):
-		return &isNullExpr{x: l, not: true}
-	case p.acceptWord("IN"):
-		p.expectOp("(")
-		in := &inExpr{x: l, not: not}
-		if p.isWord("SELECT") {
-			fail("SQL: IN (SELECT ...) isn't supported yet")
-		}
-		if !p.isOp(")") {
-			for {
-				in.list = append(in.list, p.parseExpr())
-				if !p.acceptOp(",") {
-					break
-				}
-			}
-		}
-		p.expectOp(")")
-		return in
-	case p.acceptWord("LIKE"):
-		lk := &likeExpr{x: l, pat: p.parseComparison(), not: not}
-		if p.acceptWord("ESCAPE") {
-			lk.esc = p.parseComparison()
-		}
-		return lk
-	}
-	p.expectWord("BETWEEN")
-	lo := p.parseComparison()
-	p.expectWord("AND")
-	return &betweenExpr{x: l, lo: lo, hi: p.parseComparison(), not: not}
-}
-
-func (p *sqlParser) parseComparison() expr {
-	l := p.parseBits()
-	for p.isOp("<") || p.isOp("<=") || p.isOp(">") || p.isOp(">=") {
-		op := p.next().text
-		l = &binExpr{op: op, l: l, r: p.parseBits()}
-	}
-	return l
-}
-
-func (p *sqlParser) parseBits() expr {
-	l := p.parseAdd()
-	for p.isOp("&") || p.isOp("|") || p.isOp("<<") || p.isOp(">>") {
-		op := p.next().text
-		l = &binExpr{op: op, l: l, r: p.parseAdd()}
-	}
-	return l
-}
-
-func (p *sqlParser) parseAdd() expr {
-	l := p.parseMul()
-	for p.isOp("+") || p.isOp("-") {
-		op := p.next().text
-		l = &binExpr{op: op, l: l, r: p.parseMul()}
-	}
-	return l
-}
-
-func (p *sqlParser) parseMul() expr {
-	l := p.parseConcat()
-	for p.isOp("*") || p.isOp("/") || p.isOp("%") {
-		op := p.next().text
-		l = &binExpr{op: op, l: l, r: p.parseConcat()}
-	}
-	return l
-}
-
-func (p *sqlParser) parseConcat() expr {
-	l := p.parseUnary()
-	for p.acceptOp("||") {
-		l = &binExpr{op: "||", l: l, r: p.parseUnary()}
-	}
-	return l
-}
-
-func (p *sqlParser) parseUnary() expr {
-	if p.isOp("-") || p.isOp("+") || p.isOp("~") {
-		op := p.next().text
-		x := p.parseUnary()
-		// Fold -5 into a literal, so ORDER BY -1 isn't a position and
-		// LIMIT -1 reads naturally.
-		if lit, ok := x.(*litExpr); ok && op == "-" {
-			switch v := lit.v.(type) {
-			case int64:
-				if v != math.MinInt64 {
-					return &litExpr{v: -v}
-				}
-			case float64:
-				return &litExpr{v: -v}
-			}
-		}
-		return &unaryExpr{op: op, x: x}
-	}
-	return p.parsePrimary()
-}
-
-func (p *sqlParser) parsePrimary() expr {
-	t := p.peek()
-	switch t.kind {
-	case tNumber:
-		p.next()
-		return &litExpr{v: parseNumberLiteral(t.text)}
-	case tString:
-		p.next()
-		return &litExpr{v: t.text}
-	case tBlob:
-		p.next()
-		b, ok := decodeHex(t.text)
-		if !ok {
-			fail("SQL: bad blob literal X'%s'", t.text)
-		}
-		return &litExpr{v: b}
-	case tParam:
-		p.next()
-		if len(t.text) > 1 {
-			n, err := strconv.Atoi(t.text[1:])
-			if err != nil || n < 1 {
-				fail("SQL: bad placeholder %s", t.text)
-			}
-			if n > p.params {
-				p.params = n
-			}
-			return &paramExpr{idx: n - 1}
-		}
-		p.params++
-		return &paramExpr{idx: p.params - 1}
-	case tOp:
-		if p.acceptOp("(") {
-			if p.isWord("SELECT") {
-				fail("SQL: subqueries aren't supported yet")
-			}
-			e := p.parseExpr()
-			p.expectOp(")")
-			return e
-		}
-	case tIdent:
-		if !t.quoted {
-			switch strings.ToUpper(t.text) {
-			case "NULL":
-				p.next()
-				return &litExpr{v: nil}
-			case "TRUE":
-				p.next()
-				return &litExpr{v: int64(1)}
-			case "FALSE":
-				p.next()
-				return &litExpr{v: int64(0)}
-			case "CASE":
-				return p.parseCase()
-			case "CAST":
-				p.next()
-				p.expectOp("(")
-				x := p.parseExpr()
-				p.expectWord("AS")
-				var typ []string
-				for !p.isOp(")") && p.peek().kind != tEOF {
-					typ = append(typ, p.next().text)
-				}
-				p.expectOp(")")
-				return &castExpr{x: x, typ: strings.Join(typ, " ")}
-			}
-		}
-		p.next()
-		if !t.quoted && p.isOp("(") {
-			return p.parseCall(strings.ToLower(t.text))
-		}
-		if p.acceptOp(".") {
-			return &colExpr{table: t.text, name: p.expectName(), idx: -1}
-		}
-		return &colExpr{name: t.text, idx: -1}
-	case tEOF:
-		fail("SQL: the statement ends too soon")
-	}
-	fail("SQL: unexpected %q", t.text)
-	return nil
-}
-
-func (p *sqlParser) parseCall(name string) expr {
-	p.expectOp("(")
-	c := &callExpr{name: name, agg: -1}
-	if p.acceptOp("*") {
-		c.star = true
-	} else if !p.isOp(")") {
-		c.distinct = p.acceptWord("DISTINCT")
-		for {
-			c.args = append(c.args, p.parseExpr())
-			if !p.acceptOp(",") {
-				break
-			}
-		}
-	}
-	p.expectOp(")")
-	return c
-}
-
-func (p *sqlParser) parseCase() expr {
-	p.expectWord("CASE")
-	c := &caseExpr{}
-	if !p.isWord("WHEN") {
-		c.base = p.parseExpr()
-	}
-	for p.acceptWord("WHEN") {
-		w := p.parseExpr()
-		p.expectWord("THEN")
-		c.whens = append(c.whens, [2]expr{w, p.parseExpr()})
-	}
-	if len(c.whens) == 0 {
-		fail("SQL: CASE needs at least one WHEN")
-	}
-	if p.acceptWord("ELSE") {
-		c.els = p.parseExpr()
-	}
-	p.expectWord("END")
-	return c
-}
-
-func parseNumberLiteral(s string) Value {
-	if strings.HasPrefix(s, "0x") || strings.HasPrefix(s, "0X") {
-		u, err := strconv.ParseUint(s[2:], 16, 64)
-		if err != nil {
-			fail("SQL: hex number %s is too big", s)
-		}
-		return int64(u)
-	}
-	if !strings.ContainsAny(s, ".eE") {
-		if n, err := strconv.ParseInt(s, 10, 64); err == nil {
-			return n
-		}
-	}
-	f, err := strconv.ParseFloat(s, 64)
-	if err != nil {
-		fail("SQL: bad number %s", s)
-	}
-	return f
-}
-
-func decodeHex(s string) ([]byte, bool) {
-	if len(s)%2 != 0 {
-		return nil, false
-	}
-	out := make([]byte, len(s)/2)
-	for i := range out {
-		n, err := strconv.ParseUint(s[2*i:2*i+2], 16, 8)
-		if err != nil {
-			return nil, false
-		}
-		out[i] = byte(n)
-	}
-	return out, true
-}
-
-// ---- running a SELECT -------------------------------------------------------
-
-type aggState struct {
-	call  *callExpr
-	count int64
-	sum   Value // int64 while every value is an integer, else float64
-	best  Value
-	seen  bool
-	parts []string
-	dist  map[string]bool
-}
-
-type runner struct {
-	params []Value
-	table  *Table
-	row    []Value
-	rowid  int64
-	aggs   []*aggState
-	final  bool // aggregates finished: callExprs read their result
-}
-
-func (db *DB) run(s *selectStmt, params []Value) ([]string, [][]Value, error) {
-	r := &runner{params: params}
-	if s.fromName != "" {
-		t, err := db.table(s.fromName)
-		if err != nil {
-			return nil, nil, err
-		}
-		r.table = t
-	}
-	// Expand * and resolve column names.
-	var cols []resultCol
-	for _, c := range s.cols {
-		if c.star {
-			if r.table == nil {
-				fail("SQL: SELECT * needs a FROM table")
-			}
-			for i, tc := range r.table.Columns {
-				cols = append(cols, resultCol{e: &colExpr{name: tc.Name, idx: i, rowid: i == r.table.RowidCol, aff: tc.Affinity}, name: tc.Name})
-			}
-			continue
-		}
-		r.resolve(c.e, s)
-		// SELECT rowid names the column after an INTEGER PRIMARY KEY, as
-		// SQLite does, since that column is the rowid.
-		if col, ok := c.e.(*colExpr); ok && c.bare && col.rowid && r.table.RowidCol >= 0 {
-			c.name = r.table.Columns[r.table.RowidCol].Name
-		}
-		cols = append(cols, c)
-	}
-	r.resolve(s.where, s)
-	for i := range s.order {
-		t := &s.order[i]
-		if t.pos != 0 {
-			if t.pos < 1 || t.pos > len(cols) {
-				fail("SQL: ORDER BY %d is outside the %d result column(s)", t.pos, len(cols))
-			}
-			continue
-		}
-		// A bare name matching a result column's name sorts by it.
-		if c, ok := t.e.(*colExpr); ok && c.table == "" {
-			for ci, rc := range cols {
-				if strings.EqualFold(rc.name, c.name) && !r.isTableColumn(c.name) {
-					t.pos = ci + 1
-				}
-			}
-			if t.pos != 0 {
-				continue
-			}
-		}
-		r.resolve(t.e, s)
-	}
-	for _, c := range cols {
-		r.findAggs(c.e)
-	}
-	if s.where != nil && r.hasAgg(s.where) {
-		fail("SQL: aggregate functions like count() can't be used in WHERE")
-	}
-
-	names := make([]string, len(cols))
-	for i, c := range cols {
-		names[i] = c.name
-	}
-	type outRow struct {
-		vals []Value
-		keys []Value
-	}
-	var out []outRow
-	emit := func() {
-		vals := make([]Value, len(cols))
-		for i, c := range cols {
-			vals[i] = r.eval(c.e)
-		}
-		keys := make([]Value, len(s.order))
-		for i, t := range s.order {
-			if t.pos != 0 {
-				keys[i] = vals[t.pos-1]
-			} else {
-				keys[i] = r.eval(t.e)
-			}
-		}
-		out = append(out, outRow{vals, keys})
-	}
-	visit := func(rowid int64, vals []Value) {
-		r.row, r.rowid = vals, rowid
-		if s.where != nil && !truthy(r.eval(s.where)) {
-			return
-		}
-		if len(r.aggs) > 0 {
-			r.accumulate()
-			return
-		}
-		emit()
-	}
-	if r.table == nil {
-		visit(0, nil)
-	} else {
-		err := db.scanTable(r.table.Root, func(rowid int64, payload []byte) error {
-			vals, err := db.decodeRecord(payload)
-			if err != nil {
-				return err
-			}
-			visit(rowid, vals)
-			return nil
-		})
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-	if len(r.aggs) > 0 {
-		r.final = true
-		emit() // one row, even over no rows: count(*) is 0
-	}
-	if s.distinct {
-		seen := map[string]bool{}
-		kept := out[:0]
-		for _, o := range out {
-			k := rowKey(o.vals)
-			if !seen[k] {
-				seen[k] = true
-				kept = append(kept, o)
-			}
-		}
-		out = kept
-	}
-	if len(s.order) > 0 {
-		sort.SliceStable(out, func(i, j int) bool {
-			for k, t := range s.order {
-				c := compare(out[i].keys[k], out[j].keys[k])
-				if c != 0 {
-					return (c < 0) != t.desc
-				}
-			}
-			return false
-		})
-	}
-	if s.offset != nil {
-		n := r.intValue(s.offset, "OFFSET")
-		if n > int64(len(out)) {
-			n = int64(len(out))
-		}
-		if n > 0 {
-			out = out[n:]
-		}
-	}
-	if s.limit != nil {
-		if n := r.intValue(s.limit, "LIMIT"); n >= 0 && n < int64(len(out)) {
-			out = out[:n]
-		}
-	}
-	rows := make([][]Value, len(out))
-	for i, o := range out {
-		rows[i] = o.vals
-	}
-	return names, rows, nil
-}
-
-func (r *runner) isTableColumn(name string) bool {
-	if r.table == nil {
-		return false
-	}
-	for _, c := range r.table.Columns {
-		if strings.EqualFold(c.Name, name) {
-			return true
-		}
-	}
-	return false
-}
-
-// resolve binds column references to the FROM table's columns.
-func (r *runner) resolve(e expr, s *selectStmt) {
-	walk(e, func(e expr) {
-		c, ok := e.(*colExpr)
-		if !ok {
-			return
-		}
-		if r.table == nil {
-			fail("SQL: no such column: %s (there's no FROM table)", c.name)
-		}
-		// With an alias (FROM books b), only the alias names the table.
-		if c.table != "" && !(s.fromAlias == "" && strings.EqualFold(c.table, r.table.Name)) && !(s.fromAlias != "" && strings.EqualFold(c.table, s.fromAlias)) {
-			fail("SQL: no such column: %s.%s", c.table, c.name)
-		}
-		for i, tc := range r.table.Columns {
-			if strings.EqualFold(tc.Name, c.name) {
-				c.idx, c.aff, c.rowid = i, tc.Affinity, i == r.table.RowidCol
-				return
-			}
-		}
-		switch strings.ToLower(c.name) {
-		case "rowid", "oid", "_rowid_":
-			c.rowid, c.aff = true, affInteger
-			return
-		}
-		fail("SQL: no such column: %s", c.name)
-	})
-}
-
-// walk calls fn on e and every expression inside it.
-func walk(e expr, fn func(expr)) {
-	if e == nil {
-		return
-	}
-	fn(e)
-	switch x := e.(type) {
-	case *unaryExpr:
-		walk(x.x, fn)
-	case *binExpr:
-		walk(x.l, fn)
-		walk(x.r, fn)
-	case *isExpr:
-		walk(x.l, fn)
-		walk(x.r, fn)
-	case *isNullExpr:
-		walk(x.x, fn)
-	case *inExpr:
-		walk(x.x, fn)
-		for _, a := range x.list {
-			walk(a, fn)
-		}
-	case *betweenExpr:
-		walk(x.x, fn)
-		walk(x.lo, fn)
-		walk(x.hi, fn)
-	case *likeExpr:
-		walk(x.x, fn)
-		walk(x.pat, fn)
-		walk(x.esc, fn)
-	case *callExpr:
-		for _, a := range x.args {
-			walk(a, fn)
-		}
-	case *caseExpr:
-		walk(x.base, fn)
-		for _, w := range x.whens {
-			walk(w[0], fn)
-			walk(w[1], fn)
-		}
-		walk(x.els, fn)
-	case *castExpr:
-		walk(x.x, fn)
-	}
-}
-
-var aggNames = map[string]bool{"count": true, "sum": true, "total": true, "avg": true, "min": true, "max": true, "group_concat": true}
-
-func isAggCall(c *callExpr) bool {
-	if !aggNames[c.name] {
-		return false
-	}
-	// min(a, b) and max(a, b) with two or more arguments are scalar.
-	if (c.name == "min" || c.name == "max") && len(c.args) != 1 {
-		return false
-	}
-	return true
-}
-
-func (r *runner) findAggs(e expr) {
-	walk(e, func(e expr) {
-		if c, ok := e.(*callExpr); ok && isAggCall(c) {
-			if c.name == "count" && !c.star && len(c.args) != 1 {
-				fail("SQL: count() takes * or one value")
-			}
-			if c.name != "count" && c.name != "group_concat" && len(c.args) != 1 {
-				fail("SQL: %s() takes one value", c.name)
-			}
-			c.agg = len(r.aggs)
-			r.aggs = append(r.aggs, &aggState{call: c, dist: map[string]bool{}})
-		}
-	})
-}
-
-func (r *runner) hasAgg(e expr) bool {
-	found := false
-	walk(e, func(e expr) {
-		if c, ok := e.(*callExpr); ok && isAggCall(c) {
-			found = true
-		}
-	})
-	return found
-}
-
-func (r *runner) accumulate() {
-	for _, a := range r.aggs {
-		c := a.call
-		if c.star {
-			a.count++
-			continue
-		}
-		v := r.eval(c.args[0])
-		if v == nil {
-			continue
-		}
-		if c.distinct {
-			k := rowKey([]Value{v})
-			if a.dist[k] {
-				continue
-			}
-			a.dist[k] = true
-		}
-		a.count++
-		switch c.name {
-		case "sum", "total", "avg":
-			n := numericValue(v)
-			if a.sum == nil {
-				a.sum = n
-			} else {
-				a.sum = arith("+", a.sum, n)
-			}
-		case "min", "max":
-			if !a.seen || (c.name == "min" && compare(v, a.best) < 0) || (c.name == "max" && compare(v, a.best) > 0) {
-				a.best = v
-			}
-		case "group_concat":
-			a.parts = append(a.parts, textValue(v))
-		}
-		a.seen = true
-	}
-}
-
-func (r *runner) aggResult(a *aggState) Value {
-	switch a.call.name {
-	case "count":
-		return a.count
-	case "sum":
-		return a.sum
-	case "total":
-		if a.sum == nil {
-			return 0.0
-		}
-		return toFloat(a.sum)
-	case "avg":
-		if a.count == 0 {
-			return nil
-		}
-		return toFloat(a.sum) / float64(a.count)
-	case "min", "max":
-		return a.best
-	}
-	// group_concat
-	if len(a.parts) == 0 {
-		return nil
-	}
-	sep := ","
-	if len(a.call.args) > 1 {
-		sep = textValue(r.eval(a.call.args[1]))
-	}
-	return strings.Join(a.parts, sep)
-}
-
-func (r *runner) intValue(e expr, what string) int64 {
-	v := r.eval(e)
-	n, ok := applyAffinity(v, affInteger).(int64)
-	if !ok {
-		fail("SQL: %s needs a whole number", what)
-	}
-	return n
-}
-
-// rowKey is a string that's equal for rows SQLite considers the same.
-func rowKey(vals []Value) string {
-	var sb strings.Builder
-	for _, v := range vals {
-		switch x := v.(type) {
-		case nil:
-			sb.WriteString("n|")
-		case int64:
-			sb.WriteString("i" + strconv.FormatInt(x, 10) + "|")
-		case float64:
-			if x == math.Trunc(x) && math.Abs(x) < 1e18 {
-				sb.WriteString("i" + strconv.FormatInt(int64(x), 10) + "|")
-			} else {
-				sb.WriteString("f" + strconv.FormatFloat(x, 'g', -1, 64) + "|")
-			}
-		case string:
-			sb.WriteString("t" + strconv.Quote(x) + "|")
-		case []byte:
-			sb.WriteString("b" + strconv.Quote(string(x)) + "|")
-		}
-	}
-	return sb.String()
 }
 
 // ---- evaluating expressions ----------------------------------------------
@@ -1011,19 +122,46 @@ func (r *runner) eval(e expr) Value {
 	case *paramExpr:
 		return r.params[x.idx]
 	case *colExpr:
+		if x.alias != nil {
+			return r.eval(x.alias)
+		}
+		rr := r
+		for i := 0; i < x.up; i++ {
+			rr = rr.parent
+		}
+		row := rr.cur[x.src]
+		if row == nil {
+			return nil // the missing side of an outer join
+		}
 		if x.rowid {
-			return r.rowid
+			return row.rowid
 		}
-		if r.row == nil || x.idx >= len(r.row) {
-			return nil // a column added after this row was written
+		if x.idx >= len(row.vals) {
+			// A column added after this row was written: its default.
+			if x.col != nil && x.col.Default != nil {
+				return r.eval(x.col.Default)
+			}
+			return nil
 		}
-		v := r.row[x.idx]
+		v := row.vals[x.idx]
 		// SQLite stores a whole REAL like 5.0 as the integer 5 to save
 		// space; it's still a REAL.
 		if i, ok := v.(int64); ok && x.aff == affReal {
 			return float64(i)
 		}
 		return v
+	case *collateExpr:
+		return r.eval(x.x)
+	case *raiseExpr:
+		return r.evalRaise(x)
+	case *subqueryExpr:
+		rows := x.plan.rows(r.params, r)
+		if len(rows) == 0 {
+			return nil
+		}
+		return rows[0][0]
+	case *existsExpr:
+		return boolValue(len(x.plan.rows(r.params, r)) > 0)
 	case *unaryExpr:
 		v := r.eval(x.x)
 		switch x.op {
@@ -1049,13 +187,43 @@ func (r *runner) eval(e expr) Value {
 	case *isExpr:
 		l, rv := r.eval(x.l), r.eval(x.r)
 		l, rv = compareAffinity(x.l, x.r, l, rv)
-		same := (l == nil && rv == nil) || (l != nil && rv != nil && compare(l, rv) == 0)
+		same := (l == nil && rv == nil) || (l != nil && rv != nil && compareColl(l, rv, binaryCollation(x.l, x.r)) == 0)
 		return boolValue(same != x.not)
 	case *isNullExpr:
 		return boolValue((r.eval(x.x) == nil) != x.not)
 	case *inExpr:
 		v := r.eval(x.x)
+		if x.plan != nil {
+			rows := x.plan.rows(r.params, r)
+			if v == nil {
+				if len(rows) == 0 {
+					return boolValue(x.not)
+				}
+				return nil
+			}
+			sawNull := false
+			sub := &colExpr{aff: x.plan.affs[0], coll: x.plan.colls[0], bound: true}
+			coll := binaryCollation(x.x, sub)
+			for _, row := range rows {
+				iv := row[0]
+				if iv == nil {
+					sawNull = true
+					continue
+				}
+				a, b := compareAffinity(x.x, sub, v, iv)
+				if compareColl(a, b, coll) == 0 {
+					return boolValue(!x.not)
+				}
+			}
+			if sawNull {
+				return nil
+			}
+			return boolValue(x.not)
+		}
 		if v == nil {
+			if len(x.list) == 0 {
+				return boolValue(x.not)
+			}
 			return nil
 		}
 		sawNull := false
@@ -1066,7 +234,7 @@ func (r *runner) eval(e expr) Value {
 				continue
 			}
 			a, b := compareAffinity(x.x, item, v, iv)
-			if compare(a, b) == 0 {
+			if compareColl(a, b, binaryCollation(x.x, item)) == 0 {
 				return boolValue(!x.not)
 			}
 		}
@@ -1081,12 +249,15 @@ func (r *runner) eval(e expr) Value {
 		}
 		a, l := compareAffinity(x.x, x.lo, v, lo)
 		b, h := compareAffinity(x.x, x.hi, v, hi)
-		in := compare(a, l) >= 0 && compare(b, h) <= 0
+		in := compareColl(a, l, binaryCollation(x.x, x.lo)) >= 0 && compareColl(b, h, binaryCollation(x.x, x.hi)) <= 0
 		return boolValue(in != x.not)
 	case *likeExpr:
 		v, pat := r.eval(x.x), r.eval(x.pat)
 		if v == nil || pat == nil {
 			return nil
+		}
+		if x.glob {
+			return boolValue(glob([]rune(textValue(pat)), []rune(textValue(v))) != x.not)
 		}
 		esc := rune(0)
 		if x.esc != nil {
@@ -1098,6 +269,15 @@ func (r *runner) eval(e expr) Value {
 		}
 		return boolValue(like([]rune(textValue(pat)), []rune(textValue(v)), esc) != x.not)
 	case *callExpr:
+		if x.win > 0 {
+			if r.winVal == nil {
+				fail("SQL: misuse of window function %s()", x.name)
+			}
+			return r.winVal[r.winRow][x.win-1]
+		}
+		if x.over == nil && rankingFuncs[x.name] && !aggNames[x.name] {
+			fail("SQL: misuse of window function %s()", x.name)
+		}
 		if x.agg >= 0 {
 			if !r.final {
 				fail("SQL: aggregate %s() used outside a result column", x.name)
@@ -1113,7 +293,7 @@ func (r *runner) eval(e expr) Value {
 		for _, w := range x.whens {
 			if x.base != nil {
 				wv := r.eval(w[0])
-				if base != nil && wv != nil && compare(base, wv) == 0 {
+				if base != nil && wv != nil && compareColl(base, wv, binaryCollation(x.base, w[0])) == 0 {
 					return r.eval(w[1])
 				}
 			} else if truthy(r.eval(w[0])) {
@@ -1133,6 +313,8 @@ func (r *runner) eval(e expr) Value {
 
 func (r *runner) evalBinary(x *binExpr) Value {
 	switch x.op {
+	case "->", "->>":
+		return r.evalArrow(x)
 	case "AND":
 		l := r.eval(x.l)
 		if l != nil && !truthy(l) {
@@ -1167,7 +349,7 @@ func (r *runner) evalBinary(x *binExpr) Value {
 	switch x.op {
 	case "=", "!=", "<", "<=", ">", ">=":
 		l, rv = compareAffinity(x.l, x.r, l, rv)
-		c := compare(l, rv)
+		c := compareColl(l, rv, binaryCollation(x.l, x.r))
 		switch x.op {
 		case "=":
 			return boolValue(c == 0)
@@ -1399,11 +581,58 @@ func formatReal(f float64) string {
 	if math.IsInf(f, -1) {
 		return "-Inf"
 	}
-	s := strconv.FormatFloat(f, 'g', 15, 64)
-	if !strings.ContainsAny(s, ".eEN") {
-		s += ".0"
+	if math.IsNaN(f) {
+		return "NaN"
 	}
-	return s
+	if f == 0 {
+		return "0.0"
+	}
+	// Like SQLite: 15 significant digits when they read back as the same
+	// number, else 17; exponent form below 1e-4 and from 1e17 up.
+	e := strconv.FormatFloat(f, 'e', 14, 64)
+	if v, err := strconv.ParseFloat(e, 64); err != nil || v != f {
+		e = strconv.FormatFloat(f, 'e', 16, 64)
+	}
+	neg := e[0] == '-'
+	if neg {
+		e = e[1:]
+	}
+	mant, expPart, _ := strings.Cut(e, "e")
+	exp, _ := strconv.Atoi(expPart)
+	digits := strings.TrimRight(strings.Replace(mant, ".", "", 1), "0")
+	if digits == "" {
+		digits = "0"
+	}
+	var out string
+	if exp < -4 || exp >= 17 {
+		frac := digits[1:]
+		if frac == "" {
+			frac = "0"
+		}
+		sign := "+"
+		if exp < 0 {
+			sign, exp = "-", -exp
+		}
+		out = fmt.Sprintf("%s.%se%s%02d", digits[:1], frac, sign, exp)
+	} else if exp >= 0 {
+		whole := digits
+		frac := ""
+		if len(digits) > exp+1 {
+			whole, frac = digits[:exp+1], digits[exp+1:]
+		} else {
+			whole += strings.Repeat("0", exp+1-len(digits))
+		}
+		if frac == "" {
+			frac = "0"
+		}
+		out = whole + "." + frac
+	} else {
+		out = "0." + strings.Repeat("0", -exp-1) + digits
+	}
+	if neg {
+		out = "-" + out
+	}
+	return out
 }
 
 // applyAffinity converts v the way storing it in a column of that
@@ -1464,8 +693,61 @@ func exprAffinity(e expr) affinity {
 		return x.aff
 	case *castExpr:
 		return affinityOf(x.typ)
+	case *collateExpr:
+		return exprAffinity(x.x)
 	}
 	return affBlob
+}
+
+// exprCollation is the collation an expression brings to a comparison,
+// and how strongly: 2 for an explicit COLLATE, 1 for a column (BINARY
+// when it declares none), 0 for anything else.
+func exprCollation(e expr) (string, int) {
+	switch x := e.(type) {
+	case *collateExpr:
+		return x.coll, 2
+	case *colExpr:
+		if x.alias != nil {
+			return exprCollation(x.alias)
+		}
+		if x.coll == "" {
+			return "BINARY", 1
+		}
+		return x.coll, 1
+	}
+	return "", 0
+}
+
+// binaryCollation picks the collation for comparing l and r: an explicit
+// COLLATE first (left before right), then a column's (left before right).
+func binaryCollation(l, r expr) string {
+	lc, lk := exprCollation(l)
+	rc, rk := exprCollation(r)
+	switch {
+	case lk == 2:
+		return lc
+	case rk == 2:
+		return rc
+	case lk == 1:
+		return lc
+	}
+	return rc
+}
+
+// compareColl is compare, with text compared under a collation: NOCASE
+// folds ASCII letters, RTRIM ignores trailing spaces.
+func compareColl(a, b Value, coll string) int {
+	if coll == "NOCASE" || coll == "RTRIM" {
+		as, aok := a.(string)
+		bs, bok := b.(string)
+		if aok && bok {
+			if coll == "NOCASE" {
+				return strings.Compare(strings.Map(lowerASCII, as), strings.Map(lowerASCII, bs))
+			}
+			return strings.Compare(strings.TrimRight(as, " "), strings.TrimRight(bs, " "))
+		}
+	}
+	return compare(a, b)
 }
 
 // compareAffinity applies SQLite's comparison rules: numeric affinity on
@@ -1613,4 +895,75 @@ func lowerASCII(r rune) rune {
 		return r + 32
 	}
 	return r
+}
+
+// glob matches SQLite's GLOB: * any run, ? one character, [...] a set
+// ([^...] not in it), case-sensitive.
+func glob(pat, s []rune) bool {
+	for len(pat) > 0 {
+		c := pat[0]
+		switch c {
+		case '*':
+			for len(pat) > 0 && pat[0] == '*' {
+				pat = pat[1:]
+			}
+			if len(pat) == 0 {
+				return true
+			}
+			for i := 0; i <= len(s); i++ {
+				if glob(pat, s[i:]) {
+					return true
+				}
+			}
+			return false
+		case '?':
+			if len(s) == 0 {
+				return false
+			}
+			pat, s = pat[1:], s[1:]
+		case '[':
+			if len(s) == 0 {
+				return false
+			}
+			end := 1
+			if end < len(pat) && pat[end] == '^' {
+				end++
+			}
+			if end < len(pat) && pat[end] == ']' {
+				end++
+			}
+			for end < len(pat) && pat[end] != ']' {
+				end++
+			}
+			if end >= len(pat) {
+				return false // an unclosed [ matches nothing
+			}
+			set := pat[1:end]
+			neg := len(set) > 0 && set[0] == '^'
+			if neg {
+				set = set[1:]
+			}
+			in := false
+			for i := 0; i < len(set); i++ {
+				if i+2 < len(set) && set[i+1] == '-' {
+					if s[0] >= set[i] && s[0] <= set[i+2] {
+						in = true
+					}
+					i += 2
+				} else if set[i] == s[0] {
+					in = true
+				}
+			}
+			if in == neg {
+				return false
+			}
+			pat, s = pat[end+1:], s[1:]
+		default:
+			if len(s) == 0 || s[0] != c {
+				return false
+			}
+			pat, s = pat[1:], s[1:]
+		}
+	}
+	return len(s) == 0
 }

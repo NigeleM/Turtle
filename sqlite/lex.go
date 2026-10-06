@@ -147,12 +147,17 @@ func lexSQL(src string) ([]token, error) {
 			toks = append(toks, token{kind: tParam, text: src[start:i], pos: start, end: i})
 		default:
 			start := i
+			if strings.HasPrefix(src[i:], "->>") {
+				toks = append(toks, token{kind: tOp, text: "->>", pos: start, end: i + 3})
+				i += 3
+				continue
+			}
 			two := ""
 			if i+1 < len(src) {
 				two = src[i : i+2]
 			}
 			switch two {
-			case "==", "!=", "<>", "<=", ">=", "||", "<<", ">>":
+			case "==", "!=", "<>", "<=", ">=", "||", "<<", ">>", "->":
 				toks = append(toks, token{kind: tOp, text: two, pos: start, end: i + 2})
 				i += 2
 				continue

@@ -11,7 +11,9 @@ Done so far: string methods, `strings` (`find`, `substring`, `isinstring`,
 `env`, `scriptFolder`, `contents`, `exists`, `isFile`, `isFolder`,
 `erase`, `warn`), `json` (`load`, `json_text`, `json_read`, `json_write`,
 `json_get`), `http` (`http_get`, `http_post`, `http_request`), `sql`
-(`sql_open`, `sql_query`, `sql_tables`, `sql_close`).
+(`sql_open`, `sql_create`, `sql_query`, `sql_run`, `sql_tables`,
+`sql_save`, `sql_load`, `sql_update`, `sql_delete`, `sql_upsert`,
+`sql_close`), and `data`'s `table`, `table_read`, `table_write`.
 See `docs/stdlib.md`.
 
 Next, roughly in priority order:
@@ -25,10 +27,18 @@ Next, roughly in priority order:
 - [x] `sql` library, step 1: reading real SQLite files (`sql_open`,
       `sql_query`, `sql_tables`, `sql_close`), written from scratch
       (2026-10-03)
-- [ ] `sql` step 2: writing SQLite files (INSERT/UPDATE/DELETE/CREATE
-      TABLE, B-tree splits, rollback journal, new files)
-- [ ] `sql` step 3: indexes kept up to date, GROUP BY, joins, subqueries
-- [ ] `sql` step 4: PostgreSQL driver (wire protocol, SCRAM auth)
+- [x] `sql` step 2: writing SQLite files (INSERT/UPDATE/DELETE/CREATE
+      TABLE, B-tree splits, rollback journal, new files) (2026-10-05)
+- [x] `sql` step 3: indexes kept up to date, GROUP BY, joins, subqueries,
+      WITH, UNION, views, ALTER TABLE, transactions, file locks, date and
+      printf functions (2026-10-05)
+- [x] `sql` step 3b: triggers, window functions, indexes on expressions,
+      JSON functions, savepoints, foreign keys, PRAGMAs, VACUUM, ATTACH,
+      WAL, UPDATE ... FROM (2026-10-06)
+- [x] `sql` step 4: PostgreSQL and MySQL drivers behind the same
+      functions (wire protocols, SCRAM / caching_sha2 logins, TLS) (2026-10-06)
+- [ ] `sql` leftovers: writing WITHOUT ROWID tables, UTF-16 and
+      auto-vacuum files; virtual tables (fts5)
 - [ ] `data`: `reduce`, sort by a function, range generator, the
       discrete-math tier (powerset, combinations, ...) proposed 2026-09-30
 - [ ] Assembled types: "is this an Order?" check, looping over fields,

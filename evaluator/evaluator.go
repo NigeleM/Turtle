@@ -74,22 +74,24 @@ const maxCallDepth = 100000
 // capability instead of a <name>.t file on disk: "math" provides the
 // sqrt/abs/round/floor/ceil/pow/random number methods, "time" provides
 // the now[]/sleep[ms] builtin functions, "data" provides process/keep/copy
-// (see datalib.go), "system" provides command-line and filesystem functions
+// (see datalib.go), table (see tablelib.go), table_read and table_write
+// (see tablefile.go), "system" provides command-line and filesystem functions
 // (see systemlib.go), "strings" provides find/substring/isinstring/join
 // (see stringslib.go), "json" provides load/json_text/json_read/
 // json_write/json_get (see jsonlib.go), "http" provides http_get/
 // http_post/http_request (see httplib.go), "sql" provides sql_open/
-// sql_query/sql_tables/sql_close (see sqllib.go). Anything else falls through to
+// sql_create/sql_query/sql_run/sql_tables/sql_load/sql_save/sql_update/
+// sql_delete/sql_upsert/sql_close (see sqllib.go). Anything else falls through to
 // the file-based import.
 var builtinModules = map[string]*object.Module{
 	"math":    {Name: "math", Methods: []string{"sqrt", "abs", "round", "floor", "ceil", "pow", "random"}},
 	"time":    {Name: "time", Funcs: []string{"now", "sleep", "today", "today_utc", "make_date", "to_date", "add_time", "time_between", "format_date", "wait_until", "every"}},
-	"data":    {Name: "data", Funcs: []string{"process", "keep", "copy"}},
+	"data":    {Name: "data", Funcs: []string{"process", "keep", "copy", "table", "table_read", "table_write"}},
 	"system":  {Name: "system", Funcs: []string{"args", "exists", "isFile", "isFolder", "exit", "env", "scriptFolder", "contents", "erase", "warn"}},
 	"strings": {Name: "strings", Funcs: []string{"find", "substring", "isinstring", "join"}},
 	"json":    {Name: "json", Funcs: []string{"load", "json_text", "json_read", "json_write", "json_get"}},
 	"http":    {Name: "http", Funcs: []string{"http_get", "http_post", "http_request"}},
-	"sql":     {Name: "sql", Funcs: []string{"sql_open", "sql_query", "sql_tables", "sql_close"}},
+	"sql":     {Name: "sql", Funcs: []string{"sql_open", "sql_create", "sql_query", "sql_run", "sql_tables", "sql_load", "sql_save", "sql_update", "sql_delete", "sql_upsert", "sql_close"}},
 }
 
 // requireModule fails with a clear message naming the missing import,
@@ -157,6 +159,7 @@ const (
 	kindDate   = "date"   // text that isn't a date, or a date that doesn't exist
 	kindHTTP   = "http"   // a web request that failed, or got a 4xx/5xx status
 	kindSQL    = "sql"    // a bad query, or a database problem
+	kindCSV    = "csv"    // a .csv or .tsv file that isn't well formed
 	kindCustom = "custom" // the program's own, from fail "..."
 )
 

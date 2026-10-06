@@ -1,10 +1,14 @@
-// Command turtle runs a .t Turtle script.
+// Command turtle runs a .t Turtle script, or shows documentation:
+//
+//	turtle script.t [args...]
+//	turtle doc [library | function | file.t]
 package main
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"Turtle/evaluator"
 	"Turtle/lexer"
@@ -12,6 +16,18 @@ import (
 )
 
 func main() {
+	if len(os.Args) >= 2 && os.Args[1] == "doc" {
+		if _, err := os.Stat("doc"); err != nil { // not a script called doc
+			cwd, _ := os.Getwd()
+			text, err := evaluator.Doc(strings.Join(os.Args[2:], " "), cwd)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "turtle doc:", err)
+				os.Exit(1)
+			}
+			fmt.Print(text)
+			return
+		}
+	}
 	path, err := resolveScriptPath()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "turtle:", err)

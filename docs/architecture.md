@@ -38,7 +38,9 @@ evaluator, so each stage can be reasoned about independently.
 | `parser` | Recursive-descent parser: tokens → `*ast.Program` |
 | `object` | Runtime value types (`Integer`, `Float`, `String`, `Boolean`, `List`, `Set`, `Map`, `Function`, `Assembly`, `None`, `Error`, `Date`, `Database`) and `Environment` (scoping) |
 | `evaluator` | Tree-walking evaluator: `*ast.Program` → executed program; the builtin libraries live here (`jsonlib.go`, `timelib.go`, `httplib.go`, `sqllib.go`, ...) |
-| `sqlite` | A SQLite file reader written from scratch (no dependencies): file format, B-trees, records, schema, and a SQL `SELECT` engine. Knows nothing about Turtle values; `evaluator/sqllib.go` adapts it |
+| `sqlite` | SQLite written from scratch (no dependencies): the file format, table and index B-trees (search, insert, delete, split, merge), overflow pages, the free-page list, the rollback journal and crash recovery, SQLite-compatible file locks (`lock_*.go`), a SQL parser, a query planner and runner (joins, groups, subqueries, `WITH`), the changing statements (`exec.go`), and a file checker (`check.go`). Knows nothing about Turtle values; `evaluator/sqllib.go` adapts it |
+| `postgres` | A PostgreSQL client from scratch: the v3 wire protocol, SCRAM-SHA-256 / MD5 / password logins, TLS, `?` → `$n`, values decoded by type. `evaluator/sqllib.go` puts it behind the same `sqlConn` interface as SQLite |
+| `mysql` | A MySQL / MariaDB client from scratch: the client/server protocol, `caching_sha2_password` (fast, RSA and TLS paths), `sha256_password` and `mysql_native_password` logins, TLS, prepared statements with binary rows |
 | `cmd/turtle` | Entry point: resolves a script path, wires the above together |
 
 ## Parser conventions
@@ -224,7 +226,7 @@ know how to "return" — only the enclosing function call does, in
 
 A runtime error is a `fatalError` panic: `fatalf`/`fatalKind`
 (evaluator.go) build it with the message, its kind (`file`, `number`,
-`math`, `index`, `key`, `name`, `type`, `json`, `date`, `http`, `sql`, `custom`), and the line and file
+`math`, `index`, `key`, `name`, `type`, `json`, `date`, `http`, `sql`, `csv`, `custom`), and the line and file
 it happened in. Two package-level variables track where code is running:
 `currentLine` (set by every statement) and `currentFile` ("" for the main
 script, "lib/utils.t" for a module; switched by `callFunction` and
@@ -261,7 +263,27 @@ naming the operation and the value involved.
   older write blobs wrongly in `-json`, which is also why blob columns are
   checked through `hex()` and exact bytes rather than `-json`. The package
   itself never uses the tool.
+- Writing is checked the same way: `sqlite/scripts_test.go` runs scripts
+  of changing statements (constraints, upserts, `ALTER TABLE`,
+  `AUTOINCREMENT`, transactions, big values, `STRICT`) and compares every
+  table's rows, types, the schema text and which statements failed with
+  `sqlite/testdata/writes.json`, made by sqlite3 with `-update` (with
+  `legacy_alter_table` off, since Apple's sqlite3 turns it on).
+  `write_test.go` makes thousands of random changes at several page sizes
+  and compares them with a model in memory. Every test that writes ends
+  with `db.Check()` (`check.go`: every page used once, trees in order,
+  leaves at one depth, indexes matching their tables).
+- When a `sqlite3` tool is installed, the tests also use it, but only for
+  things that don't differ between its versions: `PRAGMA
+  integrity_check` on the files Turtle wrote, repairing a journal Turtle
+  left by a simulated crash (and Turtle repairing one left by sqlite3),
+  and taking turns with Turtle through the file locks
+  (`crash_test.go`). Without the tool (Windows) those parts are skipped.
 - `testdata/books.db` is a small committed SQLite file the Turtle-level
-  tests read.
+  tests read. `testdata/sql/` has one Turtle program per SQL topic, run
+  by `TestSQLExamples`.
+- The `postgres` and `mysql` packages, and `testdata/sql/13_servers.t`,
+  need real servers: they run when `TURTLE_PG_URL` / `TURTLE_MYSQL_URL`
+  are set (CI starts both as service containers) and skip otherwise.
 - The historical scripts (`*.txt`, `test.trt`, `testdata/*.t`) should keep
   producing the same output.

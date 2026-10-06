@@ -1,4 +1,134 @@
 {
+  "PRAGMA encoding": [
+    {
+      "encoding": "UTF-8"
+    }
+  ],
+  "PRAGMA foreign_key_list(books)": [],
+  "PRAGMA foreign_keys": [
+    {
+      "foreign_keys": 0
+    }
+  ],
+  "PRAGMA freelist_count": [
+    {
+      "freelist_count": 0
+    }
+  ],
+  "PRAGMA index_info(wrote_author)": [
+    {
+      "seqno": 0,
+      "cid": 1,
+      "name": "author_id"
+    }
+  ],
+  "PRAGMA index_list(authors)": [
+    {
+      "seq": 0,
+      "name": "sqlite_autoindex_authors_1",
+      "unique": 1,
+      "origin": "u",
+      "partial": 0
+    }
+  ],
+  "PRAGMA integrity_check": [
+    {
+      "integrity_check": "ok"
+    }
+  ],
+  "PRAGMA journal_mode": [
+    {
+      "journal_mode": "delete"
+    }
+  ],
+  "PRAGMA page_size": [
+    {
+      "page_size": 4096
+    }
+  ],
+  "PRAGMA synchronous": [
+    {
+      "synchronous": 2
+    }
+  ],
+  "PRAGMA table_info(authors)": [
+    {
+      "cid": 0,
+      "name": "id",
+      "type": "INTEGER",
+      "notnull": 0,
+      "dflt_value": null,
+      "pk": 1
+    },
+    {
+      "cid": 1,
+      "name": "name",
+      "type": "TEXT",
+      "notnull": 0,
+      "dflt_value": null,
+      "pk": 0
+    },
+    {
+      "cid": 2,
+      "name": "country",
+      "type": "TEXT",
+      "notnull": 0,
+      "dflt_value": null,
+      "pk": 0
+    }
+  ],
+  "PRAGMA table_xinfo('aff')": [
+    {
+      "cid": 0,
+      "name": "t",
+      "type": "TEXT",
+      "notnull": 0,
+      "dflt_value": null,
+      "pk": 0,
+      "hidden": 0
+    },
+    {
+      "cid": 1,
+      "name": "i",
+      "type": "INTEGER",
+      "notnull": 0,
+      "dflt_value": null,
+      "pk": 0,
+      "hidden": 0
+    },
+    {
+      "cid": 2,
+      "name": "r",
+      "type": "REAL",
+      "notnull": 0,
+      "dflt_value": null,
+      "pk": 0,
+      "hidden": 0
+    },
+    {
+      "cid": 3,
+      "name": "n",
+      "type": "NUMERIC",
+      "notnull": 0,
+      "dflt_value": null,
+      "pk": 0,
+      "hidden": 0
+    },
+    {
+      "cid": 4,
+      "name": "none_col",
+      "type": "",
+      "notnull": 0,
+      "dflt_value": null,
+      "pk": 0,
+      "hidden": 0
+    }
+  ],
+  "PRAGMA user_version": [
+    {
+      "user_version": 0
+    }
+  ],
   "SELECT \"first col\", second, third FROM \"odd name\" ORDER BY \"first col\"": [
     {
       "first col": null,
@@ -16,6 +146,27 @@
       "third": null
     }
   ],
+  "SELECT 'a' IN (SELECT 'A') AS x, 1 IN () AS y": [
+    {
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "SELECT '{\"a\": {\"b\": \"hi\"}}' -\u003e '$.a' AS j, '{\"a\": {\"b\": \"hi\"}}' -\u003e\u003e '$.a.b' AS t, '[5, 6, 7]' -\u003e\u003e 2 AS i, '{\"x\": true}' -\u003e\u003e 'x' AS b, '[1, 2, 3]' -\u003e '$[#-1]' AS last": [
+    {
+      "j": "{\"b\":\"hi\"}",
+      "t": "hi",
+      "i": 7,
+      "b": 1,
+      "last": "3"
+    }
+  ],
+  "SELECT (SELECT title FROM books WHERE price \u003e 99999) AS none_found, (SELECT count(*) FROM books) AS n": [
+    {
+      "none_found": null,
+      "n": 6
+    }
+  ],
   "SELECT * FROM \"odd name\" WHERE third IS NULL": [
     {
       "first col": "b",
@@ -26,6 +177,41 @@
       "first col": null,
       "second": null,
       "third": null
+    }
+  ],
+  "SELECT * FROM (SELECT sku, day, row_number() OVER (PARTITION BY sku ORDER BY day DESC) AS rn FROM sales) WHERE rn = 1 ORDER BY sku": [
+    {
+      "sku": "B1",
+      "day": "2026-01-03",
+      "rn": 1
+    },
+    {
+      "sku": "B2",
+      "day": "2026-01-03",
+      "rn": 1
+    },
+    {
+      "sku": "B3",
+      "day": "2026-01-05",
+      "rn": 1
+    },
+    {
+      "sku": "B9",
+      "day": "2026-01-05",
+      "rn": 1
+    },
+    {
+      "sku": "b1",
+      "day": "2026-01-06",
+      "rn": 1
+    }
+  ],
+  "SELECT * FROM (VALUES (1), (2)) AS v": [
+    {
+      "column1": 1
+    },
+    {
+      "column1": 2
     }
   ],
   "SELECT * FROM books": [
@@ -78,6 +264,20 @@
       "cover": null
     }
   ],
+  "SELECT * FROM cheap ORDER BY price": [
+    {
+      "title": "Café Ünïcode 🐢",
+      "price": 1
+    },
+    {
+      "title": "Foundation",
+      "price": 800
+    },
+    {
+      "title": "Dune",
+      "price": 950
+    }
+  ],
   "SELECT * FROM later": [
     {
       "a": "old",
@@ -88,6 +288,131 @@
       "b": 7
     }
   ],
+  "SELECT * FROM pragma_index_xinfo('sqlite_autoindex_authors_1')": [
+    {
+      "seqno": 0,
+      "cid": 1,
+      "name": "name",
+      "desc": 0,
+      "coll": "NOCASE",
+      "key": 1
+    },
+    {
+      "seqno": 1,
+      "cid": -1,
+      "name": null,
+      "desc": 0,
+      "coll": "BINARY",
+      "key": 0
+    }
+  ],
+  "SELECT * FROM pragma_table_info('books')": [
+    {
+      "cid": 0,
+      "name": "id",
+      "type": "INTEGER",
+      "notnull": 0,
+      "dflt_value": null,
+      "pk": 1
+    },
+    {
+      "cid": 1,
+      "name": "sku",
+      "type": "TEXT",
+      "notnull": 0,
+      "dflt_value": null,
+      "pk": 0
+    },
+    {
+      "cid": 2,
+      "name": "title",
+      "type": "TEXT",
+      "notnull": 0,
+      "dflt_value": null,
+      "pk": 0
+    },
+    {
+      "cid": 3,
+      "name": "price",
+      "type": "INTEGER",
+      "notnull": 0,
+      "dflt_value": null,
+      "pk": 0
+    },
+    {
+      "cid": 4,
+      "name": "rating",
+      "type": "REAL",
+      "notnull": 0,
+      "dflt_value": null,
+      "pk": 0
+    },
+    {
+      "cid": 5,
+      "name": "cover",
+      "type": "BLOB",
+      "notnull": 0,
+      "dflt_value": null,
+      "pk": 0
+    }
+  ],
+  "SELECT * FROM sales JOIN books USING (sku) ORDER BY sku, region": [
+    {
+      "sku": "B1",
+      "region": "north",
+      "qty": 3,
+      "day": "2026-01-02",
+      "id": 1,
+      "title": "Dune",
+      "price": 950,
+      "rating": 4.5,
+      "cover": "\u00ca\u00fe"
+    },
+    {
+      "sku": "B1",
+      "region": "south",
+      "qty": 1,
+      "day": "2026-01-03",
+      "id": 1,
+      "title": "Dune",
+      "price": 950,
+      "rating": 4.5,
+      "cover": "\u00ca\u00fe"
+    },
+    {
+      "sku": "B2",
+      "region": "north",
+      "qty": 5,
+      "day": "2026-01-03",
+      "id": 2,
+      "title": "The Go Book",
+      "price": 3000,
+      "rating": null,
+      "cover": null
+    },
+    {
+      "sku": "B3",
+      "region": "north",
+      "qty": null,
+      "day": "2026-01-04",
+      "id": 3,
+      "title": "Gone Girl",
+      "price": 1225,
+      "rating": 3.9,
+      "cover": null
+    },
+    {
+      "sku": "B3",
+      "region": "south",
+      "qty": 2,
+      "day": "2026-01-05",
+      "id": 3,
+      "title": "Gone Girl",
+      "price": 1225,
+      "rating": 3.9,
+      "cover": null
+    }
+  ],
   "SELECT 1 + 1 AS two, 'a' || 'b' AS ab, 7 / 2 AS half, 7.0 / 2 AS realhalf, NULL IS NULL AS isn": [
     {
       "two": 2,
@@ -95,6 +420,11 @@
       "half": 3,
       "realhalf": 3.5,
       "isn": 1
+    }
+  ],
+  "SELECT 1 AS a UNION SELECT 2 ORDER BY a DESC LIMIT 1": [
+    {
+      "a": 2
     }
   ],
   "SELECT 10 \u003e 9 AS a, '10' \u003e '9' AS b, 1 = 1.0 AS c, 'abc' \u003c 'abd' AS d, NULL = NULL AS e": [
@@ -203,9 +533,182 @@
       "pricey": 1
     }
   ],
+  "SELECT DISTINCT region FROM sales ORDER BY region": [
+    {
+      "region": "east"
+    },
+    {
+      "region": "north"
+    },
+    {
+      "region": "south"
+    }
+  ],
   "SELECT a FROM later WHERE b IS NULL": [
     {
       "a": "old"
+    }
+  ],
+  "SELECT a, count(*) AS n FROM wr GROUP BY a ORDER BY a": [
+    {
+      "a": "a0",
+      "n": 1
+    },
+    {
+      "a": "a1",
+      "n": 2
+    },
+    {
+      "a": "a2",
+      "n": 1
+    },
+    {
+      "a": "big0",
+      "n": 57
+    },
+    {
+      "a": "big1",
+      "n": 58
+    },
+    {
+      "a": "big2",
+      "n": 57
+    },
+    {
+      "a": "big3",
+      "n": 57
+    },
+    {
+      "a": "big4",
+      "n": 57
+    },
+    {
+      "a": "big5",
+      "n": 57
+    },
+    {
+      "a": "big6",
+      "n": 57
+    }
+  ],
+  "SELECT a.*, w.book_id FROM authors a JOIN wrote w ON a.id = w.author_id ORDER BY w.book_id": [
+    {
+      "id": 1,
+      "name": "Frank Herbert",
+      "country": "US",
+      "book_id": 1
+    },
+    {
+      "id": 2,
+      "name": "Gillian Flynn",
+      "country": "US",
+      "book_id": 3
+    },
+    {
+      "id": 3,
+      "name": "Isaac Asimov",
+      "country": "RU",
+      "book_id": 4
+    },
+    {
+      "id": 3,
+      "name": "Isaac Asimov",
+      "country": "RU",
+      "book_id": 99
+    }
+  ],
+  "SELECT a.country, count(DISTINCT w.book_id) AS books FROM authors a LEFT JOIN wrote w ON w.author_id = a.id GROUP BY a.country ORDER BY a.country": [
+    {
+      "country": "FR",
+      "books": 0
+    },
+    {
+      "country": "RU",
+      "books": 2
+    },
+    {
+      "country": "US",
+      "books": 2
+    }
+  ],
+  "SELECT a.name, b.title FROM authors a LEFT JOIN wrote w ON w.author_id = a.id LEFT JOIN books b ON b.id = w.book_id ORDER BY a.id, b.id": [
+    {
+      "name": "Frank Herbert",
+      "title": "Dune"
+    },
+    {
+      "name": "Gillian Flynn",
+      "title": "Gone Girl"
+    },
+    {
+      "name": "Isaac Asimov",
+      "title": null
+    },
+    {
+      "name": "Isaac Asimov",
+      "title": "Foundation"
+    },
+    {
+      "name": "Nobody",
+      "title": null
+    }
+  ],
+  "SELECT a.name, w.book_id FROM wrote w RIGHT JOIN authors a ON a.id = w.author_id ORDER BY a.id, w.book_id": [
+    {
+      "name": "Frank Herbert",
+      "book_id": 1
+    },
+    {
+      "name": "Gillian Flynn",
+      "book_id": 3
+    },
+    {
+      "name": "Isaac Asimov",
+      "book_id": 4
+    },
+    {
+      "name": "Isaac Asimov",
+      "book_id": 99
+    },
+    {
+      "name": "Nobody",
+      "book_id": null
+    }
+  ],
+  "SELECT b.id AS bid, w.book_id AS wid FROM books b FULL JOIN wrote w ON w.book_id = b.id ORDER BY b.id, w.book_id": [
+    {
+      "bid": null,
+      "wid": 99
+    },
+    {
+      "bid": 1,
+      "wid": 1
+    },
+    {
+      "bid": 2,
+      "wid": 2
+    },
+    {
+      "bid": 3,
+      "wid": 3
+    },
+    {
+      "bid": 4,
+      "wid": 4
+    },
+    {
+      "bid": 5,
+      "wid": null
+    },
+    {
+      "bid": 6,
+      "wid": null
+    }
+  ],
+  "SELECT b.sku, w.author_id FROM books b JOIN wrote w ON w.book_id = b.id WHERE w.author_id = 3": [
+    {
+      "sku": "B4",
+      "author_id": 3
     }
   ],
   "SELECT b.title FROM books b WHERE b.price = 950": [
@@ -213,9 +716,77 @@
       "title": "Dune"
     }
   ],
+  "SELECT b.title, a.name FROM books b JOIN wrote w ON w.book_id = b.id JOIN authors a ON a.id = w.author_id ORDER BY b.title": [
+    {
+      "title": "Dune",
+      "name": "Frank Herbert"
+    },
+    {
+      "title": "Foundation",
+      "name": "Isaac Asimov"
+    },
+    {
+      "title": "Gone Girl",
+      "name": "Gillian Flynn"
+    }
+  ],
+  "SELECT b.title, j.value AS tag FROM books b, json_each(json_array(b.sku, b.id)) j WHERE b.id \u003c= 2 ORDER BY b.id, j.key": [
+    {
+      "title": "Dune",
+      "tag": "B1"
+    },
+    {
+      "title": "Dune",
+      "tag": 1
+    },
+    {
+      "title": "The Go Book",
+      "tag": "B2"
+    },
+    {
+      "title": "The Go Book",
+      "tag": 2
+    }
+  ],
+  "SELECT b.title, w.author_id FROM books b LEFT JOIN wrote w ON w.book_id = b.id ORDER BY b.id, w.author_id": [
+    {
+      "title": "Dune",
+      "author_id": 1
+    },
+    {
+      "title": "The Go Book",
+      "author_id": null
+    },
+    {
+      "title": "Gone Girl",
+      "author_id": 2
+    },
+    {
+      "title": "Foundation",
+      "author_id": 3
+    },
+    {
+      "title": "Café Ünïcode 🐢",
+      "author_id": null
+    },
+    {
+      "title": "zebra",
+      "author_id": null
+    }
+  ],
   "SELECT books.title FROM books WHERE books.price = 950": [
     {
       "title": "Dune"
+    }
+  ],
+  "SELECT char(72, 105) AS a, unicode('é') AS b, sign(-3) AS c, sign(0.0) AS d, concat('a', NULL, 1) AS e, concat_ws('-', 'a', NULL, 'b') AS f": [
+    {
+      "a": "Hi",
+      "b": 233,
+      "c": -1,
+      "d": 0,
+      "e": "a1",
+      "f": "a-b"
     }
   ],
   "SELECT coalesce(rating, -1) AS c, ifnull(price, 0) AS p, nullif(price, 950) AS np FROM books": [
@@ -250,6 +821,11 @@
       "np": null
     }
   ],
+  "SELECT count(*) AS c FROM books CROSS JOIN authors": [
+    {
+      "c": 24
+    }
+  ],
   "SELECT count(*) AS c FROM books WHERE price \u003e 100000": [
     {
       "c": 0
@@ -265,6 +841,7 @@
       "c": 1667
     }
   ],
+  "SELECT count(*) AS c FROM sales WHERE qty \u003e 100 GROUP BY region": [],
   "SELECT count(*) AS c, sum(n) AS s FROM nums": [
     {
       "c": 5000,
@@ -276,6 +853,14 @@
       "c": 5000,
       "s": 12502500,
       "m": "row 999"
+    }
+  ],
+  "SELECT count(*) AS n FROM books HAVING count(*) \u003e 100": [],
+  "SELECT count(*) AS n, sum(length(c)) AS s, min(x) AS lo FROM wr": [
+    {
+      "n": 404,
+      "s": 80209,
+      "lo": "k1"
     }
   ],
   "SELECT count(*) AS n, sum(price) AS total, avg(price) AS mean, min(title) AS first, max(rating) AS best FROM books": [
@@ -297,6 +882,143 @@
       "rated": 5,
       "t": 5976.0,
       "skus": "B1,B2,B3,B4,B5,B6"
+    }
+  ],
+  "SELECT date('2024-02-29', '+1 year') AS a, date('2026-01-31', '+13 months') AS b, date('2026-05-31', '-3 months') AS c": [
+    {
+      "a": "2025-03-01",
+      "b": "2027-03-03",
+      "c": "2026-03-03"
+    }
+  ],
+  "SELECT date('2026-01-31', '+1 month') AS a, date('2026-01-31', '+1 day') AS b, datetime('2026-10-05 14:05:09') AS c": [
+    {
+      "a": "2026-03-03",
+      "b": "2026-02-01",
+      "c": "2026-10-05 14:05:09"
+    }
+  ],
+  "SELECT date('2026-10-05 23:30:00+02:00') AS a, datetime('2026-10-05 12:00', '+1.5 days') AS b, date('nonsense') AS c": [
+    {
+      "a": "2026-10-05",
+      "b": "2026-10-07 00:00:00",
+      "c": null
+    }
+  ],
+  "SELECT date('2026-10-05', 'start of year') AS a, date('2026-10-05', 'weekday 0') AS b, date('2026-10-05', '-1 year') AS c": [
+    {
+      "a": "2026-01-01",
+      "b": "2026-10-11",
+      "c": "2025-10-05"
+    }
+  ],
+  "SELECT datetime('2026-10-05T14:05:09.123Z') AS a, time('2026-10-05 14:05', '+90 minutes') AS b, date('2026-03-15', 'start of month') AS c": [
+    {
+      "a": "2026-10-05 14:05:09",
+      "b": "15:35:00",
+      "c": "2026-03-01"
+    }
+  ],
+  "SELECT datetime(2461318.5) AS a, date(1791209100, 'auto') AS b, time('12:34:56.789', 'subsec') AS c": [
+    {
+      "a": "2026-10-05 00:00:00",
+      "b": "2026-10-05",
+      "c": "12:34:56.789"
+    }
+  ],
+  "SELECT day, qty, sum(qty) OVER (ORDER BY day) AS by_day, count(*) OVER () AS total FROM sales ORDER BY day, sku, region": [
+    {
+      "day": "2026-01-02",
+      "qty": 3,
+      "by_day": 3,
+      "total": 7
+    },
+    {
+      "day": "2026-01-03",
+      "qty": 1,
+      "by_day": 9,
+      "total": 7
+    },
+    {
+      "day": "2026-01-03",
+      "qty": 5,
+      "by_day": 9,
+      "total": 7
+    },
+    {
+      "day": "2026-01-04",
+      "qty": null,
+      "by_day": 9,
+      "total": 7
+    },
+    {
+      "day": "2026-01-05",
+      "qty": 2,
+      "by_day": 18,
+      "total": 7
+    },
+    {
+      "day": "2026-01-05",
+      "qty": 7,
+      "by_day": 18,
+      "total": 7
+    },
+    {
+      "day": "2026-01-06",
+      "qty": 1,
+      "by_day": 19,
+      "total": 7
+    }
+  ],
+  "SELECT floor(2.7) AS a, ceil(2.1) AS b, trunc(-2.7) AS c, round(sqrt(16)) AS d, pow(2, 10) AS e, log(100) AS f, log(2, 8) AS g, mod(7, 3) AS h": [
+    {
+      "a": 2.0,
+      "b": 3.0,
+      "c": -2.0,
+      "d": 4.0,
+      "e": 1024.0,
+      "f": 2.0,
+      "g": 3.0,
+      "h": 1.0
+    }
+  ],
+  "SELECT floor(5) AS a, typeof(floor(5)) AS b, ln(0) AS c, round(pi(), 4) AS d, round(degrees(pi())) AS e, exp(0) AS f": [
+    {
+      "a": 5,
+      "b": "integer",
+      "c": null,
+      "d": 3.1416,
+      "e": 180.0,
+      "f": 1.0
+    }
+  ],
+  "SELECT format('%d%%', 50) AS a, quote('it''s') AS b, quote(NULL) AS c, quote(12) AS d, quote(1.5) AS e, quote(x'00ff') AS f": [
+    {
+      "a": "50%",
+      "b": "'it''s'",
+      "c": "NULL",
+      "d": "12",
+      "e": "1.5",
+      "f": "X'00FF'"
+    }
+  ],
+  "SELECT g.value, b.title FROM generate_series(1, 3) g LEFT JOIN books b ON b.id = g.value ORDER BY g.value": [
+    {
+      "value": 1,
+      "title": "Dune"
+    },
+    {
+      "value": 2,
+      "title": "The Go Book"
+    },
+    {
+      "value": 3,
+      "title": "Gone Girl"
+    }
+  ],
+  "SELECT group_concat(sku, '|') AS g FROM (SELECT sku FROM books ORDER BY sku)": [
+    {
+      "g": "B1|B2|B3|B4|B5|B6"
     }
   ],
   "SELECT hex(cover) AS h FROM books": [
@@ -338,6 +1060,96 @@
       "title": "Dune"
     }
   ],
+  "SELECT json(' { \"a\" : [1, 2.50, \"x\"], \"b\": null } ') AS j, json_valid('{\"a\":1}') AS v, json_valid('{a:1}') AS bad": [
+    {
+      "j": "{\"a\":[1,2.50,\"x\"],\"b\":null}",
+      "v": 1,
+      "bad": 0
+    }
+  ],
+  "SELECT json_array(1, 2.5, 'x', NULL, json('{\"k\":1}'), '{\"k\":1}') AS a, json_quote('say \"hi\"') AS q, json_quote(3.0) AS r": [
+    {
+      "a": "[1,2.5,\"x\",null,{\"k\":1},\"{\\\"k\\\":1}\"]",
+      "q": "\"say \\\"hi\\\"\"",
+      "r": "3.0"
+    }
+  ],
+  "SELECT json_extract('{\"a\": {\"b\": [10, 20, 30]}}', '$.a.b[1]') AS one, json_extract('{\"a\": [1, 2]}', '$.a') AS arr, json_extract('{\"a\": 1, \"b\": \"t\"}', '$.a', '$.b', '$.c') AS many": [
+    {
+      "one": 20,
+      "arr": "[1,2]",
+      "many": "[1,\"t\",null]"
+    }
+  ],
+  "SELECT json_group_array(json_object('sku', sku)) OVER (ORDER BY id ROWS 1 PRECEDING) AS w FROM books ORDER BY id": [
+    {
+      "w": "[{\"sku\":\"B1\"}]"
+    },
+    {
+      "w": "[{\"sku\":\"B1\"},{\"sku\":\"B2\"}]"
+    },
+    {
+      "w": "[{\"sku\":\"B2\"},{\"sku\":\"B3\"}]"
+    },
+    {
+      "w": "[{\"sku\":\"B3\"},{\"sku\":\"B4\"}]"
+    },
+    {
+      "w": "[{\"sku\":\"B4\"},{\"sku\":\"B5\"}]"
+    },
+    {
+      "w": "[{\"sku\":\"B5\"},{\"sku\":\"B6\"}]"
+    }
+  ],
+  "SELECT json_group_object(qty, sku) AS by_qty, json_group_object(qty * 1.5, region) AS by_real FROM sales": [
+    {
+      "by_qty": "{\"3\":\"B1\",\"1\":\"B1\",\"5\":\"B2\",\"2\":\"B3\",\"7\":\"B9\",\"1\":\"b1\"}",
+      "by_real": "{\"4.5\":\"north\",\"1.5\":\"south\",\"7.5\":\"north\",\"3.0\":\"south\",\"10.5\":\"east\",\"1.5\":\"north\"}"
+    }
+  ],
+  "SELECT json_object('name', title, 'price', price, 'tags', json_array('a', 1, NULL)) AS o FROM books WHERE id \u003c= 2 ORDER BY id": [
+    {
+      "o": "{\"name\":\"Dune\",\"price\":950,\"tags\":[\"a\",1,null]}"
+    },
+    {
+      "o": "{\"name\":\"The Go Book\",\"price\":3000,\"tags\":[\"a\",1,null]}"
+    }
+  ],
+  "SELECT json_patch('{\"a\": 1, \"b\": {\"c\": 2, \"d\": 3}}', '{\"a\": null, \"b\": {\"c\": 9}, \"e\": [1]}') AS p": [
+    {
+      "p": "{\"b\":{\"c\":9,\"d\":3},\"e\":[1]}"
+    }
+  ],
+  "SELECT json_set('[1, 2]', '$[#]', 3) AS app, json_remove('[1, 2, 3, 4]', '$[1]', '$[#-1]') AS rem, json_remove('{\"a\": 1, \"b\": 2}', '$.a') AS remo": [
+    {
+      "app": "[1,2,3]",
+      "rem": "[1,3]",
+      "remo": "{\"b\":2}"
+    }
+  ],
+  "SELECT json_set('{\"a\": 1}', '$.b', 2, '$.a', 10) AS s, json_insert('{\"a\": 1}', '$.a', 9, '$.c.d', 4) AS i, json_replace('{\"a\": 1}', '$.a', 'x', '$.z', 1) AS r": [
+    {
+      "s": "{\"a\":10,\"b\":2}",
+      "i": "{\"a\":1,\"c\":{\"d\":4}}",
+      "r": "{\"a\":\"x\"}"
+    }
+  ],
+  "SELECT json_type('{\"a\": [1, 2.5, \"s\", null, true]}', '$.a') AS t1, json_type('[1, 2.5, \"s\", null, true]', '$[1]') AS t2, json_type('[1]', '$[9]') AS t3, json_array_length('[1, 2, 3]') AS n, json_array_length('{\"a\": [1]}', '$.a') AS m": [
+    {
+      "t1": "array",
+      "t2": "real",
+      "t3": null,
+      "n": 3,
+      "m": 1
+    }
+  ],
+  "SELECT julianday('2026-10-05') AS a, unixepoch('2026-10-05 00:00:00') AS b, datetime(1791209100, 'unixepoch') AS c": [
+    {
+      "a": 2461318.5,
+      "b": 1791158400,
+      "c": "2026-10-05 14:05:00"
+    }
+  ],
   "SELECT k, length(body) AS len FROM big": [
     {
       "k": 1,
@@ -369,12 +1181,143 @@
       "tail": "end"
     }
   ],
+  "SELECT key, value FROM json_each('{\"a\": {\"x\": 1, \"y\": 2}}', '$.a')": [
+    {
+      "key": "x",
+      "value": 1
+    },
+    {
+      "key": "y",
+      "value": 2
+    }
+  ],
+  "SELECT key, value, type, atom, fullkey, path FROM json_each('{\"a\": 1, \"b\": [2, 3], \"c d\": {\"e\": null}}')": [
+    {
+      "key": "a",
+      "value": 1,
+      "type": "integer",
+      "atom": 1,
+      "fullkey": "$.a",
+      "path": "$"
+    },
+    {
+      "key": "b",
+      "value": "[2,3]",
+      "type": "array",
+      "atom": null,
+      "fullkey": "$.b",
+      "path": "$"
+    },
+    {
+      "key": "c d",
+      "value": "{\"e\":null}",
+      "type": "object",
+      "atom": null,
+      "fullkey": "$.\"c d\"",
+      "path": "$"
+    }
+  ],
+  "SELECT key, value, type, atom, fullkey, path FROM json_tree('{\"a\": 1, \"b\": [2, {\"c\": 3}]}')": [
+    {
+      "key": null,
+      "value": "{\"a\":1,\"b\":[2,{\"c\":3}]}",
+      "type": "object",
+      "atom": null,
+      "fullkey": "$",
+      "path": "$"
+    },
+    {
+      "key": "a",
+      "value": 1,
+      "type": "integer",
+      "atom": 1,
+      "fullkey": "$.a",
+      "path": "$"
+    },
+    {
+      "key": "b",
+      "value": "[2,{\"c\":3}]",
+      "type": "array",
+      "atom": null,
+      "fullkey": "$.b",
+      "path": "$"
+    },
+    {
+      "key": 0,
+      "value": 2,
+      "type": "integer",
+      "atom": 2,
+      "fullkey": "$.b[0]",
+      "path": "$.b"
+    },
+    {
+      "key": 1,
+      "value": "{\"c\":3}",
+      "type": "object",
+      "atom": null,
+      "fullkey": "$.b[1]",
+      "path": "$.b"
+    },
+    {
+      "key": "c",
+      "value": 3,
+      "type": "integer",
+      "atom": 3,
+      "fullkey": "$.b[1].c",
+      "path": "$.b[1]"
+    }
+  ],
+  "SELECT key, value, type, fullkey, path FROM json_each('[10, \"x\", true]')": [
+    {
+      "key": 0,
+      "value": 10,
+      "type": "integer",
+      "fullkey": "$[0]",
+      "path": "$"
+    },
+    {
+      "key": 1,
+      "value": "x",
+      "type": "text",
+      "fullkey": "$[1]",
+      "path": "$"
+    },
+    {
+      "key": 2,
+      "value": 1,
+      "type": "true",
+      "fullkey": "$[2]",
+      "path": "$"
+    }
+  ],
+  "SELECT length(region) AS l, count(*) AS c FROM sales GROUP BY l ORDER BY l": [
+    {
+      "l": 4,
+      "c": 1
+    },
+    {
+      "l": 5,
+      "c": 6
+    }
+  ],
+  "SELECT max(price) AS m, title FROM books": [
+    {
+      "m": 3000,
+      "title": "The Go Book"
+    }
+  ],
   "SELECT min(1, 2, 3) AS a, max('a', 'b') AS b, iif(1 \u003e 2, 'y', 'n') AS c, trim('  hi  ') AS d": [
     {
       "a": 1,
       "b": "b",
       "c": "n",
       "d": "hi"
+    }
+  ],
+  "SELECT min(price) AS m, title FROM books": [
+    {
+      "m": 1,
+      "title": "Café Ünïcode 🐢"
     }
   ],
   "SELECT n FROM aff WHERE n = 5": [
@@ -399,6 +1342,124 @@
     },
     {
       "n": 4999
+    }
+  ],
+  "SELECT n, avg(n) OVER (ORDER BY n ROWS BETWEEN 2 PRECEDING AND 2 FOLLOWING) AS moving FROM nums WHERE n \u003c= 10 ORDER BY n": [
+    {
+      "n": 1,
+      "moving": 2.0
+    },
+    {
+      "n": 2,
+      "moving": 2.5
+    },
+    {
+      "n": 3,
+      "moving": 3.0
+    },
+    {
+      "n": 4,
+      "moving": 4.0
+    },
+    {
+      "n": 5,
+      "moving": 5.0
+    },
+    {
+      "n": 6,
+      "moving": 6.0
+    },
+    {
+      "n": 7,
+      "moving": 7.0
+    },
+    {
+      "n": 8,
+      "moving": 8.0
+    },
+    {
+      "n": 9,
+      "moving": 8.5
+    },
+    {
+      "n": 10,
+      "moving": 9.0
+    }
+  ],
+  "SELECT n, sum(n) OVER (ORDER BY n DESC RANGE BETWEEN 2 PRECEDING AND CURRENT ROW) AS s FROM nums WHERE n \u003c= 8 ORDER BY n": [
+    {
+      "n": 1,
+      "s": 6
+    },
+    {
+      "n": 2,
+      "s": 9
+    },
+    {
+      "n": 3,
+      "s": 12
+    },
+    {
+      "n": 4,
+      "s": 15
+    },
+    {
+      "n": 5,
+      "s": 18
+    },
+    {
+      "n": 6,
+      "s": 21
+    },
+    {
+      "n": 7,
+      "s": 15
+    },
+    {
+      "n": 8,
+      "s": 8
+    }
+  ],
+  "SELECT n, sum(n) OVER (ORDER BY n RANGE BETWEEN 3 PRECEDING AND 1 FOLLOWING) AS s FROM nums WHERE n \u003c= 10 ORDER BY n": [
+    {
+      "n": 1,
+      "s": 3
+    },
+    {
+      "n": 2,
+      "s": 6
+    },
+    {
+      "n": 3,
+      "s": 10
+    },
+    {
+      "n": 4,
+      "s": 15
+    },
+    {
+      "n": 5,
+      "s": 20
+    },
+    {
+      "n": 6,
+      "s": 25
+    },
+    {
+      "n": 7,
+      "s": 30
+    },
+    {
+      "n": 8,
+      "s": 35
+    },
+    {
+      "n": 9,
+      "s": 40
+    },
+    {
+      "n": 10,
+      "s": 34
     }
   ],
   "SELECT n, t, v FROM nums WHERE n \u003e 4990": [
@@ -453,9 +1514,96 @@
       "v": null
     }
   ],
+  "SELECT name FROM authors ORDER BY name DESC": [
+    {
+      "name": "Nobody"
+    },
+    {
+      "name": "Isaac Asimov"
+    },
+    {
+      "name": "Gillian Flynn"
+    },
+    {
+      "name": "Frank Herbert"
+    }
+  ],
+  "SELECT name FROM authors WHERE name = 'frank herbert'": [
+    {
+      "name": "Frank Herbert"
+    }
+  ],
+  "SELECT name FROM authors a WHERE EXISTS (SELECT 1 FROM wrote w WHERE w.author_id = a.id) ORDER BY name": [
+    {
+      "name": "Frank Herbert"
+    },
+    {
+      "name": "Gillian Flynn"
+    },
+    {
+      "name": "Isaac Asimov"
+    }
+  ],
+  "SELECT name FROM authors a WHERE NOT EXISTS (SELECT 1 FROM wrote w WHERE w.author_id = a.id) ORDER BY name": [
+    {
+      "name": "Nobody"
+    }
+  ],
+  "SELECT name, \"unique\", origin, partial FROM pragma_index_list('books')": [
+    {
+      "name": "books_price",
+      "unique": 0,
+      "origin": "c",
+      "partial": 0
+    }
+  ],
+  "SELECT name, (SELECT count(*) FROM wrote w WHERE w.author_id = a.id) AS n FROM authors a ORDER BY id": [
+    {
+      "name": "Frank Herbert",
+      "n": 1
+    },
+    {
+      "name": "Gillian Flynn",
+      "n": 1
+    },
+    {
+      "name": "Isaac Asimov",
+      "n": 2
+    },
+    {
+      "name": "Nobody",
+      "n": 0
+    }
+  ],
+  "SELECT name, country, count(*) OVER (PARTITION BY country) AS same FROM authors ORDER BY name": [
+    {
+      "name": "Frank Herbert",
+      "country": "US",
+      "same": 2
+    },
+    {
+      "name": "Gillian Flynn",
+      "country": "US",
+      "same": 2
+    },
+    {
+      "name": "Isaac Asimov",
+      "country": "RU",
+      "same": 1
+    },
+    {
+      "name": "Nobody",
+      "country": "FR",
+      "same": 1
+    }
+  ],
   "SELECT name, type FROM sqlite_master WHERE type = 'table' ORDER BY name": [
     {
       "name": "aff",
+      "type": "table"
+    },
+    {
+      "name": "authors",
       "type": "table"
     },
     {
@@ -477,6 +1625,80 @@
     {
       "name": "odd name",
       "type": "table"
+    },
+    {
+      "name": "sales",
+      "type": "table"
+    },
+    {
+      "name": "wr",
+      "type": "table"
+    },
+    {
+      "name": "wrote",
+      "type": "table"
+    }
+  ],
+  "SELECT name, type, ncol FROM pragma_table_list WHERE schema = 'main' ORDER BY name": [
+    {
+      "name": "aff",
+      "type": "table",
+      "ncol": 5
+    },
+    {
+      "name": "authors",
+      "type": "table",
+      "ncol": 3
+    },
+    {
+      "name": "big",
+      "type": "table",
+      "ncol": 2
+    },
+    {
+      "name": "books",
+      "type": "table",
+      "ncol": 6
+    },
+    {
+      "name": "cheap",
+      "type": "view",
+      "ncol": 2
+    },
+    {
+      "name": "later",
+      "type": "table",
+      "ncol": 2
+    },
+    {
+      "name": "nums",
+      "type": "table",
+      "ncol": 3
+    },
+    {
+      "name": "odd name",
+      "type": "table",
+      "ncol": 3
+    },
+    {
+      "name": "sales",
+      "type": "table",
+      "ncol": 4
+    },
+    {
+      "name": "sqlite_schema",
+      "type": "table",
+      "ncol": 5
+    },
+    {
+      "name": "wr",
+      "type": "table",
+      "ncol": 4
+    },
+    {
+      "name": "wrote",
+      "type": "table",
+      "ncol": 2
     }
   ],
   "SELECT none_col FROM aff WHERE none_col = '5'": [
@@ -485,6 +1707,16 @@
     }
   ],
   "SELECT none_col FROM aff WHERE none_col = 5": [],
+  "SELECT octet_length('é') AS a, hex(unhex('CAFE')) AS b, hex(zeroblob(2)) AS c, likely(5) AS d, glob('a*', 'abc') AS e, like('A%', 'abc') AS f": [
+    {
+      "a": 2,
+      "b": "CAFE",
+      "c": "0000",
+      "d": 5,
+      "e": 1,
+      "f": 1
+    }
+  ],
   "SELECT price / 3 AS d, price % 7 AS m, price * 2 + 1 AS e, -price AS neg, price / 0 AS z FROM books": [
     {
       "d": null,
@@ -527,6 +1759,44 @@
       "e": 6001,
       "neg": -3000,
       "z": null
+    }
+  ],
+  "SELECT printf('%d|%5d|%-5d|%05d|%,d', 42, 42, 42, 42, 1234567) AS a, printf('%.2f|%8.3f|%e', 3.14159, 2.5, 12345.678) AS b": [
+    {
+      "a": "42|   42|42   |00042|1,234,567",
+      "b": "3.14|   2.500|1.234568e+04"
+    }
+  ],
+  "SELECT printf('%s|%10s|%-10s|%.3s', 'abc', 'abc', 'abc', 'abcdef') AS a, printf('%q|%Q|%Q|%x|%X|%o', 'it''s', 'x', NULL, 255, 255, 8) AS b": [
+    {
+      "a": "abc|       abc|abc       |abc",
+      "b": "it''s|'x'|NULL|ff|FF|10"
+    }
+  ],
+  "SELECT qty, group_concat(sku) OVER (ORDER BY qty GROUPS BETWEEN 1 PRECEDING AND 1 FOLLOWING) AS g FROM sales WHERE qty IS NOT NULL ORDER BY qty, sku": [
+    {
+      "qty": 1,
+      "g": "B1,b1,B3"
+    },
+    {
+      "qty": 1,
+      "g": "B1,b1,B3"
+    },
+    {
+      "qty": 2,
+      "g": "B1,b1,B3,B1"
+    },
+    {
+      "qty": 3,
+      "g": "B3,B1,B2"
+    },
+    {
+      "qty": 5,
+      "g": "B1,B2,B9"
+    },
+    {
+      "qty": 7,
+      "g": "B2,B9"
     }
   ],
   "SELECT r FROM aff WHERE r \u003e '6'": [
@@ -572,6 +1842,127 @@
       "ab": 2.0
     }
   ],
+  "SELECT region FROM sales UNION SELECT country FROM authors": [
+    {
+      "region": "FR"
+    },
+    {
+      "region": "RU"
+    },
+    {
+      "region": "US"
+    },
+    {
+      "region": "east"
+    },
+    {
+      "region": "north"
+    },
+    {
+      "region": "south"
+    }
+  ],
+  "SELECT region, avg(qty) AS a, total(qty) AS t, group_concat(DISTINCT sku) AS skus FROM sales GROUP BY region ORDER BY region": [
+    {
+      "region": "east",
+      "a": 7.0,
+      "t": 7.0,
+      "skus": "B9"
+    },
+    {
+      "region": "north",
+      "a": 3.0,
+      "t": 9.0,
+      "skus": "B1,B2,B3,b1"
+    },
+    {
+      "region": "south",
+      "a": 1.5,
+      "t": 3.0,
+      "skus": "B1,B3"
+    }
+  ],
+  "SELECT region, count(*) AS n FROM sales GROUP BY region HAVING count(*) \u003e 1 ORDER BY n DESC, region": [
+    {
+      "region": "north",
+      "n": 4
+    },
+    {
+      "region": "south",
+      "n": 2
+    }
+  ],
+  "SELECT region, json_group_array(sku) AS skus, json_group_object(sku, qty) AS q FROM sales GROUP BY region ORDER BY region": [
+    {
+      "region": "east",
+      "skus": "[\"B9\"]",
+      "q": "{\"B9\":7}"
+    },
+    {
+      "region": "north",
+      "skus": "[\"B1\",\"B2\",\"B3\",\"b1\"]",
+      "q": "{\"B1\":3,\"B2\":5,\"B3\":null,\"b1\":1}"
+    },
+    {
+      "region": "south",
+      "skus": "[\"B1\",\"B3\"]",
+      "q": "{\"B1\":1,\"B3\":2}"
+    }
+  ],
+  "SELECT region, max(qty) AS m, sku FROM sales GROUP BY region ORDER BY region": [
+    {
+      "region": "east",
+      "m": 7,
+      "sku": "B9"
+    },
+    {
+      "region": "north",
+      "m": 5,
+      "sku": "B2"
+    },
+    {
+      "region": "south",
+      "m": 2,
+      "sku": "B3"
+    }
+  ],
+  "SELECT region, min(day) AS first, sku FROM sales GROUP BY region ORDER BY region": [
+    {
+      "region": "east",
+      "first": "2026-01-05",
+      "sku": "B9"
+    },
+    {
+      "region": "north",
+      "first": "2026-01-02",
+      "sku": "B1"
+    },
+    {
+      "region": "south",
+      "first": "2026-01-03",
+      "sku": "B1"
+    }
+  ],
+  "SELECT region, sum(qty) AS q, rank() OVER (ORDER BY sum(qty) DESC) AS r, sum(sum(qty)) OVER () AS all_q FROM sales GROUP BY region ORDER BY r": [
+    {
+      "region": "north",
+      "q": 9,
+      "r": 1,
+      "all_q": 19
+    },
+    {
+      "region": "east",
+      "q": 7,
+      "r": 2,
+      "all_q": 19
+    },
+    {
+      "region": "south",
+      "q": 3,
+      "r": 3,
+      "all_q": 19
+    }
+  ],
   "SELECT rowid FROM books WHERE rowid = 3": [
     {
       "id": 3
@@ -581,6 +1972,76 @@
     {
       "rowid": 3,
       "n": 3
+    }
+  ],
+  "SELECT s.name, p.name AS col, p.type FROM sqlite_schema s, pragma_table_info(s.name) p WHERE s.type = 'table' AND s.name IN ('later', 'wrote') ORDER BY s.name, p.cid": [
+    {
+      "name": "later",
+      "col": "a",
+      "type": "TEXT"
+    },
+    {
+      "name": "later",
+      "col": "b",
+      "type": "INTEGER"
+    },
+    {
+      "name": "wrote",
+      "col": "book_id",
+      "type": "INTEGER"
+    },
+    {
+      "name": "wrote",
+      "col": "author_id",
+      "type": "INTEGER"
+    }
+  ],
+  "SELECT sku FROM books EXCEPT SELECT sku FROM sales ORDER BY 1": [
+    {
+      "sku": "B4"
+    },
+    {
+      "sku": "B5"
+    },
+    {
+      "sku": "B6"
+    }
+  ],
+  "SELECT sku FROM books INTERSECT SELECT sku FROM sales ORDER BY 1": [
+    {
+      "sku": "B1"
+    },
+    {
+      "sku": "B2"
+    },
+    {
+      "sku": "B3"
+    }
+  ],
+  "SELECT sku FROM books UNION SELECT sku FROM sales ORDER BY 1": [
+    {
+      "sku": "B1"
+    },
+    {
+      "sku": "B2"
+    },
+    {
+      "sku": "B3"
+    },
+    {
+      "sku": "B4"
+    },
+    {
+      "sku": "B5"
+    },
+    {
+      "sku": "B6"
+    },
+    {
+      "sku": "B9"
+    },
+    {
+      "sku": "b1"
     }
   ],
   "SELECT sku FROM books WHERE price NOT IN (950, 800)": [
@@ -594,12 +2055,517 @@
       "sku": "B5"
     }
   ],
+  "SELECT sku FROM books WHERE sku GLOB '[AB][1-3]' ORDER BY 1": [
+    {
+      "sku": "B1"
+    },
+    {
+      "sku": "B2"
+    },
+    {
+      "sku": "B3"
+    }
+  ],
   "SELECT sku FROM books WHERE sku IN ('B1', 'B3', 'B9') ORDER BY sku DESC": [
     {
       "sku": "B3"
     },
     {
       "sku": "B1"
+    }
+  ],
+  "SELECT sku FROM sales GROUP BY 1 HAVING sum(qty) \u003e= 4 ORDER BY 1": [
+    {
+      "sku": "B1"
+    },
+    {
+      "sku": "B2"
+    },
+    {
+      "sku": "B9"
+    }
+  ],
+  "SELECT sku FROM sales UNION ALL SELECT sku FROM books ORDER BY sku": [
+    {
+      "sku": "B1"
+    },
+    {
+      "sku": "B1"
+    },
+    {
+      "sku": "B1"
+    },
+    {
+      "sku": "B2"
+    },
+    {
+      "sku": "B2"
+    },
+    {
+      "sku": "B3"
+    },
+    {
+      "sku": "B3"
+    },
+    {
+      "sku": "B3"
+    },
+    {
+      "sku": "B4"
+    },
+    {
+      "sku": "B5"
+    },
+    {
+      "sku": "B6"
+    },
+    {
+      "sku": "B9"
+    },
+    {
+      "sku": "b1"
+    }
+  ],
+  "SELECT sku FROM sales WHERE sku = 'b1' COLLATE NOCASE ORDER BY region, sku": [
+    {
+      "sku": "B1"
+    },
+    {
+      "sku": "b1"
+    },
+    {
+      "sku": "B1"
+    }
+  ],
+  "SELECT sku, day, lag(qty) OVER w AS prev, lead(qty, 1, -1) OVER w AS next FROM sales WINDOW w AS (PARTITION BY sku ORDER BY day) ORDER BY sku, day": [
+    {
+      "sku": "B1",
+      "day": "2026-01-02",
+      "prev": null,
+      "next": 1
+    },
+    {
+      "sku": "B1",
+      "day": "2026-01-03",
+      "prev": 3,
+      "next": -1
+    },
+    {
+      "sku": "B2",
+      "day": "2026-01-03",
+      "prev": null,
+      "next": -1
+    },
+    {
+      "sku": "B3",
+      "day": "2026-01-04",
+      "prev": null,
+      "next": 2
+    },
+    {
+      "sku": "B3",
+      "day": "2026-01-05",
+      "prev": null,
+      "next": -1
+    },
+    {
+      "sku": "B9",
+      "day": "2026-01-05",
+      "prev": null,
+      "next": -1
+    },
+    {
+      "sku": "b1",
+      "day": "2026-01-06",
+      "prev": null,
+      "next": -1
+    }
+  ],
+  "SELECT sku, qty, first_value(sku) OVER w AS f, last_value(sku) OVER w AS l, nth_value(sku, 2) OVER w AS second FROM sales WINDOW w AS (ORDER BY qty, sku ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) ORDER BY qty, sku": [
+    {
+      "sku": "B3",
+      "qty": null,
+      "f": "B3",
+      "l": "B9",
+      "second": "B1"
+    },
+    {
+      "sku": "B1",
+      "qty": 1,
+      "f": "B3",
+      "l": "B9",
+      "second": "B1"
+    },
+    {
+      "sku": "b1",
+      "qty": 1,
+      "f": "B3",
+      "l": "B9",
+      "second": "B1"
+    },
+    {
+      "sku": "B3",
+      "qty": 2,
+      "f": "B3",
+      "l": "B9",
+      "second": "B1"
+    },
+    {
+      "sku": "B1",
+      "qty": 3,
+      "f": "B3",
+      "l": "B9",
+      "second": "B1"
+    },
+    {
+      "sku": "B2",
+      "qty": 5,
+      "f": "B3",
+      "l": "B9",
+      "second": "B1"
+    },
+    {
+      "sku": "B9",
+      "qty": 7,
+      "f": "B3",
+      "l": "B9",
+      "second": "B1"
+    }
+  ],
+  "SELECT sku, qty, row_number() OVER (ORDER BY qty DESC NULLS LAST, sku) AS n FROM sales ORDER BY n": [
+    {
+      "sku": "B9",
+      "qty": 7,
+      "n": 1
+    },
+    {
+      "sku": "B2",
+      "qty": 5,
+      "n": 2
+    },
+    {
+      "sku": "B1",
+      "qty": 3,
+      "n": 3
+    },
+    {
+      "sku": "B3",
+      "qty": 2,
+      "n": 4
+    },
+    {
+      "sku": "B1",
+      "qty": 1,
+      "n": 5
+    },
+    {
+      "sku": "b1",
+      "qty": 1,
+      "n": 6
+    },
+    {
+      "sku": "B3",
+      "qty": null,
+      "n": 7
+    }
+  ],
+  "SELECT sku, qty, sum(qty) OVER (ORDER BY day, sku, region ROWS UNBOUNDED PRECEDING) AS running FROM sales ORDER BY day, sku, region": [
+    {
+      "sku": "B1",
+      "qty": 3,
+      "running": 3
+    },
+    {
+      "sku": "B1",
+      "qty": 1,
+      "running": 4
+    },
+    {
+      "sku": "B2",
+      "qty": 5,
+      "running": 9
+    },
+    {
+      "sku": "B3",
+      "qty": null,
+      "running": 9
+    },
+    {
+      "sku": "B3",
+      "qty": 2,
+      "running": 11
+    },
+    {
+      "sku": "B9",
+      "qty": 7,
+      "running": 18
+    },
+    {
+      "sku": "b1",
+      "qty": 1,
+      "running": 19
+    }
+  ],
+  "SELECT sku, qty, sum(qty) OVER (ORDER BY qty, sku ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING EXCLUDE CURRENT ROW) AS around, count(*) OVER (ORDER BY qty RANGE CURRENT ROW EXCLUDE TIES) AS t FROM sales ORDER BY qty, sku": [
+    {
+      "sku": "B3",
+      "qty": null,
+      "around": 1,
+      "t": 1
+    },
+    {
+      "sku": "B1",
+      "qty": 1,
+      "around": 1,
+      "t": 1
+    },
+    {
+      "sku": "b1",
+      "qty": 1,
+      "around": 3,
+      "t": 1
+    },
+    {
+      "sku": "B3",
+      "qty": 2,
+      "around": 4,
+      "t": 1
+    },
+    {
+      "sku": "B1",
+      "qty": 3,
+      "around": 7,
+      "t": 1
+    },
+    {
+      "sku": "B2",
+      "qty": 5,
+      "around": 10,
+      "t": 1
+    },
+    {
+      "sku": "B9",
+      "qty": 7,
+      "around": 5,
+      "t": 1
+    }
+  ],
+  "SELECT sku, region, qty, rank() OVER (PARTITION BY region ORDER BY qty DESC) AS r, dense_rank() OVER (PARTITION BY region ORDER BY qty DESC) AS d FROM sales ORDER BY region, r, sku": [
+    {
+      "sku": "B9",
+      "region": "east",
+      "qty": 7,
+      "r": 1,
+      "d": 1
+    },
+    {
+      "sku": "B2",
+      "region": "north",
+      "qty": 5,
+      "r": 1,
+      "d": 1
+    },
+    {
+      "sku": "B1",
+      "region": "north",
+      "qty": 3,
+      "r": 2,
+      "d": 2
+    },
+    {
+      "sku": "b1",
+      "region": "north",
+      "qty": 1,
+      "r": 3,
+      "d": 3
+    },
+    {
+      "sku": "B3",
+      "region": "north",
+      "qty": null,
+      "r": 4,
+      "d": 4
+    },
+    {
+      "sku": "B3",
+      "region": "south",
+      "qty": 2,
+      "r": 1,
+      "d": 1
+    },
+    {
+      "sku": "B1",
+      "region": "south",
+      "qty": 1,
+      "r": 2,
+      "d": 2
+    }
+  ],
+  "SELECT sku, region, qty, row_number() OVER (ORDER BY day, sku, region) AS n FROM sales ORDER BY n": [
+    {
+      "sku": "B1",
+      "region": "north",
+      "qty": 3,
+      "n": 1
+    },
+    {
+      "sku": "B1",
+      "region": "south",
+      "qty": 1,
+      "n": 2
+    },
+    {
+      "sku": "B2",
+      "region": "north",
+      "qty": 5,
+      "n": 3
+    },
+    {
+      "sku": "B3",
+      "region": "north",
+      "qty": null,
+      "n": 4
+    },
+    {
+      "sku": "B3",
+      "region": "south",
+      "qty": 2,
+      "n": 5
+    },
+    {
+      "sku": "B9",
+      "region": "east",
+      "qty": 7,
+      "n": 6
+    },
+    {
+      "sku": "b1",
+      "region": "north",
+      "qty": 1,
+      "n": 7
+    }
+  ],
+  "SELECT sku, sum(qty) AS t FROM sales GROUP BY sku HAVING t \u003e 2 ORDER BY t DESC": [
+    {
+      "sku": "B9",
+      "t": 7
+    },
+    {
+      "sku": "B2",
+      "t": 5
+    },
+    {
+      "sku": "B1",
+      "t": 4
+    }
+  ],
+  "SELECT sku, sum(qty) AS total, count(*) AS n, count(qty) AS nq FROM sales GROUP BY sku ORDER BY sku": [
+    {
+      "sku": "B1",
+      "total": 4,
+      "n": 2,
+      "nq": 2
+    },
+    {
+      "sku": "B2",
+      "total": 5,
+      "n": 1,
+      "nq": 1
+    },
+    {
+      "sku": "B3",
+      "total": 2,
+      "n": 2,
+      "nq": 1
+    },
+    {
+      "sku": "B9",
+      "total": 7,
+      "n": 1,
+      "nq": 1
+    },
+    {
+      "sku": "b1",
+      "total": 1,
+      "n": 1,
+      "nq": 1
+    }
+  ],
+  "SELECT sku, sum(qty) FILTER (WHERE region = 'north') OVER (PARTITION BY sku) AS north, max(qty) OVER (PARTITION BY sku) AS m FROM sales ORDER BY sku, region": [
+    {
+      "sku": "B1",
+      "north": 3,
+      "m": 3
+    },
+    {
+      "sku": "B1",
+      "north": 3,
+      "m": 3
+    },
+    {
+      "sku": "B2",
+      "north": 5,
+      "m": 5
+    },
+    {
+      "sku": "B3",
+      "north": null,
+      "m": 2
+    },
+    {
+      "sku": "B3",
+      "north": null,
+      "m": 2
+    },
+    {
+      "sku": "B9",
+      "north": null,
+      "m": 7
+    },
+    {
+      "sku": "b1",
+      "north": 1,
+      "m": 1
+    }
+  ],
+  "SELECT sku, title, qty FROM sales NATURAL JOIN books ORDER BY sku, region": [
+    {
+      "sku": "B1",
+      "title": "Dune",
+      "qty": 3
+    },
+    {
+      "sku": "B1",
+      "title": "Dune",
+      "qty": 1
+    },
+    {
+      "sku": "B2",
+      "title": "The Go Book",
+      "qty": 5
+    },
+    {
+      "sku": "B3",
+      "title": "Gone Girl",
+      "qty": null
+    },
+    {
+      "sku": "B3",
+      "title": "Gone Girl",
+      "qty": 2
+    }
+  ],
+  "SELECT strftime('%W %U %V %G', '2026-01-01') AS a, strftime('%W %U %V', '2026-12-31') AS b, strftime('%f', '2026-10-05 01:02:03.456') AS c": [
+    {
+      "a": "00 00 01 2026",
+      "b": "52 52 53",
+      "c": "03.456"
+    }
+  ],
+  "SELECT strftime('%Y/%m/%d %H:%M:%S %j %w %u', '2026-10-05 14:05:09') AS a, strftime('%s', '2026-01-01') AS b": [
+    {
+      "a": "2026/10/05 14:05:09 278 1 1",
+      "b": "1767225600"
     }
   ],
   "SELECT substr(title, 2, 3) AS a, substr(title, -3) AS b, replace(title, 'o', '0') AS c, instr(title, 'o') AS d FROM books": [
@@ -646,6 +2612,12 @@
       "a": null
     }
   ],
+  "SELECT sum(qty) FILTER (WHERE region = 'north') AS north, count(*) FILTER (WHERE qty \u003e 2) AS big FROM sales": [
+    {
+      "north": 9,
+      "big": 3
+    }
+  ],
   "SELECT t FROM aff ORDER BY t": [
     {
       "t": "10"
@@ -660,6 +2632,66 @@
   "SELECT t FROM aff WHERE t = 5": [
     {
       "t": "5"
+    }
+  ],
+  "SELECT title FROM books ORDER BY price NULLS LAST": [
+    {
+      "title": "Café Ünïcode 🐢"
+    },
+    {
+      "title": "Foundation"
+    },
+    {
+      "title": "Dune"
+    },
+    {
+      "title": "Gone Girl"
+    },
+    {
+      "title": "The Go Book"
+    },
+    {
+      "title": "zebra"
+    }
+  ],
+  "SELECT title FROM books ORDER BY rating DESC NULLS LAST, title": [
+    {
+      "title": "Café Ünïcode 🐢"
+    },
+    {
+      "title": "Dune"
+    },
+    {
+      "title": "Foundation"
+    },
+    {
+      "title": "Gone Girl"
+    },
+    {
+      "title": "zebra"
+    },
+    {
+      "title": "The Go Book"
+    }
+  ],
+  "SELECT title FROM books ORDER BY title COLLATE NOCASE": [
+    {
+      "title": "Café Ünïcode 🐢"
+    },
+    {
+      "title": "Dune"
+    },
+    {
+      "title": "Foundation"
+    },
+    {
+      "title": "Gone Girl"
+    },
+    {
+      "title": "The Go Book"
+    },
+    {
+      "title": "zebra"
     }
   ],
   "SELECT title FROM books ORDER BY title LIMIT 1, 2": [
@@ -697,6 +2729,36 @@
       "title": "Foundation"
     }
   ],
+  "SELECT title FROM books WHERE id IN (SELECT book_id FROM wrote) ORDER BY id": [
+    {
+      "title": "Dune"
+    },
+    {
+      "title": "The Go Book"
+    },
+    {
+      "title": "Gone Girl"
+    },
+    {
+      "title": "Foundation"
+    }
+  ],
+  "SELECT title FROM books WHERE id NOT IN (SELECT book_id FROM wrote WHERE book_id IS NOT NULL) ORDER BY id": [
+    {
+      "title": "Café Ünïcode 🐢"
+    },
+    {
+      "title": "zebra"
+    }
+  ],
+  "SELECT title FROM books WHERE price \u003e (SELECT avg(price) FROM books) ORDER BY title": [
+    {
+      "title": "Gone Girl"
+    },
+    {
+      "title": "The Go Book"
+    }
+  ],
   "SELECT title FROM books WHERE price \u003e 1000 OR rating \u003e 4.4 ORDER BY id": [
     {
       "title": "Dune"
@@ -709,6 +2771,14 @@
     },
     {
       "title": "Café Ünïcode 🐢"
+    }
+  ],
+  "SELECT title FROM books WHERE price BETWEEN 900 AND 1300 ORDER BY 1": [
+    {
+      "title": "Dune"
+    },
+    {
+      "title": "Gone Girl"
     }
   ],
   "SELECT title FROM books WHERE rating IS NOT NULL AND price BETWEEN 800 AND 1300 ORDER BY title": [
@@ -727,6 +2797,11 @@
       "title": "The Go Book"
     }
   ],
+  "SELECT title FROM books WHERE title GLOB 'G*' ORDER BY 1": [
+    {
+      "title": "Gone Girl"
+    }
+  ],
   "SELECT title FROM books WHERE title LIKE '%o_k%'": [
     {
       "title": "The Go Book"
@@ -735,6 +2810,11 @@
   "SELECT title FROM books WHERE title LIKE 'g%' ORDER BY 1": [
     {
       "title": "Gone Girl"
+    }
+  ],
+  "SELECT title FROM books b WHERE price = (SELECT max(price) FROM books WHERE substr(sku, 1, 1) = substr(b.sku, 1, 1))": [
+    {
+      "title": "The Go Book"
     }
   ],
   "SELECT title || ' (' || sku || ')' AS label FROM books ORDER BY label DESC": [
@@ -755,6 +2835,24 @@
     },
     {
       "label": "Café Ünïcode 🐢 (B5)"
+    }
+  ],
+  "SELECT title, name FROM books, authors WHERE books.id = authors.id ORDER BY 1": [
+    {
+      "title": "Dune",
+      "name": "Frank Herbert"
+    },
+    {
+      "title": "Foundation",
+      "name": "Nobody"
+    },
+    {
+      "title": "Gone Girl",
+      "name": "Isaac Asimov"
+    },
+    {
+      "title": "The Go Book",
+      "name": "Gillian Flynn"
     }
   ],
   "SELECT title, price FROM books ORDER BY price": [
@@ -781,6 +2879,50 @@
     {
       "title": "The Go Book",
       "price": 3000
+    }
+  ],
+  "SELECT title, price, ntile(3) OVER (ORDER BY price) AS bucket, percent_rank() OVER (ORDER BY price) AS pr, cume_dist() OVER (ORDER BY price) AS cd FROM books ORDER BY price, title": [
+    {
+      "title": "zebra",
+      "price": null,
+      "bucket": 1,
+      "pr": 0.0,
+      "cd": 0.16666666666666666
+    },
+    {
+      "title": "Café Ünïcode 🐢",
+      "price": 1,
+      "bucket": 1,
+      "pr": 0.2,
+      "cd": 0.33333333333333332
+    },
+    {
+      "title": "Foundation",
+      "price": 800,
+      "bucket": 2,
+      "pr": 0.4,
+      "cd": 0.5
+    },
+    {
+      "title": "Dune",
+      "price": 950,
+      "bucket": 2,
+      "pr": 0.6,
+      "cd": 0.66666666666666663
+    },
+    {
+      "title": "Gone Girl",
+      "price": 1225,
+      "bucket": 3,
+      "pr": 0.8,
+      "cd": 0.83333333333333337
+    },
+    {
+      "title": "The Go Book",
+      "price": 3000,
+      "bucket": 3,
+      "pr": 1.0,
+      "cd": 1.0
     }
   ],
   "SELECT typeof(price) AS a, typeof(rating) AS b, typeof(cover) AS c, typeof(title) AS d FROM books": [
@@ -827,6 +2969,24 @@
       "l": "École"
     }
   ],
+  "SELECT upper(sku) AS s, count(*) AS c FROM sales GROUP BY sku COLLATE NOCASE ORDER BY 1": [
+    {
+      "s": "B1",
+      "c": 3
+    },
+    {
+      "s": "B2",
+      "c": 1
+    },
+    {
+      "s": "B3",
+      "c": 2
+    },
+    {
+      "s": "B9",
+      "c": 1
+    }
+  ],
   "SELECT upper(title) AS u, lower(sku) AS l, length(title) AS len FROM books ORDER BY id": [
     {
       "u": "DUNE",
@@ -857,6 +3017,166 @@
       "u": "ZEBRA",
       "l": "b6",
       "len": 5
+    }
+  ],
+  "SELECT value FROM generate_series(1, 10, 3)": [
+    {
+      "value": 1
+    },
+    {
+      "value": 4
+    },
+    {
+      "value": 7
+    },
+    {
+      "value": 10
+    }
+  ],
+  "SELECT value FROM generate_series(5, 1, -2)": [
+    {
+      "value": 5
+    },
+    {
+      "value": 3
+    },
+    {
+      "value": 1
+    }
+  ],
+  "SELECT w.x, b.title FROM wr w JOIN books b ON b.id = w.b ORDER BY w.x": [
+    {
+      "x": "x0",
+      "title": "Gone Girl"
+    },
+    {
+      "x": "x1",
+      "title": "Dune"
+    },
+    {
+      "x": "x2",
+      "title": "The Go Book"
+    }
+  ],
+  "SELECT x, a, b, c FROM wr WHERE a NOT LIKE 'big%'": [
+    {
+      "x": "x2",
+      "a": "a2",
+      "b": 2,
+      "c": "c2"
+    },
+    {
+      "x": "x0",
+      "a": "a1",
+      "b": 3,
+      "c": "c3"
+    },
+    {
+      "x": "x1",
+      "a": "a1",
+      "b": 1,
+      "c": "c1"
+    },
+    {
+      "x": "x9",
+      "a": "a0",
+      "b": null,
+      "c": 4.5
+    }
+  ],
+  "SELECT x.region, x.total FROM (SELECT region, sum(qty) AS total FROM sales GROUP BY region) AS x WHERE x.total \u003e 3 ORDER BY x.region": [
+    {
+      "region": "east",
+      "total": 7
+    },
+    {
+      "region": "north",
+      "total": 9
+    }
+  ],
+  "VALUES (1, 'a'), (2, 'b')": [
+    {
+      "column1": 1,
+      "column2": "a"
+    },
+    {
+      "column1": 2,
+      "column2": "b"
+    }
+  ],
+  "WITH RECURSIVE c(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM c WHERE x \u003c 10) SELECT sum(x) AS s, count(*) AS n FROM c": [
+    {
+      "s": 55,
+      "n": 10
+    }
+  ],
+  "WITH RECURSIVE c(x) AS (SELECT 1 UNION SELECT x % 3 + 1 FROM c) SELECT x FROM c ORDER BY x": [
+    {
+      "x": 1
+    },
+    {
+      "x": 2
+    },
+    {
+      "x": 3
+    }
+  ],
+  "WITH RECURSIVE fib(a, b) AS (SELECT 0, 1 UNION ALL SELECT b, a + b FROM fib LIMIT 15) SELECT a FROM fib": [
+    {
+      "a": 0
+    },
+    {
+      "a": 1
+    },
+    {
+      "a": 1
+    },
+    {
+      "a": 2
+    },
+    {
+      "a": 3
+    },
+    {
+      "a": 5
+    },
+    {
+      "a": 8
+    },
+    {
+      "a": 13
+    },
+    {
+      "a": 21
+    },
+    {
+      "a": 34
+    },
+    {
+      "a": 55
+    },
+    {
+      "a": 89
+    },
+    {
+      "a": 144
+    },
+    {
+      "a": 233
+    },
+    {
+      "a": 377
+    }
+  ],
+  "WITH t AS (SELECT sku, price FROM books WHERE price \u003e 900) SELECT sku FROM t ORDER BY price": [
+    {
+      "sku": "B1"
+    },
+    {
+      "sku": "B3"
+    },
+    {
+      "sku": "B2"
     }
   ]
 }

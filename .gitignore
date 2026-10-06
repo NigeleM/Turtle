@@ -1,3 +1,8 @@
 .ds_store
 *debug*
 *.txt
+testdata/sql/work*.db
+testdata/sql/export_*.csv
+
+# compiled test binaries (go test -c)
+*.test

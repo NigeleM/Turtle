@@ -2534,19 +2534,23 @@ r = sql_query[db, "SELECT * FROM shelves"]`, wantErr: "sql_query: no such table:
 		{name: "wrong number of values", src: `import sql
 db = sql_open["books.db"]
 r = sql_query[db, "SELECT * FROM books WHERE price < ?"]`, wantErr: "1 ? placeholder(s) but 0 value(s)"},
-		{name: "writing isn't supported yet", src: `import sql
+		{name: "changes go through sql_run", src: `import sql
 db = sql_open["books.db"]
-r = sql_query[db, "DELETE FROM books"]`, wantErr: "only SELECT is supported so far, not DELETE"},
+r = sql_query[db, "DELETE FROM books"]`, wantErr: "DELETE changes the database; run it with sql_run, or add RETURNING to get rows back"},
 		{name: "missing file is kind file", src: `import sql
 safe
     db = sql_open["nope.db"]
 handle [file] e .
     show e .
-safe [end]`, want: "line 3: sql_open nope.db: no such file (creating new databases comes with writing, in a later version)\n"},
+safe [end]`, want: "line 3: sql_open nope.db: no such file (sql_create makes a new database)\n"},
 		{name: "not a database", src: `import sql
 db = sql_open["everything.t"]`, wantErr: "sql_open everything.t: everything.t isn't a SQLite database"},
-		{name: "postgres not yet", src: `import sql
-db = sql_open["postgres://localhost/shop"]`, wantErr: "PostgreSQL isn't supported yet"},
+		{name: "no postgres server", src: `import sql
+db = sql_open["postgres://ann:secret@127.0.0.1:1/shop?connect_timeout=2"]`, wantErr: "is the server running"},
+		{name: "no mysql server", src: `import sql
+db = sql_open["mysql://ann:secret@127.0.0.1:1/shop?timeout=2"]`, wantErr: "is the server running"},
+		{name: "sql_create on a server", src: `import sql
+db = sql_create["mysql://ann@localhost/shop"]`, wantErr: "made on the server"},
 		{name: "closed database", src: `import sql
 db = sql_open["books.db"]
 sql_close[db]
@@ -2577,5 +2581,406 @@ r = sql_query["books.db", "SELECT 1"]`, wantErr: "'sql_query' needs a database (
 				t.Errorf("got %q, want %q", out, c.want)
 			}
 		})
+	}
+}
+
+func TestDataTable(t *testing.T) {
+	cases := []struct{ name, src, want, wantErr string }{
+		{name: "list of maps", src: `import data
+rows = list [map ["name": "Ann", "age": 30], map ["name": "Bo", "age": 7]]
+show table[rows] .`, want: "name  age\n----  ---\nAnn    30\nBo      7\n"},
+		{name: "list of assembled values", src: `import data
+assemble Order [item, qty, price]
+show table[list [Order["pen", 3, 1.5], Order["mug", 12, 8.0]]] .`,
+			want: "item  qty  price\n----  ---  -----\npen     3    1.5\nmug    12    8.0\n"},
+		{name: "missing key is blank, none is shown", src: `import data
+show table[list [map ["a": 1], map ["b": none, "a": 22]]] .`,
+			want: " a  b\n--  ----\n 1\n22  none\n"},
+		{name: "plain list is numbered from 0", src: `import data
+show table[list ["Ann", "Bo"]] .`, want: "#  value\n-  -----\n0  Ann\n1  Bo\n"},
+		{name: "list of lists", src: `import data
+show table[list [list [1, "x"], list [2, "y", true]]] .`,
+			want: "0  1  2\n-  -  ----\n1  x\n2  y  true\n"},
+		{name: "one map", src: `import data
+show table[map ["Ann": 30]] .`, want: "key  value\n---  -----\nAnn     30\n"},
+		{name: "one assembled value", src: `import data
+assemble P [x, y]
+show table[P[1, "b"]] .`, want: "field  value\n-----  -----\nx      1\ny      b\n"},
+		{name: "empty", src: `import data
+show table[list []] .`, want: "no rows\n"},
+		{name: "line breaks stay in one cell", src: `import data
+show table[list ["a\nb"]] .`, want: "#  value\n-  -----\n0  a\\nb\n"},
+		{name: "wide characters line up", src: `import data
+show table[list [map ["t": "🐢", "n": 1], map ["t": "abc", "n": 2]]] .`,
+			want: "t    n\n---  -\n🐢   1\nabc  2\n"},
+		{name: "tablerows defaults to 20", src: `import data
+show tablerows .
+nums = list []
+[loop][i = 0; i < 25; i++]
+    add i to nums .
+[loop][end]
+t = table[nums]
+lines is t at split "\n" .
+show length of lines .
+show lines at get[22] .`, want: "20\n23\n... 5 more rows\n"},
+		{name: "tablerows can be changed", src: `import data
+tablerows = 1
+show table[list ["a", "b"]] .`, want: "#  value\n-  -----\n0  a\n... 1 more row\n"},
+		{name: "tablerows none shows every row", src: `import data
+tablerows = none
+show table[list ["a", "b"]] .`, want: "#  value\n-  -----\n0  a\n1  b\n"},
+		{name: "second argument overrides tablerows", src: `import data
+show table[list ["a", "b", "c"], 2] .`, want: "#  value\n-  -----\n0  a\n1  b\n... 1 more row\n"},
+		{name: "a function's local tablerows", src: `import data
+def peek[xs]
+    tablerows = 0
+    return table[xs]
+def [end]
+show peek[list [1, 2]] .
+show tablerows .`, want: "#  value\n-  -----\n... 2 more rows\n20\n"},
+		{name: "a variable already named tablerows is kept", src: `tablerows = 1
+import data
+show tablerows .`, want: "1\n"},
+		{name: "bad tablerows", src: `import data
+tablerows = "ten"
+show table[list [1]] .`, wantErr: "tablerows must be a whole number of 0 or more"},
+		{name: "bad argument", src: `import data
+show table[5] .`, wantErr: "'table' needs a list, set, map, or assembled value, got INTEGER"},
+		{name: "needs import", src: `show table[list [1]] .`, wantErr: `"table" needs "import data" first`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := run(t, c.src, "")
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("want error containing %q, got %v", c.wantErr, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
+func TestSQLWriting(t *testing.T) {
+	cases := []struct{ name, src, want, wantErr string }{
+		{name: "create, run, query", src: `import sql
+import data
+db = sql_create["shop.db"]
+sql_run[db, "CREATE TABLE books (id INTEGER PRIMARY KEY, title TEXT NOT NULL, price INTEGER)"]
+n = sql_run[db, "INSERT INTO books (title, price) VALUES (?, ?), (?, ?)", list ["Dune", 950, "Emma", 700]]
+show n .
+show sql_run[db, "UPDATE books SET price = price + 50 WHERE price < ?", list [900]] .
+show table[sql_query[db, "SELECT * FROM books ORDER BY id"]] .
+show sql_tables[db] .`, want: "2\n1\nid  title  price\n--  -----  -----\n 1  Dune     950\n 2  Emma     750\n[ \"books\" ]\n"},
+		{name: "returning", src: `import sql
+db = sql_create["r.db"]
+sql_run[db, "CREATE TABLE t (id INTEGER PRIMARY KEY, v TEXT)"]
+rows = sql_query[db, "INSERT INTO t (v) VALUES ('a'), ('b') RETURNING id, v"]
+show rows .`, want: "[ { \"id\": 1, \"v\": \"a\" }, { \"id\": 2, \"v\": \"b\" } ]\n"},
+		{name: "constraint errors are kind sql", src: `import sql
+db = sql_create["c.db"]
+sql_run[db, "CREATE TABLE t (v TEXT UNIQUE NOT NULL)"]
+sql_run[db, "INSERT INTO t VALUES ('a')"]
+safe
+    sql_run[db, "INSERT INTO t VALUES ('a')"]
+handle [sql] e .
+    show message of e .
+safe [end]
+safe
+    sql_run[db, "INSERT INTO t VALUES (?)", list [none]]
+handle [sql] e .
+    show message of e .
+safe [end]`, want: "sql_run: UNIQUE constraint failed: t.v\nsql_run: NOT NULL constraint failed: t.v\n"},
+		{name: "transactions", src: `import sql
+db = sql_create["tx.db"]
+sql_run[db, "CREATE TABLE t (v)"]
+sql_run[db, "BEGIN"]
+sql_run[db, "INSERT INTO t VALUES (1)"]
+sql_run[db, "ROLLBACK"]
+sql_run[db, "BEGIN"]
+sql_run[db, "INSERT INTO t VALUES (2)"]
+sql_run[db, "COMMIT"]
+show sql_query[db, "SELECT v FROM t"] .`, want: "[ { \"v\": 2 } ]\n"},
+		{name: "same column twice", src: `import sql
+db = sql_create["j.db"]
+sql_run[db, "CREATE TABLE a (id INTEGER PRIMARY KEY, n TEXT); CREATE TABLE b (id INTEGER PRIMARY KEY, a_id INTEGER)"]
+sql_run[db, "INSERT INTO a VALUES (1, 'x'); INSERT INTO b VALUES (7, 1)"]
+show sql_query[db, "SELECT * FROM a JOIN b ON b.a_id = a.id"] .`, want: "[ { \"id\": 1, \"n\": \"x\", \"id:1\": 7, \"a_id\": 1 } ]\n"},
+		{name: "create needs a new file", src: `import sql
+db = sql_create["books.db"]`, wantErr: "sql_create books.db: the file already exists (sql_open opens it)"},
+		{name: "sql_run needs a list", src: `import sql
+db = sql_create["l.db"]
+sql_run[db, "CREATE TABLE t (v)", 5]`, wantErr: "values for the ? placeholders must be a list"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			dir := t.TempDir()
+			src, _ := os.ReadFile("../testdata/books.db")
+			os.WriteFile(filepath.Join(dir, "books.db"), src, 0o644)
+			out, err := runIn(t, dir, c.src, "")
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("want error containing %q, got %v (output %q)", c.wantErr, err, out)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v (output %q)", err, out)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
+func TestSQLExamples(t *testing.T) {
+	src, err := filepath.Abs("../testdata/sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	work := t.TempDir()
+	if err := os.CopyFS(work, os.DirFS(src)); err != nil {
+		t.Fatal(err)
+	}
+	programs, _ := filepath.Glob(filepath.Join(work, "*.t"))
+	if len(programs) < 11 {
+		t.Fatalf("found %d programs in testdata/sql", len(programs))
+	}
+	before, _ := os.ReadDir(work)
+	for _, prog := range programs {
+		t.Run(filepath.Base(prog), func(t *testing.T) {
+			code, err := os.ReadFile(prog)
+			if err != nil {
+				t.Fatal(err)
+			}
+			scriptName = filepath.Base(prog)
+			defer func() { scriptName = "" }()
+			out, runErr := runFull(t, work, string(code), "", nil)
+			if runErr != nil || !strings.Contains(out, "failures: 0") {
+				t.Fatalf("failed (err %v):\n%s", runErr, out)
+			}
+			after, _ := os.ReadDir(work)
+			if len(after) != len(before) {
+				var names []string
+				for _, e := range after {
+					names = append(names, e.Name())
+				}
+				t.Fatalf("left files behind: %v", names)
+			}
+		})
+	}
+}
+
+func TestTableFiles(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, text string) {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("books.csv", "\ufeffsku,title,price\r\nB1,Dune,950\r\nB2,\"Gone, Girl\",\r\nB3,\"Say \"\"hi\"\"\nthere\",5\r\n\r\n")
+	write("books.tsv", "sku\ttitle\nB1\tDune, again\n")
+	write("short.csv", "a,b,c\n1,2\n")
+	write("long.csv", "a,b\n1,2,3\n")
+	write("bad.csv", "a,b\n\"open,2\n")
+	write("twice.csv", "a,a\n1,2\n")
+	write("empty.csv", "")
+	cases := []struct{ name, src, want, wantErr string }{
+		{name: "read rows as maps of text", src: `import data
+rows = table_read["books.csv"]
+show length of rows .
+show rows at get[0] .
+show rows at get[1] .
+show rows at get[2] at get["title"] .`, want: "3\n{ \"sku\": \"B1\", \"title\": \"Dune\", \"price\": \"950\" }\n{ \"sku\": \"B2\", \"title\": \"Gone, Girl\", \"price\": none }\nSay \"hi\"\nthere\n"},
+		{name: "tsv", src: `import data
+show table_read["books.tsv"] .`, want: "[ { \"sku\": \"B1\", \"title\": \"Dune, again\" } ]\n"},
+		{name: "short rows get none", src: `import data
+show table_read["short.csv"] .`, want: "[ { \"a\": \"1\", \"b\": \"2\", \"c\": none } ]\n"},
+		{name: "empty file", src: `import data
+show table_read["empty.csv"] .`, want: "[  ]\n"},
+		{name: "round trip csv and tsv", src: `import data
+rows = table_read["books.csv"]
+show table_write["copy.csv", rows] .
+show table_read["copy.csv"] == rows .
+table_write["copy.tsv", rows]
+show table_read["copy.tsv"] == rows .`, want: "3\ntrue\ntrue\n"},
+		{name: "write any shape", src: `import data
+assemble P [name, age]
+table_write["p.csv", list [P["Ann", 30], P["Bo", none]]]
+[read] p.csv to lines [end]
+show lines .
+table_write["l.csv", list ["x", "y"]]
+[read] l.csv to lines [end]
+show lines .
+table_write["m.csv", map ["a": 1]]
+[read] m.csv to lines [end]
+show lines .`, want: "[ \"name,age\", \"Ann,30\", \"Bo,\" ]\n[ \"#,value\", \"0,x\", \"1,y\" ]\n[ \"key,value\", \"a,1\" ]\n"},
+		{name: "txt is the shown table, every row", src: `import data
+tablerows = 1
+table_write["t.txt", list [map ["n": 1], map ["n": 22]]]
+[read] t.txt to lines [end]
+show lines .`, want: "[ \" n\", \"--\", \" 1\", \"22\" ]\n"},
+		{name: "txt can't be read", src: `import data
+r = table_read["t.txt"]`, wantErr: "reads .csv and .tsv files"},
+		{name: "too many values", src: `import data
+r = table_read["long.csv"]`, wantErr: "table_read long.csv: line 2 has 3 values but the header has 2 names"},
+		{name: "bad quotes are kind csv", src: `import data
+safe
+    r = table_read["bad.csv"]
+handle [csv] e .
+    show kind of e .
+safe [end]`, want: "csv\n"},
+		{name: "header twice", src: `import data
+r = table_read["twice.csv"]`, wantErr: "the header names \"a\" twice"},
+		{name: "missing file", src: `import data
+r = table_read["nope.csv"]`, wantErr: "table_read nope.csv"},
+		{name: "write needs a collection", src: `import data
+table_write["x.csv", 5]`, wantErr: "'table_write' needs a list, set, map, or assembled value, got INTEGER"},
+		{name: "write to a missing folder", src: `import data
+table_write["no/such/x.csv", list [1]]`, wantErr: "table_write no/such/x.csv"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := runIn(t, dir, c.src, "")
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("want error containing %q, got %v (output %q)", c.wantErr, err, out)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v (output %q)", err, out)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
+func TestSQLFiles(t *testing.T) {
+	setup := `import sql
+import data
+db = sql_create["s.db"]
+sql_run[db, "CREATE TABLE books (sku TEXT PRIMARY KEY, title TEXT NOT NULL, price INTEGER CHECK (price > 0), stock INTEGER DEFAULT 0)"]
+sql_load[db, "books", "books.csv"]
+`
+	files := map[string]string{
+		"books.csv":   "sku,title,price\nB1,Dune,950\nB2,\"Gone, Girl\",1225\nB3,Emma,700\n",
+		"prices.csv":  "sku,price\nB1,999\nB9,5\n",
+		"gone.csv":    "sku,why\nB2,old\n",
+		"restock.csv": "sku,title,stock\nB1,Dune,4\nB4,Beloved,2\n",
+		"bad.csv":     "sku,price\nB1,10\nB3,0\n",
+		"nokey.csv":   "title\nX\n",
+		"dup.csv":     "sku,title,price\nB7,New,5\nB1,Dup,5\n",
+		"more.tsv":    "sku\ttitle\tprice\nB5\tTabbed, yes\t10\n",
+	}
+	cases := []struct{ name, src, want, wantErr string }{
+		{name: "load and save", src: setup + `show sql_save[db, "SELECT sku, title, price, typeof(price) AS t FROM books ORDER BY sku", "out.csv"] .
+[read] out.csv to lines [end]
+show lines .`, want: "3\n[ \"sku,title,price,t\", \"B1,Dune,950,integer\", \"B2,\\\"Gone, Girl\\\",1225,integer\", \"B3,Emma,700,integer\" ]\n"},
+		{name: "save with values, and no rows still has a header", src: setup + `show sql_save[db, "SELECT sku FROM books WHERE price > ?", "none.csv", list [99999]] .
+[read] none.csv to lines [end]
+show lines .`, want: "0\n[ \"sku\" ]\n"},
+		{name: "save as txt", src: setup + `sql_save[db, "SELECT sku, price FROM books ORDER BY sku", "out.txt"]
+[read] out.txt to lines [end]
+show lines at get[2] .`, want: "B1     950\n"},
+		{name: "load tsv", src: setup + `show sql_load[db, "books", "more.tsv"] .
+show sql_query[db, "SELECT title FROM books WHERE sku = 'B5'"] .`, want: "1\n[ { \"title\": \"Tabbed, yes\" } ]\n"},
+		{name: "update by key", src: setup + `show sql_update[db, "books", "sku", "prices.csv"] .
+show sql_query[db, "SELECT price FROM books WHERE sku = 'B1'"] .`, want: "1\n[ { \"price\": 999 } ]\n"},
+		{name: "delete by key, other columns ignored", src: setup + `show sql_delete[db, "books", "sku", "gone.csv"] .
+show sql_query[db, "SELECT count(*) AS n FROM books"] .`, want: "1\n[ { \"n\": 2 } ]\n"},
+		{name: "upsert", src: setup + `show sql_upsert[db, "books", "sku", "restock.csv"] .
+show sql_query[db, "SELECT sku, title, price, stock FROM books WHERE sku IN ('B1', 'B4') ORDER BY sku"] .`, want: "2\n[ { \"sku\": \"B1\", \"title\": \"Dune\", \"price\": 950, \"stock\": 4 }, { \"sku\": \"B4\", \"title\": \"Beloved\", \"price\": none, \"stock\": 2 } ]\n"},
+		{name: "a bad line undoes the whole file", src: setup + `safe
+    sql_update[db, "books", "sku", "bad.csv"]
+handle [sql] e .
+    show message of e .
+safe [end]
+show sql_query[db, "SELECT price FROM books WHERE sku = 'B1'"] .`, want: "sql_update: CHECK constraint failed: price > 0\n[ { \"price\": 950 } ]\n"},
+		{name: "a duplicate undoes the whole load", src: setup + `safe
+    sql_load[db, "books", "dup.csv"]
+handle [sql] e .
+    show message of e .
+safe [end]
+show sql_query[db, "SELECT count(*) AS n FROM books"] .`, want: "sql_load: UNIQUE constraint failed: books.sku\n[ { \"n\": 3 } ]\n"},
+		{name: "delete from a tsv file", src: setup + `show sql_delete[db, "books", "sku", "more.tsv"] .`, want: "0\n"},
+		{name: "key column must be in the file", src: setup + `sql_update[db, "books", "sku", "nokey.csv"]`, wantErr: "sql_update nokey.csv: the file has no \"sku\" column (its columns: title)"},
+		{name: "unknown table", src: setup + `sql_load[db, "nope", "books.csv"]`, wantErr: "sql_load: no such table: nope"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			dir := t.TempDir()
+			for name, text := range files {
+				os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644)
+			}
+			out, err := runIn(t, dir, c.src, "")
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("want error containing %q, got %v (output %q)", c.wantErr, err, out)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v (output %q)", err, out)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
+// Every builtin function and method has an entry in stdlibdocs.go, and
+// every entry names a real one.
+func TestEveryBuiltinIsDocumented(t *testing.T) {
+	documented := map[string]string{}
+	for _, e := range allEntries() {
+		documented[e.module+"."+e.name()] = e.call
+	}
+	real := map[string]bool{}
+	for name, mod := range builtinModules {
+		for _, f := range append(append([]string{}, mod.Funcs...), mod.Methods...) {
+			real[name+"."+f] = true
+			if _, ok := documented[name+"."+f]; !ok {
+				t.Errorf("%s isn't documented in stdlibdocs.go", name+"."+f)
+			}
+		}
+	}
+	for k := range documented {
+		if !real[k] {
+			t.Errorf("stdlibdocs.go documents %s, which doesn't exist", k)
+		}
+	}
+}
+
+func TestDoc(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "tools.t"), []byte("// tools.t: helpers.\n\n// add_tax adds rate percent.\n// cents is an integer.\ndef add_tax[cents, rate]\n    return cents\ndef [end]\n\ndef bare[x]\ndef [end]\n\n// Item is one thing on a shelf.\nassemble Item [sku, title]\n"), 0o644)
+	cases := map[string]string{
+		"":         "sql: Databases: SQLite files",
+		"sql":      "sql_upsert[db, table, key, path]",
+		"sql_load": "sql_load[db, table, path]        (import sql)\n  Adds a record to a table",
+		"sqrt":     "number at sqrt        (import math)",
+		"warn":     "warn ... .",
+		"tools.t":  "tools.t: helpers.\n\nadd_tax[cents, rate]\n  add_tax adds rate percent.\n  cents is an integer.\n\nbare[x]\n  (no description",
+		"tools":    "assemble Item [sku, title]\n  Item is one thing on a shelf.",
+	}
+	for topic, want := range cases {
+		got, err := Doc(topic, dir)
+		if err != nil || !strings.Contains(got, want) {
+			t.Errorf("doc %q: want %q in:\n%s (err %v)", topic, want, got, err)
+		}
+	}
+	if _, err := Doc("sql_lod", dir); err == nil || !strings.Contains(err.Error(), "did you mean sql_load") {
+		t.Errorf("unknown topic: %v", err)
 	}
 }

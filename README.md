@@ -27,7 +27,7 @@ around unmodified for reference.
 | Anonymous functions (`x gives x + 1`) + sentence-style calls (`nums process f`) | Done |
 | For-each loops (`[loop][x in nums]`) | Done |
 | `+`/`-` on lists, sets, maps | Done |
-| Standard library: data (`process`, `keep`, `copy`) | Done |
+| Standard library: data (`process`, `keep`, `copy`, `table`, `table_read`, `table_write`) | Done |
 | Standard library: system (`args`, `exit`, `env`, `scriptFolder`, `contents`, `exists`/`isFile`/`isFolder`) | Done |
 | Standard library: strings (`find`, `substring`, `isinstring`, `join`) | Done |
 | Assembled types (`assemble Order [item, qty]`, `qty of o`) | Done |
@@ -36,7 +36,9 @@ around unmodified for reference.
 | Standard library: strings | Done |
 | Standard library: math (`import math`) | Done |
 | Standard library: time (`import time`) | Done |
-| Standard library: HTTP | Not started |
+| Standard library: JSON (`import json`) | Done |
+| Standard library: HTTP (`import http`) | Done |
+| Standard library: SQL — SQLite read and write, joins, groups, window functions, JSON, triggers, transactions, CSV in and out; PostgreSQL and MySQL through the same functions (`import sql`) | Done |
 | Imports (per-module scope, `import m [a, b]`, `m name[...]` on clash) | Done |
 | File management (read/write/append/directory) | Done |
 | Automated tests (`go test ./...`) | Done |

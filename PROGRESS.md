@@ -592,3 +592,54 @@ safe [end]
   `go test ./sqlite -update` rebuilds them with a standard sqlite3.
 - The http "connection refused" test uses a port that was just closed
   instead of port 1, which a firewall could filter into a timeout.
+
+## 2026-10-05: SQL writing, joins and groups; tables and table files
+
+- `data`: `table[x]` lays out rows (lists of maps or assembled values,
+  plain lists, one map) as a text table; `import data` defines
+  `tablerows = 20` (the user picked a default variable); `table[x, n]`
+  for one call. `table_write[path, x]` / `table_read[path]` save and read
+  the same layout as `.csv`, `.tsv` or `.txt` (write only); new error
+  kind `csv`.
+- `sql`: `sql_run` (changes, returns the row count), `sql_create` (new
+  database file); `sql_query` also runs changes with `RETURNING`; a column
+  name used twice gets `:1`. Files in and out (the user's names):
+  `sql_save` (query to file), `sql_load`, `sql_update`, `sql_delete`,
+  `sql_upsert` (by a key column), each file all or nothing (one
+  statement through `sqlite.ExecRows`).
+- `sqlite/` now writes: table and index B-trees (insert, delete, split,
+  merge, overflow pages, free list), the rollback journal in SQLite's own
+  format (crash recovery both ways with the real SQLite), SQLite's file
+  locks, constraints (NOT NULL, UNIQUE, PRIMARY KEY, CHECK, STRICT,
+  AUTOINCREMENT, ON CONFLICT, upsert), CREATE/DROP/ALTER, views,
+  transactions. Queries gained joins (inner, left, right, full, cross,
+  natural, USING), GROUP BY/HAVING, subqueries (correlated too), UNION/
+  INTERSECT/EXCEPT, WITH (recursive), VALUES, collations, GLOB, lookups by
+  rowid and index, and the date, printf and math functions.
+- Checked against real SQLite: 122 queries and 16 function queries,
+  10 write scripts (rows, types, schema text, errors), PRAGMA
+  integrity_check on every file Turtle writes, random changes against a
+  model, files with Apple's 12 reserved bytes per page.
+- `testdata/sql/`: twelve Turtle programs, one per topic, with CSV data;
+  run by `TestSQLExamples`.
+
+## 2026-10-06: the rest of SQL; PostgreSQL and MySQL (v0.9.142)
+
+- `sqlite/` gained window functions (frames, EXCLUDE, named windows),
+  JSON1 (`->`, `->>`, `json_each`, `json_tree`), table-valued functions
+  (`generate_series`, `pragma_*`), triggers (INSTEAD OF on views, RAISE),
+  savepoints, foreign keys (PRAGMA foreign_keys), PRAGMAs, generated
+  columns, expression indexes, VACUUM / VACUUM INTO, read-only ATTACH,
+  reading WITHOUT ROWID tables, WAL mode, `UPDATE ... FROM`. Faster: a
+  byte-level B-tree search, a page cache and hash joins.
+- `postgres/` and `mysql/`: clients written from scratch (wire
+  protocols, SCRAM / MD5 / caching_sha2 / sha256 / native logins, TLS,
+  prepared statements). `sql_open` picks the driver by address
+  (`postgres://`, `mysql://`); every `sql_` function works on all three
+  through `evaluator/sqllib.go`'s `sqlConn` interface.
+- `turtle doc [topic]`: the standard library's documentation, and the
+  `//` comments above a `.t` file's functions.
+- Tests: more sqlite3 comparisons (queries, write scripts, crash and
+  lock tests), server tests gated by `TURTLE_PG_URL` /
+  `TURTLE_MYSQL_URL`, which CI now sets with service containers;
+  `testdata/sql/13_servers.t`.

@@ -527,7 +527,7 @@ func (it *Interpreter) callImported(im *object.Import, name string, args []objec
 	if fn, ok := im.Module.Function(name); ok {
 		return it.callFunction(fn, name, args)
 	}
-	return it.callBuiltin(im.Module.Name, name, args)
+	return it.callBuiltin(im.Module.Name, name, args, env)
 }
 
 // resolveImported finds the import that provides function name to an
@@ -580,8 +580,9 @@ func importedFunctionValue(im *object.Import, name string) object.Object {
 
 // callBuiltin runs function name from builtin module once resolution has
 // already confirmed it's imported. Dispatch is by module first, so two
-// builtin modules can each have a function of the same name.
-func (it *Interpreter) callBuiltin(module, name string, args []object.Object) object.Object {
+// builtin modules can each have a function of the same name. env is the
+// caller's scope, for builtins that read a setting from it (tablerows).
+func (it *Interpreter) callBuiltin(module, name string, args []object.Object, env *object.Environment) object.Object {
 	switch module {
 	case "time":
 		return it.callTime(name, args)
@@ -593,6 +594,12 @@ func (it *Interpreter) callBuiltin(module, name string, args []object.Object) ob
 			return it.dataKeep(args)
 		case "copy":
 			return dataCopy(args)
+		case "table":
+			return dataTable(args, env)
+		case "table_read":
+			return it.tableRead(args)
+		case "table_write":
+			return it.tableWrite(args)
 		}
 	case "system":
 		return it.callSystem(name, args)

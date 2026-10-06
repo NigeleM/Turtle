@@ -219,6 +219,12 @@ func (r *runner) callFunc(c *callExpr) Value {
 		}
 		return best
 	}
+	if v, ok := r.callMore(c.name, args); ok {
+		return v
+	}
+	if v, ok := r.callJSON(c, args); ok {
+		return v
+	}
 	fail("SQL: no such function: %s", c.name)
 	return nil
 }

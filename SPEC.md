@@ -142,10 +142,19 @@ sum = plus[1, 2]
   to glue the collection's display form to text. `none + none` is `none`;
   `none` plus anything else is a `type` error (was `"x=" + none` →
   `"x=none"`).
-- **(new)** `sql` library: `sql_open`, `sql_query` (rows as a list of
-  maps, `?` placeholders), `sql_tables`, `sql_close`, over a SQLite reader
-  written from scratch (`sqlite/` package); error kind `sql`. Reading only
-  for now.
+- **(new)** `sql` library: `sql_open`, `sql_create`, `sql_query` (rows as
+  a list of maps, `?` placeholders), `sql_run` (changes; the number of
+  rows changed), `sql_tables`, `sql_save`/`sql_load`/`sql_update`/`sql_delete`/`sql_upsert`
+  (files in and out), `sql_close`, over SQLite written
+  from scratch (`sqlite/` package): reading and writing, joins, groups,
+  subqueries, window functions, JSON, triggers, transactions, crash-safe
+  journal, file locks shared with other SQLite programs. The same
+  functions reach PostgreSQL and MySQL servers (`postgres/`, `mysql/`
+  packages, also from scratch) when `sql_open` gets a `postgres://` or
+  `mysql://` address. Error kind `sql`.
+- **(new)** `data`'s `table[x]` (rows as a text table, `tablerows`) and
+  `table_write`/`table_read` (.csv, .tsv, .txt table files); error kind
+  `csv`.
 - **(new)** `http` library: `http_get`, `http_post`, `http_request`
   (standard library only); a map or list body is sent as JSON; error kind
   `http`.

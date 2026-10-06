@@ -1,0 +1,44 @@
+// 02_joins.t: rows from several tables at once: JOIN, LEFT JOIN,
+// RIGHT JOIN, USING, and a join of three tables.
+import sql
+import data
+import system [scriptFolder]
+import lib/verify [check, finish]
+import lib/shop [make_shop, drop_shop]
+
+path = "{scriptFolder[]}/work02.db"
+db = make_shop[path]
+
+// ---------- JOIN: only rows that have a partner ----------
+rows = sql_query[db, "SELECT b.title, a.name FROM books b JOIN authors a ON a.id = b.author_id ORDER BY b.title"]
+show table[rows] .
+check["every book has its author", length of rows, 6]
+check["first", rows at get[0], map ["title": "Dune", "name": "Frank Herbert"]]
+
+// ---------- LEFT JOIN: every author, with or without books ----------
+rows = sql_query[db, "SELECT a.name, b.title FROM authors a LEFT JOIN books b ON b.author_id = a.id ORDER BY a.id, b.title"]
+show table[rows] .
+last = rows at get[length of rows - 1]
+check["an author with no books gets none", last, map ["name": "Toni Morrison", "title": none]]
+
+// ---------- RIGHT JOIN: the same, written from the other side ----------
+rows = sql_query[db, "SELECT a.name, b.title FROM books b RIGHT JOIN authors a ON a.id = b.author_id WHERE b.title IS NULL"]
+check["right join", rows, list [map ["name": "Toni Morrison", "title": none]]]
+
+// ---------- USING: join on a column both tables call the same ----------
+rows = sql_query[db, "SELECT sku, title, qty, day FROM sales JOIN books USING (sku) WHERE qty >= 3 ORDER BY day"]
+show table[rows] .
+check["using", length of rows, 3]
+
+// ---------- three tables: who sold what, where ----------
+rows = sql_query[db, "SELECT a.name AS author, b.title, s.region, s.qty FROM sales s JOIN books b ON b.sku = s.sku JOIN authors a ON a.id = b.author_id WHERE s.region = 'north' ORDER BY s.id"]
+show table[rows] .
+check["three tables", length of rows, 4]
+check["three tables, first", rows at get[0] at get["author"], "Frank Herbert"]
+
+// ---------- a book that never sold: LEFT JOIN and IS NULL ----------
+rows = sql_query[db, "SELECT b.title FROM books b LEFT JOIN sales s ON s.sku = b.sku WHERE s.id IS NULL"]
+check["never sold", rows, list [map ["title": "Gone Girl"]]]
+
+drop_shop[db, path]
+finish[]

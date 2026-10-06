@@ -335,6 +335,17 @@ safe
 handle [sql] err .
 safe [end]
 check["sql error kind", kind of err, "sql"]
+shown = table[sql_query[shelf, "SELECT id, title FROM books ORDER BY id"], 2]
+check["sql table", shown at split["\n"], list ["id  title", "--  -----------", " 1  Dune", " 2  The Go Book", "... 3 more rows"]]
+check["tablerows default", tablerows, 20]
+check["sql save", sql_save[shelf, "SELECT title FROM books WHERE price < ? ORDER BY price", "everything_out.csv", list [1000]], 3]
+[read] everything_out.csv to csvlines [end]
+check["sql save text", csvlines at get[1], "Café 🐢"]
+check["table read", table_read["everything_out.csv"], cheap]
+check["table write", table_write["everything_out.tsv", cheap], 3]
+check["table round trip", table_read["everything_out.tsv"], cheap]
+erase["everything_out.csv"]
+erase["everything_out.tsv"]
 sql_close[shelf]
 show "sql ok" .
 
@@ -352,6 +363,9 @@ check["exists", out exists, true]
 check["isFile", isFile[out], true]
 check["contents", contents[] at find["everything.t"], true]
 check["args", args[], list ["first", "second arg"]]
+erase[out]
+erase["everything_out.json"]
+check["erase", exists[out] || exists["everything_out.json"], false]
 check["env missing", env["TURTLE_SURELY_UNSET_123"], none]
 show "files system ok" .
 

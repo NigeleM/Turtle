@@ -509,6 +509,7 @@ safe [end]
 | `date`   | text that isn't a date, or a date that doesn't exist (`time` library) |
 | `http`   | a web request that failed, or got a 4xx/5xx status (`http` library) |
 | `sql`    | a bad query or a database problem (`sql` library)          |
+| `csv`    | a `.csv` or `.tsv` file that isn't well formed (`table_read`, `sql_load`, ...) |
 | `custom` | your own, from `fail`                                    |
 
 An error of a kind that isn't listed isn't handled: it goes on to an
@@ -756,10 +757,17 @@ is a fatal error that shows the chain.
   [`stdlib.md`](stdlib.md#system-library)).
 - `import strings` provides `find`, `substring`, `isinstring` and `join`
   (see [`stdlib.md`](stdlib.md#strings-library)).
+- `import sql` provides `sql_open`, `sql_create`, `sql_query`, `sql_run`,
+  `sql_tables`, `sql_close`, and moves files in and out of a database
+  with `sql_save`, `sql_load`, `sql_update`, `sql_delete`, `sql_upsert`
+  (see [`stdlib.md`](stdlib.md#sql-library)).
 - `import data` provides `process`, `keep`, and `copy`, which apply a
-  function across a list, set, or map (see
-  [`stdlib.md`](stdlib.md#data-library)). They're ordinary functions,
-  usually called sentence-style: `nums process x gives x + 1 .`
+  function across a list, set, or map, `table`, which lays rows out as a
+  text table, and `table_write` / `table_read`, which save and read
+  `.csv`, `.tsv` and `.txt` table files (see
+  [`stdlib.md`](stdlib.md#data-library)). They're
+  ordinary functions, usually called sentence-style:
+  `nums process x gives x + 1 .`, `show table[rows] .`
 
 Using a math method or `now`/`sleep` without the matching import is a fatal
 error naming exactly which import is missing.
@@ -783,3 +791,33 @@ sys <rest of line>
 `sys` must be the first word of the statement. Everything after it,
 verbatim to end of line, runs through a shell with inherited stdin/stdout/
 stderr.
+
+## Documentation: `turtle doc`
+
+`turtle doc` shows what every library function takes and gives back:
+
+```sh
+turtle doc                 # every library and its functions
+turtle doc sql             # one library, every function in full
+turtle doc sql_update   # one function
+turtle doc lib/shop.t      # the functions of your own file
+```
+
+Document your own functions the way Go does: `//` lines directly above a
+`def` (or `assemble`) describe it, and the `//` lines at the very top of
+a file describe the file. Say what each parameter is and what the
+function gives back:
+
+```
+// shop.t: helpers for the bookshop database.
+
+// add_tax adds rate percent to an amount, rounded to the cent.
+// cents is a whole number of cents; rate is a percent, like 8.
+// Gives back the new amount in cents.
+def add_tax[cents, rate]
+    ...
+def [end]
+```
+
+`turtle doc shop.t` then lists `add_tax[cents, rate]` with those lines.
+A function without them is listed as having no description.

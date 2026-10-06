@@ -157,6 +157,9 @@ func (it *Interpreter) evalImport(s *ast.ImportStatement, env *object.Environmen
 		}
 	}
 	env.AddImport(mod, s.Names)
+	if im, _ := env.FindImport("data"); im != nil && im.Module == builtinModules["data"] && im.Allows("table") {
+		defineTableRows(env)
+	}
 }
 
 func (it *Interpreter) loadModule(name string) *object.Module {

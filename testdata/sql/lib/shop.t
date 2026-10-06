@@ -1,0 +1,29 @@
+// lib/shop.t: a small bookshop database for the examples, made fresh
+// and filled from the CSV files in data/: authors, books, and sales.
+import sql
+import data
+import system [scriptFolder, erase, exists]
+
+// make_shop makes a new database at path (replacing any file there),
+// with three tables loaded from data/: authors, books and sales. It
+// gives back the open database.
+def make_shop[path]
+    if ] exists[path] [
+        erase[path]
+    if [end]
+    db = sql_create[path]
+    sql_run[db, "CREATE TABLE authors (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, country TEXT)"]
+    sql_run[db, "CREATE TABLE books (sku TEXT PRIMARY KEY, title TEXT NOT NULL, author_id INTEGER REFERENCES authors (id), price INTEGER NOT NULL CHECK (price > 0), stock INTEGER NOT NULL DEFAULT 0, published TEXT)"]
+    sql_run[db, "CREATE TABLE sales (id INTEGER PRIMARY KEY, sku TEXT NOT NULL, day TEXT NOT NULL, qty INTEGER NOT NULL, region TEXT)"]
+    here = scriptFolder[]
+    sql_load[db, "authors", "{here}/data/authors.csv"]
+    sql_load[db, "books", "{here}/data/books.csv"]
+    sql_load[db, "sales", "{here}/data/sales.csv"]
+    return db
+def [end]
+
+// drop_shop closes the database and removes its file.
+def drop_shop[db, path]
+    sql_close[db]
+    erase[path]
+def [end]

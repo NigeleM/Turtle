@@ -4,6 +4,11 @@ Everything built into the language beyond core syntax: data structure
 methods, file I/O, `sys`, and `import`. See [`reference.md`](reference.md)
 for the statement/expression grammar these use.
 
+
+**From the terminal:** `turtle doc` lists every library function;
+`turtle doc sql` shows one library in full, `turtle doc sql_update`
+one function: what each argument is, what it gives back, and an example.
+
 ## Data structures
 
 Three composite types: `list` (ordered, duplicates allowed), `set`
@@ -270,9 +275,11 @@ Plain `<result> is <receiver> .` (no `at`) is just assignment/aliasing —
 
 ## Data library
 
-`import data` (or `import data [process, keep, copy]`) provides three
-functions. `process` and `keep` change the collection **in place** and
-also return it. Use `copy` first to keep the original.
+`import data` (or `import data [process, keep, copy, table, table_read,
+table_write]`) provides six functions. `process` and `keep` change the
+collection **in place** and also return it. Use `copy` first to keep the
+original. `table`, `table_read` and `table_write` are described
+[below](#tables).
 
 | Function | Args | Effect |
 |---|---|---|
@@ -311,6 +318,101 @@ gives [end]
 These are ordinary functions, so you can write your own in a `.t` library
 and call them the same sentence style. See
 [`reference.md`](reference.md#sentence-style-calls).
+
+### Tables
+
+`show` prints a value on one line. `table[x]` returns the same value laid
+out as a text table, one row per line, so `show table[x] .` is easy to
+read. It works on:
+
+| Value | Rows | Columns |
+|---|---|---|
+| list of maps (what `sql_query` returns) | one per map | one per key |
+| list of assembled values | one per value | one per field |
+| list of lists | one per inner list | `0`, `1`, `2`, ... |
+| any other list or set | one per element | `#` (counting from 0) and `value` |
+| one map | one per entry | `key` and `value` |
+| one assembled value | one per field | `field` and `value` |
+
+```
+import sql
+import data
+
+shelf = sql_open["books.db"]
+show table[sql_query[shelf, "SELECT * FROM books"]] .
+```
+
+```
+id  sku  title        price  rating  added
+--  ---  -----------  -----  ------  ----------
+ 1  B1   Dune           950     4.5  2026-01-15
+ 2  B2   The Go Book   3000    none  2026-02-01
+ 3  B3   Gone Girl     1225     3.9  2026-02-20
+```
+
+- Columns appear in the order their keys or fields are first seen, so
+  rows with different keys still line up. A row without a column's key
+  leaves the cell blank; a value of `none` shows as `none`.
+- Columns of numbers are right-aligned, everything else left-aligned.
+  Text is shown without quotes; a line break inside a value shows as `\n`
+  so the row stays on one line. Wide characters (emoji, CJK) are counted
+  as two columns so the table still lines up.
+- An empty list or set gives `no rows`.
+- The result is a string, so it can also be written to a file:
+  `report = table[rows]`.
+
+**How many rows.** `import data` also creates a variable, `tablerows`,
+set to `20`. A table shows at most that many rows, then a line such as
+`... 480 more rows`. Change it like any variable:
+
+```
+tablerows = 50        // up to 50 rows from now on
+tablerows = none      // every row
+show table[rows, 5] . // at most 5 rows, for this table only
+```
+
+`tablerows` belongs to the file that imported `data`, and setting it
+inside a function only changes it for that call, like any other
+variable. If the file already has a variable called `tablerows` before
+`import data`, it's kept.
+
+### Table files
+
+`table_write[path, x]` saves anything `table[x]` can show, and
+`table_read[path]` reads it back as a list of maps, one per line, keyed
+by the header line's names: the shape `sql_query` gives. The file name's
+extension picks the format:
+
+| Extension | Format | `table_read` |
+|---|---|---|
+| `.csv` (or any other) | comma-separated values | yes |
+| `.tsv` | tab-separated values | yes |
+| `.txt` | the aligned table `show table[x] .` prints, every row | no (it's for people) |
+
+```
+import data
+
+assemble Order [item, qty, price]
+orders = list [Order["pen", 3, 1.5], Order["mug", 2, 8.0]]
+table_write["orders.csv", orders]       // item,qty,price / pen,3,1.5 / mug,2,8.0
+rows = table_read["orders.csv"]
+show rows at get[0] .                   // { "item": "pen", "qty": "3", "price": "1.5" }
+```
+
+- `table_write` returns how many rows it wrote and replaces the file if
+  it's there. The columns are the ones `table[x]` shows (fields, keys,
+  `#` and `value` for a plain list, ...).
+- Values read back are text, as in the file (`"3"`): `change` converts
+  them, and a database column declared `INTEGER` or `REAL` stores them as
+  numbers. An empty cell is `none`, and `none` is written as an empty
+  cell, so files round-trip.
+- A value with the separator, a quote or a line break is put in quotes,
+  with quotes doubled (`"say ""hi"""`), the standard rule (RFC 4180).
+  Blank lines are skipped, and a byte order mark at the start (Excel
+  writes one) is ignored.
+- A line with fewer values than the header gets `none` for the rest; one
+  with more, or broken quotes, is an error of kind `csv`. A missing file
+  is kind `file`.
 
 ## JSON library
 
@@ -413,27 +515,39 @@ if [end]
 
 ## SQL library
 
-`import sql` reads databases, through drivers written from scratch for
-Turtle (no third-party code). Today: SQLite files. PostgreSQL is planned,
-behind the same functions.
+`import sql` works with SQLite files and with PostgreSQL and MySQL (or
+MariaDB) servers, through the same functions; the address given to
+`sql_open` picks which. Every driver is written from scratch for Turtle
+(no third-party code).
+
+For SQLite, that's the file format, B-trees, the journal that makes
+changes crash-safe, file locking, and the SQL engine. The files are
+ordinary SQLite files: the `sqlite3` tool, DB Browser, Python and every
+other SQLite program can open them, and Turtle can open theirs. For the
+servers, it's their network protocols, logins and TLS; the server runs
+the SQL (see [Servers](#servers-postgresql-and-mysql)).
 
 | Function | Args | Returns |
 |---|---|---|
-| `sql_open[target]` | a SQLite file path (or `"sqlite:path"`) | a database value |
-| `sql_query[db, query [, values]]` | database, a `SELECT`, and a list of values for its `?` placeholders | a list of maps, one per row, column name → value |
+| `sql_open[address]` | a SQLite file path (or `"sqlite:path"`), or a server address `postgres://...` / `mysql://...` | a database value |
+| `sql_create[path]` | a path where no file is yet | a new, empty SQLite database |
+| `sql_query[db, query [, values]]` | database, a `SELECT` (or a change with `RETURNING`), and a list of values for its `?` placeholders | a list of maps, one per row, column name → value |
+| `sql_run[db, statement [, values]]` | database, a statement that changes something, and its `?` values | how many rows it inserted, updated or deleted |
 | `sql_tables[db]` | database | a list of its table names |
-| `sql_close[db]` | database | `none`; closing twice is fine |
+| `sql_save`, `sql_load`, `sql_update`, `sql_delete`, `sql_upsert` | see [Files](#files-csv-in-and-out) | how many records |
+| `sql_close[db]` | database | `none`; closing twice is fine; an unfinished transaction is rolled back |
 
 ```
 import sql
+import data
 
-db = sql_open["shop.db"]
-rows = sql_query[db, "SELECT title, price FROM books WHERE price < ? ORDER BY price", list [1000]]
-[loop][row in rows]
-    show row at get["title"], ": ", row at get["price"] .
-[loop][end]
+db = sql_create["shop.db"]
+sql_run[db, "CREATE TABLE books (id INTEGER PRIMARY KEY, title TEXT NOT NULL, price INTEGER)"]
+sql_run[db, "INSERT INTO books (title, price) VALUES (?, ?)", list ["Dune", 950]]
+n = sql_run[db, "UPDATE books SET price = price + 50 WHERE price < ?", list [1000]]
 
-n = sql_query[db, "SELECT count(*) AS n FROM orders"]
+rows = sql_query[db, "SELECT title, price FROM books ORDER BY price"]
+show table[rows] .
 sql_close[db]
 ```
 
@@ -441,23 +555,255 @@ sql_close[db]
 integers, floats and text; a BLOB comes back as text. `?` values can be
 integers, floats, text, booleans (1/0), `none` (`NULL`) and dates (as
 `2026-10-03 14:05:00` text). Always pass values as `?` placeholders rather
-than building the query with `+`, so a value can never change the query.
+than building the statement with `+` or `{ }`, so a value can never change
+the statement. Text going into an `INTEGER` or `REAL` column becomes a
+number when it looks like one (`"950"` → `950`), as in SQLite; that's
+what makes CSV imports work.
 
-**What SQL works today** (reading only): `SELECT` with `DISTINCT`,
-expressions and `AS` names, `*`, `FROM` one table (with an alias),
-`WHERE`, `ORDER BY` (columns, expressions, result names or positions,
-`ASC`/`DESC`), `LIMIT`/`OFFSET`; operators `= != < > <= >= AND OR NOT IS
-[NOT] NULL IN BETWEEN LIKE + - * / % ||`; `CASE` and `CAST`; the
-aggregates `count sum total avg min max group_concat` over the whole
-result; and `abs coalesce ifnull nullif iif length lower upper substr
-trim ltrim rtrim replace instr round typeof hex min max`. Answers match
-real SQLite, including its type rules (a `TEXT` column holding `'5'`
-equals `5`).
+**Several statements at once.** `sql_run` runs statements separated by
+`;` in order, when no `?` values are given:
+`sql_run[db, "CREATE TABLE a (x); CREATE TABLE b (y)"]`.
 
-**Not yet:** writing (`INSERT`, `UPDATE`, `DELETE`, `CREATE TABLE`,
-creating a new file) is the next step; then `GROUP BY`, joins, and
-subqueries. A database in WAL mode with unsaved changes is refused rather
-than read stale.
+**Looking at results.** `show rows .` prints them on one line; with
+`import data`, `show table[rows] .` prints one row per line (see
+[Tables](#tables)). When a column name appears twice (`SELECT *` over a
+join), the second one is named `id:1`, the third `id:2`.
+
+### Changing data
+
+Everything SQLite's own SQL can change:
+
+- `INSERT INTO t (cols) VALUES (...), (...)`, `INSERT ... SELECT ...`,
+  `INSERT ... DEFAULT VALUES`, `REPLACE INTO`, and `INSERT OR IGNORE` /
+  `OR REPLACE` / `OR FAIL` / `OR ABORT` / `OR ROLLBACK`.
+- Upsert: `INSERT ... ON CONFLICT (col) DO UPDATE SET qty = qty + excluded.qty`
+  (with an optional `WHERE`), or `ON CONFLICT DO NOTHING`.
+- `UPDATE t SET a = ..., b = ... WHERE ...` (`OR IGNORE` / `OR REPLACE` too)
+  and `DELETE FROM t WHERE ...`.
+- `RETURNING` after any of them gives the changed rows back; run such a
+  statement with `sql_query`:
+  `rows = sql_query[db, "INSERT INTO t (v) VALUES ('a') RETURNING id"]`.
+- `WITH ...` before `INSERT`, `UPDATE` or `DELETE`.
+- `UPDATE ... FROM` to change rows using another table:
+  `UPDATE stock SET qty = qty + d.n FROM delivery AS d WHERE d.sku = stock.sku`.
+
+**Constraints** are enforced, and a statement that breaks one changes
+nothing at all (an error of kind `sql`): `NOT NULL`, `UNIQUE`,
+`PRIMARY KEY`, `CHECK`, `DEFAULT` (including `CURRENT_TIMESTAMP`),
+`COLLATE NOCASE`, `INTEGER PRIMARY KEY` (the row's id, filled in for you),
+`AUTOINCREMENT`, and `STRICT` tables. Foreign keys (`REFERENCES`, with
+`ON DELETE CASCADE / SET NULL / SET DEFAULT / RESTRICT`) are enforced
+after `PRAGMA foreign_keys = ON`; as in SQLite, they're off until then.
+
+```
+safe
+    sql_run[db, "INSERT INTO books (title) VALUES (NULL)"]
+handle [sql] e .
+    show message of e .        // sql_run: NOT NULL constraint failed: books.title
+safe [end]
+```
+
+### Transactions
+
+Each statement is saved on its own, and is all-or-nothing. To save
+several together, or to undo them:
+
+```
+sql_run[db, "BEGIN"]
+sql_run[db, "UPDATE accounts SET balance = balance - 30 WHERE id = 1"]
+sql_run[db, "UPDATE accounts SET balance = balance + 30 WHERE id = 2"]
+sql_run[db, "COMMIT"]          // or ROLLBACK to undo both
+```
+
+A statement that fails inside `BEGIN ... COMMIT` is undone by itself and
+the transaction stays open: the program decides whether to `COMMIT` what
+worked or `ROLLBACK` everything. A program that ends (or crashes) before
+`COMMIT` leaves the file as it was.
+
+Saving waits until the disk has the data, so many separate statements
+are slow (a few milliseconds each); the same statements inside one
+`BEGIN ... COMMIT` are written together, thousands per second.
+
+**Crash safety.** Before changing the file, Turtle writes the original
+pages to a journal (`shop.db-journal`, SQLite's own format) and makes it
+durable. If the program or the computer stops halfway, the next open
+(by Turtle or any SQLite program) puts the original pages back. Turtle
+also repairs files that another SQLite program left half-written.
+
+**Other programs.** Turtle locks the file the way SQLite does, so it can
+be used at the same time as `sqlite3` or another program: readers share,
+one writer at a time. A program that has to wait more than 5 seconds gets
+an error of kind `sql` ("database is locked").
+
+### Changing the schema
+
+- `CREATE TABLE` (with `IF NOT EXISTS`), `CREATE TABLE ... AS SELECT`.
+- `CREATE [UNIQUE] INDEX` (on columns, with `COLLATE` and `DESC`, and
+  partial indexes with `WHERE`).
+- `CREATE VIEW`.
+- `ALTER TABLE t RENAME TO new` (views that use it follow), `ADD COLUMN`,
+  `RENAME COLUMN a TO b`, `DROP COLUMN`.
+- `DROP TABLE`, `DROP INDEX`, `DROP VIEW` (with `IF EXISTS`).
+
+Indexes are kept up to date by every change, and used to find rows fast:
+`WHERE id = ?`, `WHERE sku = ?` on an indexed column, and joins on an id
+or an indexed column look rows up instead of reading the whole table.
+
+### Queries
+
+`SELECT` with `DISTINCT`, expressions and `AS` names, `*` and `t.*`;
+`FROM` tables, views, subqueries and `WITH` tables; `JOIN`, `LEFT JOIN`,
+`RIGHT JOIN`, `FULL JOIN`, `CROSS JOIN`, `NATURAL JOIN`, with `ON` or
+`USING`; `WHERE`; `GROUP BY` and `HAVING`; `UNION`, `UNION ALL`,
+`INTERSECT`, `EXCEPT`; `ORDER BY` (columns, expressions, result names or
+positions, `ASC`/`DESC`, `NULLS FIRST`/`NULLS LAST`, `COLLATE`);
+`LIMIT`/`OFFSET`; `WITH` and `WITH RECURSIVE`; `VALUES (...)`.
+
+Subqueries work as values `(SELECT max(price) FROM books)`, in
+`IN (SELECT ...)` and `EXISTS (SELECT ...)`, as tables in `FROM`, and may
+use columns of the query around them.
+
+Operators: `= == != <> < > <= >= AND OR NOT + - * / % || & | << >> ~`,
+`IS [NOT]`, `IS [NOT] DISTINCT FROM`, `IS [NOT] NULL`, `[NOT] IN`,
+`[NOT] BETWEEN`, `[NOT] LIKE ... [ESCAPE]`, `[NOT] GLOB`, `CASE`, `CAST`,
+and `COLLATE` (`BINARY`, `NOCASE`, `RTRIM`).
+
+Aggregates (with `DISTINCT`, and `FILTER (WHERE ...)`): `count sum total
+avg min max group_concat string_agg`.
+
+Functions:
+
+| Kind | Functions |
+|---|---|
+| text | `length lower upper substr trim ltrim rtrim replace instr printf format quote char unicode hex unhex concat concat_ws octet_length like glob` |
+| numbers | `abs round sign min max random ceil floor trunc sqrt pow exp ln log log2 log10 mod pi sin cos tan asin acos atan atan2 sinh cosh tanh degrees radians` |
+| dates | `date time datetime julianday unixepoch strftime`, with modifiers such as `'+1 month'`, `'start of month'`, `'weekday 0'`, `'unixepoch'`, `'localtime'`; `CURRENT_DATE`, `CURRENT_TIME`, `CURRENT_TIMESTAMP` |
+| values | `coalesce ifnull nullif iif typeof zeroblob randomblob likely unlikely` |
+| the database | `last_insert_rowid changes total_changes sqlite_version` |
+
+Answers match real SQLite, including its type rules (a `TEXT` column
+holding `'5'` equals `5`) and its date arithmetic (`'2026-01-31'` plus one
+month is `2026-03-03`).
+
+### Files: CSV in and out
+
+These move rows straight between a file and the database, in the same
+files as the data library's [table files](#table-files): `sql_save`
+writes `.csv`, `.tsv` or `.txt`; the others read `.csv` or `.tsv`. Each returns how many records it wrote or changed. A file is
+**all or nothing**: if one line is refused (a duplicate key, a `CHECK`,
+a missing `NOT NULL` value), no line of that file is kept, even inside
+`BEGIN ... COMMIT`.
+
+| Function | Does |
+|---|---|
+| `sql_save[db, query, path [, values]]` | runs the query and writes its rows to the file (the header too, even with no rows) |
+| `sql_load[db, table, path]` | adds a record per line; the header names the columns |
+| `sql_update[db, table, key, path]` | for each line, changes the record whose `key` column matches, setting the file's other columns |
+| `sql_delete[db, table, key, path]` | removes the records whose `key` matches a line (other columns are ignored) |
+| `sql_upsert[db, table, key, path]` | adds the lines whose key is new and changes the ones already there (`key` must be `UNIQUE` or the `PRIMARY KEY`) |
+
+```
+import sql
+
+db = sql_open["shop.db"]
+sql_save[db, "SELECT sku, title, price FROM books ORDER BY sku", "books.csv"]
+sql_save[db, "SELECT * FROM books WHERE price < ?", "cheap.tsv", list [1000]]
+
+sql_load[db, "books", "new_books.csv"]
+n = sql_update[db, "books", "sku", "price_changes.csv"]    // sku,price
+sql_delete[db, "books", "sku", "discontinued.csv"]         // sku
+sql_upsert[db, "books", "sku", "restock.csv"]
+```
+
+```
+sku,title,price
+B1,Dune,950
+B5,"I, Robot",650
+```
+
+- Values from the file are text; columns declared `INTEGER` or `REAL`
+  store them as numbers (`"950"` → `950`), as SQLite does. An empty cell
+  is `NULL`, so it sets the column to `NULL` in `sql_update`.
+- A line whose key isn't in the table changes nothing in `sql_update`
+  and `sql_delete`; compare the count with the file's lines, or look the
+  keys up (see `testdata/sql/11_csv_import.t`).
+- Each file runs as one statement, saved in one write, so a file of
+  thousands of lines is fast.
+- Table and column names go into the SQL quoted, so any name works and
+  none can change the statement.
+
+### More of SQLite
+
+- **Window functions**: `row_number rank dense_rank percent_rank
+  cume_dist ntile lag lead first_value last_value nth_value`, and every
+  aggregate with `OVER (PARTITION BY ... ORDER BY ...)`, frames (`ROWS`,
+  `RANGE`, `GROUPS`, `EXCLUDE`) and named `WINDOW`s.
+- **JSON**: `json json_extract json_object json_array json_set
+  json_insert json_replace json_remove json_patch json_type json_valid
+  json_group_array json_group_object` and more, the `->` and `->>`
+  operators, and `json_each` / `json_tree` as tables. Also
+  `generate_series(1, 10)` as a table.
+- **Triggers**: `CREATE TRIGGER` (`BEFORE`, `AFTER`, `INSTEAD OF` on
+  views, `FOR EACH ROW`, `WHEN`, `UPDATE OF`), `RAISE(...)`.
+- **Savepoints**: `SAVEPOINT name`, `RELEASE name`, `ROLLBACK TO name`.
+- **Generated columns** (`AS (price * qty) STORED` or `VIRTUAL`) and
+  indexes on expressions (`CREATE INDEX ... ON users (lower(email))`).
+- **PRAGMA**: `table_info`, `index_list`, `foreign_key_list`,
+  `foreign_keys`, `integrity_check`, `journal_mode` (`DELETE` or `WAL`),
+  `user_version` and others; also as tables
+  (`SELECT * FROM pragma_table_info('books')`).
+- **VACUUM** (and `VACUUM INTO 'copy.db'`), and **ATTACH** another
+  database file to read from it (`ATTACH 'old.db' AS old`).
+
+### Not yet
+
+Changing `WITHOUT ROWID` tables (they're read fine), virtual tables
+(`fts5` and others), and changing an attached database (it's read-only).
+Databases that use auto-vacuum or store text as UTF-16 can be read but
+not changed.
+
+### Servers: PostgreSQL and MySQL
+
+Give `sql_open` a server address instead of a file. Every other
+function is the same, including the CSV ones:
+
+```
+import sql
+import data
+
+db = sql_open["postgres://ann:secret@localhost:5432/shop"]
+// or: db = sql_open["mysql://ann:secret@localhost:3306/shop"]
+rows = sql_query[db, "SELECT title, price FROM books WHERE price < ?", list [1000]]
+show table[rows] .
+sql_upsert[db, "books", "sku", "restock.csv"]
+sql_close[db]
+```
+
+- **The server runs the SQL**, so it's the server's own dialect:
+  PostgreSQL's or MySQL's functions and types, not SQLite's. `?` marks
+  values for all three (Turtle turns them into PostgreSQL's `$1, $2`),
+  and values go to the server separately from the statement.
+- **Values**: integers, floats, text and `NULL` as for SQLite; a
+  server's `BOOLEAN` comes back as `true`/`false` (MySQL stores booleans
+  as `TINYINT`, so `1`/`0`); `DATE`, `TIMESTAMP` and `DATETIME` come
+  back as dates; `NUMERIC`/`DECIMAL` as integers when whole, floats
+  otherwise; `JSON` as text.
+- **Transactions**: `BEGIN`, `COMMIT`, `ROLLBACK` work as with SQLite.
+  The CSV functions are still all or nothing, inside a transaction or not.
+- **Logins**: PostgreSQL's `scram-sha-256`, `md5` and `password`;
+  MySQL's `caching_sha2_password`, `sha256_password` and
+  `mysql_native_password`. A wrong password is an error of kind `sql`.
+- **TLS** (encryption) is used when the server offers it. Options go
+  after `?` in the address: PostgreSQL `sslmode=disable`, `prefer` (the
+  default), `require` or `verify-full`, and `connect_timeout=10`; MySQL
+  `tls=false`, `preferred` (the default), `skip-verify` or `true`, and
+  `timeout=10`.
+- `sql_create` is for SQLite files only; make a server's database with
+  `CREATE DATABASE` (or its own tools), then `sql_open` it.
+- `sql_tables` lists the tables of the database (PostgreSQL: of the
+  current schema).
+- `testdata/sql/13_servers.t` runs the same program against both
+  servers (set `TURTLE_PG_URL` and `TURTLE_MYSQL_URL`).
 
 **Errors** are kind `sql` (`sql_query: no such table: shelves`); a missing
 file is kind `file`.
