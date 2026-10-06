@@ -83,6 +83,10 @@ type Parser struct {
 	// ordinary name.
 	randomImported bool
 
+	// logImported is set by "import log": a line starting with log and a
+	// value (or a level word) is a log statement (see parseLogStatement).
+	logImported bool
+
 	// testImported is set by "import test": check, verify and validate
 	// begin statements from then on (see testlib.go).
 	testImported bool
@@ -161,6 +165,8 @@ func (p *Parser) Enable(name string) {
 		p.randomImported = true
 	case "test":
 		p.testImported = true
+	case "log":
+		p.logImported = true
 	}
 }
 
@@ -412,6 +418,10 @@ func (p *Parser) parseIdentifierLeadStatement() ast.Statement {
 	if p.startsTestStatement() {
 		return p.parseTestStatement()
 	}
+	// "log ... ." after import log (log is otherwise an ordinary name).
+	if p.logImported && p.curToken.Literal == "log" && (p.peekTokenIs(token.WARN) || p.peekStartsArgument() && !p.peekTokenIs(token.LBRACKET)) {
+		return p.parseLogStatement()
+	}
 	// "put 99 to nums at 2 ." (put is otherwise an ordinary name).
 	if p.curToken.Literal == "put" && p.peekStartsArgument() && !p.peekTokenIs(token.LBRACKET) {
 		return p.parseAtIndexStatement(ast.OpPut)
@@ -508,6 +518,34 @@ func (p *Parser) parseIsStatement() ast.Statement {
 		return nil
 	}
 	return &ast.AssignStatement{Token: tok, Name: name, Value: receiver}
+}
+
+// logLevels are the words that can follow log.
+var logLevels = map[string]bool{"debug": true, "info": true, "warn": true, "error": true}
+
+// parseLogStatement parses "log [debug|info|warn|error] <expr>, ... .".
+func (p *Parser) parseLogStatement() ast.Statement {
+	tok := p.curToken
+	level := "info"
+	if (p.peekTokenIs(token.WARN) || p.peekTokenIs(token.IDENT) && logLevels[p.peekToken.Literal]) && p.peekN(2).Line == p.peekToken.Line && p.peekN(2).Type != token.PERIOD {
+		p.nextToken()
+		level = p.curToken.Literal
+	}
+	if p.peekTokenIs(token.PERIOD) {
+		p.errorf("log %s: say what to log, e.g. log \"started\" .", level)
+		return nil
+	}
+	p.nextToken()
+	exprs := []ast.Expression{p.parseExpression(LOWEST)}
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken()
+		p.nextToken()
+		exprs = append(exprs, p.parseExpression(LOWEST))
+	}
+	if !p.requirePeriod() {
+		return nil
+	}
+	return &ast.LogStatement{Token: tok, Level: level, Expressions: exprs}
 }
 
 func (p *Parser) parseShowStatement() ast.Statement {
@@ -638,6 +676,9 @@ func (p *Parser) parseImportStatement() ast.Statement {
 	}
 	if path == "test" {
 		p.testImported = true
+	}
+	if path == "log" {
+		p.logImported = true
 	}
 	// import lib/utils: a module in a subfolder, path segments joined by '/'.
 	for p.peekTokenIs(token.SLASH) && p.peekToken.Line == tok.Line {

@@ -640,3 +640,15 @@ type ValidateStatement struct {
 func (v *ValidateStatement) statementNode()       {}
 func (v *ValidateStatement) TokenLiteral() string { return v.Token.Literal }
 func (v *ValidateStatement) Line() int            { return v.Token.Line }
+
+// LogStatement is "log [level] <expr>, ... ." (import log): a log line.
+// Level is debug, info (the default), warn or error.
+type LogStatement struct {
+	Token       token.Token
+	Level       string
+	Expressions []Expression
+}
+
+func (l *LogStatement) statementNode()       {}
+func (l *LogStatement) TokenLiteral() string { return l.Token.Literal }
+func (l *LogStatement) Line() int            { return l.Token.Line }

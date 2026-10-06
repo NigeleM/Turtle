@@ -166,6 +166,9 @@ func (it *Interpreter) evalImport(s *ast.ImportStatement, env *object.Environmen
 	if isBuiltin(mod, "test") {
 		defineTestSettings(env)
 	}
+	if isBuiltin(mod, "log") {
+		defineLogSettings(env)
+	}
 }
 
 func (it *Interpreter) loadModule(name string) *object.Module {

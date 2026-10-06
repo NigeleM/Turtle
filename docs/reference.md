@@ -876,6 +876,19 @@ sys <rest of line>
 verbatim to end of line, runs through a shell with inherited stdin/stdout/
 stderr.
 
+## Logging: `log`
+
+In a file with `import log` (settings and examples: [`stdlib.md`](stdlib.md#log-library)):
+
+```
+log [debug | info | warn | error] <expr> {, <expr>} .
+```
+
+The values are joined as `show` joins them; a map among them adds
+`key=value` fields. Without a level word it's `info`. `log` begins a
+statement only when a value or a level word follows it, so `log = 5`
+still assigns.
+
 ## Tests: `check`, `verify`, `validate`, `turtle test`
 
 In a file with `import test`, three more statements (full guide:

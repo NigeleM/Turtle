@@ -794,3 +794,16 @@ safe [end]
   `.trt`), and `turtle doc file`. `.t` is no longer read. Every example
   and test program in the repo was renamed; docs updated. A file named
   on the command line runs whatever its extension; `legacy/` unchanged.
+
+## 2026-10-06: the log library (not yet released)
+
+- `import log`: `log [debug|info|warn|error] <values> .`, joined like
+  show; a map adds key=value fields. To stderr (logconsole) and/or a
+  file (logfile, added to across runs, kept open until the program ends).
+- Settings as variables: loglevel, logconsole, logfile, logtime
+  (format_date patterns), logparts (time level message file line where),
+  logformat ("text" / "json" lines), logmaxsize + logkeep (rotation),
+  outputfile (a copy of what show and warn print).
+- The error that stops a program goes to the log file too.
+- testdata/stdlib/log.trt; tests for levels, parts, JSON, appending,
+  rotation, outputfile, modules and functions, mistakes.

@@ -51,7 +51,7 @@ Next, roughly in priority order:
 - [x] `put` (set the item at a position); a general speed test
       (testdata/speed) (2026-10-06)
 - [ ] Benchmark suite with a baseline (held off by the user, 2026-10-06)
-- [ ] Log library (next, after the test library)
+- [x] Log library (2026-10-06)
 - [ ] `sql` leftovers: writing WITHOUT ROWID tables, UTF-16 and
       auto-vacuum files; virtual tables (fts5)
 - [x] Sort by a function, and search: `import sort`, `import search`

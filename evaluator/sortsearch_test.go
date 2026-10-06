@@ -132,6 +132,8 @@ func TestStdlibExamples(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			scriptName = filepath.Base(prog)
+			defer func() { scriptName = "" }()
 			out, runErr := runFull(t, src, string(code), "", nil)
 			if runErr != nil || !strings.Contains(out, "failures: 0") {
 				t.Fatalf("failed (err %v):\n%s", runErr, out)

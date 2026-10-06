@@ -51,6 +51,7 @@ type Interpreter struct {
 	// inBuiltin is true while a builtin library's Turtle code runs:
 	// errors then point at the caller's line, not the library's.
 	inBuiltin bool
+	files     map[string]*openFile // log files and outputfile, open until Run ends
 }
 
 func New(dir string) *Interpreter {
@@ -105,6 +106,7 @@ var builtinModules = map[string]*object.Module{
 	"sort":    {Name: "sort", Funcs: []string{"min_sort", "max_sort", "is_sorted", "reverse_list", "bubble_sort", "insertion_sort", "selection_sort", "merge_sort", "quick_sort", "heap_sort", "shell_sort", "counting_sort", "radix_sort"}},
 	"search":  {Name: "search", Funcs: []string{"find_first", "find_last", "find_all", "find_index", "count_where", "find_key", "linear_search", "binary_search", "jump_search", "exponential_search", "interpolation_search", "ternary_search", "insert_position"}},
 	"test":    {Name: "test"},
+	"log":     {Name: "log"},
 	"random":  {Name: "random", Funcs: []string{"pick", "shuffle", "sample", "chance"}},
 	"sql":     {Name: "sql", Funcs: []string{"sql_open", "sql_create", "sql_query", "sql_run", "sql_tables", "sql_load", "sql_save", "sql_update", "sql_delete", "sql_upsert", "sql_close"}},
 }
@@ -226,9 +228,11 @@ func (it *Interpreter) Run(program *ast.Program) (err error) {
 	// it ends: an unfinished transaction is rolled back and files are let
 	// go (Windows can't delete or reopen a file a program still holds).
 	defer it.closeDatabases()
+	defer it.closeFiles()
 	defer func() {
 		if r := recover(); r != nil {
 			if fe, ok := r.(fatalError); ok {
+				it.logStop(fe)
 				err = fe
 				return
 			}
@@ -334,6 +338,11 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		} else {
 			fmt.Println(out)
 		}
+		it.copyOutput(env, out)
+		return noneResult
+
+	case *ast.LogStatement:
+		it.evalLog(s, env)
 		return noneResult
 
 	case *ast.ExpressionStatement:
