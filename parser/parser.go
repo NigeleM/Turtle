@@ -29,6 +29,7 @@ const (
 	SUM
 	PRODUCT
 	PREFIX
+	INDEX // "x at get[i]" / "x at slice[...]": picks part of the value right before it
 )
 
 var precedences = map[token.Type]int{
@@ -167,6 +168,15 @@ func (p *Parser) expectPeek(t token.Type) bool {
 func (p *Parser) peekPrecedence() int {
 	if p.peekToken.Line != p.curToken.Line {
 		return LOWEST
+	}
+	// get and slice pick part of the value right before them, so they
+	// bind tightest: "10 + row at get["q"] * 2" is 10 + (row at get["q"]) * 2,
+	// and "title of books at get[0]" is the title of books at get[0].
+	// Other methods bind loosest: "a + b at upper" is (a + b) at upper.
+	// Only the bracketed form: "r is nums at get 0 ." is the statement form.
+	if p.peekTokenIs(token.AT) && isIndexMethod(p.peekN(2)) &&
+		p.peekN(3).Type == token.LBRACKET && p.peekN(3).Line == p.peekToken.Line {
+		return INDEX
 	}
 	if pr, ok := precedences[p.peekToken.Type]; ok {
 		return pr
@@ -1732,11 +1742,21 @@ func (p *Parser) parseAssembleStatement() ast.Statement {
 // parseFieldExpression parses "field of <value>" (curToken is the field
 // name). The value binds tightly, so "qty of o * price of o" is
 // (qty of o) * (price of o), and "x of p of line" is x of (p of line).
+//
+// Indexing belongs to the collection (see INDEX): in "title of books at
+// get[0]" the get picks a book, and title is that book's. Other methods
+// apply to the field's value: "name of p at upper" is the name, upper-cased.
 func (p *Parser) parseFieldExpression() ast.Expression {
 	tok := p.curToken
 	p.nextToken() // -> OF
 	p.nextToken() // -> first token of the value
 	return &ast.FieldExpression{Token: tok, Field: tok.Literal, Object: p.parseExpression(PREFIX)}
+}
+
+// isIndexMethod reports whether tok names a method that picks out part of
+// a collection (get, slice) rather than working on a value.
+func isIndexMethod(tok token.Token) bool {
+	return tok.Type == token.IDENT && (tok.Literal == "get" || tok.Literal == "slice")
 }
 
 // parseFieldStatement parses "qty of o = <expr>" — changing one field.

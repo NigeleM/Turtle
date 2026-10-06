@@ -1107,7 +1107,7 @@ show z of a .`, wantErr: `A has no field "z" (its fields: x)`},
 a = A[1]
 z of a = 2`, wantErr: `A has no field "z"`},
 		{name: "field of a non-assembled value", src: `n = 5
-show x of n .`, wantErr: "'x of' needs an assembled value or an error, got INTEGER"},
+show x of n .`, wantErr: "'x of' needs an assembled value, a map, a date or an error, got INTEGER"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

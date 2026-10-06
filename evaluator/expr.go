@@ -85,6 +85,14 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 			}
 			return v
 		}
+		if m, ok := obj.(*object.Map); ok {
+			// title of row: the map's "title" key.
+			v, ok := m.Get(&object.String{Value: e.Field})
+			if !ok {
+				fatalKind(kindKey, "the map has no %q key (%s of a map reads its %q key)", e.Field, e.Field, e.Field)
+			}
+			return v
+		}
 		a, i := fieldOf(obj, e.Field)
 		return a.Values[i]
 
@@ -652,7 +660,11 @@ func evalSleep(args []object.Object) {
 func fieldOf(obj object.Object, field string) (*object.Assembly, int) {
 	a, ok := obj.(*object.Assembly)
 	if !ok {
-		fatalf("'%s of' needs an assembled value or an error, got %s", field, obj.Type())
+		switch obj.(type) {
+		case *object.List, *object.Set:
+			fatalf("'%s of' needs one assembled value or map, but this is a %s; for one item's %s, write %s of items at get[0]", field, strings.ToLower(string(obj.Type())), field, field)
+		}
+		fatalf("'%s of' needs an assembled value, a map, a date or an error, got %s", field, obj.Type())
 	}
 	i := a.Shape.Index(field)
 	if i < 0 {

@@ -390,6 +390,10 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		if _, ok := obj.(*object.Date); ok {
 			fatalf("a date's parts can't be changed (%s of a date is read-only); make a new one with add_time or make_date", s.Target.Field)
 		}
+		if m, ok := obj.(*object.Map); ok {
+			m.Put(&object.String{Value: s.Target.Field}, it.evalExpression(s.Value, env))
+			return noneResult
+		}
 		a, i := fieldOf(obj, s.Target.Field)
 		a.Values[i] = it.evalExpression(s.Value, env)
 		return noneResult

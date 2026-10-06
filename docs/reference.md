@@ -119,7 +119,11 @@ neither side changes:
 `show name at upper .`, `w = x at slice[0, 3]`. In this form, method
 arguments go in brackets. The statement form `r is x at slice 0, 3 .` still
 takes them unbracketed. `at` binds more loosely than every binary operator, so
-`a + b at upper` is `(a + b) at upper`. `!` takes the whole method call:
+`a + b at upper` is `(a + b) at upper`, **except** `get[...]` and
+`slice[...]`: they pick part of the value right before them, so they bind
+tightest. `10 + row at get["q"] * row at get["p"]` is
+`10 + (row at get["q"]) * (row at get["p"])`, and
+`nums at get[0] + nums at get[2]` adds two items. `!` takes the whole method call:
 `!r at isEmpty` means "r is not empty".
 
 Function calls: `<name>[<expr>, ...]` — Turtle uses `[...]` for call and
@@ -437,6 +441,14 @@ qty of o = 10
   `x of (finish of line)`, and `x of finish of line = 7` changes it.
   `of` binds tighter than any operator, so `qty of o * price of o`
   multiplies two fields. `length of`/`min of`/`max of` bind the same way.
+- **`of` with `get` and `slice`.** The `get` picks the item first:
+  `title of books at get[0]` is the title of the first book, and
+  `title of books at get[0] at upper` upper-cases it. Other methods work
+  on the field: `name of p at upper`. To index inside a field, name it
+  first: `tags = tags of book`, then `tags at get[0]`.
+- **`of` reads map keys too**: `title of row` is `row at get["title"]`
+  (a missing key is an error of kind `key`), and `title of row = "Emma"`
+  sets it. Handy for SQL rows: `title of rows at get[0]`.
 - **Errors name the fields.** A wrong number of values gives "Order needs
   3 value(s), one per field (item, qty, price), got 2". An unknown field
   gives "Order has no field "prise" (its fields: item, qty, price)".

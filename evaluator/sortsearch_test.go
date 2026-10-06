@@ -139,3 +139,54 @@ func TestStdlibExamples(t *testing.T) {
 		})
 	}
 }
+
+// TestFieldOfIndexed: in "field of x at get[...]" the get picks the item
+// and the field is that item's; other methods work on the field's value;
+// of also reads and sets a map's key.
+func TestFieldOfIndexed(t *testing.T) {
+	src := `assemble Book [title, tags]
+books = list [Book["Dune", list ["sf"]], Book["Emma", list ["classic"]]]
+show title of books at get[1] .
+show title of books at get[0] at upper .
+show title of books at slice[1] at get[0] .
+rows = list [map ["title": "Kindred", "n": 3]]
+show title of rows at get[0] .
+row = rows at get[0]
+show n of row + 1 .
+title of row = "Beloved"
+show title of row .
+b = books at get[0]
+show title of b at upper .
+t = tags of b
+show t at get[0] .
+if ] title of books at get[0] == "Dune" [
+    show "yes" .
+if [end]`
+	out, err := runFull(t, t.TempDir(), src, "", nil)
+	want := "Emma\nDUNE\nEmma\nKindred\n4\nBeloved\nDUNE\nsf\nyes\n"
+	if err != nil || out != want {
+		t.Fatalf("got %q (%v), want %q", out, err, want)
+	}
+	// get[...] and slice[...] bind tightest; other methods loosest.
+	src = `row = map ["q": 2, "p": 3]
+show 10 + row at get["q"] * row at get["p"] .
+nums = list [5, 6, 7]
+show nums at get[0] + nums at get[2] .
+show "a" + "b" at upper .
+show -nums at get[1] .
+r is nums at get 1 .
+show r .`
+	out, err = runFull(t, t.TempDir(), src, "", nil)
+	if want := "16\n12\nAB\n-6\n6\n"; err != nil || out != want {
+		t.Fatalf("got %q (%v), want %q", out, err, want)
+	}
+	for src, msg := range map[string]string{
+		"assemble Book [title]\nbooks = list [Book[\"Dune\"]]\nshow title of books .": "for one item's title, write title of items at get[0]",
+		"assemble Book [tags]\nb = Book[list [\"sf\"]]\nshow tags of b at get[0] .":   "name it first",
+		"row = map [\"a\": 1]\nshow title of row .":                                   `the map has no "title" key`,
+	} {
+		if _, err := runFull(t, t.TempDir(), src, "", nil); err == nil || !strings.Contains(err.Error(), msg) {
+			t.Errorf("%q: want %q, got %v", src, msg, err)
+		}
+	}
+}

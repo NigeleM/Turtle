@@ -192,6 +192,13 @@ func (it *Interpreter) evalMethodCall(mc *ast.MethodCallExpression, env *object.
 		return stringMethod(r, mc.Method, args)
 	case *object.Integer, *object.Float:
 		return it.numberMethod(r, mc.Method, args, env)
+	case *object.Assembly:
+		if mc.Method == "get" || mc.Method == "slice" {
+			// "tags of book at get[0]": the get goes with book, not tags.
+			fatalf("%s is one assembled value, so it has no %s; to take part of a field, name it first: t = tags of book, then t at %s[...]", r.Shape.Name, mc.Method, mc.Method)
+		}
+		fatalf("method %q needs a list, set, map, string, or number receiver, got %s", mc.Method, receiver.Type())
+		return nil
 	default:
 		fatalf("method %q needs a list, set, map, string, or number receiver, got %s", mc.Method, receiver.Type())
 		return nil
