@@ -2,6 +2,9 @@ package evaluator
 
 import (
 	"math/rand"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"Turtle/object"
@@ -109,5 +112,30 @@ func TestSearchAlgorithmsAgree(t *testing.T) {
 				t.Fatalf("insert_position %d in %s: %d", want, sorted.Inspect(), pos)
 			}
 		}
+	}
+}
+
+// TestStdlibExamples runs each program in testdata/stdlib; each checks
+// its own results and ends with "failures: 0".
+func TestStdlibExamples(t *testing.T) {
+	src, err := filepath.Abs("../testdata/stdlib")
+	if err != nil {
+		t.Fatal(err)
+	}
+	programs, _ := filepath.Glob(filepath.Join(src, "*.t"))
+	if len(programs) == 0 {
+		t.Fatal("no programs in testdata/stdlib")
+	}
+	for _, prog := range programs {
+		t.Run(filepath.Base(prog), func(t *testing.T) {
+			code, err := os.ReadFile(prog)
+			if err != nil {
+				t.Fatal(err)
+			}
+			out, runErr := runFull(t, src, string(code), "", nil)
+			if runErr != nil || !strings.Contains(out, "failures: 0") {
+				t.Fatalf("failed (err %v):\n%s", runErr, out)
+			}
+		})
 	}
 }

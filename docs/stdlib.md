@@ -421,6 +421,92 @@ show rows at get[0] .                   // { "item": "pen", "qty": "3", "price":
   with more, or broken quotes, is an error of kind `csv`. A missing file
   is kind `file`.
 
+## Sort library
+
+`import sort` puts things in order. Every function gives back a **new**
+list (a new map, for a map) and leaves the original unchanged. The
+`sort nums .` statement still sorts a list in place.
+
+| Function | Gives back |
+|---|---|
+| `min_sort[x [, key [, how]]]` | `x` in order, smallest first; equal items keep their order |
+| `max_sort[x [, key [, how]]]` | the same, largest first |
+| `is_sorted[x [, key]]` | `true` when `x` is already smallest first |
+| `reverse_list[x]` | the items (a map: its entries) in the opposite order |
+| `bubble_sort`, `insertion_sort`, `selection_sort`, `merge_sort`, `quick_sort`, `heap_sort`, `shell_sort`, `counting_sort`, `radix_sort` `[x [, key]]` | `min_sort`'s answer, by that algorithm (for learning and comparing; `counting_sort` and `radix_sort` need whole-number keys) |
+
+**The key** says what to order by:
+
+| Key | Orders by | Example |
+|---|---|---|
+| left out, or `none` | the items themselves (a map: its keys) | `min_sort[nums]` |
+| a function | what it gives for each item | `min_sort[books, b gives price of b]` |
+| text | that map key, or assembled field | `min_sort[books, "price"]` |
+| an integer | that position in a list of lists | `min_sort[pairs, 1]` |
+| a list of those | the first, then the next for ties | `min_sort[books, list ["author", "price"]]` |
+
+**How much** (`min_sort` and `max_sort` only): `"first"` gives just the
+first item, or `none` when there's nothing; a number `n` gives the first
+`n`. So `max_sort[books, "price", "first"]` is the most expensive book,
+like Python's `max(books, key=...)`.
+
+**Maps** sort by entry and give back a new map in that order. With no
+key, by the map's keys; a text or integer key picks from each value; a
+function gets the value (`v gives ...`) or the key and value
+(`[k, v] gives ...`). `"first"` gives a key.
+
+```
+import sort
+
+ages = map ["Cy": 41, "Ann": 30, "Bo": 25]
+show min_sort[ages] .                      // { "Ann": 30, "Bo": 25, "Cy": 41 }
+show max_sort[ages, a gives a] .           // { "Cy": 41, "Ann": 30, "Bo": 25 }
+show min_sort[ages, a gives a, "first"] .  // Bo
+```
+
+**One order for every value**, so mixed and nested collections sort with
+or without a key: `none`, then `true`/`false` (false first), numbers
+(`1` equals `1.0`), text (character by character), dates, lists and
+sets (item by item, shorter first), assembled values (type name, then
+field by field), maps (entry by entry). A function value can't be put
+in order (an error of kind `type`).
+
+## Search library
+
+`import search` finds things in lists, sets, maps and text, and in what's
+inside them. Keys work as in the sort library.
+
+| Function | Gives back |
+|---|---|
+| `find_first[x, test]` | the first item `test` says yes to (a map: its key), or `none` |
+| `find_last[x, test]` | the last one, or `none` |
+| `find_all[x, test]` | every one, a new list (a map: a new map of those entries) |
+| `find_index[x, test]` | the first one's position, from 0, or `-1` |
+| `count_where[x, test]` | how many |
+| `find_key[map, value]` | the first key holding `value`, or `none` |
+| `linear_search[x, value [, key]]` | the position of the first item equal to `value`, or `-1`; works on anything |
+| `binary_search`, `jump_search`, `exponential_search`, `interpolation_search`, `ternary_search` `[sorted, value [, key]]` | the same answer, faster, on a collection sorted smallest first by the same key |
+| `insert_position[sorted, value [, key]]` | where `value` would go to keep it sorted |
+
+`test` is a function giving `true` or `false`: `b gives price of b < 1000`.
+
+```
+import sort
+import search
+
+assemble Book [title, price]
+books = list [Book["Dune", 950], Book["Emma", 700], Book["Kindred", 950]]
+
+cheap = find_all[books, b gives price of b < 900]          // [ Book Emma ]
+by_price = min_sort[books, "price"]
+at = binary_search[by_price, 950, "price"]                  // 1: the first 950
+pos = insert_position[by_price, 800, "price"]               // 1
+```
+
+`binary_search` takes about 20 steps for a million items where
+`linear_search` may take a million, but it needs the collection sorted
+first, by the same key.
+
 ## JSON library
 
 `import json` (or `import json [load, json_get]`):

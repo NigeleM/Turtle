@@ -764,10 +764,17 @@ is a fatal error that shows the chain.
 - `import data` provides `process`, `keep`, and `copy`, which apply a
   function across a list, set, or map, `table`, which lays rows out as a
   text table, and `table_write` / `table_read`, which save and read
-  `.csv`, `.tsv` and `.txt` table files (see
+  `.csv`, `.tsv`, `.txt` and `.json` table files (see
   [`stdlib.md`](stdlib.md#data-library)). They're
   ordinary functions, usually called sentence-style:
   `nums process x gives x + 1 .`, `show table[rows] .`
+- `import sort` provides `min_sort` / `max_sort` (order by a function,
+  field, position or several, and take the `"first"` or a count),
+  `is_sorted`, `reverse_list`, and the classic sorting algorithms; and
+  `import search` provides `find_first`, `find_all`, `find_key`, ... and
+  linear, binary and other searches (see
+  [`stdlib.md`](stdlib.md#sort-library)). `import sort` names the
+  library; `sort nums .` on its own is still the in-place sort statement.
 
 Using a math method or `now`/`sleep` without the matching import is a fatal
 error naming exactly which import is missing.
