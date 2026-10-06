@@ -643,3 +643,28 @@ safe [end]
   lock tests), server tests gated by `TURTLE_PG_URL` /
   `TURTLE_MYSQL_URL`, which CI now sets with service containers;
   `testdata/sql/13_servers.t`.
+
+## 2026-10-06: table files, sort and search, `get` binding (v0.9.143)
+
+- `.json` table files: `table_write`, `table_read` and the `sql_` file
+  functions read and write a list of objects, one per row, keeping
+  numbers, booleans, null and nested values.
+- `contains` on lists and sets (a value) and maps (a key).
+- `import sort`: `min_sort` / `max_sort` with keys (a function, a field
+  or map key, a position, or a list of them) and `"first"` or a count,
+  `is_sorted`, `reverse_list`, and the classic algorithms.
+- `import search`: `find_first`, `find_last`, `find_all`, `find_index`,
+  `count_where`, `find_key`, linear / binary / jump / exponential /
+  interpolation / ternary search, `insert_position`.
+- `get[...]` and `slice[...]` bind to the value before them, so
+  `a at get[0] + b at get[1]` adds two items and `title of books at
+  get[0]` reads the first book's title. `of` reads map keys.
+- v0.9.142's release failed on macOS and Windows (fixed in d648bbb);
+  CI now runs on all three systems.
+
+## 2026-10-06: repository clean-up
+
+- The legacy interpreter (`Turtle_interpreter.go`, `Files/`,
+  `test.trt`) moved to `legacy/`; it still builds and runs. The old
+  compiled `turtle` binary is no longer tracked (`/turtle` is ignored).
+- The release workflow now vets and tests `postgres/` and `mysql/` too.

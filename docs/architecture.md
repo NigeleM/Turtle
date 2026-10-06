@@ -21,7 +21,7 @@ token stream
 side effects (show, file I/O, sys) + program exit
 ```
 
-This replaced `Turtle_interpreter.go`, a single ~6,800-line file that
+This replaced `legacy/Turtle_interpreter.go`, a single ~6,800-line file that
 parsed every statement by re-scanning raw strings with
 `strings.Contains`/`strings.Index` and kept all interpreter state in
 global maps (`variableDict`, `functionDict`, ...). The current design is a
@@ -285,5 +285,5 @@ naming the operation and the value involved.
 - The `postgres` and `mysql` packages, and `testdata/sql/13_servers.t`,
   need real servers: they run when `TURTLE_PG_URL` / `TURTLE_MYSQL_URL`
   are set (CI starts both as service containers) and skip otherwise.
-- The historical scripts (`*.txt`, `test.trt`, `testdata/*.t`) should keep
+- The historical scripts (`*.txt`, `legacy/test.trt`, `testdata/*.t`) should keep
   producing the same output.

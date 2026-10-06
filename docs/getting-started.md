@@ -3,7 +3,7 @@
 ## Requirements
 
 Go 1.24 or later. No C toolchain needed — unlike the legacy
-`Turtle_interpreter.go`, the current interpreter is pure Go (no cgo).
+`legacy/Turtle_interpreter.go`, the current interpreter is pure Go (no cgo).
 
 ## Build
 

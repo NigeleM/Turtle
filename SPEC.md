@@ -9,7 +9,7 @@ global maps.
 
 Surface syntax is unchanged from the legacy interpreter and is verified
 against real historical example scripts recovered for this project
-(`test.trt`, `if.txt`, `define.txt`, `play.txt`, `loop.txt`, `show.txt`).
+(`legacy/test.trt`, `if.txt`, `define.txt`, `play.txt`, `loop.txt`, `show.txt`).
 Where the legacy implementation was a non-functional stub (`[write]`,
 `[append]`, `[directory]` only ever printed debug text), had a documented
 open limitation (if/else nesting capped at one level — see the old

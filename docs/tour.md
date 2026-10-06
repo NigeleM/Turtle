@@ -301,6 +301,15 @@ combined is letters at union otherSet .
 show first .
 ```
 
+Inside an expression, `get[...]` and `slice[...]` take brackets and bind
+to the value right before them, so they work in arithmetic:
+
+```
+a = list [1, 2]
+b = list [10, 20]
+show a at get[0] + b at get[1] .     // 21
+```
+
 See [`stdlib.md`](stdlib.md) for the full method list per type.
 
 ## Your own types: `assemble`

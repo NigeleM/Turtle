@@ -13,7 +13,9 @@ Done so far: string methods, `strings` (`find`, `substring`, `isinstring`,
 `json_get`), `http` (`http_get`, `http_post`, `http_request`), `sql`
 (`sql_open`, `sql_create`, `sql_query`, `sql_run`, `sql_tables`,
 `sql_save`, `sql_load`, `sql_update`, `sql_delete`, `sql_upsert`,
-`sql_close`), and `data`'s `table`, `table_read`, `table_write`.
+`sql_close`), `data`'s `table`, `table_read`, `table_write` (`.csv`,
+`.tsv`, `.txt`, `.json`), `sort` (`min_sort`, `max_sort`, the classic
+sorts) and `search` (`find_first`, `find_all`, binary search, ...).
 See `docs/stdlib.md`.
 
 Next, roughly in priority order:
@@ -39,13 +41,17 @@ Next, roughly in priority order:
       functions (wire protocols, SCRAM / caching_sha2 logins, TLS) (2026-10-06)
 - [ ] `sql` leftovers: writing WITHOUT ROWID tables, UTF-16 and
       auto-vacuum files; virtual tables (fts5)
-- [ ] `data`: `reduce`, sort by a function, range generator, the
+- [x] Sort by a function, and search: `import sort`, `import search`
+      (2026-10-06)
+- [ ] `data`: `reduce`, range generator, the
       discrete-math tier (powerset, combinations, ...) proposed 2026-09-30
 - [ ] Assembled types: "is this an Order?" check, looping over fields,
       default field values
 - [x] Delete files: `system`'s `erase[path]` (2026-10-03)
 - [x] stderr (`warn ... .`), string interpolation, subfolder imports,
       module file names in errors (2026-10-03)
+- [x] `get[...]` / `slice[...]` bind to the value before them, so
+      `a at get[0] + b at get[1]` works without temporaries (2026-10-06)
 
 ## 2. Fix the CI/release pipeline — DONE (2026-09-29)
 

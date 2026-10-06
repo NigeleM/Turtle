@@ -15,7 +15,7 @@ void dataSys(const char *d) {
 import "C"
 
 import (
-	files "Turtle/Files"
+	files "Turtle/legacy/Files"
 	"bufio"
 	"fmt"
 	"go/token"

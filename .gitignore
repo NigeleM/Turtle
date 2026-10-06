@@ -6,3 +6,6 @@ testdata/sql/export_*.csv
 
 # compiled test binaries (go test -c)
 *.test
+
+# the interpreter built at the repo root (go build -o turtle ./cmd/turtle)
+/turtle
