@@ -611,6 +611,10 @@ func (it *Interpreter) callBuiltin(module, name string, args []object.Object, en
 		return it.callHTTP(name, args)
 	case "sql":
 		return it.callSQL(name, args)
+	case "sort":
+		return it.callSort(name, args)
+	case "search":
+		return it.callSearch(name, args)
 	}
 	fatalKind(kindName, "no builtin function %q in %q", name, module)
 	return nil

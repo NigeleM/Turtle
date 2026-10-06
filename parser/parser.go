@@ -92,6 +92,7 @@ func New(l *lexer.Lexer) *Parser {
 		token.LIST:     p.parseListLiteral,
 		token.SET:      p.parseSetLiteral,
 		token.MAP:      p.parseMapLiteral,
+		token.SORT:     p.parseSortModuleExpression,
 		token.MIN:      p.parseMinMaxLength,
 		token.MAX:      p.parseMinMaxLength,
 		token.LENGTH:   p.parseMinMaxLength,
@@ -289,6 +290,9 @@ func (p *Parser) parseStatement() ast.Statement {
 	case token.DELETE:
 		return p.parseDeleteStatement()
 	case token.SORT:
+		if p.sortModuleCall() {
+			return p.parseIdentifierLeadStatement()
+		}
 		return p.parseSortStatement()
 	case token.REVERSE:
 		return p.parseReverseStatement()
@@ -542,6 +546,10 @@ func (p *Parser) parseFailStatement() ast.Statement {
 
 func (p *Parser) parseImportStatement() ast.Statement {
 	tok := p.curToken
+	// "sort" names the sort library here, not the sort statement.
+	if p.peekTokenIs(token.SORT) {
+		p.peekToken.Type = token.IDENT
+	}
 	if !p.expectPeek(token.IDENT) {
 		return nil
 	}
@@ -1387,6 +1395,27 @@ func (p *Parser) parseMethodCallExpression(receiver ast.Expression) ast.Expressi
 		mc.Bracketed = true
 	}
 	return mc
+}
+
+// sortModuleCall reports whether "sort" starts a call into the sort
+// library ("sort min_sort[x]") rather than the sort statement
+// ("sort nums ."), and if so makes it a name.
+func (p *Parser) sortModuleCall() bool {
+	if p.curTokenIs(token.SORT) && p.peekTokenIs(token.IDENT) && p.peekToken.Line == p.curToken.Line &&
+		p.peekN(2).Type == token.LBRACKET && p.peekN(2).Line == p.curToken.Line {
+		p.curToken.Type = token.IDENT
+		return true
+	}
+	return false
+}
+
+// parseSortModuleExpression is "sort min_sort[x]" inside an expression.
+func (p *Parser) parseSortModuleExpression() ast.Expression {
+	if !p.sortModuleCall() {
+		p.errorf("sort here must name the sort library, as in sort min_sort[nums] (to sort a list in place, write sort nums . on its own line)")
+		return nil
+	}
+	return p.parseIdentifier()
 }
 
 func (p *Parser) isQualifiedName() bool {

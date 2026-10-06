@@ -82,7 +82,9 @@ const maxCallDepth = 100000
 // json_write/json_get (see jsonlib.go), "http" provides http_get/
 // http_post/http_request (see httplib.go), "sql" provides sql_open/
 // sql_create/sql_query/sql_run/sql_tables/sql_load/sql_save/sql_update/
-// sql_delete/sql_upsert/sql_close (see sqllib.go). Anything else falls through to
+// sql_delete/sql_upsert/sql_close (see sqllib.go), "sort" provides min_sort/
+// max_sort and the classic sorting algorithms (see sortlib.go), "search"
+// provides find_* and the search algorithms (see searchlib.go). Anything else falls through to
 // the file-based import.
 var builtinModules = map[string]*object.Module{
 	"math":    {Name: "math", Methods: []string{"sqrt", "abs", "round", "floor", "ceil", "pow", "random"}},
@@ -92,6 +94,8 @@ var builtinModules = map[string]*object.Module{
 	"strings": {Name: "strings", Funcs: []string{"find", "substring", "isinstring", "join"}},
 	"json":    {Name: "json", Funcs: []string{"load", "json_text", "json_read", "json_write", "json_get"}},
 	"http":    {Name: "http", Funcs: []string{"http_get", "http_post", "http_request"}},
+	"sort":    {Name: "sort", Funcs: []string{"min_sort", "max_sort", "is_sorted", "reverse_list", "bubble_sort", "insertion_sort", "selection_sort", "merge_sort", "quick_sort", "heap_sort", "shell_sort", "counting_sort", "radix_sort"}},
+	"search":  {Name: "search", Funcs: []string{"find_first", "find_last", "find_all", "find_index", "count_where", "find_key", "linear_search", "binary_search", "jump_search", "exponential_search", "interpolation_search", "ternary_search", "insert_position"}},
 	"sql":     {Name: "sql", Funcs: []string{"sql_open", "sql_create", "sql_query", "sql_run", "sql_tables", "sql_load", "sql_save", "sql_update", "sql_delete", "sql_upsert", "sql_close"}},
 }
 

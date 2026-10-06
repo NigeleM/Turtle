@@ -324,6 +324,158 @@ characters from 0.
   status yourself.
 `,
 
+	"sort": `Putting things in order. Works on lists, sets, maps (their entries),
+text (its characters), and anything inside them: lists of assembled
+values, maps of maps, lists of lists... Gives back a new list (a new
+map, for a map) and leaves the original as it was.
+Values order the same way everywhere: none, then true/false, numbers,
+text, dates, lists (item by item), assembled values (field by field),
+maps (entry by entry).
+
+### min_sort[collection, key, how]
+  Puts things in order, smallest first.
+  collection   a list, set, map or text
+  key          optional: what to order by. A function (b gives b at get["price"]),
+               a map key or field name ("price"), a position in a list of lists
+               (1), or a list of those (list ["author", "price"]): ties go to
+               the next. For a map, the key picks from each value; a function
+               gets the value (v gives ...) or the key and value ([k, v] gives ...).
+               Leave it out (or none) to order the items themselves.
+  how          optional: "first" gives just the first item (none if
+               there's nothing); a number gives that many, as a list.
+               For a map, "first" gives the key; a number, a smaller map.
+  Gives back: a new list (or map), equal items in their first order.
+  Example:
+    cheap = min_sort[books, b gives price of b]
+    cheapest = min_sort[books, "price", "first"]
+    youngest = min_sort[ages, a gives a, "first"]
+
+### max_sort[collection, key, how]
+  Like min_sort, largest first: max_sort[x, key, "first"] is the largest.
+  Example:
+    top3 = max_sort[scores, s gives s, 3]
+
+### is_sorted[collection, key]
+  Whether it's already in order, smallest first (equal items allowed).
+  Gives back: true or false.
+
+### reverse_list[collection]
+  The items in the opposite order (a map: its entries). The reverse
+  statement (reverse nums .) changes a list in place instead.
+  Example:
+    newest_first = reverse_list[log]
+
+### bubble_sort[collection, key]
+  The same answer as min_sort, by bubble sort: swaps neighbours that are
+  out of order until nothing moves. About n*n steps: for learning and
+  comparing, not for large lists.
+
+### insertion_sort[collection, key]
+  min_sort's answer by insertion sort: slides each item back into place.
+  Quick on lists that are almost in order.
+
+### selection_sort[collection, key]
+  min_sort's answer by selection sort: picks the smallest of the rest,
+  again and again. Equal items may change order.
+
+### merge_sort[collection, key]
+  min_sort's answer by merge sort: sorts each half, then merges them.
+  About n*log(n) steps, always.
+
+### quick_sort[collection, key]
+  min_sort's answer by quick sort: splits around a middle value. Fast on
+  average; equal items may change order.
+
+### heap_sort[collection, key]
+  min_sort's answer by heap sort: builds a heap, then takes the largest
+  off the top. Equal items may change order.
+
+### shell_sort[collection, key]
+  min_sort's answer by Shell sort: insertion sort over shrinking gaps.
+  Equal items may change order.
+
+### counting_sort[collection, key]
+  min_sort's answer by counting sort, for whole-number keys in a modest
+  range (ages, scores): counts each value, then places them.
+
+### radix_sort[collection, key]
+  min_sort's answer by radix sort, for whole-number keys: orders them one
+  byte at a time.
+`,
+	"search": `Finding things. Works on lists, sets, maps and text, and what's inside
+them, like the sort library. Over a map, a function gets the value
+(v gives ...) or the key and value ([k, v] gives ...).
+
+### find_first[collection, test]
+  The first item for which test says yes.
+  test   a function giving true or false: b gives price of b < 1000
+  Gives back: the item (for a map, its key), or none if nothing matches.
+  Example:
+    cheap = find_first[books, b gives price of b < 1000]
+
+### find_last[collection, test]
+  The last item for which test says yes, or none.
+
+### find_all[collection, test]
+  Every item for which test says yes, in order.
+  Gives back: a new list (for a map, a new map of the matching entries).
+  Example:
+    out_of_stock = find_all[books, b gives stock of b == 0]
+
+### find_index[collection, test]
+  The position (from 0) of the first item for which test says yes, or -1.
+
+### count_where[collection, test]
+  How many items test says yes to.
+
+### find_key[map, value]
+  The first key whose value is value, or none.
+  Example:
+    who = find_key[ages, 30]
+
+### linear_search[collection, value, key]
+  The position of the first item equal to value (by key, if given),
+  checking each in turn, or -1. Works on anything, sorted or not.
+  key     optional: what to order by. A function (b gives b at get["price"]),
+          a map key or field name ("price"), a position in a list of lists
+          (1), or a list of those (list ["author", "price"]): ties go to
+          the next. For a map, the key picks from each value; a function
+          gets the value (v gives ...) or the key and value ([k, v] gives ...).
+          Leave it out (or none) to order the items themselves.
+  Example:
+    at = linear_search[names, "Ann"]
+
+### binary_search[sorted, value, key]
+  Like linear_search, on a collection sorted smallest first by the same
+  key (min_sort makes one): halves the range each step, about 20 steps
+  for a million items. Gives the first match's position, or -1.
+  Example:
+    by_price = min_sort[books, "price"]
+    at = binary_search[by_price, 950, "price"]
+
+### jump_search[sorted, value, key]
+  binary_search's answer, by jumping ahead in blocks of about the square
+  root of the length, then looking through one block.
+
+### exponential_search[sorted, value, key]
+  binary_search's answer, by doubling a bound (1, 2, 4, 8, ...) then
+  searching inside it. Quick when the value is near the front.
+
+### interpolation_search[sorted, value, key]
+  binary_search's answer, guessing the position from the values at the
+  ends, like opening a phone book near the right letter. Very fast on
+  evenly spread numbers.
+
+### ternary_search[sorted, value, key]
+  binary_search's answer, splitting the range in three each step.
+
+### insert_position[sorted, value, key]
+  Where value would go to keep a sorted collection in order: the
+  position of the first item not smaller than it.
+  Example:
+    pos = insert_position[scores, 75]
+    insert 75 to scores at pos .
+`,
 	"sql": `Databases: SQLite files, and PostgreSQL and MySQL servers, all through
 the same functions; sql_open's address picks which. Read and change
 them, and move CSV files in and out. SQLite files work with every other
