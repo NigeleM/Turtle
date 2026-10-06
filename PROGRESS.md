@@ -778,3 +778,10 @@ safe [end]
   with put (Fisher-Yates) takes 289µs for 1,000 items (was 700µs).
 - `testdata/speed/test_speed.t`: 32 timed tests across the language
   (`turtle test testdata/speed`); the Go tests run it once unbenchmarked.
+
+## 2026-10-06: Windows test fix (v0.9.146)
+
+- v0.9.145's CI and release failed on Windows only: TestSpeedFile looked
+  for "\nbenchmark = true\n", but Git on Windows checks files out with
+  \r\n line endings. The test now normalizes them; the interpreter
+  itself already handled both (checked with a \r\n copy).

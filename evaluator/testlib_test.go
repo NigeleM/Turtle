@@ -442,8 +442,10 @@ func TestSpeedFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	text := strings.Replace(string(src), "\nbenchmark = true\n", "\nbenchmark = false\n", 1)
-	if text == string(src) {
+	// Git on Windows may check the file out with \r\n line endings.
+	orig := strings.ReplaceAll(string(src), "\r\n", "\n")
+	text := strings.Replace(orig, "\nbenchmark = true\n", "\nbenchmark = false\n", 1)
+	if text == orig {
 		t.Fatal("test_speed.t no longer sets benchmark = true at the top")
 	}
 	out, code := testRun(t, map[string]string{"test_speed.t": text})
