@@ -39,6 +39,16 @@ Next, roughly in priority order:
       WAL, UPDATE ... FROM (2026-10-06)
 - [x] `sql` step 4: PostgreSQL and MySQL drivers behind the same
       functions (wire protocols, SCRAM / caching_sha2 logins, TLS) (2026-10-06)
+- [x] Column types for table files: `table_read` / `sql_load` take a
+      map of column to type and `"primary_key"`; `sql_load` makes a
+      missing table (2026-10-06)
+- [x] `import random`: random values of any shape, pick / shuffle /
+      sample / chance, seed (2026-10-06)
+- [x] Test library: `check` / `verify` / `validate`, `turtle test`,
+      suites, benchmarks (2026-10-06)
+- [x] `/` is exact, `div` keeps the whole part; methods work on the
+      value right before them (2026-10-06)
+- [ ] Log library (next, after the test library)
 - [ ] `sql` leftovers: writing WITHOUT ROWID tables, UTF-16 and
       auto-vacuum files; virtual tables (fts5)
 - [x] Sort by a function, and search: `import sort`, `import search`

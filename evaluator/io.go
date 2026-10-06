@@ -160,10 +160,19 @@ func (it *Interpreter) evalImport(s *ast.ImportStatement, env *object.Environmen
 	if im, _ := env.FindImport("data"); im != nil && im.Module == builtinModules["data"] && im.Allows("table") {
 		defineTableRows(env)
 	}
+	if isBuiltin(mod, "random") {
+		defineSeed(env)
+	}
+	if isBuiltin(mod, "test") {
+		defineTestSettings(env)
+	}
 }
 
 func (it *Interpreter) loadModule(name string) *object.Module {
 	if mod, ok := builtinModules[name]; ok {
+		if turtleLibs[name] {
+			return it.loadTurtleLib(mod)
+		}
 		return mod
 	}
 	if _, ok := builtinModules[pathpkg.Base(name)]; ok {

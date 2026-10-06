@@ -37,11 +37,13 @@ for reference; they still build and run.
 | Standard library: math (`import math`) | Done |
 | Standard library: time (`import time`) | Done |
 | Standard library: sort (`min_sort`, `max_sort`, the classic sorts) and search (`find_first`, `find_all`, binary search, ...) | Done |
+| Standard library: random (`random list of 5 integers from 0 to 9`, any shape, `pick`, `shuffle`, `sample`, `chance`, `seed`) | Done |
 | Standard library: JSON (`import json`) | Done |
 | Standard library: HTTP (`import http`) | Done |
 | Standard library: SQL — SQLite read and write, joins, groups, window functions, JSON, triggers, transactions, CSV in and out; PostgreSQL and MySQL through the same functions (`import sql`) | Done |
 | Imports (per-module scope, `import m [a, b]`, `m name[...]` on clash) | Done |
 | File management (read/write/append/directory) | Done |
+| Testing in Turtle: `check`, `verify`, `validate` (random inputs, shrinking), `turtle test` with suites and benchmarks | Done — see `docs/testing.md` |
 | Automated tests (`go test ./...`) | Done |
 | CI (build/vet/test on every push) + tag-triggered releases | Done |
 | Documentation | Done — see `docs/` |
@@ -123,6 +125,7 @@ library).
 - [`docs/tour.md`](docs/tour.md) — a guided, example-driven walkthrough of the language
 - [`docs/reference.md`](docs/reference.md) — the complete formal syntax reference
 - [`docs/stdlib.md`](docs/stdlib.md) — data structure methods, file I/O, `sys`, `import`
+- [`docs/testing.md`](docs/testing.md) — testing Turtle code: `check`, `verify`, `validate`, `turtle test`
 - [`docs/architecture.md`](docs/architecture.md) — how the interpreter itself is built, for contributors
 - [`docs/contributing.md`](docs/contributing.md) — how to add new syntax or standard-library functions
 - [`docs/stress-test-log.md`](docs/stress-test-log.md) — what the stress tests tried, what broke, and how each finding was handled

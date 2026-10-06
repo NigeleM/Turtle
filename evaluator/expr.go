@@ -129,6 +129,9 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 	case *ast.ChangeExpression:
 		return evalChange(e.TypeName, it.evalExpression(e.Source, env))
 
+	case *ast.RandomExpression:
+		return it.evalRandom(e.Shape, env)
+
 	default:
 		fatalf("no evaluator for expression type %T", expr)
 		return nil
@@ -212,7 +215,7 @@ func evalInfix(op string, left, right object.Object) object.Object {
 	rf, rIsInt, rIsNum := numeric(right)
 
 	switch op {
-	case "-", "*", "/", "%":
+	case "-", "*", "/", "div", "%":
 		if !lIsNum || !rIsNum {
 			fatalf("operator %q needs two numbers, got %s and %s", op, left.Type(), right.Type())
 		}
@@ -229,20 +232,33 @@ func evalInfix(op string, left, right object.Object) object.Object {
 			}
 			return &object.Float{Value: lf * rf}
 		case "/":
+			// Always the exact answer, a float: 7 / 2 is 3.5, 6 / 3 is 2.0.
+			// "div" keeps just the whole part.
+			if rf == 0 {
+				fatalKind(kindMath, "division by zero")
+			}
+			return &object.Float{Value: lf / rf}
+		case "div":
+			// The whole part, an integer: 7 div 2 is 3, -7 div 2 is -3
+			// (toward zero, so (a div b) * b + a % b is a).
 			if bothInt {
 				r := right.(*object.Integer).Value
 				if r == 0 {
 					fatalKind(kindMath, "division by zero")
 				}
 				if r == -1 && left.(*object.Integer).Value == math.MinInt64 {
-					overflow("/", math.MinInt64, -1)
+					overflow("div", math.MinInt64, -1)
 				}
 				return &object.Integer{Value: left.(*object.Integer).Value / r}
 			}
 			if rf == 0 {
 				fatalKind(kindMath, "division by zero")
 			}
-			return &object.Float{Value: lf / rf}
+			q := math.Trunc(lf / rf)
+			if math.IsNaN(q) || q >= 1<<63 || q < -(1<<63) {
+				fatalKind(kindMath, "%s div %s is too big for an integer", left.Inspect(), right.Inspect())
+			}
+			return &object.Integer{Value: int64(q)}
 		case "%":
 			if bothInt {
 				r := right.(*object.Integer).Value
@@ -320,6 +336,30 @@ func valuesEqual(left, right object.Object) bool {
 // "ascii", "char", or "hex"). The direction between a pair of types (e.g.
 // integer <-> hex string) is inferred from val's actual type, so one target
 // name covers both directions.
+// changeItems are what change ... to list (or set) holds: a list's or
+// set's items, a map's keys, a string's characters, in order.
+func changeItems(val object.Object) ([]object.Object, bool) {
+	switch v := val.(type) {
+	case *object.List:
+		return append([]object.Object{}, v.Elements...), true
+	case *object.Set:
+		return append([]object.Object{}, v.Elements...), true
+	case *object.Map:
+		keys := make([]object.Object, len(v.Keys))
+		for i, k := range v.Keys {
+			keys[i] = v.KeyOf(k)
+		}
+		return keys, true
+	case *object.String:
+		var chars []object.Object
+		for _, r := range v.Value {
+			chars = append(chars, &object.String{Value: string(r)})
+		}
+		return chars, true
+	}
+	return nil, false
+}
+
 func evalChange(typeName string, val object.Object) object.Object {
 	switch typeName {
 	case "integer":
@@ -387,30 +427,36 @@ func evalChange(typeName string, val object.Object) object.Object {
 		}
 	case "list":
 		// Always a new list, so changing it never changes the original.
-		switch v := val.(type) {
-		case *object.List:
-			return &object.List{Elements: append([]object.Object{}, v.Elements...)}
-		case *object.Set:
-			return &object.List{Elements: append([]object.Object{}, v.Elements...)}
+		// A map gives its keys, a string its characters.
+		if items, ok := changeItems(val); ok {
+			return &object.List{Elements: items}
 		}
+	case "keys", "values":
+		// A map's keys or values, as a new list, in the map's order.
+		m, ok := val.(*object.Map)
+		if !ok {
+			fatalf("change ... to %s: needs a map, got %s (for a list or set, change it to list)", typeName, val.Type())
+		}
+		out := &object.List{Elements: make([]object.Object, len(m.Keys))}
+		for i, k := range m.Keys {
+			if typeName == "keys" {
+				out.Elements[i] = m.KeyOf(k)
+			} else {
+				out.Elements[i] = m.Values[k]
+			}
+		}
+		return out
 	case "set":
 		// Duplicates are dropped; the first of each keeps its place.
-		switch v := val.(type) {
-		case *object.List:
+		if items, ok := changeItems(val); ok {
 			s := &object.Set{}
-			for _, e := range v.Elements {
-				s.Add(e)
-			}
-			return s
-		case *object.Set:
-			s := &object.Set{}
-			for _, e := range v.Elements {
+			for _, e := range items {
 				s.Add(e)
 			}
 			return s
 		}
 	default:
-		fatalf("change: unknown target type %q (want integer, float, string, ascii, char, hex, list, or set)", typeName)
+		fatalf("change: unknown target type %q (want integer, float, string, ascii, char, hex, list, set, keys, or values)", typeName)
 	}
 	fatalf("change: can't convert %s to %s", val.Type(), typeName)
 	return nil
@@ -436,6 +482,11 @@ func (it *Interpreter) evalCall(ce *ast.CallExpression, env *object.Environment)
 	for i, a := range ce.Arguments {
 		args[i] = it.evalExpression(a, env)
 	}
+	return it.applyCall(ce, args, env)
+}
+
+// applyCall calls ce's function on arguments already worked out.
+func (it *Interpreter) applyCall(ce *ast.CallExpression, args []object.Object, env *object.Environment) object.Object {
 	if ce.Subject != nil {
 		return it.callByName(ce.Name, append([]object.Object{it.evalExpression(ce.Subject, env)}, args...), env)
 	}
@@ -517,9 +568,11 @@ func (it *Interpreter) callFunction(fn *object.Function, name string, args []obj
 	}
 	// The body's errors name the file it was written in, and once it
 	// returns, errors name the caller's line again, not the body's last.
-	prevFile, prevLine := currentFile, currentLine
-	currentFile = defEnv.File()
-	defer func() { currentFile, currentLine = prevFile, prevLine }()
+	prevFile, prevLine, prevBuiltin := currentFile, currentLine, it.inBuiltin
+	if it.inBuiltin = isBuiltinEnv(defEnv); !it.inBuiltin {
+		currentFile = defEnv.File()
+	}
+	defer func() { currentFile, currentLine, it.inBuiltin = prevFile, prevLine, prevBuiltin }()
 	callEnv := object.NewEnclosedEnvironment(defEnv)
 	for i, param := range fn.Parameters {
 		callEnv.Set(param, args[i])
@@ -532,6 +585,11 @@ func (it *Interpreter) callFunction(fn *object.Function, name string, args []obj
 }
 
 func (it *Interpreter) callImported(im *object.Import, name string, args []object.Object, env *object.Environment) object.Object {
+	if isBuiltin(im.Module, "random") {
+		// The library's Turtle code has no seed of its own: the caller's
+		// seed decides its values.
+		it.randomSource(env)
+	}
 	if fn, ok := im.Module.Function(name); ok {
 		return it.callFunction(fn, name, args)
 	}

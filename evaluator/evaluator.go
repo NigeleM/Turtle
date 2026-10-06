@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"slices"
 
@@ -45,6 +46,11 @@ type Interpreter struct {
 	depth   int                       // function calls in progress (see maxCallDepth)
 	loading []string                  // .t modules mid-import, outermost first
 	dbs     []*object.Database        // databases opened, closed when Run ends
+	rng     *rand.Rand                // the random library's source (see randomlib.go)
+	rngSeed object.Object             // the seed value rng was started from
+	// inBuiltin is true while a builtin library's Turtle code runs:
+	// errors then point at the caller's line, not the library's.
+	inBuiltin bool
 }
 
 func New(dir string) *Interpreter {
@@ -84,7 +90,9 @@ const maxCallDepth = 100000
 // sql_create/sql_query/sql_run/sql_tables/sql_load/sql_save/sql_update/
 // sql_delete/sql_upsert/sql_close (see sqllib.go), "sort" provides min_sort/
 // max_sort and the classic sorting algorithms (see sortlib.go), "search"
-// provides find_* and the search algorithms (see searchlib.go). Anything else falls through to
+// provides find_* and the search algorithms (see searchlib.go), "random"
+// provides pick/shuffle/sample/chance and, with the parser, the random
+// sentence (see randomlib.go). Anything else falls through to
 // the file-based import.
 var builtinModules = map[string]*object.Module{
 	"math":    {Name: "math", Methods: []string{"sqrt", "abs", "round", "floor", "ceil", "pow", "random"}},
@@ -96,6 +104,8 @@ var builtinModules = map[string]*object.Module{
 	"http":    {Name: "http", Funcs: []string{"http_get", "http_post", "http_request"}},
 	"sort":    {Name: "sort", Funcs: []string{"min_sort", "max_sort", "is_sorted", "reverse_list", "bubble_sort", "insertion_sort", "selection_sort", "merge_sort", "quick_sort", "heap_sort", "shell_sort", "counting_sort", "radix_sort"}},
 	"search":  {Name: "search", Funcs: []string{"find_first", "find_last", "find_all", "find_index", "count_where", "find_key", "linear_search", "binary_search", "jump_search", "exponential_search", "interpolation_search", "ternary_search", "insert_position"}},
+	"test":    {Name: "test"},
+	"random":  {Name: "random", Funcs: []string{"pick", "shuffle", "sample", "chance"}},
 	"sql":     {Name: "sql", Funcs: []string{"sql_open", "sql_create", "sql_query", "sql_run", "sql_tables", "sql_load", "sql_save", "sql_update", "sql_delete", "sql_upsert", "sql_close"}},
 }
 
@@ -165,6 +175,7 @@ const (
 	kindHTTP   = "http"   // a web request that failed, or got a 4xx/5xx status
 	kindSQL    = "sql"    // a bad query, or a database problem
 	kindCSV    = "csv"    // a .csv or .tsv file that isn't well formed
+	kindTest   = "test"   // a check, verify or validate that failed (import test)
 	kindCustom = "custom" // the program's own, from fail "..."
 )
 
@@ -289,7 +300,9 @@ func (it *Interpreter) evalBlock(block *ast.BlockStatement, env *object.Environm
 }
 
 func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment) ExecResult {
-	currentLine = stmt.Line()
+	if !it.inBuiltin {
+		currentLine = stmt.Line()
+	}
 	switch s := stmt.(type) {
 	case *ast.AssignStatement:
 		env.Set(s.Name, it.evalExpression(s.Value, env))
@@ -372,6 +385,16 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		} else {
 			env.Set(s.Name, fn)
 		}
+		return noneResult
+
+	case *ast.CheckStatement:
+		it.evalCheck(s, env)
+		return noneResult
+	case *ast.VerifyStatement:
+		it.evalVerify(s, env)
+		return noneResult
+	case *ast.ValidateStatement:
+		it.evalValidate(s, env)
 		return noneResult
 
 	case *ast.SafeStatement:

@@ -2,7 +2,7 @@
 
 // money shows cents as dollars: 2624 -> "$26.24", 5 -> "$0.05".
 def money[cents]
-    dollars = cents / 100
+    dollars = cents div 100
     rest = cents % 100
     if ] rest < 10 [
         return "${dollars}.0{rest}"

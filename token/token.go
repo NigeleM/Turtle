@@ -27,6 +27,7 @@ const (
 	MINUS    Type = "-"
 	ASTERISK Type = "*"
 	SLASH    Type = "/"
+	DIV      Type = "DIV" // "7 div 2": division keeping the whole part
 	PERCENT  Type = "%"
 
 	LT     Type = "<"
@@ -149,6 +150,7 @@ var keywords = map[string]Type{
 	"handle":    HANDLE,
 	"fail":      FAIL,
 	"warn":      WARN,
+	"div":       DIV,
 }
 
 // LookupIdent returns the keyword Type for literal, or IDENT if it isn't

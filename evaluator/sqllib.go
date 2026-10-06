@@ -110,15 +110,56 @@ func (it *Interpreter) callSQL(name string, args []object.Object) object.Object 
 		}
 		return &object.Integer{Value: int64(it.writeTableFile(name, asStringArg(name, args[2]), t))}
 	case "sql_load":
-		requireFuncArgs(name, args, 3)
+		if len(args) != 3 && len(args) != 4 {
+			fatalf("'sql_load' expects 3 or 4 arguments (database, table, file [, map of column types]), got %d", len(args))
+		}
 		conn := asDatabaseArg(name, args[0])
 		table := asStringArg(name, args[1])
-		header, rows := it.readTableFile(name, asStringArg(name, args[2]))
+		path := asStringArg(name, args[2])
+		var ct *columnTypes
+		if len(args) == 4 {
+			ct = parseColumnTypes(name, args[3])
+		}
+		header, rows := it.readTableFile(name, path)
 		if len(header) == 0 {
 			return &object.Integer{Value: 0}
 		}
+		types := applyColumnTypes(name, path, header, rows, ct)
+		for _, row := range rows {
+			for i, t := range types {
+				if t.kind == colDate {
+					row[i] = dateForSQL(row[i])
+				}
+			}
+		}
 		marks := strings.TrimSuffix(strings.Repeat("?, ", len(header)), ", ")
 		stmt := "INSERT INTO " + conn.Quote(table) + " (" + quoteSQLNames(conn, header) + ") VALUES (" + marks + ")"
+		if sqlHasTable(name, conn, table) {
+			return it.sqlFileRows(name, conn, stmt, rows, nil)
+		}
+		key := ""
+		if ct != nil {
+			key = ct.key
+		}
+		var cols []string
+		for i, h := range header {
+			isKey := key != "" && headerIndex(header, key) == i
+			col := conn.Quote(h) + " " + createColumnType(conn, types[i], isKey)
+			if isKey {
+				col += " PRIMARY KEY"
+			}
+			cols = append(cols, col)
+		}
+		if _, err := conn.Exec("CREATE TABLE "+conn.Quote(table)+" ("+strings.Join(cols, ", ")+")", nil); err != nil {
+			fatalKind(kindSQL, "%s: making table %s: %v", name, table, err)
+		}
+		// The table is new: if the file is refused, it goes too.
+		defer func() {
+			if r := recover(); r != nil {
+				conn.Exec("DROP TABLE "+conn.Quote(table), nil)
+				panic(r)
+			}
+		}()
 		return it.sqlFileRows(name, conn, stmt, rows, nil)
 	case "sql_update", "sql_delete", "sql_upsert":
 		requireFuncArgs(name, args, 4)
@@ -175,6 +216,21 @@ func (it *Interpreter) callSQL(name string, args []object.Object) object.Object 
 	}
 	fatalKind(kindName, "no sql function %q", name)
 	return nil
+}
+
+// sqlHasTable reports whether the database has the table, by name in
+// any case.
+func sqlHasTable(fn string, conn sqlConn, table string) bool {
+	names, err := conn.Tables()
+	if err != nil {
+		fatalKind(kindSQL, "%s: %v", fn, err)
+	}
+	for _, n := range names {
+		if strings.EqualFold(n, table) {
+			return true
+		}
+	}
+	return false
 }
 
 // track remembers a database so Run can close it if the program doesn't.

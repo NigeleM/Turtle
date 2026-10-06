@@ -2,6 +2,7 @@
 //
 //	turtle script.t [args...]
 //	turtle doc [library | function | file.t]
+//	turtle test [file.t | folder ...]
 package main
 
 import (
@@ -26,6 +27,12 @@ func main() {
 			}
 			fmt.Print(text)
 			return
+		}
+	}
+	if len(os.Args) >= 2 && os.Args[1] == "test" {
+		if _, err := os.Stat("test"); err != nil { // not a script called test
+			cwd, _ := os.Getwd()
+			os.Exit(evaluator.TestCommand(os.Args[2:], cwd, os.Stdout))
 		}
 	}
 	path, err := resolveScriptPath()

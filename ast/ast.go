@@ -1,7 +1,11 @@
 // Package ast defines the Turtle abstract syntax tree.
 package ast
 
-import "Turtle/token"
+import (
+	"strings"
+
+	"Turtle/token"
+)
 
 type Node interface {
 	TokenLiteral() string
@@ -363,6 +367,7 @@ type PrefixExpression struct {
 	Token    token.Token
 	Operator string
 	Right    Expression
+	Grouped  bool // written in ( ): a statement's "at" doesn't reach inside
 }
 
 func (pe *PrefixExpression) expressionNode()      {}
@@ -373,6 +378,7 @@ type InfixExpression struct {
 	Left     Expression
 	Operator string
 	Right    Expression
+	Grouped  bool // written in ( ): a statement's "at" doesn't reach inside
 }
 
 func (ie *InfixExpression) expressionNode()      {}
@@ -499,3 +505,137 @@ type FieldAssignStatement struct {
 func (fa *FieldAssignStatement) statementNode()       {}
 func (fa *FieldAssignStatement) TokenLiteral() string { return fa.Token.Literal }
 func (fa *FieldAssignStatement) Line() int            { return fa.Token.Line }
+
+// RandomExpression is "random <shape>" (import random): a new random
+// value of that shape each time it runs, e.g. random list of 5 integers
+// from 0 to 9.
+type RandomExpression struct {
+	Token token.Token
+	Shape *Shape
+}
+
+func (r *RandomExpression) expressionNode()      {}
+func (r *RandomExpression) TokenLiteral() string { return r.Token.Literal }
+
+// Shape describes a kind of value, as written after random:
+//
+//	integer [from A to B]          float [from A to B] [rounded to N]
+//	string [of N [to M]] [from "chars"]
+//	digits of N [to M]             digit    letter    boolean
+//	date [from A to B]             time [from A to B]
+//	list of [N [to M]] <shape>     set of [N [to M]] <shape>
+//	map of [N [to M]] <shape> to <shape>
+//	Order [<shape>, <shape>, ...]  (an assembled type, one shape per field)
+//
+// Plurals (integers, lists, ...) mean the same as the singular.
+type Shape struct {
+	Token    token.Token
+	Kind     string     // integer float string digits digit letter boolean date time list set map assembled
+	Count    Expression // list, set, map: how many (nil: 0 to 10)
+	CountTo  Expression // "N to M": at most M
+	From, To Expression // integer, float, date, time: the range
+	Length   Expression // string, digits: "of N"
+	LengthTo Expression // "of N to M"
+	Chars    Expression // string: from "chars"
+	Places   Expression // float: rounded to N
+	Item     *Shape     // list and set items; map values
+	Key      *Shape     // map keys
+	TypeName string     // assembled: the type's name
+	Fields   []*Shape   // assembled: one per field
+}
+
+// Describe writes the shape back as Turtle words, for messages.
+func (s *Shape) Describe() string {
+	switch s.Kind {
+	case "list", "set":
+		return s.Kind + " of " + s.Item.Describe()
+	case "map":
+		return "map of " + s.Key.Describe() + " to " + s.Item.Describe()
+	case "assembled":
+		parts := make([]string, len(s.Fields))
+		for i, f := range s.Fields {
+			parts[i] = f.Describe()
+		}
+		return s.TypeName + " [" + strings.Join(parts, ", ") + "]"
+	}
+	return s.Kind
+}
+
+// CheckStatement is "check ... ." (import test): one fact that must hold.
+//
+//	check total == 45 .                  Form "true": any true/false value
+//	check x is integer .                 Form "is" (Negate: "is not")
+//	check 0.1 + 0.2 is close to 0.3 .    Form "close" [within N]
+//	check divide[1, 0] fails [math] .    Form "fails"
+type CheckStatement struct {
+	Token  token.Token
+	Value  Expression
+	Form   string
+	Negate bool       // "is not"
+	Kind   string     // Form "is": integer, float, number, string, ... or an assembled type
+	Other  Expression // Form "close": the number to be close to
+	Within Expression // Form "close": the allowed difference (nil: tiny)
+	Errors []string   // Form "fails": the error kinds allowed (none: any)
+	Text   string     // the statement as written, for messages
+}
+
+func (c *CheckStatement) statementNode()       {}
+func (c *CheckStatement) TokenLiteral() string { return c.Token.Literal }
+func (c *CheckStatement) Line() int            { return c.Token.Line }
+
+// Rule is the part of verify (and validate's "that ... each") after the
+// collection: how many items must follow the rule, and the rule.
+//
+//	each x gives x > 0        any ...        not ...
+//	at least 2 ...            at most 2 ...  exactly 2 ...
+//	each pair [a, b] gives a <= b
+type Rule struct {
+	Quant string     // each any not atleast atmost exactly
+	Count Expression // atleast, atmost, exactly
+	Pair  bool       // neighbors, two at a time
+	Fn    Expression // the rule: a function of one item (or two)
+}
+
+// VerifyStatement is "verify <collection> <rule> ." (import test).
+type VerifyStatement struct {
+	Token      token.Token
+	Collection Expression
+	Rule       *Rule
+	Text       string
+}
+
+func (v *VerifyStatement) statementNode()       {}
+func (v *VerifyStatement) TokenLiteral() string { return v.Token.Literal }
+func (v *VerifyStatement) Line() int            { return v.Token.Line }
+
+// ValidateInput is "nums as list of integer" in a validate statement.
+type ValidateInput struct {
+	Name  string
+	Shape *Shape
+}
+
+// ValidateStatement is "validate <call> [to name] with x as <shape>, ...
+// that <rule> ." (import test): the call, run on random inputs.
+//
+//	that <true/false>                      That
+//	that <value> each x gives ...          Collection and Rule
+//	matches <other call>                   Matches
+//
+// Without "with", Examples are the calls to the same function in the
+// test's checks, whose arguments show what kind of inputs to make.
+type ValidateStatement struct {
+	Token      token.Token
+	Call       *CallExpression
+	ResultName string
+	Inputs     []*ValidateInput
+	That       Expression
+	Collection Expression
+	Rule       *Rule
+	Matches    Expression
+	Examples   []*CallExpression
+	Text       string
+}
+
+func (v *ValidateStatement) statementNode()       {}
+func (v *ValidateStatement) TokenLiteral() string { return v.Token.Literal }
+func (v *ValidateStatement) Line() int            { return v.Token.Line }

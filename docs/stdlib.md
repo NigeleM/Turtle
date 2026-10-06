@@ -97,6 +97,7 @@ methods per type.)
 | Method | Args | Returns |
 |---|---|---|
 | `get` | key | the value (fatal if key not found) |
+| `len` / `length` | — | how many entries (Integer), like `length of m` |
 | `contains` | key | Boolean, whether the map has that key |
 | `getValues` | — | a list of values, insertion order |
 | `getKeys` | — | a list of the keys, insertion order, each with its own type |
@@ -114,6 +115,7 @@ All indices are Unicode code points (runes), not bytes — consistent with
 
 | Method | Args | Returns |
 |---|---|---|
+| `len` / `length` | — | how many characters (Integer), like `length of s` |
 | `upper` / `lower` | — | case-converted string |
 | `isEmpty` | — | Boolean: `true` for `""` |
 | `trim` | — | leading/trailing whitespace stripped |
@@ -410,9 +412,8 @@ show rows at get[0] .                   // { "item": "pen", "qty": "3", "price":
   `none` there; the columns are every name any row has, in the order
   they first appear.
 - From `.csv` and `.tsv`, values read back are text, as in the file
-  (`"3"`): `change` converts them, and a database column declared `INTEGER` or `REAL` stores them as
-  numbers. An empty cell is `none`, and `none` is written as an empty
-  cell, so files round-trip.
+  (`"3"`), unless you give [column types](#column-types). An empty cell
+  is `none`, and `none` is written as an empty cell, so files round-trip.
 - A value with the separator, a quote or a line break is put in quotes,
   with quotes doubled (`"say ""hi"""`), the standard rule (RFC 4180).
   Blank lines are skipped, and a byte order mark at the start (Excel
@@ -420,6 +421,162 @@ show rows at get[0] .                   // { "item": "pen", "qty": "3", "price":
 - A line with fewer values than the header gets `none` for the rest; one
   with more, or broken quotes, is an error of kind `csv`. A missing file
   is kind `file`.
+
+### Column types
+
+`table_read[path, types]` and `sql_load[db, table, path, types]` take a
+map of column name to type after the file, so each column is read as the
+right kind of value: `"007"` stays text, `"24"` becomes a number, and no
+`change` is needed later. The map can be written in place or kept in a
+variable.
+
+```
+import data
+
+types = map ["code": "text", "missions": "integer", "rating": "float",
+             "active": "boolean", "joined": "date", "primary_key": "code"]
+rows = table_read["agents.csv", types]
+show rows at get[0] .
+// { "code": "007", "name": "James Bond", "missions": 24, "rating": 9.5, "active": true, "joined": 1953-04-13 00:00:00 }
+```
+
+| Type | Read as | Cells it takes |
+|---|---|---|
+| `string`, `text` | text, exactly as in the file | anything |
+| `integer`, `int` | an integer | `42`, `3.0` (a whole number) |
+| `float` | a float | `1.5`, `2` |
+| `boolean`, `bool` | `true` / `false` | `true` `false` `yes` `no` `1` `0` `t` `f` `y` `n`, any case |
+| `date` | a date | the forms `to_date` reads: `2026-10-06`, `2026-10-06 09:30`, ... |
+| a SQL type: `VARCHAR(10)`, `BIGINT`, `DOUBLE PRECISION`, `NUMERIC(10, 2)`, ... | sorted by its words, as SQLite does: `INT` an integer; `CHAR`, `TEXT`, `CLOB`, `BLOB` text; `REAL`, `FLOA`, `DOUB` a float; `BOOL` a boolean; `DATE`, `TIME` a date; `NUMERIC`, `DECIMAL`, `NUMBER` an integer when whole, else a float | |
+
+- Type words are in any case (`"INTEGER"`, `"Text"`).
+- **Columns the map leaves out are text.** A column the map names that
+  the file doesn't have is an error of kind `name` (usually a typo).
+- **`"primary_key": "column"`** names the key. `table_read` checks that
+  every row has one and no two are the same (after converting, so `1`
+  and `01` are the same integer), an error of kind `key` otherwise.
+- An empty cell stays `none`. A cell that isn't its type is an error
+  naming the row and column: kind `number` for numbers, `date` for
+  dates, `type` for booleans.
+- From `.json`, values that already have the right kind stay as they
+  are; a number in a `text` column becomes its text, and a list or
+  object in a `text` column becomes its JSON text.
+
+For `sql_load`, see [Files: CSV in and out](#files-csv-in-and-out).
+
+## Random library
+
+`import random` makes random values of any shape. Describe the value in
+words after `random`; each time the line runs, it gives a new one.
+
+```
+import random
+assemble Order [item, qty, price]
+
+die = random integer from 1 to 6
+nums = random list of 5 integers from 0 to 9       // [ 9, 5, 1, 7, 6 ]
+price = random float from 0.5 to 99.99 rounded to 2 // 38.61
+code = random string of 8                            // "AGhwhRHU"
+pin = random digits of 4                           // "5875": a string, so "0427" keeps its 0
+id = random string of 6 from "ABCDEF0123456789"      // "6B3838"
+day = random date from "2026-01-01" to "2026-12-31"
+grid = random list of 3 lists of 3 integers from 1 to 9
+groups = random set of 4 lists of 2 strings of 3
+ages = random map of 3 string of 2 to integer from 0 to 99
+order = random Order [string of 5, integer from 1 to 10, float rounded to 2]
+orders = random list of 20 Order [string, integer, float]
+```
+
+| Kind | Gives | Options |
+|---|---|---|
+| `integer` | a whole number, -1000 to 1000 | `from A to B` (both included) |
+| `float` | a decimal, 0 up to 1 | `from A to B`, `rounded to N` (places) |
+| `string` | 1 to 10 letters, a–z and A–Z | `of N`, `of N to M` (length), `from "chars"` (only these) |
+| `digits of N` | a string of N digits (`"0427"`) | `of N to M` |
+| `digit`, `letter` | one digit or letter, as a string | |
+| `boolean` | `true` or `false` | |
+| `date` | a day, 2000-01-01 to 2030-12-31 | `from A to B`: dates or strings like `"2026-01-31"` |
+| `time` | a date with a time of day, to the second | `from A to B` |
+| `list of <kind>` | a list | a count: `list of 5 integers`, `list of 2 to 8 integers`, `list of n integers` |
+| `set of <kind>` | a set; its items are all different | a count, as for lists |
+| `map of <kind> to <kind>` | a map; its keys are all different | a count: `map of 3 string to integer` |
+| `Order [<kind>, ...]` | an assembled value, one kind per field, in order | |
+
+- **Plurals** read naturally and mean the same: `integers`, `floats`,
+  `strings`, `letters`, `booleans`, `dates`, `lists`, `sets`, `maps`
+  (`digits` without `of` is single digits: `list of 3 digits`).
+- **A count comes before the kind**, and is a whole number or a
+  variable's name. Without one, a list, set or map has 0 to 10 items.
+  Limits (`from`, `of`, `rounded`) come after the kind.
+- **Kinds nest** any way: `list of 3 lists of 3 integers`,
+  `set of 4 lists of string`, `map of string to list of Order [string, float]`.
+- **Where the sentence ends**: arithmetic belongs to a limit (`to n + 1`),
+  but a comparison applies to the random value:
+  `random integer from 1 to 6 == 6` is true one time in six. A method
+  works on the value right before it (`to 9 at abs` is about the 9), so
+  to call one on the random value, name it first: `nums = random list
+  of 5 integers`, then `nums at length`.
+- A set or map that can't get enough different values
+  (`set of 5 integers from 1 to 3`) is a `math` error, as is a range
+  whose `from` is more than its `to`.
+- `random` is a sentence word only in a file that has `import random`;
+  elsewhere it's an ordinary name, and `n at random` (math) works as
+  before.
+
+**Choosing from your own values** (these four are written in Turtle, in
+`evaluator/lib/random.t`, on the `random` sentence; an empty collection,
+or a count or chance out of range, is an error of kind `custom`):
+
+| Function | Gives |
+|---|---|
+| `pick[x]` | one item of a list or set, one key of a map, one character of a string |
+| `shuffle[x]` | a new list in random order (a string, for a string) |
+| `sample[x, n]` | a list of `n` different items |
+| `chance[p]` | `true` with probability `p` (0 to 1) |
+
+```
+color = pick[list ["red", "green", "blue"]]
+hand = sample[shuffle[deck], 5]
+if ] chance[0.3] [
+    show "rain" .
+if [end]
+```
+
+**The same values every run.** `import random` also makes the variable
+`seed`, `none`: different values each run. Set it to a whole number and
+every random value from there on is the same each time the program runs,
+which is how to repeat a run exactly (a test that failed on random
+data, say). Setting it again, even to the same number, starts the values
+over; `seed = none` goes back to different values each run.
+
+```
+seed = 42
+a = random list of 3 integers
+seed = 42
+b = random list of 3 integers      // the same as a
+```
+
+## Test library
+
+`import test` adds three statements, `check` (one fact), `verify` (a
+rule for every item) and `validate` (a rule on many random inputs), and
+the settings `turtle test` reads. Everything is in
+[`testing.md`](testing.md).
+
+```
+import test
+
+def test_evens[]
+    check evens[list [1, 2, 3, 4]] == list [2, 4] .
+    verify evens[nums] each x gives x % 2 == 0 .
+    validate evens[nums] with nums as list of integer
+        that result each x gives x % 2 == 0 .
+def [end]
+```
+
+```sh
+turtle test
+```
 
 ## Sort library
 
@@ -792,7 +949,7 @@ a missing `NOT NULL` value), no line of that file is kept, even inside
 | Function | Does |
 |---|---|
 | `sql_save[db, query, path [, values]]` | runs the query and writes its rows to the file (the header too, even with no rows) |
-| `sql_load[db, table, path]` | adds a record per line; the header names the columns |
+| `sql_load[db, table, path [, types]]` | adds a record per line; the header names the columns. If the table isn't there, makes it first (see below) |
 | `sql_update[db, table, key, path]` | for each line, changes the record whose `key` column matches, setting the file's other columns |
 | `sql_delete[db, table, key, path]` | removes the records whose `key` matches a line (other columns are ignored) |
 | `sql_upsert[db, table, key, path]` | adds the lines whose key is new and changes the ones already there (`key` must be `UNIQUE` or the `PRIMARY KEY`) |
@@ -819,6 +976,33 @@ B5,"I, Robot",650
 - Values from the file are text; columns declared `INTEGER` or `REAL`
   store them as numbers (`"950"` → `950`), as SQLite does. An empty cell
   is `NULL`, so it sets the column to `NULL` in `sql_update`.
+- **Column types.** `sql_load` takes the same map of
+  [column types](#column-types) as `table_read`, in place or in a
+  variable. The file's values are converted first, so a bad one stops
+  the load before anything is written.
+- **A missing table is made** from the file's header, in the file's
+  column order. With a map, each column gets its type and
+  `"primary_key"` becomes the table's `PRIMARY KEY`; without one, every
+  column is text. If the file is then refused, the new table is dropped
+  again. When the table is already there, the map only converts values
+  (its own column types and key stay).
+
+```
+types = map ["code": "text", "missions": "integer", "joined": "date", "primary_key": "code"]
+sql_load[db, "agents", "agents.csv", types]
+// CREATE TABLE "agents" ("code" TEXT PRIMARY KEY, "name" TEXT, "missions" INTEGER, ..., "joined" DATE)
+```
+
+  A Turtle type word becomes each database's own type; a SQL type is
+  used exactly as written:
+
+  | Word | SQLite | PostgreSQL | MySQL |
+  |---|---|---|---|
+  | `string`, `text` | `TEXT` | `TEXT` | `TEXT` (`VARCHAR(255)` for the key, which MySQL needs) |
+  | `integer` | `INTEGER` | `BIGINT` | `BIGINT` |
+  | `float` | `REAL` | `DOUBLE PRECISION` | `DOUBLE` |
+  | `boolean` | `BOOLEAN` | `BOOLEAN` | `BOOLEAN` (MySQL gives back `1` / `0`) |
+  | `date` | `DATE` (stored as text, `1953-04-13`) | `DATE` | `DATE` |
 - A line whose key isn't in the table changes nothing in `sql_update`
   and `sql_delete`; compare the count with the file's lines, or look the
   keys up (see `testdata/sql/11_csv_import.t`).

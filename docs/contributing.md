@@ -65,6 +65,27 @@ parser change is needed, since calls are ordinary `name[args]`.
 5. Document it in `docs/stdlib.md` (table, rules, a runnable example),
    add tests, and a section in `testdata/everything.t`.
 
+## Worked example: library functions written in Turtle
+
+A builtin library can be partly written in Turtle (the hybrid standard
+library). `random` is: its sentence and `seed` are Go, and `pick`,
+`shuffle`, `sample` and `chance` are Turtle, in `evaluator/lib/random.t`.
+
+1. Write the functions in `evaluator/lib/<name>.t`. It's built into
+   turtle (Go's `embed`) and runs once per program, when a file first
+   imports `<name>`. It can import other libraries, and use its own
+   library's sentences (the parser's `Enable(name)` turns them on, since
+   a library can't import itself).
+2. Add `<name>` to `turtleLibs` in `evaluator/turtlelibs.go`, and list
+   the exported functions in its `builtinModules` entry's `Funcs`, as for
+   a Go library. Only those are exported: the file's other functions are
+   private helpers. A library can mix Go and Turtle functions; a name the
+   `.t` file doesn't define goes to `callBuiltin` (Go).
+3. Fail with `fail "..."` (kind `custom`). Errors point at the caller's
+   line, not the library's, as a Go builtin's do.
+4. Document and test it as any library; `TestEveryBuiltinIsDocumented`
+   covers its functions too.
+
 ## Worked example: a new statement keyword
 
 Say you want a `sleep <expr> .` statement (pause execution for N

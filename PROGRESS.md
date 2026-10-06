@@ -668,3 +668,100 @@ safe [end]
   `test.trt`) moved to `legacy/`; it still builds and runs. The old
   compiled `turtle` binary is no longer tracked (`/turtle` is ignored).
 - The release workflow now vets and tests `postgres/` and `mysql/` too.
+
+## 2026-10-06: column types for table files (not yet released)
+
+- `table_read[path, types]` and `sql_load[db, table, path, types]` take
+  a map of column name to type (a literal or a variable): Turtle words
+  (`string`, `text`, `integer`, `float`, `boolean`, `date`) or SQL types
+  (`VARCHAR(10)`, `NUMERIC(10, 2)`, ...), in any case. "007" stays text;
+  columns left out are text; `"primary_key": "column"` names the key.
+- `sql_load` makes a missing table from the file's header (all text
+  without a map), with the map's types and primary key, spelled for each
+  database; if the file is refused, the new table is dropped again.
+- `table_read` with a key checks every row has a different one.
+- Errors name the row and column. `testdata/sql/14_typed_load.t`, a
+  typed load in `13_servers.t` (PostgreSQL and MySQL), unit tests.
+
+## 2026-10-06: random library (not yet released)
+
+- `import random`: random values of any shape as a sentence:
+  `random integer from 1 to 6`, `random list of 5 integers from 0 to 9`,
+  `random float from 0.5 to 99.99 rounded to 2`, `random string of 8`,
+  `random digits of 4`, `random string of 6 from "ABC123"`, `random date
+  from "2026-01-01" to "2026-12-31"`, `random time`, `letter`, `digit`,
+  `boolean`, sets and maps (all-different keys), nesting to any depth, and
+  assembled values with a kind per field: `random Order [string, integer]`.
+  Plurals, counts (`list of 2 to 8 integers`, `list of n integers`).
+- `pick`, `shuffle`, `sample`, `chance`; the `seed` variable (none:
+  different each run; a number: the same values every run; setting it
+  restarts them).
+- `random` is a sentence word only in a file with `import random`
+  (parser/random.go); the shape grammar (ast.Shape) is meant to be shared
+  with the test library's `validate`.
+
+## 2026-10-06: methods work on the value right before them (not yet released)
+
+- `a at invert == b at invert` compares the two inverted maps, like
+  Python's `a.invert() == b.invert()`; `"a" + "b" at upper` is `"aB"`,
+  and `( )` groups: `("a" + "b") at upper` is `"AB"`. Before, `at`
+  bound loosest (only `get[...]` / `slice[...]` bound tightest).
+- `-7 at abs` is 7 (`-7` is one number); `-x at abs` is `-(x at abs)`.
+- `r is ... at m args .` follows the same rule; `title of b at upper`
+  still upper-cases the title.
+- Tests for the rule and for long expressions (`1 + 2 - 3 + 4 - (5 + 6)
+  + 7 * 8`), and reference.md's order of operations.
+- The random library's `text` is now `string` (`random string of 8`).
+- Strings gained `at length` / `at len`, as lists have. Test of long
+  expressions mixing strings, lists, maps and sets with chained methods.
+
+## 2026-10-06: `/` is exact, `div` keeps the whole part (not yet released)
+
+- `7 / 2` is 3.5 and `6 / 3` is 2.0: `/` always gives a float. The new
+  operator `div` (a reserved word) gives the whole part, toward zero:
+  `7 div 2` is 3, `-7 div 2` is -3, so `(a div b) * b + a % b` is `a`.
+  Before, two integers divided as whole numbers. `//` was taken by
+  comments.
+- Example programs that meant whole numbers now use `div` (the shop's
+  money and averages); tests for both operators.
+
+## 2026-10-06: the test library (not yet released)
+
+- `import test` makes `check`, `verify` and `validate` statements (only
+  in that file; elsewhere they're ordinary names):
+  - `check <true/false> .`: any comparison, method or library function;
+    a failed `==` shows the first difference (items, keys, fields,
+    characters), other failures show the parts' values. Also
+    `is [not] <kind>` (integer, float, number, string, boolean, list,
+    set, map, date, none, function, empty, an assembled type),
+    `is [not] close to x [within d]`, and `fails [kinds]`.
+  - `verify <values> each | any | not | at least N | at most N |
+    exactly N [pair] <rule> .`: lists which items break the rule.
+  - `validate <call> [to name] with x as <kind>, ... that <rule> |
+    matches <call> .`: 100 random inputs (`cases`), shrunk to the
+    smallest failing one, with the seed to repeat it. Without `with`,
+    it learns the kinds from the test's checks.
+- `turtle test [file | folder ...]`: `test_*.t` files, `test_`
+  functions; PASS / FAIL / SKIP with times; `suite = false | "stop" |
+  "all"`; `benchmark`, `runs` (none: Go-style, as many as fit in
+  `benchtime`), `benchtime`; settings at file level or inside a test.
+  Exit code 1 on failure. Failures name the file and line (the
+  library's, for an error inside an imported library).
+- Error kind `test`. Maps got `at length` too.
+- docs/testing.md (the full guide, with at least / at most / exactly
+  worked through), reference, stdlib, getting started, `turtle doc
+  test`; testdata/testlib/ examples (run by TestTestExamples), and tests
+  of every message and runner case.
+
+## 2026-10-06: the first hybrid library (not yet released)
+
+- Builtin libraries can be written partly in Turtle: `evaluator/lib/
+  <name>.t` is built in (Go's embed) and runs once per program on first
+  import; only the functions listed for the builtin are exported, the
+  rest are private helpers; errors point at the caller's line.
+- `random`'s `pick`, `shuffle`, `sample` and `chance` are now Turtle
+  (lib/random.t) on the Go sentence and seed; the caller's `seed` still
+  decides their values. Their errors are now kind `custom`.
+- `change x to list` / `set` take a map (its keys) and a string (its
+  characters); `change m to keys` / `values` pick a map's keys or values.
+- docs/contributing.md: how to write library functions in Turtle.

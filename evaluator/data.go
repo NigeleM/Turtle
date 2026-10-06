@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"Turtle/ast"
 	"Turtle/object"
@@ -181,6 +182,11 @@ func (it *Interpreter) evalMethodCall(mc *ast.MethodCallExpression, env *object.
 	for i, a := range mc.Arguments {
 		args[i] = it.evalExpression(a, env)
 	}
+	return it.applyMethod(mc, receiver, args, env)
+}
+
+// applyMethod runs mc's method on values already worked out.
+func (it *Interpreter) applyMethod(mc *ast.MethodCallExpression, receiver object.Object, args []object.Object, env *object.Environment) object.Object {
 	switch r := receiver.(type) {
 	case *object.List:
 		return listMethod(r, mc.Method, args)
@@ -474,6 +480,9 @@ func setMethod(s *object.Set, method string, args []object.Object) object.Object
 
 func mapMethod(m *object.Map, method string, args []object.Object) object.Object {
 	switch method {
+	case "len", "length":
+		requireArgs(method, args, 0)
+		return &object.Integer{Value: int64(len(m.Keys))}
 	case "contains":
 		// Whether the map has this key.
 		requireArgs(method, args, 1)
@@ -526,6 +535,9 @@ func mapMethod(m *object.Map, method string, args []object.Object) object.Object
 
 func stringMethod(s *object.String, method string, args []object.Object) object.Object {
 	switch method {
+	case "len", "length":
+		requireArgs(method, args, 0)
+		return &object.Integer{Value: int64(utf8.RuneCountInString(s.Value))}
 	case "isEmpty":
 		requireArgs(method, args, 0)
 		return &object.Boolean{Value: s.Value == ""}

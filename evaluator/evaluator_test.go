@@ -92,7 +92,11 @@ func TestArithmeticAndModulo(t *testing.T) {
 		{"add", `show 1 + 2 .`, "3\n"},
 		{"precedence", `show 1 + 2 * 3 .`, "7\n"},
 		{"parens", `show (1 + 2) * 3 .`, "9\n"},
-		{"int div truncates", `show 7 / 2 .`, "3\n"},
+		{"/ is exact", `show 7 / 2, " ", 6 / 3, " ", 1 / 4 .`, "3.5 2.0 0.25\n"},
+		{"div keeps the whole part", `show 7 div 2, " ", -7 div 2, " ", 6 div 3, " ", 7.9 div 2, " ", -7.5 div 2 .`, "3 -3 2 3 -3\n"},
+		{"div and % fit together", `a = -17
+b = 5
+show a div b * b + a % b == a .`, "true\n"},
 		{"float div", `show 7.0 / 2 .`, "3.5\n"},
 		{"modulo int", `show 10 % 3 .`, "1\n"},
 		{"modulo float", `show 10.5 % 3 .`, "1.5\n"},
@@ -1352,11 +1356,11 @@ a is l at slice -2 .
 s is "Hello, World" at slice -5 .
 show a, s .`, want: "[ 3, 4 ]World\n"},
 		{name: "floats show as floats", src: `import math
-show 4.0, " ", 2.5 * 2, " ", 7 / 2, " ", 1.5 .
+show 4.0, " ", 2.5 * 2, " ", 7 / 2, " ", 1.5, " ", 7 div 2 .
 r is 16 at sqrt .
 p is 2 at pow 10 .
 q is 2 at pow -1 .
-show r, " ", p, " ", q .`, want: "4.0 5.0 3 1.5\n4.0 1024 0.5\n"},
+show r, " ", p, " ", q .`, want: "4.0 5.0 3.5 1.5 3\n4.0 1024 0.5\n"},
 		{name: "function arg count says function", src: `import strings
 show find["a"] .`, wantErr: `function "find" expects 2 argument(s)`},
 		{name: "map keys keep their type", src: `m = map [1: "int", "1": "str", 2.5: "f", true: "b"]
@@ -1701,7 +1705,7 @@ safe [end]`, want: "line 3: division by zero\n"},
     safe [end]
 def [end]
 show f[2] .
-show f[0] .`, want: "5\n-1\n"},
+show f[0] .`, want: "5.0\n-1\n"},
 		{name: "break and continue inside safe", src: `[loop][i = 0; i < 6; i++]
     safe
         if ] i == 1 [
@@ -1841,7 +1845,7 @@ func TestErrorsNameTheModuleFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	files := map[string]string{
-		"lib/utils.t": "def half[n]\n    return 10 / n\ndef [end]\n",
+		"lib/utils.t": "def half[n]\n    return 10 div n\ndef [end]\n",
 		"lib/bad.t":   "x = 1\nshow x\n",
 	}
 	for name, src := range files {
@@ -2088,8 +2092,15 @@ show a, " ", b, " ", s, " ", t .`, want: "[ 1 ] [ 1, 2 ] { 1 } { 1, 2 }\n"},
 		{name: "equal values count once", src: `show change list [1, 1.0, "1"] to set .`, want: "{ 1, \"1\" }\n"},
 		{name: "empty", src: `show change list [] to set .`, want: "{  }\n"},
 		{name: "number to list", src: `x = change 5 to list`, wantErr: "change: can't convert INTEGER to list"},
-		{name: "map to set", src: `x = change map ["a": 1] to set`, wantErr: "change: can't convert MAP to set"},
-		{name: "unknown target lists the types", src: `x = change 5 to tuple`, wantErr: "want integer, float, string, ascii, char, hex, list, or set"},
+		{name: "map gives its keys", src: `show change map ["a": 1, "b": 2] to list, change map ["a": 1] to set .`, want: "[ \"a\", \"b\" ]{ \"a\" }\n"},
+		{name: "string gives its characters", src: `show change "héllo" to list, change "aab" to set .`, want: "[ \"h\", \"é\", \"l\", \"l\", \"o\" ]{ \"a\", \"b\" }\n"},
+		{name: "boolean to set", src: `x = change true to set`, wantErr: "change: can't convert BOOLEAN to set"},
+		{name: "unknown target lists the types", src: `x = change 5 to tuple`, wantErr: "want integer, float, string, ascii, char, hex, list, set, keys, or values"},
+		{name: "a map's keys or values", src: `ages = map ["ann": 30, "bo": 25]
+show change ages to keys, change ages to values, change ages to list .
+change ages to values .
+show ages .`, want: "[ \"ann\", \"bo\" ][ 30, 25 ][ \"ann\", \"bo\" ]\n[ 30, 25 ]\n"},
+		{name: "keys need a map", src: `x = change list [1] to keys`, wantErr: "change ... to keys: needs a map, got LIST"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -2883,6 +2894,67 @@ table_write["no/such/x.csv", list [1]]`, wantErr: "table_write no/such/x.csv"},
 	}
 }
 
+func TestColumnTypes(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, text string) {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("a.csv", "id,n,f,ok,d,num\n007, 42 ,1.5,Yes,2026-10-06,3\n8,3.0,2,0,2026-10-06 09:30,2.5\n")
+	write("a.json", `[{"id": 7, "n": 3.0, "tags": [1, 2]}]`)
+	write("dup.csv", "id\n1\n01\n1\n")
+	write("nokey.csv", "id,v\n1,a\n,b\n")
+	cases := []struct{ name, src, want, wantErr string }{
+		{name: "each kind", src: `import data
+rows = table_read["a.csv", map ["n": "integer", "f": "float", "ok": "bool", "d": "date", "num": "NUMERIC"]]
+show rows at get[0] .
+show rows at get[1] .`, want: "{ \"id\": \"007\", \"n\": 42, \"f\": 1.5, \"ok\": true, \"d\": 2026-10-06 00:00:00, \"num\": 3 }\n{ \"id\": \"8\", \"n\": 3, \"f\": 2.0, \"ok\": false, \"d\": 2026-10-06 09:30:00, \"num\": 2.5 }\n"},
+		{name: "a map from a variable, words in any case", src: `import data
+types = map ["N": "INTEGER", "id": "String"]
+show table_read["a.csv", types] at get[0] at get["n"] .`, want: "42\n"},
+		{name: "none is no map", src: `import data
+show table_read["a.csv", none] at get[0] at get["n"] .`, want: " 42 \n"},
+		{name: "json values become text, numbers whole", src: `import data
+show table_read["a.json", map ["id": "text", "n": "integer", "tags": "text"]] .`, want: "[ { \"id\": \"7\", \"n\": 3, \"tags\": \"[1,2]\" } ]\n"},
+		{name: "key compared after converting", src: `import data
+r = table_read["dup.csv", map ["id": "integer", "primary_key": "id"]]`, wantErr: "rows 1 and 2 have the same \"id\", 1 (the primary key)"},
+		{name: "text keys keep zeros", src: `import data
+r = table_read["dup.csv", map ["primary_key": "id"]]`, wantErr: "rows 1 and 3 have the same \"id\", \"1\""},
+		{name: "key must be there", src: `import data
+r = table_read["nokey.csv", map ["primary_key": "id"]]`, wantErr: "row 2 has no \"id\", the primary key"},
+		{name: "a float isn't an integer", src: `import data
+r = table_read["a.csv", map ["f": "integer"]]`, wantErr: "row 1, column \"f\": \"1.5\" isn't an integer"},
+		{name: "not a date", src: `import data
+r = table_read["a.csv", map ["n": "date"]]`, wantErr: "isn't a date"},
+		{name: "not a map", src: `import data
+r = table_read["a.csv", list ["n"]]`, wantErr: "column types must be a map"},
+		{name: "type must be text", src: `import data
+r = table_read["a.csv", map ["n": 5]]`, wantErr: "the type of \"n\" must be text"},
+		{name: "no SQL tricks in a type", src: `import data
+r = table_read["a.csv", map ["n": "INT); DROP TABLE x; --"]]`, wantErr: "isn't a type for column"},
+		{name: "too many arguments", src: `import data
+r = table_read["a.csv", map [], 1]`, wantErr: "expects 1 or 2 arguments"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := runIn(t, dir, c.src, "")
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("want error containing %q, got %v (output %q)", c.wantErr, err, out)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v (output %q)", err, out)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
 func TestSQLFiles(t *testing.T) {
 	setup := `import sql
 import data
@@ -2932,7 +3004,9 @@ safe [end]
 show sql_query[db, "SELECT count(*) AS n FROM books"] .`, want: "sql_load: UNIQUE constraint failed: books.sku\n[ { \"n\": 3 } ]\n"},
 		{name: "delete from a tsv file", src: setup + `show sql_delete[db, "books", "sku", "more.tsv"] .`, want: "0\n"},
 		{name: "key column must be in the file", src: setup + `sql_update[db, "books", "sku", "nokey.csv"]`, wantErr: "sql_update nokey.csv: the file has no \"sku\" column (its columns: title)"},
-		{name: "unknown table", src: setup + `sql_load[db, "nope", "books.csv"]`, wantErr: "sql_load: no such table: nope"},
+		{name: "a missing table is made, all text", src: setup + `show sql_load[db, "fresh", "books.csv"] .
+show sql_query[db, "SELECT sql FROM sqlite_schema WHERE name = 'fresh'"] at get[0] at get["sql"] .`, want: "3\nCREATE TABLE \"fresh\" (\"sku\" TEXT, \"title\" TEXT, \"price\" TEXT)\n"},
+		{name: "a column the table lacks", src: setup + `sql_load[db, "books", "nokey.csv", map ["sku": "text"]]`, wantErr: "sql_load nokey.csv: the file has no column \"sku\""},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -2986,7 +3060,7 @@ func TestDoc(t *testing.T) {
 	cases := map[string]string{
 		"":         "sql: Databases: SQLite files",
 		"sql":      "sql_upsert[db, table, key, path]",
-		"sql_load": "sql_load[db, table, path]        (import sql)\n  Adds a record to a table",
+		"sql_load": "sql_load[db, table, path [, types]]        (import sql)\n  Adds a record to a table",
 		"sqrt":     "number at sqrt        (import math)",
 		"warn":     "warn ... .",
 		"tools.t":  "tools.t: helpers.\n\nadd_tax[cents, rate]\n  add_tax adds rate percent.\n  cents is an integer.\n\nbare[x]\n  (no description",
@@ -3025,5 +3099,148 @@ sql_run[db, "INSERT INTO t VALUES (1)"]`
 	defer db.Close()
 	if _, rows, _ := db.Query("SELECT count(*) FROM t", nil); rows[0][0] != int64(0) {
 		t.Errorf("the unfinished insert was kept: %v", rows)
+	}
+}
+
+// TestMethodBinding: a method works on the value right before it, like
+// Python's a.invert(); ( ) groups; -7 is one number; is-statements follow
+// the same rule.
+func TestMethodBinding(t *testing.T) {
+	cases := []struct{ name, src, want string }{
+		{name: "both sides of a comparison", src: `a = map ["x": 1]
+b = map ["x": 1]
+show a at invert == b at invert .
+show a at invert[] == b at invert[] .
+show a == b at invert .`, want: "true\ntrue\nfalse\n"},
+		{name: "inverting leaves the maps as they were", src: `a = map ["x": 1]
+same = a at invert == a at invert
+show a .`, want: "{ \"x\": 1 }\n"},
+		{name: "the value right before", src: `show "a" + "b" at upper .
+show ("a" + "b") at upper .
+show "x" + "y" at upper + "z" .`, want: "aB\nAB\nxYz\n"},
+		{name: "arithmetic", src: `import math
+show 2 + 16 at sqrt * 2 .
+show (2 + 14) at sqrt .
+show 10 - 3 at pow[2] .`, want: "10.0\n4.0\n1\n"},
+		{name: "negative numbers", src: `import math
+x = -7
+show -7 at abs, " ", -2.5 at abs, " ", -x at abs, " ", 3 -7 at abs .`, want: "7 2.5 -7 -4\n"},
+		{name: "conditions", src: `nums = list [3, 1]
+s = ""
+if ] nums at isEmpty == false && nums at length == 2 && s at isEmpty [
+    show "ok" .
+if [end]`, want: "ok\n"},
+		{name: "is statements follow the same rule", src: `import math
+r is "a" + "b" at upper .
+show r .
+r is ("a" + "b") at upper .
+show r .
+x = -9
+y is -x at abs .
+show y .
+nums = list [5, 6]
+n is nums at get 1 .
+show n .
+n is 1 + nums at get 0 .
+show n .
+m = map ["x": 1]
+b is m at invert == m at invert .
+show b .
+t is !"abc" at contains "z" .
+show t .`, want: "aB\nAB\n-9\n6\n6\ntrue\ntrue\n"},
+		{name: "fields stay one value", src: `assemble B [title]
+bk = B["dune"]
+show title of bk at upper .
+books = list [B["emma"]]
+show title of books at get[0] at upper .`, want: "DUNE\nEMMA\n"},
+		{name: "chains", src: `show " Hi " at trim at upper + "!" .
+show "a,b" at split[","] at length .`, want: "HI!\n2\n"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := run(t, c.src, "")
+			if err != nil {
+				t.Fatalf("unexpected error: %v (output %q)", err, out)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
+// TestComplexExpressions: long chains of operators, nested ( ), signs and
+// methods, with the usual order: ( ) first, then * / %, then + -, left to
+// right; then comparisons, then && and ||.
+func TestComplexExpressions(t *testing.T) {
+	src := `import math
+show 1 + 2 - 3 + 4 - (5 + 6) + 7 * 8 .
+show 1+2-3+4-(5+6)+7*8 .
+show 10 - 4 - 3 .
+show 100 div 10 div 5 .
+show 2 * (3 + 4) * (5 - (6 - 7)) .
+show ((1 + 2) * (3 + 4)) - ((8 - 2) div 3) .
+show -(1 + 2) * 3 .
+show 2 * -3 + -4 .
+show 2*-3 .
+show 7 % 3 + 10 % 4 * 2 .
+show 1.5 + 2 * 3 - 0.5 .
+show 7 / 2 + 7.0 / 2 .
+show 2 + 3 * 4 - 6 / 2 + (1 + 1) * (2 + 2) .
+show 2 + 16 at sqrt * (1 + 2) - 4 at pow[2] .
+show (1 + (2 + (3 + (4 + 5)))) * 2 .
+show 1 + 2 > 2 && 3 * 2 == 6 || 1 - 1 > 0 .
+x = 5
+y = 3
+show x * y - (x - y) * (x + y) + x div y .
+show x-y-1 .
+show x - -y .
+r = (x + y) * (x - y) div (y - 1) % 5
+show r .
+show 7 / 2, " ", 7 div 2, " ", -7 div 2, " ", 6 / 3, " ", 1 + 9 / 2 * 2 div 3 .`
+	want := "49\n49\n3\n2\n84\n19\n-9\n-10\n-6\n5\n7.0\n7.0\n19.0\n-2.0\n30\ntrue\n0\n1\n8\n3\n3.5 3 -3 2.0 4\n"
+	out, err := run(t, src, "")
+	if err != nil || out != want {
+		t.Fatalf("got %q (%v), want %q", out, err, want)
+	}
+}
+
+// TestComplexValueExpressions: strings, lists, maps and sets in long
+// expressions, with methods chained and mixed into + - * and comparisons,
+// in both the = and is forms.
+func TestComplexValueExpressions(t *testing.T) {
+	src := `import math
+a = "hello"
+w = "World"
+nums = list [4, 9, 16]
+m = map ["x": 10, "y": 20]
+rows = list [map ["name": "ann", "age": 30], map ["name": "bo", "age": 25]]
+s is "a" at upper + "b" at lower + a at get[2] + w at slice[0, 3] at upper .
+show s .
+t = "a" at upper + "B" at lower + a at get[2] + w at slice[0, 3] at upper
+show t .
+show a at upper + " " + w at lower + "!" .
+show (a + " " + w) at upper at length + nums at length * 2 .
+show a at slice[1, 4] + a at get[0] at upper + a at replace["l", "L"] .
+show "x,y,z" at split[","] at length + "a b" at split[" "] at length .
+show nums at get[0] + nums at get[1] * nums at get[2] - nums at length .
+show nums at get[2] at sqrt + nums at get[1] at sqrt * 2 .
+show m at get["x"] + m at get["y"] * 2 - m at getKeys at length .
+show rows at get[0] at get["name"] at upper + " & " + rows at get[1] at get["name"] + "!" .
+show rows at get[0] at get["age"] + rows at get[1] at get["age"] > 50 && a at contains["ell"] .
+show list [1, 2] + list [3] + nums at slice[0, 1] - list [2] .
+show set [1, 2, 3] + set [3, 4] - set [1] .
+show (list [1, 2] + list [3]) at length * (2 + 1) .
+show "Total: {nums at get[0] + nums at get[1]}" .
+r is "x" + a at replace "l", "_" .
+show r .
+q is nums at get[0] + nums at get[1] + m at get["x"] .
+show q .
+show a at length + w at length == 10 && nums at contains[9] || false .
+show "ab" + "cd" at upper + "ef" at slice[1] + "-" + 5 at abs .`
+	want := "AblWOR\nAblWOR\nHELLO world!\n17\nellHheLLo\n5\n145\n10.0\n48\nANN & bo!\ntrue\n[ 1, 3, 4 ]\n{ 2, 3, 4 }\n9\nTotal: 13\nxhe__o\n23\ntrue\nabCDf-5\n"
+	out, err := run(t, src, "")
+	if err != nil || out != want {
+		t.Fatalf("got %q (%v), want %q", out, err, want)
 	}
 }

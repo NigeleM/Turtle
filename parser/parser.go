@@ -21,7 +21,7 @@ import (
 
 const (
 	LOWEST int = iota
-	METHOD     // "x at m": binds loosest, so "a + b at upper" is (a + b) at upper
+	METHOD     // "r is x at m args .": the statement's own method, after its value
 	OR
 	AND
 	EQUALS
@@ -29,7 +29,7 @@ const (
 	SUM
 	PRODUCT
 	PREFIX
-	INDEX // "x at get[i]" / "x at slice[...]": picks part of the value right before it
+	INDEX // "x at m": a method works on the value right before it
 )
 
 var precedences = map[token.Type]int{
@@ -46,6 +46,7 @@ var precedences = map[token.Type]int{
 	token.MINUS:    SUM,
 	token.ASTERISK: PRODUCT,
 	token.SLASH:    PRODUCT,
+	token.DIV:      PRODUCT,
 	token.PERCENT:  PRODUCT,
 }
 
@@ -71,6 +72,33 @@ type Parser struct {
 	// "r is x at m args ." at its top level, where the statement itself
 	// handles "at" and its unbracketed args.
 	inIsReceiver bool
+
+	// inFieldObject is true while parsing the value after "field of",
+	// where only get[...] and slice[...] reach into it (methodPrecedence).
+	inFieldObject bool
+
+	// randomImported is set by "import random": from then on, "random"
+	// followed by a kind of value (random list of 5 integers) is a
+	// random-value sentence (see random.go). Elsewhere random is an
+	// ordinary name.
+	randomImported bool
+
+	// testImported is set by "import test": check, verify and validate
+	// begin statements from then on (see testlib.go).
+	testImported bool
+
+	// stopWords end the value being parsed (see pushStops), and
+	// inVerifyValue keeps "at least" / "at most" from being read as a
+	// method call on the values being verified.
+	stopWords     map[string]int
+	inVerifyValue int
+
+	// lines is the source split into lines, for statements' text.
+	lines []string
+
+	// inShape is true while parsing a value inside a shape (from A to B),
+	// where a name followed by "rounded" isn't a sentence-style call.
+	inShape bool
 
 	prefixParseFns map[token.Type]prefixParseFn
 	infixParseFns  map[token.Type]infixParseFn
@@ -105,6 +133,7 @@ func New(l *lexer.Lexer) *Parser {
 		token.MINUS:    p.parseInfixExpression,
 		token.ASTERISK: p.parseInfixExpression,
 		token.SLASH:    p.parseInfixExpression,
+		token.DIV:      p.parseInfixExpression,
 		token.PERCENT:  p.parseInfixExpression,
 		token.LT:       p.parseInfixExpression,
 		token.GT:       p.parseInfixExpression,
@@ -123,6 +152,17 @@ func New(l *lexer.Lexer) *Parser {
 }
 
 func (p *Parser) Errors() []string { return p.errors }
+
+// Enable turns on a library's sentences as "import <name>" would, for a
+// builtin library's own Turtle code (which can't import itself).
+func (p *Parser) Enable(name string) {
+	switch name {
+	case "random":
+		p.randomImported = true
+	case "test":
+		p.testImported = true
+	}
+}
 
 func (p *Parser) errorf(format string, args ...interface{}) {
 	p.errors = append(p.errors, fmt.Sprintf("line %d: %s", p.curToken.Line, fmt.Sprintf(format, args...)))
@@ -169,19 +209,40 @@ func (p *Parser) peekPrecedence() int {
 	if p.peekToken.Line != p.curToken.Line {
 		return LOWEST
 	}
-	// get and slice pick part of the value right before them, so they
-	// bind tightest: "10 + row at get["q"] * 2" is 10 + (row at get["q"]) * 2,
-	// and "title of books at get[0]" is the title of books at get[0].
-	// Other methods bind loosest: "a + b at upper" is (a + b) at upper.
-	// Only the bracketed form: "r is nums at get 0 ." is the statement form.
-	if p.peekTokenIs(token.AT) && isIndexMethod(p.peekN(2)) &&
-		p.peekN(3).Type == token.LBRACKET && p.peekN(3).Line == p.peekToken.Line {
-		return INDEX
+	// A method works on the value right before it, like Python's
+	// a.invert(): "a at invert == b at invert" compares the two inverted
+	// maps, "a" + "b" at upper is "aB", and ("a" + "b") at upper is "AB".
+	if p.peekTokenIs(token.AT) {
+		return p.methodPrecedence()
 	}
 	if pr, ok := precedences[p.peekToken.Type]; ok {
 		return pr
 	}
 	return LOWEST
+}
+
+// methodPrecedence is how tightly the "at" in peekToken binds.
+//
+// After "of", only get[...] and slice[...] reach into the value: in
+// "title of books at get[0]" the get picks a book, while in "title of b
+// at upper" upper works on the title (the field expression ends first).
+//
+// In "r is x at m args ." the statement takes unbracketed args itself,
+// so a method followed by an argument ends the value there.
+func (p *Parser) methodPrecedence() int {
+	if p.inVerifyValue > 0 && (p.peekN(2).Literal == "least" || p.peekN(2).Literal == "most") {
+		return LOWEST // "verify rolls at least 2 ...": the rule, not a method
+	}
+	if p.inFieldObject {
+		if isIndexMethod(p.peekN(2)) && p.peekN(3).Type == token.LBRACKET && p.peekN(3).Line == p.peekToken.Line {
+			return INDEX
+		}
+		return METHOD
+	}
+	if p.inIsReceiver && p.peekN(3).Type != token.LBRACKET && p.argumentStartsAt(3) {
+		return METHOD
+	}
+	return INDEX
 }
 
 func (p *Parser) curPrecedence() int {
@@ -215,6 +276,9 @@ func (p *Parser) ParseProgram() *ast.Program {
 		if p.curToken == before {
 			p.nextToken() // guarantee forward progress past a malformed statement
 		}
+	}
+	if p.testImported {
+		linkValidateExamples(program.Statements)
 	}
 	return program
 }
@@ -345,6 +409,9 @@ func (p *Parser) parseBracketStatement() ast.Statement {
 // ---- assignment / input / is / bare call --------------------------------
 
 func (p *Parser) parseIdentifierLeadStatement() ast.Statement {
+	if p.startsTestStatement() {
+		return p.parseTestStatement()
+	}
 	if p.peekTokenIs(token.OF) && p.peekToken.Line == p.curToken.Line {
 		return p.parseFieldStatement()
 	}
@@ -424,15 +491,13 @@ func (p *Parser) parseIsStatement() ast.Statement {
 		if !p.requirePeriod() {
 			return nil
 		}
+		// The method works on the value right before it, as everywhere:
+		// "r is "a" + "b" at upper ." is "a" + ("b" at upper), and
 		// "r is !s at contains "a" ." negates the method call, not s.
-		if pre, ok := receiver.(*ast.PrefixExpression); ok && pre.Operator == "!" {
-			call := &ast.MethodCallExpression{Token: tok, Receiver: pre.Right, Method: method, Arguments: args}
-			return &ast.AssignStatement{Token: tok, Name: name, Value: &ast.PrefixExpression{Token: pre.Token, Operator: "!", Right: call}}
-		}
-		return &ast.AssignStatement{
-			Token: tok, Name: name,
-			Value: &ast.MethodCallExpression{Token: tok, Receiver: receiver, Method: method, Arguments: args},
-		}
+		value := attachMethod(receiver, func(e ast.Expression) ast.Expression {
+			return &ast.MethodCallExpression{Token: tok, Receiver: e, Method: method, Arguments: args}
+		})
+		return &ast.AssignStatement{Token: tok, Name: name, Value: value}
 	}
 
 	if !p.requirePeriod() {
@@ -474,7 +539,7 @@ func (p *Parser) parseReturnStatement() ast.Statement {
 
 // errorKinds are the names a handle statement can list; they match the
 // kinds the evaluator gives its runtime errors.
-var errorKinds = []string{"file", "number", "math", "index", "key", "name", "type", "json", "date", "http", "sql", "csv", "custom"}
+var errorKinds = []string{"file", "number", "math", "index", "key", "name", "type", "json", "date", "http", "sql", "csv", "test", "custom"}
 
 // parseSafeStatement parses
 //
@@ -564,6 +629,12 @@ func (p *Parser) parseImportStatement() ast.Statement {
 		return nil
 	}
 	path := p.curToken.Literal
+	if path == "random" {
+		p.randomImported = true
+	}
+	if path == "test" {
+		p.testImported = true
+	}
 	// import lib/utils: a module in a subfolder, path segments joined by '/'.
 	for p.peekTokenIs(token.SLASH) && p.peekToken.Line == tok.Line {
 		p.nextToken() // -> '/'
@@ -768,6 +839,9 @@ func (p *Parser) parseFunctionDef() ast.Statement {
 		return nil
 	}
 	name := p.curToken.Literal
+	if p.testImported && testWords[name] {
+		p.errorf("%s is a test word in a file that imports test, so it can't name a function here; rename it (a function called %s from another file can be used as module %s[...])", name, name, name)
+	}
 	if !p.expectPeek(token.LBRACKET) {
 		return nil
 	}
@@ -1259,6 +1333,9 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 // "x gives ..." is a one-parameter anonymous function.
 func (p *Parser) parseIdentifier() ast.Expression {
 	tok := p.curToken
+	if p.startsRandom() {
+		return p.parseRandomExpression()
+	}
 	if p.peekTokenIs(token.OF) && p.peekToken.Line == tok.Line {
 		return p.parseFieldExpression()
 	}
@@ -1296,20 +1373,26 @@ func (p *Parser) parseIdentifier() ast.Expression {
 // when it's spaced from the name but attached to what follows: "s get -1"
 // passes -1, while "a b - 1" and "a b-1" stay subtractions.
 func (p *Parser) peekStartsArgument() bool {
-	if p.peekToken.Line != p.curToken.Line {
+	return p.argumentStartsAt(1)
+}
+
+// argumentStartsAt is peekStartsArgument for the token i places ahead.
+func (p *Parser) argumentStartsAt(i int) bool {
+	t := p.peekN(i)
+	if t.Line != p.peekN(i-1).Line {
 		return false
 	}
-	if p.peekToken.Type == token.MINUS {
-		next := p.peekN(2)
-		return p.peekToken.SpaceBefore && !next.SpaceBefore && next.Line == p.peekToken.Line
+	if t.Type == token.MINUS {
+		next := p.peekN(i + 1)
+		return t.SpaceBefore && !next.SpaceBefore && next.Line == t.Line
 	}
-	switch p.peekToken.Type {
+	switch t.Type {
 	case token.IDENT, token.INT, token.FLOAT, token.STRING, token.TRUE, token.FALSE,
 		token.NONE, token.LPAREN, token.LIST, token.SET, token.MAP, token.CHANGE,
 		token.MIN, token.MAX, token.LENGTH, token.BANG:
 		return true
 	case token.LBRACKET:
-		return p.bracketStartsFunction(1)
+		return p.bracketStartsFunction(i)
 	}
 	return false
 }
@@ -1429,7 +1512,32 @@ func (p *Parser) parseSortModuleExpression() ast.Expression {
 }
 
 func (p *Parser) isQualifiedName() bool {
+	if p.isStop(p.peekToken.Literal) {
+		return false
+	}
 	return p.curTokenIs(token.IDENT) && p.peekTokenIs(token.IDENT) && p.peekToken.Line == p.curToken.Line
+}
+
+// parseNegativeNumber reads "-" and the number right after it as one
+// literal. curToken is the "-".
+func (p *Parser) parseNegativeNumber() ast.Expression {
+	p.nextToken()
+	tok := p.curToken
+	tok.Literal = "-" + tok.Literal
+	if tok.Type == token.INT {
+		v, err := strconv.ParseInt(tok.Literal, 10, 64)
+		if err != nil {
+			p.errorf("integer %s is past the integer limits (-9223372036854775808 to 9223372036854775807); write it as a float, e.g. %s.0", tok.Literal, tok.Literal)
+			return nil
+		}
+		return p.maybeSentence(&ast.IntegerLiteral{Token: tok, Value: v})
+	}
+	v, err := strconv.ParseFloat(tok.Literal, 64)
+	if err != nil {
+		p.errorf("could not parse %q as float", tok.Literal)
+		return nil
+	}
+	return p.maybeSentence(&ast.FloatLiteral{Token: tok, Value: v})
 }
 
 func (p *Parser) parseIntegerLiteral() ast.Expression {
@@ -1542,6 +1650,9 @@ func (p *Parser) maybeSentence(subject ast.Expression) ast.Expression {
 	if !p.peekTokenIs(token.IDENT) || p.peekToken.Line != p.curToken.Line {
 		return subject
 	}
+	if p.isStop(p.peekToken.Literal) {
+		return subject // "to 99.99 rounded to 2", "nums each x gives ..."
+	}
 	tok := p.curToken
 	p.nextToken()
 	name := p.curToken.Literal
@@ -1569,8 +1680,33 @@ func (p *Parser) parseNone() ast.Expression {
 	return &ast.NoneLiteral{Token: p.curToken}
 }
 
+// attachMethod applies call to the last value of e: the right side of an
+// operator, inside a prefix (! or -), but not inside ( ).
+func attachMethod(e ast.Expression, call func(ast.Expression) ast.Expression) ast.Expression {
+	switch x := e.(type) {
+	case *ast.InfixExpression:
+		if !x.Grouped {
+			c := *x
+			c.Right = attachMethod(x.Right, call)
+			return &c
+		}
+	case *ast.PrefixExpression:
+		if !x.Grouped {
+			c := *x
+			c.Right = attachMethod(x.Right, call)
+			return &c
+		}
+	}
+	return call(e)
+}
+
 func (p *Parser) parsePrefixExpression() ast.Expression {
 	tok := p.curToken
+	// -7 is one number, so "-7 at abs" is 7 (while "-x at abs" is
+	// -(x at abs), as in most languages).
+	if tok.Type == token.MINUS && (p.peekTokenIs(token.INT) || p.peekTokenIs(token.FLOAT)) && !p.peekToken.SpaceBefore {
+		return p.parseNegativeNumber()
+	}
 	p.nextToken()
 	right := p.parseExpression(PREFIX)
 	// "!" applies to a whole method call: "!r at isEmpty" is
@@ -1595,9 +1731,18 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 
 func (p *Parser) parseGroupedExpression() ast.Expression {
 	p.nextToken()
+	saved := p.inIsReceiver
+	p.inIsReceiver = false // inside ( ), every "at" is an ordinary method
 	expr := p.parseExpression(LOWEST)
+	p.inIsReceiver = saved
 	if !p.expectPeek(token.RPAREN) {
 		return nil
+	}
+	switch e := expr.(type) {
+	case *ast.InfixExpression:
+		e.Grouped = true
+	case *ast.PrefixExpression:
+		e.Grouped = true
 	}
 	return expr
 }
@@ -1750,7 +1895,11 @@ func (p *Parser) parseFieldExpression() ast.Expression {
 	tok := p.curToken
 	p.nextToken() // -> OF
 	p.nextToken() // -> first token of the value
-	return &ast.FieldExpression{Token: tok, Field: tok.Literal, Object: p.parseExpression(PREFIX)}
+	saved := p.inFieldObject
+	p.inFieldObject = true
+	obj := p.parseExpression(PREFIX)
+	p.inFieldObject = saved
+	return &ast.FieldExpression{Token: tok, Field: tok.Literal, Object: obj}
 }
 
 // isIndexMethod reports whether tok names a method that picks out part of

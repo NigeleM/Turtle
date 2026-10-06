@@ -228,13 +228,25 @@ func tableFileFail(fn, path string, err error) {
 	fatalKind(kindFile, "%s %s: %v", fn, path, err)
 }
 
-// table_read[path] (data) reads a .csv, .tsv or .json file into a list of maps,
-// one per line, keyed by the header's names: the shape sql_query gives,
-// so the rows go straight to table[], table_write, or a database.
+// table_read[path [, types]] (data) reads a .csv, .tsv or .json file into
+// a list of maps, one per line, keyed by the header's names: the shape
+// sql_query gives, so the rows go straight to table[], table_write, or a
+// database. types (see columntypes.go) turns columns into numbers,
+// booleans or dates as they're read.
 func (it *Interpreter) tableRead(args []object.Object) object.Object {
-	requireFuncArgs("table_read", args, 1)
+	if len(args) != 1 && len(args) != 2 {
+		fatalf("'table_read' expects 1 or 2 arguments (file [, map of column types]), got %d", len(args))
+	}
 	path := asStringArg("table_read", args[0])
 	header, rows := it.readTableFile("table_read", path)
+	if len(args) == 2 {
+		if ct := parseColumnTypes("table_read", args[1]); ct != nil {
+			applyColumnTypes("table_read", path, header, rows, ct)
+			if ct.key != "" {
+				checkKeyColumn("table_read", path, header, rows, ct.key)
+			}
+		}
+	}
 	out := &object.List{}
 	for _, r := range rows {
 		m := object.NewMap()

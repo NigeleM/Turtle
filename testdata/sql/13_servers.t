@@ -93,6 +93,27 @@ def exercise[db, kind]
     check["{kind}: saved file", table_read[out] at get[0], map ["sku": "B1", "title": "Dune", "price": "1050"]]
     erase[out]
 
+    // ---------- column types: sql_load makes the table ----------
+    sql_run[db, "DROP TABLE IF EXISTS turtle_agents"]
+    types = map ["code": "text", "missions": "integer", "rating": "float", "active": "boolean", "joined": "date", "primary_key": "code"]
+    check["{kind}: typed load", sql_load[db, "turtle_agents", "{here}/data/agents.csv", types], 3]
+    rows = sql_query[db, "SELECT code, missions, rating, active, joined FROM turtle_agents ORDER BY code"]
+    show table[rows] .
+    check["{kind}: text key kept", rows at get[2] at get["code"], "007"]
+    check["{kind}: integer", rows at get[2] at get["missions"], 24]
+    check["{kind}: float", rows at get[1] at get["rating"], 7.25]
+    check["{kind}: none", rows at get[0] at get["rating"], none]
+    joined = rows at get[2] at get["joined"]
+    check["{kind}: date", year of joined, 1953]
+    refused = false
+    safe
+        sql_load[db, "turtle_agents", "{here}/data/agents.csv", types]
+    handle [sql] e .
+        refused = true
+    safe [end]
+    check["{kind}: the key is a primary key", refused, true]
+    sql_run[db, "DROP TABLE turtle_agents"]
+
     sql_run[db, "DROP TABLE turtle_books"]
     sql_run[db, "DROP TABLE turtle_authors"]
     sql_close[db]

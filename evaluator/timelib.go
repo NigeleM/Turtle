@@ -132,6 +132,15 @@ var dateLayouts = []string{
 }
 
 func parseDate(text string) object.Object {
+	if d, ok := tryParseDate(text); ok {
+		return d
+	}
+	fatalKind(kindDate, "to_date: %q isn't a date; use YYYY-MM-DD, optionally with hh:mm or hh:mm:ss", text)
+	return nil
+}
+
+// tryParseDate is parseDate without the error: false if text isn't a date.
+func tryParseDate(text string) (object.Object, bool) {
 	s := strings.TrimSpace(text)
 	for _, layout := range dateLayouts {
 		var t time.Time
@@ -142,11 +151,10 @@ func parseDate(text string) object.Object {
 			t, err = time.ParseInLocation(layout, s, time.Local)
 		}
 		if err == nil {
-			return &object.Date{Time: t.Truncate(time.Second)}
+			return &object.Date{Time: t.Truncate(time.Second)}, true
 		}
 	}
-	fatalKind(kindDate, "to_date: %q isn't a date; use YYYY-MM-DD, optionally with hh:mm or hh:mm:ss", text)
-	return nil
+	return nil, false
 }
 
 // addTime adds n units. Days, weeks, months and years keep the clock time

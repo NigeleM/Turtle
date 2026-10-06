@@ -64,11 +64,40 @@ Run it:
 Hello, World!
 ```
 
+## Test it
+
+Put tests in a file whose name starts with `test_`, with `import test`
+and functions whose names start with `test_`. `test_hello.t`:
+
+```
+import test
+
+def test_greeting[]
+    name = "World"
+    check "Hello, " + name == "Hello, World" .
+def [end]
+```
+
+```sh
+./turtle test
+```
+
+```
+test_hello.t
+  PASS  test_greeting   12.0µs
+
+ok: 1 passed, 0 failed (1 file, 1.3ms)
+```
+
+See [`testing.md`](testing.md) for `check`, `verify`, `validate`, suites
+and benchmarks.
+
 ## Where to go next
 
 - [`tour.md`](tour.md) — a guided walkthrough of the language, by example
 - [`reference.md`](reference.md) — the complete, formal syntax reference
 - [`stdlib.md`](stdlib.md) — data structure methods, file I/O, `sys`, `import`
+- [`testing.md`](testing.md) — tests: `check`, `verify`, `validate`, `turtle test`
 - [`architecture.md`](architecture.md) — how the interpreter itself works,
   for anyone modifying it
 - [`contributing.md`](contributing.md) — how to add new syntax or stdlib

@@ -5,11 +5,16 @@ package object
 // its top-level functions only — its top-level variables stay private to
 // it, though its own functions can read them. A builtin module exports
 // Funcs (called as name[...]) and Methods (called as x at name).
+//
+// A builtin can also be partly written in Turtle (Hybrid): then Env holds
+// its Turtle functions, and it exports just Funcs, whether each is
+// written in Go or in Turtle; its other Turtle functions are helpers.
 type Module struct {
 	Name    string
-	Env     *Environment // nil for a builtin
+	Env     *Environment // nil for a builtin written only in Go
 	Funcs   []string     // builtin only
 	Methods []string     // builtin only
+	Hybrid  bool         // a builtin with Turtle functions in Env
 }
 
 // Exports reports whether name is something this module provides — what
@@ -21,16 +26,17 @@ func (m *Module) Exports(name string) bool {
 // ExportsFunction reports whether name is a function this module
 // provides, i.e. what "name[...]" or "m name[...]" can resolve to.
 func (m *Module) ExportsFunction(name string) bool {
-	if m.Env != nil {
+	if m.Env != nil && !m.Hybrid {
 		_, ok := m.Env.functions[name]
 		return ok
 	}
 	return contains(m.Funcs, name)
 }
 
-// Function returns the user-defined function name from a .t module.
+// Function returns the user-defined function name from a .t module (or
+// an exported Turtle function of a hybrid builtin).
 func (m *Module) Function(name string) (*Function, bool) {
-	if m.Env == nil {
+	if m.Env == nil || m.Hybrid && !contains(m.Funcs, name) {
 		return nil, false
 	}
 	fn, ok := m.Env.functions[name]

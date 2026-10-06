@@ -184,18 +184,25 @@ table[...] shows. Change it like any variable; none shows every row.
   Example:
     table_write["orders.csv", orders]
 
-### table_read[path]
+### table_read[path [, types]]
   Reads a .csv, .tsv or .json file. A .csv or .tsv file's first line
   names the columns; a .json file is a list of objects, one per row.
   path   the file
+  types  optional: a map of column name to type, so "007" stays text
+         and "24" becomes 24. Types: string, text, integer, float,
+         boolean, date, or a SQL type (VARCHAR(10), NUMERIC(10, 2), ...).
+         Columns left out are text. "primary_key": "column" checks
+         every row has a different one.
   Gives back: a list of maps, one per row, keyed by the column names
-  (the same shape sql_query gives). From .csv and .tsv every value is
-  text ("950") and an empty cell is none; use change to turn text into
-  numbers. From .json, values keep their kind (950 stays a number).
-  A badly formed file is a csv error (json for a .json file).
+  (the same shape sql_query gives). Without types, from .csv and .tsv
+  every value is text ("950") and an empty cell is none. From .json,
+  values keep their kind (950 stays a number).
+  A badly formed file is a csv error (json for a .json file); a cell
+  that isn't its type is a number, date or type error.
   Example:
     rows = table_read["orders.csv"]
-    show rows at get[0] at get["item"] .
+    types = map ["code": "text", "qty": "integer", "primary_key": "code"]
+    rows = table_read["orders.csv", types]
 `,
 
 	"system": `The command line, environment, files and folders, and the program itself.
@@ -322,6 +329,92 @@ characters from 0.
   Gives back: a map with "status" (a number), "body" (text) and
   "headers" (a map). Only a network problem is an error; check the
   status yourself.
+`,
+
+	"test": `Tests. In a file with "import test", three statements check your code;
+"turtle test" runs every test_ function in every test_*.t file.
+
+    check total[order] == 45 .                     one fact; == shows how they differ
+    check x is integer .                           also: float number string boolean
+                                                   list set map date none function empty,
+                                                   an assembled type, "is not"
+    check 0.1 + 0.2 is close to 0.3 .              decimals ("within 0.01" to choose)
+    check 1 div 0 fails [math] .                   the right answer is an error
+    verify nums each x gives x > 0 .               a rule for every item; also any, not,
+                                                   at least N, at most N, exactly N,
+                                                   and "each pair [a, b] gives a <= b"
+    validate evens[nums] with nums as list of integer
+        that result each x gives x % 2 == 0 .      the rule on 100 random inputs,
+                                                   shrunk to the smallest that fails;
+                                                   or: matches other_function[nums]
+
+Settings (set at the top of the file, or inside one test for that test):
+    suite = false        false: each test alone; "stop": a failure skips the
+                         rest; "all": run all, failures listed at the end
+    benchmark = false    true: time many runs of each test
+    runs = none          none: as many runs as fit in benchtime; or a number
+    benchtime = 1        seconds
+    cases = 100          random inputs each validate tries
+    seed = none          a number repeats the same random inputs
+
+A failure is an error of kind test. Full guide: docs/testing.md.
+`,
+
+	"random": `Random values of any shape, written as a sentence after "random":
+
+    die = random integer from 1 to 6
+    nums = random list of 5 integers from 0 to 9
+    price = random float from 0.5 to 99.99 rounded to 2
+    code = random string of 8                    pin = random digits of 4
+    id = random string of 6 from "ABCDEF0123456789"
+    day = random date from "2026-01-01" to "2026-12-31"
+    grid = random list of 3 lists of 3 integers
+    ages = random map of string to integer from 0 to 99
+    order = random Order [string, integer from 1 to 10, float]
+
+Kinds: integer (-1000 to 1000 unless from A to B), float (0 up to 1),
+string (1 to 10 letters; of N, of N to M, from "chars"), digits of N,
+digit, letter, boolean, date and time (2000 through 2030), list of,
+set of (all different), map of K to V, and an assembled type with a kind
+for each field. Plurals work too (integers, lists). A count comes before
+the item's kind: list of 5 integers, list of 2 to 8 integers, list of n
+integers; without one, 0 to 10 items.
+"import random" also makes the variable seed, none: different values
+each run. seed = 42 gives the same values every run from there on, to
+repeat a run exactly; setting it again starts them over.
+random is a sentence word only in a file with "import random".
+pick, shuffle, sample and chance are written in Turtle, on the Go-written
+sentence (the first hybrid library; see evaluator/lib/random.t).
+
+### pick[x]
+  One item, chosen at random.
+  x   a list, set, map (one of its keys) or string (one character)
+  An empty one is an error.
+  Example:
+    color = pick[list ["red", "green", "blue"]]
+
+### shuffle[x]
+  The items in a random order.
+  x   a list, set, map (its keys) or string
+  Gives back: a new list (a string, for a string); x is left as it was.
+  Example:
+    deck = shuffle[cards]
+
+### sample[x, n]
+  n different items (different positions), chosen at random.
+  x   a list, set, map (its keys) or string
+  n   how many; more than x has is an error
+  Gives back: a list.
+  Example:
+    hand = sample[deck, 5]
+
+### chance[p]
+  true with probability p.
+  p   a number from 0 to 1: 0.3 is true 30% of the time
+  Example:
+    if ] chance[0.3] [
+        show "rain" .
+    if [end]
 `,
 
 	"sort": `Putting things in order. Works on lists, sets, maps (their entries),
@@ -546,16 +639,23 @@ statement, or a change the database refuses, is an sql error.
   Example:
     sql_save[db, "SELECT * FROM books", "books.csv"]
 
-### sql_load[db, table, path]
+### sql_load[db, table, path [, types]]
   Adds a record to a table for each line of a .csv, .tsv or .json file.
+  If the table isn't there, makes it from the file's columns first.
   db      the database
   table   the table's name
   path    the file; its first line names the table's columns
+  types   optional: a map of column name to type, as table_read takes
+          (string, text, integer, float, boolean, date, or a SQL type).
+          Columns left out are text. A new table gets these types, and
+          "primary_key": "column" becomes its PRIMARY KEY.
   Gives back: how many records were added.
   All or nothing: if one line is refused (say, a duplicate key), no line
-  is added. Text in a number column becomes a number; an empty cell is NULL.
+  is added, and a table it made is dropped again. Text in a number
+  column becomes a number; an empty cell is NULL.
   Example:
     sql_load[db, "books", "new_books.csv"]
+    sql_load[db, "agents", "agents.csv", map ["code": "text", "missions": "integer", "primary_key": "code"]]
 
 ### sql_update[db, table, key, path]
   Changes records from a .csv, .tsv or .json file: for each line, finds the

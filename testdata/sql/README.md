@@ -23,7 +23,8 @@ or all of them with `go test ./evaluator -run TestSQLExamples`.
 | `11_csv_import.t` | `sql_load`, `sql_update`, `sql_delete`, `sql_upsert`: create, change and remove records from CSV files, each file all or nothing; round trip |
 | `12_table_files.t` | the data library without a database: `table`, `tablerows`, `table_write` and `table_read` on assembled values, maps, lists |
 | `13_servers.t` | the same functions on PostgreSQL and MySQL servers: CSV in and out, joins, dates, transactions, errors. Runs when `TURTLE_PG_URL` / `TURTLE_MYSQL_URL` are set; otherwise says so |
+| `14_typed_load.t` | column types: `table_read` and `sql_load` with a map of column to type ("007" stays text), `sql_load` making the table and its primary key, SQL type words, the errors |
 
 `lib/` has the helpers they share: `verify.t` (the checks) and `shop.t`
 (the bookshop database, loaded from `data/` with `sql_load`). `data/` has
-the CSV files.
+the CSV files (`agents.csv` is the one with `007`).

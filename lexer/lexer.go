@@ -322,3 +322,6 @@ func isLetter(ch byte) bool {
 func isDigit(ch byte) bool {
 	return '0' <= ch && ch <= '9'
 }
+
+// Input is the source text being read, for messages that quote a line.
+func (l *Lexer) Input() string { return l.input }

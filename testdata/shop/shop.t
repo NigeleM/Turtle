@@ -216,7 +216,7 @@ chart = list []
 [loop][k = 0; k < length of totals; k++]
     t = totals at get[k]
     stars = ""
-    [loop][s = 0; s < t / 1000; s++]
+    [loop][s = 0; s < t div 1000; s++]
         stars = stars + "*"
     [loop][end]
     add "{k + 1} {stars}" to chart .

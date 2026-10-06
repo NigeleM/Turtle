@@ -167,7 +167,7 @@ if [end]`
 	if err != nil || out != want {
 		t.Fatalf("got %q (%v), want %q", out, err, want)
 	}
-	// get[...] and slice[...] bind tightest; other methods loosest.
+	// Every method works on the value right before it.
 	src = `row = map ["q": 2, "p": 3]
 show 10 + row at get["q"] * row at get["p"] .
 nums = list [5, 6, 7]
@@ -177,7 +177,7 @@ show -nums at get[1] .
 r is nums at get 1 .
 show r .`
 	out, err = runFull(t, t.TempDir(), src, "", nil)
-	if want := "16\n12\nAB\n-6\n6\n"; err != nil || out != want {
+	if want := "16\n12\naB\n-6\n6\n"; err != nil || out != want {
 		t.Fatalf("got %q (%v), want %q", out, err, want)
 	}
 	for src, msg := range map[string]string{

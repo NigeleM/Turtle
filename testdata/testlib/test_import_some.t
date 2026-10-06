@@ -1,0 +1,8 @@
+// test_import_some.t: import just the functions a test needs.
+import test
+import lib/geometry [area, Rect]
+
+def test_only_area[]
+    check area[Rect[6, 7]] == 42 .
+    check perimeter[Rect[1, 1]] fails [name] .   // not imported
+def [end]

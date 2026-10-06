@@ -23,7 +23,7 @@ non-terminal; `[x]` is optional; `{x}` is zero-or-more; `|` is alternation.
 - **Reserved words** (cannot be used as identifiers): `true false none show if
   else def end loop return list set map import sys to from at of is add
   change remove delete sort reverse insert min max length read write append
-  directory break continue gives in assemble safe handle fail warn`. Type names used after `change ... to` —
+  directory break continue gives in assemble safe handle fail warn div`. Type names used after `change ... to` —
   `integer`, `float`, `string`, `ascii`, `char`, `hex` — are **not** reserved;
   like method names (`get`, `union`, ...) they're plain identifiers whose
   meaning is only special right after `to`.
@@ -59,9 +59,12 @@ Precedence, low to high:
 | 3 | `==` `!=` |
 | 4 | `<` `<=` `>` `>=` |
 | 5 | `+` `-` |
-| 6 | `*` `/` `%` |
+| 6 | `*` `/` `div` `%` |
 | 7 | unary `-` `!` |
-| 8 (highest) | primary: literals, identifiers, calls, `(...)` grouping |
+| 8 | a method: `x at m` (works on the value right before it) |
+| 9 (highest) | primary: literals, identifiers, calls, `(...)` grouping |
+
+Operators on the same level go left to right: `10 - 4 - 3` is `3`.
 
 `+` is overloaded: numeric addition when both operands are numbers; on two
 lists, two sets, or two maps it combines them (below); otherwise string
@@ -69,11 +72,24 @@ concatenation (either side coerced via its natural string form). A list,
 set or map added to anything else, including text or a different kind of
 collection, is a `type` error: `list [1] + 1` and `"n=" + nums` stop the
 program. `none` only adds to `none` (see §None). Values taken out of a list add like any other value.
-`-` and `*` require two numbers. `/` does integer division when both sides
-are integers, float division otherwise; division by zero is a fatal error.
-`%` is modulo: integer `%` integer stays an integer, anything else falls
-back to floating-point modulo (Go's `math.Mod`); modulo by zero is a fatal
-error, same as division by zero.
+`-` and `*` require two numbers.
+
+**Division** has two operators, one for each kind:
+
+| Expression | Result | |
+|---|---|---|
+| `7 / 2` | `3.5` | `/` always gives the exact answer, a float |
+| `6 / 3` | `2.0` | even when it comes out whole |
+| `7 div 2` | `3` | `div` gives the whole part, an integer |
+| `-7 div 2` | `-3` | toward zero (Python's `//` gives `-4`) |
+| `7.9 div 2` | `3` | works on floats too; still an integer |
+| `7 % 2` | `1` | the remainder |
+| `-7 % 2` | `-1` | the remainder that goes with `div`: `(a div b) * b + a % b` is `a` |
+
+Division or `div` by zero is a `math` error. `%` of two integers is an
+integer; with a float on either side it's a float (`10.5 % 3` is `1.5`);
+`%` by zero is a `math` error too. (`//` starts a comment, so Turtle's
+whole-number division is the word `div`.)
 `<`/`>`/`<=`/`>=` work on two numbers or two strings (lexicographic).
 `==`/`!=` compare numbers by value (`1 == 1.0`), functions by identity
 (the same definition), lists element by element in order, and sets and
@@ -118,13 +134,37 @@ neither side changes:
 `<expr> at <method>` calls a method inside any expression:
 `show name at upper .`, `w = x at slice[0, 3]`. In this form, method
 arguments go in brackets. The statement form `r is x at slice 0, 3 .` still
-takes them unbracketed. `at` binds more loosely than every binary operator, so
-`a + b at upper` is `(a + b) at upper`, **except** `get[...]` and
-`slice[...]`: they pick part of the value right before them, so they bind
-tightest. `10 + row at get["q"] * row at get["p"]` is
-`10 + (row at get["q"]) * (row at get["p"])`, and
-`nums at get[0] + nums at get[2]` adds two items. `!` takes the whole method call:
-`!r at isEmpty` means "r is not empty".
+takes them unbracketed.
+
+**A method works on the value right before it**, with or without
+brackets, the way Python's `a.invert()` does. Use `( )` to apply it to a
+whole calculation:
+
+| Turtle | Means | Python |
+|---|---|---|
+| `a at invert == b at invert` | both maps inverted, then compared | `a.invert() == b.invert()` |
+| `"a" + "b" at upper` | `"aB"` | `"a" + "b".upper()` |
+| `("a" + "b") at upper` | `"AB"` | `("a" + "b").upper()` |
+| `2 + 16 at sqrt * 2` | `10.0` | `2 + sqrt(16) * 2` |
+| `nums at get[0] + nums at get[2]` | adds two items | `nums[0] + nums[2]` |
+| `-7 at abs` | `7`: `-7` is one number | `abs(-7)` |
+| `-x at abs` | `-(x at abs)` | `-abs(x)` |
+| `!r at isEmpty` | "r is not empty" | `not r.isEmpty()` |
+| `title of b at upper` | the title, upper-cased (`title of b` is one value) | `b.title.upper()` |
+
+The same rule holds in the statement form: `r is "a" + "b" at upper .`
+is `"aB"`, like `r = "a" + "b" at upper`. Methods that give a new value
+(`invert`, `upper`, `abs`, ...) leave the variable as it was; list, set
+and map methods that change the collection (`add`, `sort`, `remove`,
+...) change it, as before.
+
+**Order of operations**, highest first: `( )`; a method (`at`); `-` and
+`!` in front of a value; `*` `/` `div` `%`; `+` `-`; `<` `>` `<=` `>=`;
+`==` `!=`; `&&`; `||`. Operators of the same level go left to
+right: `10 - 4 - 3` is `3`, `100 / 10 / 5` is `2`. Expressions can be
+as long and nested as you like:
+`1 + 2 - 3 + 4 - (5 + 6) + 7 * 8` is `49`,
+`2 * (3 + 4) * (5 - (6 - 7))` is `84`.
 
 Function calls: `<name>[<expr>, ...]` — Turtle uses `[...]` for call and
 definition argument lists, not `(...)`. See also sentence-style calls
@@ -152,8 +192,9 @@ change <ident> to <type> .            // mutates <ident> in place
 ```
 
 `<type>` is one of `integer`, `float`, `string`, `ascii`, `char`, `hex`,
-`list`, `set`. The first six are ordinary identifiers, not reserved words —
-they only mean anything right after `change ... to`.
+`list`, `set`, `keys`, `values`. All but `list` and `set` are ordinary
+identifiers, not reserved words — they only mean anything right after
+`change ... to`.
 
 The statement form requires the source to be a plain identifier (like the
 target of `add ... to <ident> .`) and rewrites that variable's value
@@ -184,6 +225,10 @@ target name covers both directions of a pair:
 | `set` | list | a new set: duplicates dropped, each kept where it first appeared |
 | `list` | set | a new list, in the set's order |
 | `list` / `set` | the same kind | a copy, so changing it doesn't change the original |
+| `keys` | map | a new list of its keys, in order |
+| `values` | map | a new list of its values, in order |
+| `list` / `set` | map | its keys (like `keys`) |
+| `list` / `set` | string | its characters: `change "abc" to list` is `[ "a", "b", "c" ]` |
 
 Any other combination is a fatal error naming the source and target types.
 
@@ -192,6 +237,10 @@ nums = list [3, 1, 3, 2, 1]
 unique = change nums to set     // { 3, 1, 2 }
 back = change unique to list    // [ 3, 1, 2 ]
 change nums to set .            // nums itself becomes { 3, 1, 2 }
+
+ages = map ["ann": 30, "bo": 25]
+names = change ages to keys     // [ "ann", "bo" ]
+years = change ages to values   // [ 30, 25 ]
 ```
 
 ## Show
@@ -522,6 +571,7 @@ safe [end]
 | `http`   | a web request that failed, or got a 4xx/5xx status (`http` library) |
 | `sql`    | a bad query or a database problem (`sql` library)          |
 | `csv`    | a `.csv` or `.tsv` file that isn't well formed (`table_read`, `sql_load`, ...) |
+| `test`   | a failed `check`, `verify` or `validate` (`import test`; see [`testing.md`](testing.md)) |
 | `custom` | your own, from `fail`                                    |
 
 An error of a kind that isn't listed isn't handled: it goes on to an
@@ -780,6 +830,11 @@ is a fatal error that shows the chain.
   [`stdlib.md`](stdlib.md#data-library)). They're
   ordinary functions, usually called sentence-style:
   `nums process x gives x + 1 .`, `show table[rows] .`
+- `import random` makes random values of any shape, written as a
+  sentence: `random list of 5 integers from 0 to 9`, `random Order [string,
+  integer]`; plus `pick`, `shuffle`, `sample`, `chance` and the `seed`
+  variable (see [`stdlib.md`](stdlib.md#random-library)). `random` is a
+  sentence word only in a file that imports it.
 - `import sort` provides `min_sort` / `max_sort` (order by a function,
   field, position or several, and take the `"first"` or a count),
   `is_sorted`, `reverse_list`, and the classic sorting algorithms; and
@@ -810,6 +865,43 @@ sys <rest of line>
 `sys` must be the first word of the statement. Everything after it,
 verbatim to end of line, runs through a shell with inherited stdin/stdout/
 stderr.
+
+## Tests: `check`, `verify`, `validate`, `turtle test`
+
+In a file with `import test`, three more statements (full guide:
+[`testing.md`](testing.md)):
+
+```
+check <expr> .                                  // true or false; == explains a difference
+check <expr> is [not] <kind> .                  // integer float number string boolean list set map date none function empty, or an assembled type
+check <expr> is [not] close to <expr> [within <expr>] .
+check <expr> fails [<kind>, ...] .              // the brackets are optional: any error
+verify <expr> <how many> <rule> .
+validate <call> [to <name>] [with <name> as <kind>, ...] that <rule> .
+validate <call> [to <name>] [with <name> as <kind>, ...] matches <call> .
+```
+
+- `<how many>` is `each`, `any`, `not`, `at least N`, `at most N` or
+  `exactly N`, optionally followed by `pair` (neighbors two at a time).
+  `<rule>` is a function giving true or false (`x gives x > 0`, or a
+  function's name).
+- `validate`'s `<kind>` uses the random library's words
+  (`list of integer`, `Order [string, integer]`); its rule is `that`
+  followed by a true/false expression or a verify-style rule
+  (`that result each x gives ...`), or `matches` another call. Without
+  `with`, it learns the kinds from the same test's checks on that
+  function. The sentence can go over several lines; it ends at its
+  period.
+- A failure is an error of kind `test`.
+- `check`, `verify` and `validate` are statement words only after
+  `import test`; elsewhere they're ordinary names. In such a file a
+  function can't be named one of them.
+- `import test` also makes the variables `suite`, `benchmark`, `runs`,
+  `benchtime`, `cases` and `seed`.
+
+`turtle test [file.t | folder ...]` runs every top-level `test_` function
+(no arguments) in every `test_*.t` file, after the file's own top-level
+code, and exits with 1 if any failed.
 
 ## Documentation: `turtle doc`
 
