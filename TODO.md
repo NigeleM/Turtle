@@ -138,34 +138,22 @@ Checked the current file — it has real problems beyond just being stale:
 
 </details>
 
-## 3. Settle file extensions, then enforce them
+## 3. File extension — DONE (2026-10-06)
 
-Started, currently on hold (see `PROGRESS.md`). Two decisions, then one
-enforcement change:
-
-- [ ] Program file extension — `.trt` was your stated preference.
-- [ ] Test file extension — currently `testdata/*.t` (arbitrary, chosen
-      during this session, never confirmed with you). Decide whether test
-      scripts use the same `.trt` extension as real programs, or a
-      distinct one.
-- [ ] Once both are settled, restrict `cmd/turtle` to only reading files
-      with the agreed extension(s). Still open from before: should an
-      explicit `turtle foo.t` argument be rejected outright, or does the
-      restriction only apply to the no-argument auto-discovery fallback?
-      Should `import` also resolve to the same extension instead of
-      `.t`?
-
-**Next step**: your call on the two extension decisions above; I have the
-implementation ready to go once they're settled.
+`.trt` for everything: programs, imported libraries (`import utils` finds
+`utils.trt`), test files (`test_*.trt`), the built-in Turtle libraries,
+and `turtle` with no file (the newest `.trt`). `.t` is no longer read.
+A file named on the command line (`turtle report.trt`) runs whatever its
+extension. The legacy interpreter in `legacy/` is unchanged.
 
 ## 4. Extensibility: let `import`ed libraries define their own `at` methods
 
 Stated goal (2026-09-29): make parts of the language extendable, so people
-can write their own `.t` libraries and have them feel first-class, not
+can write their own `.trt` libraries and have them feel first-class, not
 bolted on.
 
 **What already works today**, confirmed the same day: `import mylib`
-makes `mylib.t`'s top-level functions available, and you can
+makes `mylib.trt`'s top-level functions available, and you can
 call one as `binary[a]`, capture it with plain assignment (`r =
 binary[a]`) or the sentence-style `is` form (`r is binary[a] .`), or run
 it as a bare statement (`binary[a]`). All of that is ordinary
@@ -188,7 +176,7 @@ functions read like methods. Small, contained change: one new fallback
 branch, no grammar/parser changes needed (the parser already builds a
 `MethodCallExpression` generically).
 
-**Module namespacing: DONE (2026-09-30).** Each `.t` module now runs
+**Module namespacing: DONE (2026-09-30).** Each `.trt` module now runs
 once in its own scope and exports only its top-level functions. `import m
 [a, b]` limits what's imported, `m name[...]` qualifies a call, and an
 unqualified call to a name two imports share is a fatal error asking for

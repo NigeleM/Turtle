@@ -348,57 +348,58 @@ def [end]
 		want  []string
 		not   []string
 	}{
-		{name: "independent tests", files: map[string]string{"test_a.t": tests}, code: 1,
-			want: []string{"test_a.t\n", "PASS  test_one", "FAIL  test_two", "test_a.t line 6: failed: check 2 * 2 == 5 .", "got 4, want 5 (1 less)", "PASS  test_three", "FAILED: 2 passed, 1 failed (1 file"},
+		{name: "independent tests", files: map[string]string{"test_a.trt": tests}, code: 1,
+			want: []string{"test_a.trt\n", "PASS  test_one", "FAIL  test_two", "test_a.trt line 6: failed: check 2 * 2 == 5 .", "got 4, want 5 (1 less)", "PASS  test_three", "FAILED: 2 passed, 1 failed (1 file"},
 			not:  []string{"helper", "suite"}},
-		{name: "suite stop", files: map[string]string{"test_a.t": strings.Replace(tests, "import test\n", "import test\nsuite = \"stop\"\n", 1)}, code: 1,
-			want: []string{"test_a.t (suite: stop)", "SKIP  test_three   (stopped: test_two failed)", "suite FAILED: 1 passed, 1 failed, 1 skipped"}},
-		{name: "suite true is stop", files: map[string]string{"test_a.t": strings.Replace(tests, "import test\n", "import test\nsuite = true\n", 1)}, code: 1,
+		{name: "suite stop", files: map[string]string{"test_a.trt": strings.Replace(tests, "import test\n", "import test\nsuite = \"stop\"\n", 1)}, code: 1,
+			want: []string{"test_a.trt (suite: stop)", "SKIP  test_three   (stopped: test_two failed)", "suite FAILED: 1 passed, 1 failed, 1 skipped"}},
+		{name: "suite true is stop", files: map[string]string{"test_a.trt": strings.Replace(tests, "import test\n", "import test\nsuite = true\n", 1)}, code: 1,
 			want: []string{"(suite: stop)", "SKIP  test_three"}},
-		{name: "suite all", files: map[string]string{"test_a.t": strings.Replace(tests, "import test\n", "import test\nsuite = \"all\"\n", 1)}, code: 1,
-			want: []string{"(suite: all)", "PASS  test_three", "suite FAILED: 2 passed, 1 failed", "failures:\n  test_two\n      test_a.t line 7: failed: check 2 * 2 == 5 ."}},
-		{name: "all pass", files: map[string]string{"test_ok.t": "import test\ndef test_x[]\n    check true .\ndef [end]\n"}, code: 0,
+		{name: "suite all", files: map[string]string{"test_a.trt": strings.Replace(tests, "import test\n", "import test\nsuite = \"all\"\n", 1)}, code: 1,
+			want: []string{"(suite: all)", "PASS  test_three", "suite FAILED: 2 passed, 1 failed", "failures:\n  test_two\n      test_a.trt line 7: failed: check 2 * 2 == 5 ."}},
+		{name: "all pass", files: map[string]string{"test_ok.trt": "import test\ndef test_x[]\n    check true .\ndef [end]\n"}, code: 0,
 			want: []string{"PASS  test_x", "ok: 1 passed, 0 failed (1 file"}},
 		{name: "folders below, sorted, hidden skipped", files: map[string]string{
-			"test_b.t":         "import test\ndef test_b[]\n    check true .\ndef [end]\n",
-			"sub/test_a.t":     "import test\ndef test_a[]\n    check true .\ndef [end]\n",
-			".hidden/test_c.t": "import test\ndef test_c[]\n    check false .\ndef [end]\n",
-			"notes.t":          "import test\ndef test_n[]\n    check false .\ndef [end]\n",
-		}, code: 0, want: []string{"sub/test_a.t", "test_b.t", "ok: 2 passed, 0 failed (2 files"}, not: []string{"test_c", "test_n"}},
-		{name: "one file", files: map[string]string{"test_a.t": tests, "test_ok.t": "import test\ndef test_x[]\n    check true .\ndef [end]\n"}, args: []string{"test_ok.t"}, code: 0,
+			"test_b.trt":         "import test\ndef test_b[]\n    check true .\ndef [end]\n",
+			"sub/test_a.trt":     "import test\ndef test_a[]\n    check true .\ndef [end]\n",
+			".hidden/test_c.trt": "import test\ndef test_c[]\n    check false .\ndef [end]\n",
+			"notes.trt":          "import test\ndef test_n[]\n    check false .\ndef [end]\n",
+		}, code: 0, want: []string{"sub/test_a.trt", "test_b.trt", "ok: 2 passed, 0 failed (2 files"}, not: []string{"test_c", "test_n"}},
+		{name: "one file", files: map[string]string{"test_a.trt": tests, "test_ok.trt": "import test\ndef test_x[]\n    check true .\ndef [end]\n"}, args: []string{"test_ok.trt"}, code: 0,
 			want: []string{"ok: 1 passed"}, not: []string{"test_two"}},
-		{name: "a file not named test_", files: map[string]string{"lists.t": tests}, args: []string{"lists.t"}, code: 1,
+		{name: "a file not named test_", files: map[string]string{"lists.trt": tests}, args: []string{"lists.trt"}, code: 1,
 			want: []string{"a test file's name starts with test_"}},
-		{name: "no test files", files: map[string]string{"main.t": "show 1 ."}, code: 1, want: []string{"no test files (test_*.t)"}},
-		{name: "missing import", files: map[string]string{"test_a.t": "def test_x[]\n    show 1 .\ndef [end]\n"}, code: 1,
+		{name: "no test files", files: map[string]string{"main.trt": "show 1 ."}, code: 1, want: []string{"no test files (test_*.trt)"}},
+		{name: "old .t test files aren't tests", files: map[string]string{"test_old.t": "import test\ndef test_x[]\n    check true .\ndef [end]\n"}, code: 1, want: []string{"no test files (test_*.trt)"}},
+		{name: "missing import", files: map[string]string{"test_a.trt": "def test_x[]\n    show 1 .\ndef [end]\n"}, code: 1,
 			want: []string{"add import test at the top", "1 file couldn't run"}},
-		{name: "parse error", files: map[string]string{"test_a.t": "import test\ncheck .\n"}, code: 1, want: []string{"test_a.t: parse error"}},
-		{name: "top-level error", files: map[string]string{"test_a.t": "import test\nx = 1 div 0\ndef test_x[]\n    check true .\ndef [end]\n"}, code: 1,
+		{name: "parse error", files: map[string]string{"test_a.trt": "import test\ncheck .\n"}, code: 1, want: []string{"test_a.trt: parse error"}},
+		{name: "top-level error", files: map[string]string{"test_a.trt": "import test\nx = 1 div 0\ndef test_x[]\n    check true .\ndef [end]\n"}, code: 1,
 			want: []string{"the file's own code stopped before the tests: line 2: division by zero"}},
-		{name: "an error that isn't a check", files: map[string]string{"test_a.t": "import test\ndef test_x[]\n    x = list [1] at get[5]\ndef [end]\n"}, code: 1,
-			want: []string{"test_a.t line 3: stopped with a index error: index 5 out of range"}},
-		{name: "test functions take no arguments", files: map[string]string{"test_a.t": "import test\ndef test_x[a]\n    check true .\ndef [end]\n"}, code: 1,
+		{name: "an error that isn't a check", files: map[string]string{"test_a.trt": "import test\ndef test_x[]\n    x = list [1] at get[5]\ndef [end]\n"}, code: 1,
+			want: []string{"test_a.trt line 3: stopped with a index error: index 5 out of range"}},
+		{name: "test functions take no arguments", files: map[string]string{"test_a.trt": "import test\ndef test_x[a]\n    check true .\ndef [end]\n"}, code: 1,
 			want: []string{"a test function takes no arguments: write def test_x[]"}},
-		{name: "top-level values are shared", files: map[string]string{"test_a.t": "import test\nprices = list [3, 1]\ndef test_x[]\n    check length of prices == 2 .\ndef [end]\n"}, code: 0},
-		{name: "benchmark with runs", files: map[string]string{"test_a.t": "import test\ndef test_x[]\n    benchmark = true\n    runs = 25\n    check true .\ndef [end]\ndef test_y[]\n    check true .\ndef [end]\n"}, code: 0,
+		{name: "top-level values are shared", files: map[string]string{"test_a.trt": "import test\nprices = list [3, 1]\ndef test_x[]\n    check length of prices == 2 .\ndef [end]\n"}, code: 0},
+		{name: "benchmark with runs", files: map[string]string{"test_a.trt": "import test\ndef test_x[]\n    benchmark = true\n    runs = 25\n    check true .\ndef [end]\ndef test_y[]\n    check true .\ndef [end]\n"}, code: 0,
 			want: []string{"PASS  test_x   25 runs   avg ", "fastest ", "slowest "}, not: []string{"test_y   1 run"}},
-		{name: "benchmark for the whole file, one test opts out", files: map[string]string{"test_a.t": "import test\nbenchmark = true\nruns = 3\ndef test_x[]\n    check true .\ndef [end]\ndef test_y[]\n    benchmark = false\n    check true .\ndef [end]\n"}, code: 0,
+		{name: "benchmark for the whole file, one test opts out", files: map[string]string{"test_a.trt": "import test\nbenchmark = true\nruns = 3\ndef test_x[]\n    check true .\ndef [end]\ndef test_y[]\n    benchmark = false\n    check true .\ndef [end]\n"}, code: 0,
 			want: []string{"test_x   3 runs"}, not: []string{"test_y   3 runs"}},
-		{name: "benchmark Go-style", files: map[string]string{"test_a.t": "import test\nbenchtime = 0.05\ndef test_x[]\n    benchmark = true\n    check true .\ndef [end]\n"}, code: 0,
+		{name: "benchmark Go-style", files: map[string]string{"test_a.trt": "import test\nbenchtime = 0.05\ndef test_x[]\n    benchmark = true\n    check true .\ndef [end]\n"}, code: 0,
 			want: []string{" runs   avg "}},
-		{name: "a benchmark run that fails", files: map[string]string{"test_a.t": "import test\nimport random\nn = list []\ndef test_x[]\n    benchmark = true\n    runs = 5\n    add 1 to n .\n    check length of n < 3 .\ndef [end]\n"}, code: 1,
+		{name: "a benchmark run that fails", files: map[string]string{"test_a.trt": "import test\nimport random\nn = list []\ndef test_x[]\n    benchmark = true\n    runs = 5\n    add 1 to n .\n    check length of n < 3 .\ndef [end]\n"}, code: 1,
 			want: []string{"benchmark run 2"}},
-		{name: "bad settings", files: map[string]string{"test_a.t": "import test\nsuite = \"sometimes\"\ndef test_x[]\n    check true .\ndef [end]\n"}, code: 1,
+		{name: "bad settings", files: map[string]string{"test_a.trt": "import test\nsuite = \"sometimes\"\ndef test_x[]\n    check true .\ndef [end]\n"}, code: 1,
 			want: []string{`suite must be false, "stop" or "all", got "sometimes"`}},
 		{name: "testing your own library", files: map[string]string{
-			"lib/shapes.t":  "assemble Rect [w, h]\ndef area[r]\n    return w of r * h of r\ndef [end]\ndef broken[n]\n    return n div 0\ndef [end]\n",
-			"test_shapes.t": "import test\nimport lib/shapes\ndef test_area[]\n    check area[Rect[2, 3]] == 6 .\n    check shapes area[Rect[1, 1]] == 1 .\ndef [end]\ndef test_area_wrong[]\n    check area[Rect[2, 3]] == 7 .\ndef [end]\ndef test_broken[]\n    x = broken[1]\ndef [end]\n",
-		}, code: 1, want: []string{"PASS  test_area", "test_shapes.t line 8: failed: check area[Rect[2, 3]] == 7 .", "got 6, want 7 (1 less)", "lib/shapes.t line 6: stopped with a math error: division by zero"}},
+			"lib/shapes.trt":  "assemble Rect [w, h]\ndef area[r]\n    return w of r * h of r\ndef [end]\ndef broken[n]\n    return n div 0\ndef [end]\n",
+			"test_shapes.trt": "import test\nimport lib/shapes\ndef test_area[]\n    check area[Rect[2, 3]] == 6 .\n    check shapes area[Rect[1, 1]] == 1 .\ndef [end]\ndef test_area_wrong[]\n    check area[Rect[2, 3]] == 7 .\ndef [end]\ndef test_broken[]\n    x = broken[1]\ndef [end]\n",
+		}, code: 1, want: []string{"PASS  test_area", "test_shapes.trt line 8: failed: check area[Rect[2, 3]] == 7 .", "got 6, want 7 (1 less)", "lib/shapes.trt line 6: stopped with a math error: division by zero"}},
 		{name: "a library file isn't a test file", files: map[string]string{
-			"lib/test_helpers.t": "def test_helper[]\n    show 1 .\ndef [end]\n",
-			"test_a.t":           "import test\nimport lib/test_helpers\ndef test_x[]\n    check true .\ndef [end]\n",
-		}, code: 1, want: []string{"lib/test_helpers.t: add import test at the top", "PASS  test_x"}},
-		{name: "exit in a test", files: map[string]string{"test_a.t": "import test\nimport system [exit]\ndef test_x[]\n    exit[0]\ndef [end]\n"}, code: 1,
+			"lib/test_helpers.trt": "def test_helper[]\n    show 1 .\ndef [end]\n",
+			"test_a.trt":           "import test\nimport lib/test_helpers\ndef test_x[]\n    check true .\ndef [end]\n",
+		}, code: 1, want: []string{"lib/test_helpers.trt: add import test at the top", "PASS  test_x"}},
+		{name: "exit in a test", files: map[string]string{"test_a.trt": "import test\nimport system [exit]\ndef test_x[]\n    exit[0]\ndef [end]\n"}, code: 1,
 			want: []string{"the test called exit[]"}},
 	}
 	for _, c := range cases {
@@ -434,11 +435,11 @@ func TestTestExamples(t *testing.T) {
 	}
 }
 
-// TestSpeedFile runs testdata/speed/test_speed.t once, with benchmarking
+// TestSpeedFile runs testdata/speed/test_speed.trt once, with benchmarking
 // off, so the speed test keeps working (its timings are for reading, not
 // checking).
 func TestSpeedFile(t *testing.T) {
-	src, err := os.ReadFile("../testdata/speed/test_speed.t")
+	src, err := os.ReadFile("../testdata/speed/test_speed.trt")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -446,9 +447,9 @@ func TestSpeedFile(t *testing.T) {
 	orig := strings.ReplaceAll(string(src), "\r\n", "\n")
 	text := strings.Replace(orig, "\nbenchmark = true\n", "\nbenchmark = false\n", 1)
 	if text == orig {
-		t.Fatal("test_speed.t no longer sets benchmark = true at the top")
+		t.Fatal("test_speed.trt no longer sets benchmark = true at the top")
 	}
-	out, code := testRun(t, map[string]string{"test_speed.t": text})
+	out, code := testRun(t, map[string]string{"test_speed.trt": text})
 	if code != 0 || strings.Contains(out, " runs ") {
 		t.Fatalf("exit %d:\n%s", code, out)
 	}

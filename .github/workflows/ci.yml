@@ -20,7 +20,7 @@ jobs:
   build-vet-test:
     runs-on: ubuntu-latest
     # Real servers for the postgres and mysql drivers (and
-    # testdata/sql/13_servers.t); without the URLs those tests skip.
+    # testdata/sql/13_servers.trt); without the URLs those tests skip.
     services:
       postgres:
         image: postgres:17

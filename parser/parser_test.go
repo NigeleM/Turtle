@@ -104,7 +104,7 @@ func TestParseLoopHeaders(t *testing.T) {
 func TestParseFunctionDefAndCall(t *testing.T) {
 	// "add" itself is a reserved word (the data-op statement), so the
 	// function here is named "addition" — same workaround the language's
-	// own testdata/calculator.t needs.
+	// own testdata/calculator.trt needs.
 	program := parseOK(t, `def addition[a, b]
     return a + b
 def [end]

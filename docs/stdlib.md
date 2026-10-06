@@ -320,7 +320,7 @@ nums process [x] gives              // block form for longer logic
 gives [end]
 ```
 
-These are ordinary functions, so you can write your own in a `.t` library
+These are ordinary functions, so you can write your own in a `.trt` library
 and call them the same sentence style. See
 [`reference.md`](reference.md#sentence-style-calls).
 
@@ -526,7 +526,7 @@ orders = random list of 20 Order [string, integer, float]
   before.
 
 **Choosing from your own values** (`pick` and `chance` are written in
-Turtle, in `evaluator/lib/random.t`, on the `random` sentence; `shuffle`
+Turtle, in `evaluator/lib/random.trt`, on the `random` sentence; `shuffle`
 and `sample`, which go through every item, are in Go for speed):
 
 | Function | Gives |
@@ -1007,7 +1007,7 @@ sql_load[db, "agents", "agents.csv", types]
   | `date` | `DATE` (stored as text, `1953-04-13`) | `DATE` | `DATE` |
 - A line whose key isn't in the table changes nothing in `sql_update`
   and `sql_delete`; compare the count with the file's lines, or look the
-  keys up (see `testdata/sql/11_csv_import.t`).
+  keys up (see `testdata/sql/11_csv_import.trt`).
 - Each file runs as one statement, saved in one write, so a file of
   thousands of lines is fast.
 - Table and column names go into the SQL quoted, so any name works and
@@ -1083,7 +1083,7 @@ sql_close[db]
   `CREATE DATABASE` (or its own tools), then `sql_open` it.
 - `sql_tables` lists the tables of the database (PostgreSQL: of the
   current schema).
-- `testdata/sql/13_servers.t` runs the same program against both
+- `testdata/sql/13_servers.trt` runs the same program against both
   servers (set `TURTLE_PG_URL` and `TURTLE_MYSQL_URL`).
 
 **Errors** are kind `sql` (`sql_query: no such table: shelves`); a missing
@@ -1148,7 +1148,7 @@ erase["build"]
 **Paths resolve from the folder you ran `turtle` in**, like any
 command-line tool, unless absolute. That applies here and to `[read]`,
 `[write]`, `[append]` and `[directory]`. So
-`turtle ~/tools/count.t notes.txt` reads `./notes.txt`. (`import` is
+`turtle ~/tools/count.trt notes.txt` reads `./notes.txt`. (`import` is
 different: it always looks next to the script, so a program and its
 libraries can be moved together.) To use a file that sits next to the
 script, build its path from `scriptFolder[]`:
@@ -1162,13 +1162,13 @@ config = scriptFolder[] + "/config.txt"
 A complete tool, with usage message and exit codes:
 
 ```
-// turtle count.t notes.txt
+// turtle count.trt notes.txt
 import system
 import strings
 
 a = args[]
 if ] length of a == 0 [
-    show "usage: count.t <file>" .
+    show "usage: count.trt <file>" .
     exit[2]
 if [end]
 name is a at get 0 .
@@ -1199,7 +1199,7 @@ Check a file before reading it, since a missing file is a fatal error for
 `[read]`:
 
 ```
-// turtle tool.t notes.txt sub missing.txt
+// turtle tool.trt notes.txt sub missing.txt
 import system
 
 [loop][name in args[]]
@@ -1284,7 +1284,7 @@ import <name>
 import <name> [<f>, <g>]
 ```
 
-Reads `<name>.t` (relative to the script's own folder, wherever `turtle`
+Reads `<name>.trt` (relative to the script's own folder, wherever `turtle`
 was run from) and runs it
 once, in its own scope. Its top-level functions become available to your
 program: all of them, or only the ones listed in `[...]`. Its top-level

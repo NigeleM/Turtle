@@ -7,7 +7,7 @@ and what happened to each finding. Newest run first.
 
 Two layers:
 
-1. **`testdata/everything.t`** (with `everything_lib.t`): one script that
+1. **`testdata/everything.trt`** (with `everything_lib.trt`): one script that
    uses every feature together and checks its own results with a small
    `check[label, got, want]` function. It prints one line per section and
    exits with code 1 if any check fails. `go test` runs it, so it can't
@@ -15,7 +15,7 @@ Two layers:
 
    ```sh
    cd testdata
-   echo 5 | turtle everything.t first "second arg"
+   echo 5 | turtle everything.trt first "second arg"
    ```
 
 2. **Edge-case probes**: small separate programs, each run on its own
@@ -29,7 +29,7 @@ Two layers:
 
 ## Run 2: 2026-10-01 (after v0.9.135)
 
-**Result: 148 of 151 probes pass; `everything.t` passes every check.**
+**Result: 148 of 151 probes pass; `everything.trt` passes every check.**
 The 3 that don't pass are deliberate design limits (below).
 
 New probes in this run covered the features added since run 1 (float
@@ -69,7 +69,7 @@ in conditions, deeply nested data.
 | 14 | No way to delete a file | **Open** (a `system` function would cover it) |
 | 15 | Adding to a set got slower as it grew (100,000 adds ≈ 13 s) | **Fixed**: indexed; now 0.03 s |
 
-Also found while writing `everything.t`: a method call at the end of an
+Also found while writing `everything.trt`: a method call at the end of an
 if-header (`if ] x at isEmpty [`) swallowed the header's closing `[`.
 **Fixed.**
 

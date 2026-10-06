@@ -122,7 +122,7 @@ func TestStdlibExamples(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	programs, _ := filepath.Glob(filepath.Join(src, "*.t"))
+	programs, _ := filepath.Glob(filepath.Join(src, "*.trt"))
 	if len(programs) == 0 {
 		t.Fatal("no programs in testdata/stdlib")
 	}

@@ -290,7 +290,7 @@ func (a *Assembly) Inspect() string {
 // "kind of", "file of", "line of" and "message of" read its parts.
 type Error struct {
 	Kind     string // file, number, math, index, key, name, type, custom
-	File     string // the file it happened in: "report.t", "lib/utils.t"
+	File     string // the file it happened in: "report.trt", "lib/utils.trt"
 	InModule bool   // File is an imported module, so the message names it
 	Line     int
 	Message  string // without the place: "division by zero"
@@ -299,7 +299,7 @@ type Error struct {
 func (e *Error) Type() Type { return ERROR }
 
 // Inspect is the full message, as the program would have stopped with:
-// "line 3: division by zero", or "lib/utils.t line 3: ..." when it
+// "line 3: division by zero", or "lib/utils.trt line 3: ..." when it
 // happened in an imported module.
 func (e *Error) Inspect() string {
 	where := ""

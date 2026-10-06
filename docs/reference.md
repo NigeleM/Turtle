@@ -10,6 +10,8 @@ non-terminal; `[x]` is optional; `{x}` is zero-or-more; `|` is alternation.
 
 ## Lexical grammar
 
+- **Files**: Turtle programs, libraries and tests end in `.trt`
+  (`report.trt`, `lib/utils.trt`, `test_orders.trt`).
 - **Comments**: `// ...` runs to end of line. `//* ... *//` is a block
   comment that may span multiple lines. Both are stripped by the lexer.
 - **Identifiers**: `<letter|_> {letter|digit|_}`.
@@ -581,12 +583,12 @@ exist (`handle [maths] e .`) is a parse error.
 
 **The error value** shows as its full message (`show e .` prints
 `line 2: division by zero`), and has three parts: `kind of e` (`"math"`),
-`line of e` (`2`), `file of e` (`"report.t"`, or `"lib/utils.t"` for an
+`line of e` (`2`), `file of e` (`"report.trt"`, or `"lib/utils.trt"` for an
 error inside an imported module) and `message of e` (`"division by
 zero"`). It's truthy, and still set after `safe [end]`.
 
 **Where.** An error inside an imported module names its file:
-`lib/utils.t line 2: division by zero`. One in the main script just says
+`lib/utils.trt line 2: division by zero`. One in the main script just says
 `line 2: ...`. This holds whether the program stops on it or a `handle`
 shows it, and for parse errors in a module too.
 
@@ -770,14 +772,14 @@ import <name> [<f>, <g>, ...]  // only the listed names
 ```
 
 `<name>` is a builtin module (`math`, `time`, `data`, `strings`, `system`,
-`json`, `http`, `sql`; see [`stdlib.md`](stdlib.md)) or a file `<name>.t`,
+`json`, `http`, `sql`; see [`stdlib.md`](stdlib.md)) or a file `<name>.trt`,
 resolved relative to the current script's directory. A module in a
-subfolder is written with `/`: `import lib/utils` reads `lib/utils.t`,
+subfolder is written with `/`: `import lib/utils` reads `lib/utils.trt`,
 and its qualified name is the last part, `utils half[4]`. Because builtin names
-win, don't name your own module file after one (`math.t`, `json.t`, ...);
+win, don't name your own module file after one (`math.trt`, `json.trt`, ...);
 `import lib/json` is an error for the same reason.
 
-**What a module exports.** A `.t` module exports its top-level functions,
+**What a module exports.** A `.trt` module exports its top-level functions,
 and only those. It runs once, in its own global scope, the first time any
 file imports it; later imports reuse it. Its top-level variables stay
 private to it, although its own functions can read them. A function you
@@ -907,8 +909,8 @@ validate <call> [to <name>] [with <name> as <kind>, ...] matches <call> .
 - `import test` also makes the variables `suite`, `benchmark`, `runs`,
   `benchtime`, `cases` and `seed`.
 
-`turtle test [file.t | folder ...]` runs every top-level `test_` function
-(no arguments) in every `test_*.t` file, after the file's own top-level
+`turtle test [file.trt | folder ...]` runs every top-level `test_` function
+(no arguments) in every `test_*.trt` file, after the file's own top-level
 code, and exits with 1 if any failed.
 
 ## Documentation: `turtle doc`
@@ -919,7 +921,7 @@ code, and exits with 1 if any failed.
 turtle doc                 # every library and its functions
 turtle doc sql             # one library, every function in full
 turtle doc sql_update   # one function
-turtle doc lib/shop.t      # the functions of your own file
+turtle doc lib/shop.trt      # the functions of your own file
 ```
 
 Document your own functions the way Go does: `//` lines directly above a
@@ -928,7 +930,7 @@ a file describe the file. Say what each parameter is and what the
 function gives back:
 
 ```
-// shop.t: helpers for the bookshop database.
+// shop.trt: helpers for the bookshop database.
 
 // add_tax adds rate percent to an amount, rounded to the cent.
 // cents is a whole number of cents; rate is a percent, like 8.
@@ -938,5 +940,5 @@ def add_tax[cents, rate]
 def [end]
 ```
 
-`turtle doc shop.t` then lists `add_tax[cents, rate]` with those lines.
+`turtle doc shop.trt` then lists `add_tax[cents, rate]` with those lines.
 A function without them is listed as having no description.

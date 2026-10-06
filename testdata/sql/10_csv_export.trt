@@ -1,0 +1,60 @@
+// 10_csv_export.trt: query results to files. sql_save runs a query and
+// writes its rows: CSV (.csv), tab-separated (.tsv), or the aligned
+// table show table[x] prints (.txt). table_read reads them back.
+import sql
+import data
+import system [scriptFolder, erase]
+import lib/verify [check, finish]
+import lib/shop [make_shop, drop_shop]
+
+here = scriptFolder[]
+path = "{here}/work10.db"
+db = make_shop[path]
+
+// ---------- one query, one file ----------
+out = "{here}/export_books.csv"
+n = sql_save[db, "SELECT sku, title, price, stock FROM books ORDER BY sku", out]
+check["rows written", n, 6]
+[read] out to lines [end]
+show "export_books.csv:" .
+[loop][line in lines]
+    show "  ", line .
+[loop][end]
+check["header line", lines at get[0], "sku,title,price,stock"]
+check["a comma in a value is quoted", lines at get[5], 'B5,"I, Robot",650,1']
+
+// ---------- ? values, as in sql_query ----------
+cheap = "{here}/export_cheap.tsv"
+check["tab-separated, with a value", sql_save[db, "SELECT sku, title FROM books WHERE price < ? ORDER BY sku", cheap, list [700]], 2]
+check["read back", table_read[cheap], list [map ["sku": "B5", "title": "I, Robot"], map ["sku": "B6", "title": "Pride and Prejudice"]]]
+
+// ---------- a report from a join, as CSV and as a text table ----------
+q = "SELECT a.name AS author, count(s.id) AS sales, sum(s.qty) AS copies, sum(s.qty * b.price) AS revenue FROM authors a LEFT JOIN books b ON b.author_id = a.id LEFT JOIN sales s ON s.sku = b.sku GROUP BY a.id ORDER BY revenue DESC, a.id"
+report = "{here}/export_authors.csv"
+sql_save[db, q, report]
+back = table_read[report]
+check["read back: same rows", length of back, 5]
+check["values come back as text", back at get[0] at get["revenue"], "7600"]
+check["none is an empty cell, and comes back as none", back at get[4] at get["revenue"], none]
+text = "{here}/export_authors.txt"
+sql_save[db, q, text]
+[read] text to report_lines [end]
+show "export_authors.txt:" .
+[loop][line in report_lines]
+    show "  ", line .
+[loop][end]
+check["text table", report_lines at get[2], "Frank Herbert      3       8     7600"]
+
+// ---------- nothing found: still a header ----------
+none_file = "{here}/export_none.csv"
+check["no rows", sql_save[db, "SELECT sku, title FROM books WHERE price > 100000", none_file], 0]
+[read] none_file to none_lines [end]
+check["just the header", none_lines, list ["sku,title"]]
+
+erase[out]
+erase[cheap]
+erase[report]
+erase[text]
+erase[none_file]
+drop_shop[db, path]
+finish[]

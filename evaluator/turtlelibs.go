@@ -11,26 +11,26 @@ import (
 )
 
 // Builtin libraries written partly in Turtle (the hybrid standard
-// library): lib/<name>.t is built into turtle and runs, once per program,
+// library): lib/<name>.trt is built into turtle and runs, once per program,
 // when a file imports <name>. Its functions listed in the builtin's Funcs
 // are exported; the rest are its private helpers. Errors from its code
 // point at the caller's line, as a Go builtin's do.
 
-//go:embed lib/*.t
+//go:embed lib/*.trt
 var turtleLibFiles embed.FS
 
-// turtleLibs are the builtins with a lib/<name>.t.
+// turtleLibs are the builtins with a lib/<name>.trt.
 var turtleLibs = map[string]bool{"random": true}
 
 const builtinFilePrefix = "builtin:"
 
-// loadTurtleLib runs lib/<name>.t for the builtin mod, once.
+// loadTurtleLib runs lib/<name>.trt for the builtin mod, once.
 func (it *Interpreter) loadTurtleLib(base *object.Module) *object.Module {
 	key := builtinFilePrefix + base.Name
 	if mod, ok := it.modules[key]; ok {
 		return mod
 	}
-	src, err := turtleLibFiles.ReadFile("lib/" + base.Name + ".t")
+	src, err := turtleLibFiles.ReadFile("lib/" + base.Name + ".trt")
 	if err != nil {
 		panic(fmt.Sprintf("builtin library %s: %v", base.Name, err))
 	}
@@ -38,10 +38,10 @@ func (it *Interpreter) loadTurtleLib(base *object.Module) *object.Module {
 	p.Enable(base.Name) // its own sentences, without importing itself
 	program := p.ParseProgram()
 	if errs := p.Errors(); len(errs) > 0 {
-		panic(fmt.Sprintf("builtin library %s.t: %s", base.Name, strings.Join(errs, "; ")))
+		panic(fmt.Sprintf("builtin library %s.trt: %s", base.Name, strings.Join(errs, "; ")))
 	}
 	mod := &object.Module{Name: base.Name, Funcs: base.Funcs, Methods: base.Methods, Hybrid: true, Env: object.NewGlobalEnvironment()}
-	mod.Env.SetFile(key + ".t")
+	mod.Env.SetFile(key + ".trt")
 	prevFile, prevLine := currentFile, currentLine
 	prevBuiltin := it.inBuiltin
 	it.inBuiltin = true

@@ -78,7 +78,7 @@ func NewWithStdin(dir string, r io.Reader) *Interpreter {
 const maxCallDepth = 100000
 
 // builtinModules maps a name recognized by "import <name>" to a native
-// capability instead of a <name>.t file on disk: "math" provides the
+// capability instead of a <name>.trt file on disk: "math" provides the
 // sqrt/abs/round/floor/ceil/pow/random number methods, "time" provides
 // the now[]/sleep[ms] builtin functions, "data" provides process/keep/copy
 // (see datalib.go), table (see tablelib.go), table_read and table_write
@@ -134,7 +134,7 @@ func requireModule(env *object.Environment, module, what string) {
 var currentLine int
 
 // currentFile is the file whose code is running, as errors name it: ""
-// for the main script, "lib/utils.t" for an imported module. Function
+// for the main script, "lib/utils.trt" for an imported module. Function
 // calls and imports switch it (see callFunction, loadModule).
 var currentFile string
 
@@ -196,7 +196,7 @@ func fatalKind(kind, format string, args ...interface{}) {
 }
 
 // place is the "where" an error message starts with: "line 3: " in the
-// main script, "lib/utils.t line 3: " in an imported module.
+// main script, "lib/utils.trt line 3: " in an imported module.
 func place(file string, line int) string {
 	switch {
 	case line <= 0 && file == "":

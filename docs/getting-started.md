@@ -17,13 +17,13 @@ This produces a `turtle` binary in the current directory. You can also skip
 the build step for one-off runs:
 
 ```sh
-go run ./cmd/turtle path/to/script.t
+go run ./cmd/turtle path/to/script.trt
 ```
 
 ## Run a script
 
 ```sh
-./turtle path/to/script.t
+./turtle path/to/script.trt
 ```
 
 Anything after the script path is passed to the script, which reads it
@@ -31,15 +31,15 @@ with `import system` and `args[]` (see
 [`stdlib.md`](stdlib.md#system-library)):
 
 ```sh
-./turtle report.t data.txt --verbose
+./turtle report.trt data.txt --verbose
 ```
 
 File paths in a script (`[read] data.txt ...`) are relative to the folder
 you run `turtle` from, like any command-line tool. `import` always looks
 next to the script.
 
-If you omit the path, `turtle` looks for the most recently modified `.t` or
-`.T` file in the current directory and runs that instead:
+If you omit the path, `turtle` looks for the most recently modified `.trt`
+file in the current directory and runs that instead:
 
 ```sh
 ./turtle
@@ -47,7 +47,7 @@ If you omit the path, `turtle` looks for the most recently modified `.t` or
 
 ## Your first script
 
-Create `hello.t`:
+Create `hello.trt`:
 
 ```
 name = "World"
@@ -57,7 +57,7 @@ show "Hello, ", name, "!" .
 Run it:
 
 ```sh
-./turtle hello.t
+./turtle hello.trt
 ```
 
 ```
@@ -67,7 +67,7 @@ Hello, World!
 ## Test it
 
 Put tests in a file whose name starts with `test_`, with `import test`
-and functions whose names start with `test_`. `test_hello.t`:
+and functions whose names start with `test_`. `test_hello.trt`:
 
 ```
 import test
@@ -83,7 +83,7 @@ def [end]
 ```
 
 ```
-test_hello.t
+test_hello.trt
   PASS  test_greeting   12.0µs
 
 ok: 1 passed, 0 failed (1 file, 1.3ms)
@@ -105,11 +105,11 @@ and benchmarks.
 
 ## Try the existing examples
 
-The `testdata/` directory has working `.t` scripts exercising most of the
+The `testdata/` directory has working `.trt` scripts exercising most of the
 language — functions, recursion, nested if/else, nested loops, data
 structures, file I/O:
 
 ```sh
-./turtle testdata/play.t
-./turtle testdata/datastruct.t
+./turtle testdata/play.trt
+./turtle testdata/datastruct.trt
 ```

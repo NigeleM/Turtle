@@ -210,7 +210,7 @@ Paths start from the folder turtle was run in (scriptFolder[] gives the
 script's own folder).
 
 ### args[]
-  The words typed after the script's name: turtle report.t a.txt b.txt
+  The words typed after the script's name: turtle report.trt a.txt b.txt
   Gives back: a list of text (empty if none).
 
 ### exists[path]
@@ -332,7 +332,7 @@ characters from 0.
 `,
 
 	"test": `Tests. In a file with "import test", three statements check your code;
-"turtle test" runs every test_ function in every test_*.t file.
+"turtle test" runs every test_ function in every test_*.trt file.
 
     check total[order] == 45 .                     one fact; == shows how they differ
     check x is integer .                           also: float number string boolean
@@ -384,7 +384,7 @@ each run. seed = 42 gives the same values every run from there on, to
 repeat a run exactly; setting it again starts them over.
 random is a sentence word only in a file with "import random".
 pick and chance are written in Turtle, on the Go-written sentence (the
-first hybrid library; see evaluator/lib/random.t); shuffle and sample are Go.
+first hybrid library; see evaluator/lib/random.trt); shuffle and sample are Go.
 
 ### pick[x]
   One item, chosen at random.

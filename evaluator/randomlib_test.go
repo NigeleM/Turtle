@@ -154,7 +154,7 @@ func TestRandomParseErrors(t *testing.T) {
 }
 
 // TestRandomLibraryInTurtle: pick, shuffle, sample and chance are written
-// in Turtle (lib/random.t, built in). The caller's seed decides their
+// in Turtle (lib/random.trt, built in). The caller's seed decides their
 // values, their helpers stay private, and errors point at the caller.
 func TestRandomLibraryInTurtle(t *testing.T) {
 	cases := []struct{ name, src, want, wantErr string }{

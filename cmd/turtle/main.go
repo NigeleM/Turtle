@@ -1,8 +1,8 @@
-// Command turtle runs a .t Turtle script, or shows documentation:
+// Command turtle runs a .trt Turtle script, or shows documentation:
 //
-//	turtle script.t [args...]
-//	turtle doc [library | function | file.t]
-//	turtle test [file.t | folder ...]
+//	turtle script.trt [args...]
+//	turtle doc [library | function | file.trt]
+//	turtle test [file.trt | folder ...]
 package main
 
 import (
@@ -76,8 +76,9 @@ func resolveScriptPath() (string, error) {
 	return findLatestScript()
 }
 
-// findLatestScript replicates the legacy "no file given -> run the most
-// recently modified .t/.T file in the current directory" behavior.
+// findLatestScript: with no file given, run the most recently modified
+// .trt file in the current directory (as the legacy interpreter did with
+// its files).
 func findLatestScript() (string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -93,8 +94,7 @@ func findLatestScript() (string, error) {
 		if e.IsDir() {
 			continue
 		}
-		ext := filepath.Ext(e.Name())
-		if ext != ".t" && ext != ".T" {
+		if !strings.EqualFold(filepath.Ext(e.Name()), ".trt") {
 			continue
 		}
 		info, err := e.Info()
@@ -107,7 +107,7 @@ func findLatestScript() (string, error) {
 		}
 	}
 	if best == "" {
-		return "", fmt.Errorf("no .t file found in %s and none given on the command line", cwd)
+		return "", fmt.Errorf("no .trt file found in %s and none given on the command line", cwd)
 	}
 	return best, nil
 }

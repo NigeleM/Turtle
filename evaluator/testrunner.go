@@ -17,10 +17,10 @@ import (
 	"Turtle/parser"
 )
 
-// turtle test: runs the test_ functions in test_*.t files.
+// turtle test: runs the test_ functions in test_*.trt files.
 //
-//	turtle test                  every test_*.t here and in folders below
-//	turtle test test_lists.t     one file
+//	turtle test                  every test_*.trt here and in folders below
+//	turtle test test_lists.trt     one file
 //	turtle test tests/           one folder
 //
 // A file's top-level code runs once, first; then each test_ function, in
@@ -55,7 +55,7 @@ func TestCommand(paths []string, cwd string, out io.Writer) int {
 		}
 		if !info.IsDir() {
 			if !isTestFile(filepath.Base(full)) {
-				fmt.Fprintf(out, "turtle test: %s: a test file's name starts with test_ and ends with .t, like test_lists.t\n", p)
+				fmt.Fprintf(out, "turtle test: %s: a test file's name starts with test_ and ends with .trt, like test_lists.trt\n", p)
 				return 1
 			}
 			files = append(files, full)
@@ -76,7 +76,7 @@ func TestCommand(paths []string, cwd string, out io.Writer) int {
 	}
 	sort.Strings(files)
 	if len(files) == 0 {
-		fmt.Fprintf(out, "turtle test: no test files (test_*.t) in %s\n", strings.Join(paths, ", "))
+		fmt.Fprintf(out, "turtle test: no test files (test_*.trt) in %s\n", strings.Join(paths, ", "))
 		return 1
 	}
 	start := time.Now()
@@ -109,7 +109,7 @@ func TestCommand(paths []string, cwd string, out io.Writer) int {
 }
 
 func isTestFile(name string) bool {
-	return strings.HasPrefix(name, "test_") && strings.HasSuffix(name, ".t")
+	return strings.HasPrefix(name, "test_") && strings.HasSuffix(name, ".trt")
 }
 
 type testCounts struct{ passed, failed, skipped, broken int }

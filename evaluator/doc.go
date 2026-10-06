@@ -13,7 +13,7 @@ import (
 //	turtle doc              every library and its functions
 //	turtle doc sql          one library: every function, in full
 //	turtle doc sql_load     one function
-//	turtle doc lib/shop.t   the functions of a Turtle file, from the
+//	turtle doc lib/shop.trt   the functions of a Turtle file, from the
 //	                        // comments written just above each def
 //
 // A Turtle file is documented the way Go code is: the // lines directly
@@ -79,7 +79,7 @@ func Doc(topic, dir string) (string, error) {
 		var sb strings.Builder
 		sb.WriteString("Turtle's libraries. Use one with import, e.g. \"import sql\".\n")
 		sb.WriteString("turtle doc <library> shows it in full; turtle doc <function> one function;\n")
-		sb.WriteString("turtle doc <file.t> the functions of your own file.\n")
+		sb.WriteString("turtle doc <file.trt> the functions of your own file.\n")
 		for _, m := range moduleNames() {
 			intro, es := parseModuleDoc(m, moduleDocs[m])
 			first, _, _ := strings.Cut(intro, "\n")
@@ -108,9 +108,9 @@ func Doc(topic, dir string) (string, error) {
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(dir, path)
 	}
-	if !strings.HasSuffix(path, ".t") && !strings.HasSuffix(path, ".trt") {
-		if _, err := os.Stat(path + ".t"); err == nil {
-			path += ".t"
+	if !strings.HasSuffix(path, ".trt") {
+		if _, err := os.Stat(path + ".trt"); err == nil {
+			path += ".trt"
 		}
 	}
 	if data, err := os.ReadFile(path); err == nil {

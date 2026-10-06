@@ -8,7 +8,7 @@ three words, from simple to thorough, and a command that runs your tests:
 | `check` | one fact | `check total[order] == 45 .` |
 | `verify` | a rule, against every item of a collection | `verify evens[nums] each x gives x % 2 == 0 .` |
 | `validate` | a rule, against many random inputs | `validate evens[nums] with nums as list of integer that result each x gives x % 2 == 0 .` |
-| `turtle test` | runs every `test_` function in every `test_*.t` file | `turtle test` |
+| `turtle test` | runs every `test_` function in every `test_*.trt` file | `turtle test` |
 
 The three words are independent: a test can use any one, two, or all
 three. They mean something only in a file that has `import test`;
@@ -19,7 +19,7 @@ Working examples of everything on this page: `testdata/testlib/`
 
 ## A first test
 
-`test_orders.t`:
+`test_orders.trt`:
 
 ```
 import test
@@ -41,7 +41,7 @@ def [end]
 
 ```
 $ turtle test
-test_orders.t
+test_orders.trt
   PASS  test_total              35.0µs
   PASS  test_total_of_nothing   11.9µs
 
@@ -51,16 +51,16 @@ ok: 2 passed, 0 failed (1 file, 2.1ms)
 If `total` were wrong:
 
 ```
-test_orders.t
+test_orders.trt
   FAIL  test_total   12.3µs
-        test_orders.t line 9: failed: check total[Order["pen", 3, 15]] == 45 .
+        test_orders.trt line 9: failed: check total[Order["pen", 3, 15]] == 45 .
             got 40, want 45 (5 less)
 ```
 
 ## How tests are found and run
 
-- **Test files** are named `test_` + anything + `.t`: `test_orders.t`,
-  `test_lists.t`. A test file must `import test`.
+- **Test files** are named `test_` + anything + `.trt`: `test_orders.trt`,
+  `test_lists.trt`. A test file must `import test`.
 - **Test functions** are the top-level functions named `test_` + anything,
   with no arguments: `def test_total[]`. Other functions in the file are
   helpers and don't run on their own.
@@ -69,8 +69,8 @@ test_orders.t
 
 | Command | Runs |
 |---|---|
-| `turtle test` | every `test_*.t` in this folder and the folders below it (not hidden ones, like `.git`) |
-| `turtle test test_orders.t` | one file |
+| `turtle test` | every `test_*.trt` in this folder and the folders below it (not hidden ones, like `.git`) |
+| `turtle test test_orders.trt` | one file |
 | `turtle test tests/ more/` | the files in those folders |
 
 For each file, in order:
@@ -85,7 +85,7 @@ For each file, in order:
    kind:
    ```
    FAIL  test_crash   1.5µs
-         test_orders.t line 28: stopped with a math error: division by zero
+         test_orders.trt line 28: stopped with a math error: division by zero
    ```
 
 `turtle test` ends with the totals and exits with 0 when everything
@@ -95,24 +95,24 @@ passed, 1 when anything failed, so it works in CI:
 FAILED: 4 passed, 3 failed, 1 skipped (3 files, 294.0ms)
 ```
 
-Running a test file the ordinary way (`turtle test_orders.t`) runs its
+Running a test file the ordinary way (`turtle test_orders.trt`) runs its
 top-level code only; the tests run under `turtle test`.
 
 A `show` in a test prints as the test runs, between the report lines.
 
 ## Testing your own code
 
-Keep the code in an ordinary `.t` file and the tests in a `test_` file
+Keep the code in an ordinary `.trt` file and the tests in a `test_` file
 that imports it, as any program would. Paths are from the test file's
 folder; a library doesn't need `import test`.
 
 ```
 my_project/
-    lib/geometry.t        // the code
-    test_geometry.t       // its tests
+    lib/geometry.trt        // the code
+    test_geometry.trt       // its tests
 ```
 
-`lib/geometry.t`:
+`lib/geometry.trt`:
 
 ```
 assemble Rect [width, height]
@@ -122,7 +122,7 @@ def area[r]
 def [end]
 ```
 
-`test_geometry.t`:
+`test_geometry.trt`:
 
 ```
 import test
@@ -141,11 +141,11 @@ def [end]
 ```
 
 An error inside the library names the library's file and line:
-`lib/geometry.t line 6: stopped with a math error: division by zero`.
+`lib/geometry.trt line 6: stopped with a math error: division by zero`.
 
 Don't start a library's name with `test_`: `turtle test` would take it
 for a test file (and ask for `import test`). See
-`testdata/testlib/test_import.t` for a full example.
+`testdata/testlib/test_import.trt` for a full example.
 
 ## check: one fact
 
@@ -472,7 +472,7 @@ list in place doesn't change what the rule sees.
 
 ```
 FAIL  test_evens
-      test_lists.t line 12: failed: validate bad_evens[nums] with nums as list of integer that result each x gives x % 2 == 0 .
+      test_lists.trt line 12: failed: validate bad_evens[nums] with nums as list of integer that result each x gives x % 2 == 0 .
           failed on case 2 of 100 (seed 713144290)
           nums = [ -1 ]   (smallest found; first failed on [ 617, 577, -451, 999 ])
           result = [ -1 ]
@@ -540,17 +540,17 @@ then pay for it, then ship it); `"all"` to see every failure of a group
 in one run.
 
 ```
-test_orders.t (suite: stop)
+test_orders.trt (suite: stop)
   PASS  test_create_order   2.0ms
   FAIL  test_pay_order      1.0ms
-        test_orders.t line 18: failed: check total[order] == 45 .
+        test_orders.trt line 18: failed: check total[order] == 45 .
             got 40, want 45 (5 less)
   SKIP  test_ship_order     (stopped: test_pay_order failed)
 suite FAILED: 1 passed, 1 failed, 1 skipped
 ```
 
 ```
-test_orders.t (suite: all)
+test_orders.trt (suite: all)
   PASS  test_create_order   2.0ms
   FAIL  test_pay_order      1.0ms
   PASS  test_ship_order     3.0ms
@@ -559,10 +559,10 @@ suite FAILED: 2 passed, 2 failed
 
 failures:
   test_pay_order
-      test_orders.t line 18: failed: check total[order] == 45 .
+      test_orders.trt line 18: failed: check total[order] == 45 .
           got 40, want 45 (5 less)
   test_refund_order
-      test_orders.t line 31: failed: check items of order == list ["pen", "mug"] .
+      test_orders.trt line 31: failed: check items of order == list ["pen", "mug"] .
           at 1: got "pad", want "mug"
 ```
 
@@ -601,11 +601,11 @@ def [end]
 A benchmarked test repeats everything in it, including what it changes:
 start each test by setting up what it needs (a list, a database table)
 rather than relying on the run before. A run that fails is reported with
-its number: `test_lists.t line 8, benchmark run 37: ...`.
+its number: `test_lists.trt line 8, benchmark run 37: ...`.
 
 ### Speed of the language itself
 
-`testdata/speed/test_speed.t` times common work across Turtle (calls,
+`testdata/speed/test_speed.trt` times common work across Turtle (calls,
 loops, strings, lists, maps, sorting, JSON, dates, random values,
 SQLite) with `benchmark = true`. Every test passes; the timings are for
 comparing before and after a change to the interpreter:

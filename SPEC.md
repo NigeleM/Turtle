@@ -169,7 +169,7 @@ sum = plus[1, 2]
   lists and sets (duplicates dropped, first-seen order kept).
 - **(new)** String interpolation `"Hi {name}"` (`\{` for a plain brace);
   `import lib/utils` for modules in subfolders; errors inside a module
-  name its file (`lib/utils.t line 2: ...`); `system` gained `erase[path]`
+  name its file (`lib/utils.trt line 2: ...`); `system` gained `erase[path]`
   and the `warn ... .` statement (show to stderr).
 - **(new)** `system` gained `exit[code]`, `env[name]`, `scriptFolder[]`;
   new `strings` library: `find`, `substring`, `isinstring`, `join`.
@@ -365,9 +365,9 @@ current value. Items are newline-joined.
 import util
 ```
 
-- **(changed)** Legacy, and the rewrite until now, ran `util.t` in the
+- **(changed)** Legacy, and the rewrite until now, ran `util.trt` in the
   importer's global environment (flatten-into-globals), so names from
-  different files silently overwrote each other. Now each `.t` module runs
+  different files silently overwrote each other. Now each `.trt` module runs
   once in its own global scope and exports only its top-level functions.
 - `import m [a, b]` limits what's imported. A function can be qualified
   by module (`time now[]`, two identifiers side by side), and an

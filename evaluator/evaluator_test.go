@@ -35,11 +35,11 @@ func runIn(t *testing.T, dir, src, stdin string) (string, error) {
 	return runFull(t, dir, src, stdin, nil)
 }
 
-// runScript is runIn for a script named main.t, as "file of" an error
+// runScript is runIn for a script named main.trt, as "file of" an error
 // in it reports.
 func runScript(t *testing.T, dir, src string) (string, error) {
 	t.Helper()
-	scriptName = "main.t"
+	scriptName = "main.trt"
 	defer func() { scriptName = "" }()
 	return runFull(t, dir, src, "", nil)
 }
@@ -645,13 +645,13 @@ func TestNoneArithmeticIsFatal(t *testing.T) {
 	}
 }
 
-// moduleDir writes each name -> source pair to <tmp>/<name>.t and returns
+// moduleDir writes each name -> source pair to <tmp>/<name>.trt and returns
 // the directory, for import tests.
 func moduleDir(t *testing.T, files map[string]string) string {
 	t.Helper()
 	dir := t.TempDir()
 	for name, src := range files {
-		if err := os.WriteFile(filepath.Join(dir, name+".t"), []byte(src), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, name+".trt"), []byte(src), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -1270,7 +1270,7 @@ show length of list [1, 2] + 1 .`, want: "empty\n3\n"},
 // elsewhere.
 func TestPathsVersusImports(t *testing.T) {
 	scriptDir, work := t.TempDir(), t.TempDir()
-	if err := os.WriteFile(filepath.Join(scriptDir, "helpers.t"), []byte("def hi[]\n    return \"hi\"\ndef [end]\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(scriptDir, "helpers.trt"), []byte("def hi[]\n    return \"hi\"\ndef [end]\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(work, "data.txt"), []byte("work\n"), 0o644); err != nil {
@@ -1280,7 +1280,7 @@ func TestPathsVersusImports(t *testing.T) {
 import system
 [read] data.txt to l [end]
 show hi[], " ", l .
-show exists["helpers.t"] .
+show exists["helpers.trt"] .
 show scriptFolder[] == "` + scriptDir + `" .`))
 	program := p.ParseProgram()
 	if errs := p.Errors(); len(errs) > 0 {
@@ -1458,18 +1458,18 @@ if [end]`, "missing\n"},
 	}
 }
 
-// testdata/everything.t checks its own results and exits 1 on any failure.
+// testdata/everything.trt checks its own results and exits 1 on any failure.
 func TestEverythingScript(t *testing.T) {
 	dir, err := filepath.Abs("../testdata")
 	if err != nil {
 		t.Fatal(err)
 	}
-	src, err := os.ReadFile(filepath.Join(dir, "everything.t"))
+	src, err := os.ReadFile(filepath.Join(dir, "everything.trt"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	work := t.TempDir()
-	if err := os.WriteFile(filepath.Join(work, "everything.t"), src, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(work, "everything.trt"), src, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	p := parser.New(lexer.New(string(src)))
@@ -1492,7 +1492,7 @@ func TestEverythingScript(t *testing.T) {
 		out.WriteString(sc.Text() + "\n")
 	}
 	if runErr != nil || !strings.Contains(out.String(), "failures: 0") {
-		t.Fatalf("everything.t failed (err %v):\n%s", runErr, out.String())
+		t.Fatalf("everything.trt failed (err %v):\n%s", runErr, out.String())
 	}
 }
 
@@ -1755,7 +1755,7 @@ safe
     import broken
 handle [math] e .
     show e .
-safe [end]`, want: "broken.t line 1: division by zero\nbroken.t line 1: division by zero\n"},
+safe [end]`, want: "broken.trt line 1: division by zero\nbroken.trt line 1: division by zero\n"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -1845,8 +1845,8 @@ func TestErrorsNameTheModuleFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	files := map[string]string{
-		"lib/utils.t": "def half[n]\n    return 10 div n\ndef [end]\n",
-		"lib/bad.t":   "x = 1\nshow x\n",
+		"lib/utils.trt": "def half[n]\n    return 10 div n\ndef [end]\n",
+		"lib/bad.trt":   "x = 1\nshow x\n",
 	}
 	for name, src := range files {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte(src), 0o644); err != nil {
@@ -1858,7 +1858,7 @@ func TestErrorsNameTheModuleFile(t *testing.T) {
 show half[4] .
 show utils half[5] .`, want: "2\n2\n"},
 		{name: "unhandled error in a module names it", src: `import lib/utils
-x = half[0]`, wantErr: "lib/utils.t line 2: division by zero"},
+x = half[0]`, wantErr: "lib/utils.trt line 2: division by zero"},
 		{name: "handled error in a module", src: `import lib/utils
 safe
     x = half[0]
@@ -1866,18 +1866,18 @@ handle [math] e .
     show e .
     show file of e .
     show line of e .
-safe [end]`, want: "lib/utils.t line 2: division by zero\nlib/utils.t\n2\n"},
+safe [end]`, want: "lib/utils.trt line 2: division by zero\nlib/utils.trt\n2\n"},
 		{name: "error in the main script", src: `safe
     x = nope
 handle [] e .
     show e .
     show file of e .
-safe [end]`, want: "line 2: undefined variable \"nope\"\nmain.t\n"},
+safe [end]`, want: "line 2: undefined variable \"nope\"\nmain.trt\n"},
 		{name: "after a call, errors name the caller's line", src: `import lib/utils
 x = 1
 show half[2] / 0 .`, wantErr: "line 3: division by zero"},
-		{name: "parse error in a module", src: `import lib/bad`, wantErr: "lib/bad.t line 2: expected next token to be ."},
-		{name: "missing module", src: `import lib/nothing`, wantErr: "line 1: import lib/nothing: lib/nothing.t: no such file or folder"},
+		{name: "parse error in a module", src: `import lib/bad`, wantErr: "lib/bad.trt line 2: expected next token to be ."},
+		{name: "missing module", src: `import lib/nothing`, wantErr: "line 1: import lib/nothing: lib/nothing.trt: no such file or folder"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -1950,10 +1950,10 @@ func TestReviewFixes(t *testing.T) {
 		}
 	}
 	files := map[string]string{
-		"a/utils.t":  "def f[]\n    return 1\ndef [end]\n",
-		"b/utils.t":  "def g[]\n    return 2\ndef [end]\n",
-		"lib/math.t": "def h[]\n    return 3\ndef [end]\n",
-		"lib/bad.t":  "x = 1\nshow x\n",
+		"a/utils.trt":  "def f[]\n    return 1\ndef [end]\n",
+		"b/utils.trt":  "def g[]\n    return 2\ndef [end]\n",
+		"lib/math.trt": "def h[]\n    return 3\ndef [end]\n",
+		"lib/bad.trt":  "x = 1\nshow x\n",
 	}
 	for name, src := range files {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte(src), 0o644); err != nil {
@@ -1970,7 +1970,7 @@ func TestReviewFixes(t *testing.T) {
     import lib/bad
 handle [] e .
     show "not reached" .
-safe [end]`, wantErr: "lib/bad.t line 2: expected next token to be ."},
+safe [end]`, wantErr: "lib/bad.trt line 2: expected next token to be ."},
 		{name: "an error's parts are read-only", src: `safe
     x = 1 / 0
 handle [] e .
@@ -2243,13 +2243,13 @@ func TestShopProgram(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	script, err := os.ReadFile(filepath.Join(work, "shop.t"))
+	script, err := os.ReadFile(filepath.Join(work, "shop.trt"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	out, err := runFull(t, work, string(script), "Sam\n", []string{"--verbose"})
 	if err != nil || !strings.Contains(out, "failures: 0") {
-		t.Fatalf("shop.t failed (err %v):\n%s", err, out)
+		t.Fatalf("shop.trt failed (err %v):\n%s", err, out)
 	}
 	for _, f := range []string{"shop_report.json", "shop_log.txt"} {
 		if _, err := os.Stat(filepath.Join(work, f)); err == nil {
@@ -2556,7 +2556,7 @@ handle [file] e .
     show e .
 safe [end]`, want: "line 3: sql_open nope.db: no such file (sql_create makes a new database)\n"},
 		{name: "not a database", src: `import sql
-db = sql_open["everything.t"]`, wantErr: "sql_open everything.t: everything.t isn't a SQLite database"},
+db = sql_open["everything.trt"]`, wantErr: "sql_open everything.trt: everything.trt isn't a SQLite database"},
 		{name: "no postgres server", src: `import sql
 db = sql_open["postgres://ann:secret@127.0.0.1:1/shop?connect_timeout=2"]`, wantErr: "is the server running"},
 		{name: "no mysql server", src: `import sql
@@ -2761,7 +2761,7 @@ func TestSQLExamples(t *testing.T) {
 	if err := os.CopyFS(work, os.DirFS(src)); err != nil {
 		t.Fatal(err)
 	}
-	programs, _ := filepath.Glob(filepath.Join(work, "*.t"))
+	programs, _ := filepath.Glob(filepath.Join(work, "*.trt"))
 	if len(programs) < 11 {
 		t.Fatalf("found %d programs in testdata/sql", len(programs))
 	}
@@ -3056,15 +3056,15 @@ func TestEveryBuiltinIsDocumented(t *testing.T) {
 
 func TestDoc(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "tools.t"), []byte("// tools.t: helpers.\n\n// add_tax adds rate percent.\n// cents is an integer.\ndef add_tax[cents, rate]\n    return cents\ndef [end]\n\ndef bare[x]\ndef [end]\n\n// Item is one thing on a shelf.\nassemble Item [sku, title]\n"), 0o644)
+	os.WriteFile(filepath.Join(dir, "tools.trt"), []byte("// tools.trt: helpers.\n\n// add_tax adds rate percent.\n// cents is an integer.\ndef add_tax[cents, rate]\n    return cents\ndef [end]\n\ndef bare[x]\ndef [end]\n\n// Item is one thing on a shelf.\nassemble Item [sku, title]\n"), 0o644)
 	cases := map[string]string{
-		"":         "sql: Databases: SQLite files",
-		"sql":      "sql_upsert[db, table, key, path]",
-		"sql_load": "sql_load[db, table, path [, types]]        (import sql)\n  Adds a record to a table",
-		"sqrt":     "number at sqrt        (import math)",
-		"warn":     "warn ... .",
-		"tools.t":  "tools.t: helpers.\n\nadd_tax[cents, rate]\n  add_tax adds rate percent.\n  cents is an integer.\n\nbare[x]\n  (no description",
-		"tools":    "assemble Item [sku, title]\n  Item is one thing on a shelf.",
+		"":          "sql: Databases: SQLite files",
+		"sql":       "sql_upsert[db, table, key, path]",
+		"sql_load":  "sql_load[db, table, path [, types]]        (import sql)\n  Adds a record to a table",
+		"sqrt":      "number at sqrt        (import math)",
+		"warn":      "warn ... .",
+		"tools.trt": "tools.trt: helpers.\n\nadd_tax[cents, rate]\n  add_tax adds rate percent.\n  cents is an integer.\n\nbare[x]\n  (no description",
+		"tools":     "assemble Item [sku, title]\n  Item is one thing on a shelf.",
 	}
 	for topic, want := range cases {
 		got, err := Doc(topic, dir)
@@ -3293,5 +3293,20 @@ put 2 to m at 0 .`, wantErr: "'put ... to m' needs a list, got MAP"},
 				t.Errorf("got %q, want %q", out, c.want)
 			}
 		})
+	}
+}
+
+// TestImportsUseTrt: import finds name.trt, not the old name.t.
+func TestImportsUseTrt(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "old.t"), []byte("def f[]\n    return 1\ndef [end]\n"), 0o644)
+	os.WriteFile(filepath.Join(dir, "new.trt"), []byte("def g[]\n    return 2\ndef [end]\n"), 0o644)
+	out, err := runIn(t, dir, "import new\nshow g[] .", "")
+	if err != nil || out != "2\n" {
+		t.Fatalf("import new: got %q, %v", out, err)
+	}
+	_, err = runIn(t, dir, "import old", "")
+	if err == nil || !strings.Contains(err.Error(), "import old: old.trt: no such file") {
+		t.Fatalf("import old: got %v", err)
 	}
 }

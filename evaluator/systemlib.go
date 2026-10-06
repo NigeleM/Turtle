@@ -11,7 +11,7 @@ import (
 // The "system" builtin module: what a command-line tool needs from its
 // environment.
 //
-//	turtle report.t data.txt --verbose
+//	turtle report.trt data.txt --verbose
 //	a = args[]                       // [ data.txt, --verbose ]
 //	if ] exists["data.txt"] [ ... if [end]
 //	home = env["HOME"]               // a string, or none if unset

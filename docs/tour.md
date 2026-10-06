@@ -436,7 +436,7 @@ it only when you mean to.
 import util
 ```
 
-Runs `util.t` once, in its own scope, and makes its top-level functions
+Runs `util.trt` once, in its own scope, and makes its top-level functions
 available to your program. Its variables stay private to it. To take only
 some of its functions, list them:
 
@@ -444,7 +444,7 @@ some of its functions, list them:
 import util [parse, format]
 ```
 
-Modules in a subfolder use `/`: `import lib/utils` reads `lib/utils.t`.
+Modules in a subfolder use `/`: `import lib/utils` reads `lib/utils.trt`.
 
 If two imports export a function with the same name, say which one you
 mean by putting the module name in front: `util format[x]`. Calling the

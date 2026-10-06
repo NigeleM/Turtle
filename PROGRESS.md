@@ -31,7 +31,7 @@ was deleted. `cmd/turtle` is the new way to run scripts.
 ```
 cd /Users/nigy/Desktop/turtle-claude/Turtle
 go build -o turtle ./cmd/turtle
-./turtle path/to/script.t
+./turtle path/to/script.trt
 ```
 
 ## How this was verified
@@ -39,20 +39,20 @@ go build -o turtle ./cmd/turtle
 Real historical example scripts already in the repo (`test.trt`, `if.txt`,
 `define.txt`, `play.txt`, `loop.txt`, `show.txt` — the user added these
 mid-session and they were essential for recovering the *real* syntax, since
-it differs from what a first pass assumed) were copied into `testdata/*.t`
+it differs from what a first pass assumed) were copied into `testdata/*.trt`
 and run end to end. All pass and produce arithmetically-verified-correct
 output. Additional hand-written scripts cover recursion, list/set/map
 operations and methods, `break`/`continue`, `sys`, and `[read]`/`[write]`/
 `[append]`/`[directory]`.
 
 Two edits were made to the copied `testdata/` scripts vs. the originals:
-- `testdata/play.t`: the legacy script defines a function literally named
+- `testdata/play.trt`: the legacy script defines a function literally named
   `show` — legal under the old ad-hoc scanner, but `show` is a real reserved
   keyword in the new tokenizer. Renamed to `showStuff` in the test copy only
   (the call site was already commented out in the original, so this has no
   behavioral effect). This is a known, documented trade-off of having real
   keywords instead of legacy's incidental substring matching.
-- `testdata/loop.t`: the legacy script has two `[loop][...]` headers
+- `testdata/loop.trt`: the legacy script has two `[loop][...]` headers
   (nested) but only one `[loop][end]` — legacy's flat single-end-closes-
   everything collection made that work by accident, but only when the
   nested loop is the last statement in its parent's body (undocumented,
@@ -108,7 +108,7 @@ Two edits were made to the copied `testdata/` scripts vs. the originals:
 
 - Read `SPEC.md` first — it's the authoritative reference for intended
   syntax/semantics and documents every intentional deviation from legacy.
-- `testdata/*.t` plus `test.trt` are the regression suite; there's no test
+- `testdata/*.trt` plus `test.trt` are the regression suite; there's no test
   runner script, just run `turtle` against each and eyeball the output
   (all outputs in this log are known-correct baselines to diff against).
 - One earlier false start: two research subagents launched mid-session
@@ -123,14 +123,14 @@ Two edits were made to the copied `testdata/` scripts vs. the originals:
 
 ## Follow-up session: calculator smoke test + a new `change` keyword
 
-Wrote `testdata/calculator.t` as a real end-to-end functionality test
+Wrote `testdata/calculator.trt` as a real end-to-end functionality test
 (functions, nested-ish conditionals, C-style loops over parallel lists,
 `is ... at get`, interactive `?` input). It surfaced two real gaps:
 
 1. `add` is reserved for the `add <expr> to <target> .` data-structure
    statement, which meant a function literally named `add` (the obvious
    name for calculator addition) couldn't be defined. This is a real,
-   deliberate keyword — not changed. `testdata/calculator.t`'s addition
+   deliberate keyword — not changed. `testdata/calculator.trt`'s addition
    function is named `addition[a, b]` instead.
 2. `?` input only ever produces a string, and there was no way to turn
    `"7"` into `7` for arithmetic. **Fixed** by adding a `change` keyword
@@ -145,8 +145,8 @@ Wrote `testdata/calculator.t` as a real end-to-end functionality test
    source's actual type in both cases. See `docs/reference.md`'s "Type
    conversion" section for the full conversion matrix.
 
-`testdata/change.t` covers both statement and expression forms and all six
-target types. `testdata/calculator.t`'s interactive mode now does real
+`testdata/change.trt` covers both statement and expression forms and all six
+target types. `testdata/calculator.trt`'s interactive mode now does real
 `change`-based numeric arithmetic end to end (verified with piped stdin,
 including the division-by-zero guard path).
 
@@ -174,7 +174,7 @@ Two design decisions worth remembering:
   wanted later, should extend the existing `reverse` data-op instead of
   overloading `slice`.
 
-`testdata/strings.t` covers all nine methods plus the Unicode length/index
+`testdata/strings.trt` covers all nine methods plus the Unicode length/index
 case. See `docs/stdlib.md`'s new `#### string` section for the full method
 table.
 
@@ -226,11 +226,11 @@ User-requested batch, building on the earlier stdlib/quality work:
    (`evaluator/io.go`) now special-cases these two names (the
    `builtinModules` map in `evaluator/evaluator.go`) to flip an internal
    `Interpreter.modules["math"/"time"]` flag instead of reading a
-   `<name>.t` file. A new `requireModule` helper fatals with a message
+   `<name>.trt` file. A new `requireModule` helper fatals with a message
    naming exactly which import is missing (`"sqrt" needs "import math"
    first`) — this is deliberately a better error than "unknown method",
    since the whole point of gating is to tell you what to add. Consequence
-   documented in `reference.md`: a real file named `math.t`/`time.t` would
+   documented in `reference.md`: a real file named `math.trt`/`time.trt` would
    never be reachable via `import`, since those two names always resolve
    to the builtin.
 3. **Math methods on numbers** (`evaluator/data.go`, gated behind `import
@@ -259,7 +259,7 @@ User-requested batch, building on the earlier stdlib/quality work:
    conversion — lets a program validate untrusted `?` input and reprompt
    instead of crashing.
 
-**A real bug this surfaced**: wiring `isNumber` into `testdata/calculator.t`
+**A real bug this surfaced**: wiring `isNumber` into `testdata/calculator.trt`
 (reprompt-on-bad-input via `continue` in the while-style interactive loop)
 hung forever in testing. Root cause: `evalStatement`'s `*ast.InputStatement`
 case (`evaluator/evaluator.go`) called `it.stdin.Scan()` without checking
@@ -272,8 +272,8 @@ accidentally hid it) and is now fixed: EOF on `?` is a fatal
 (bad input → reprompt → success) and that a genuine EOF now exits
 immediately instead of hanging.
 
-New tests: `testdata/math.t`, `testdata/time.t`, list-slice lines added to
-`testdata/datastruct.t`. Docs updated: `docs/reference.md` (precedence
+New tests: `testdata/math.trt`, `testdata/time.trt`, list-slice lines added to
+`testdata/datastruct.trt`. Docs updated: `docs/reference.md` (precedence
 table, Modules section), `docs/stdlib.md` (new `#### number` and
 `### Builtin functions: time` sections, `isNumber`, list `slice`),
 `docs/tour.md` (Modules section example).
@@ -423,13 +423,13 @@ full rulebook):
 
 - **Functions as values and closures** (lexical scope; captured variables
   are read-only by assignment, like globals), **`none`**, bare `return`.
-- **Module namespacing**: each `.t` module runs once in its own scope and
+- **Module namespacing**: each `.trt` module runs once in its own scope and
   exports only its top-level functions; `import m [a, b]`; `m name[...]`
   to qualify; an unqualified call to a name two imports share is an error.
 - **Structural equality** (`set [1, 2] == set [2, 1]`; `1 != "1"`).
 - **`gives`** anonymous functions and **sentence-style calls**
   (`nums process f` = `process[nums, f]`). Library verbs are ordinary
-  functions rather than keywords, so `.t` libraries can define their own.
+  functions rather than keywords, so `.trt` libraries can define their own.
 - **For-each loops**, **`+`/`-` on lists/sets/maps**, `x at m` in any
   expression.
 - **`data`** (`process`, `keep`, `copy`) and **`system`** (`args`,
@@ -446,7 +446,7 @@ not found" errors; it now uses `perl -e 'alarm N; exec @ARGV'`.
 
 ## 2026-10-01: stress test and the fixes it drove
 
-`testdata/everything.t` (with `everything_lib.t`) uses every feature and
+`testdata/everything.trt` (with `everything_lib.trt`) uses every feature and
 checks its own results, exiting 1 on any failure; `go test` runs it.
 111 separate edge-case probes found these, now fixed:
 
@@ -496,14 +496,14 @@ safe [end]
 ## 2026-10-03: file names in errors, interpolation, subfolder imports, erase, warn
 
 - Errors inside an imported module name its file:
-  `lib/utils.t line 2: division by zero`, both when the program stops and
+  `lib/utils.trt line 2: division by zero`, both when the program stops and
   in a handled error (`file of e`). Parse errors in a module too. After a
   function call returns, errors name the caller's line again (they used
   to keep the callee's last line).
 - `"Hi {name}, {qty * 2} items"`: any expression without quotes inside
   the braces; `\{` for a plain brace. Works in prompts and `[write]`
   lines too.
-- `import lib/utils` reads `lib/utils.t`; the qualified name is `utils`.
+- `import lib/utils` reads `lib/utils.trt`; the qualified name is `utils`.
 - `system`: `erase[path]` deletes a file or a whole folder (refusing the
   folder turtle runs in and those above it), and `warn "..." .` is show
   for stderr. Names chosen by the user.
@@ -638,11 +638,11 @@ safe [end]
   (`postgres://`, `mysql://`); every `sql_` function works on all three
   through `evaluator/sqllib.go`'s `sqlConn` interface.
 - `turtle doc [topic]`: the standard library's documentation, and the
-  `//` comments above a `.t` file's functions.
+  `//` comments above a `.trt` file's functions.
 - Tests: more sqlite3 comparisons (queries, write scripts, crash and
   lock tests), server tests gated by `TURTLE_PG_URL` /
   `TURTLE_MYSQL_URL`, which CI now sets with service containers;
-  `testdata/sql/13_servers.t`.
+  `testdata/sql/13_servers.trt`.
 
 ## 2026-10-06: table files, sort and search, `get` binding (v0.9.143)
 
@@ -680,8 +680,8 @@ safe [end]
   without a map), with the map's types and primary key, spelled for each
   database; if the file is refused, the new table is dropped again.
 - `table_read` with a key checks every row has a different one.
-- Errors name the row and column. `testdata/sql/14_typed_load.t`, a
-  typed load in `13_servers.t` (PostgreSQL and MySQL), unit tests.
+- Errors name the row and column. `testdata/sql/14_typed_load.trt`, a
+  typed load in `13_servers.trt` (PostgreSQL and MySQL), unit tests.
 
 ## 2026-10-06: random library (not yet released)
 
@@ -741,7 +741,7 @@ safe [end]
     matches <call> .`: 100 random inputs (`cases`), shrunk to the
     smallest failing one, with the seed to repeat it. Without `with`,
     it learns the kinds from the test's checks.
-- `turtle test [file | folder ...]`: `test_*.t` files, `test_`
+- `turtle test [file | folder ...]`: `test_*.trt` files, `test_`
   functions; PASS / FAIL / SKIP with times; `suite = false | "stop" |
   "all"`; `benchmark`, `runs` (none: Go-style, as many as fit in
   `benchtime`), `benchtime`; settings at file level or inside a test.
@@ -756,11 +756,11 @@ safe [end]
 ## 2026-10-06: the first hybrid library (not yet released)
 
 - Builtin libraries can be written partly in Turtle: `evaluator/lib/
-  <name>.t` is built in (Go's embed) and runs once per program on first
+  <name>.trt` is built in (Go's embed) and runs once per program on first
   import; only the functions listed for the builtin are exported, the
   rest are private helpers; errors point at the caller's line.
 - `random`'s `pick`, `shuffle`, `sample` and `chance` are now Turtle
-  (lib/random.t) on the Go sentence and seed; the caller's `seed` still
+  (lib/random.trt) on the Go sentence and seed; the caller's `seed` still
   decides their values. Their errors are now kind `custom`.
 - `change x to list` / `set` take a map (its keys) and a string (its
   characters); `change m to keys` / `values` pick a map's keys or values.
@@ -776,7 +776,7 @@ safe [end]
 - `put`: set the item at a position. `put 99 to nums at 2 .`,
   `nums at put[2, 99]`, `r is nums at put 2, 99 .`. A Turtle shuffle
   with put (Fisher-Yates) takes 289µs for 1,000 items (was 700µs).
-- `testdata/speed/test_speed.t`: 32 timed tests across the language
+- `testdata/speed/test_speed.trt`: 32 timed tests across the language
   (`turtle test testdata/speed`); the Go tests run it once unbenchmarked.
 
 ## 2026-10-06: Windows test fix (v0.9.146)
@@ -785,3 +785,12 @@ safe [end]
   for "\nbenchmark = true\n", but Git on Windows checks files out with
   \r\n line endings. The test now normalizes them; the interpreter
   itself already handled both (checked with a \r\n copy).
+
+## 2026-10-06: .trt for everything (not yet released)
+
+- Turtle files end in `.trt`: imports (`import utils` finds `utils.trt`),
+  test files (`test_*.trt`), the built-in Turtle libraries
+  (`evaluator/lib/random.trt`), `turtle` with no file (the newest
+  `.trt`), and `turtle doc file`. `.t` is no longer read. Every example
+  and test program in the repo was renamed; docs updated. A file named
+  on the command line runs whatever its extension; `legacy/` unchanged.

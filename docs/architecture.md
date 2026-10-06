@@ -171,7 +171,7 @@ holding the `*object.Function`. Identifier evaluation falls back to the
 function table, which is how `f = add` turns a top-level function into a
 value.
 
-The main program and every imported `.t` module each have their own
+The main program and every imported `.trt` module each have their own
 root environment (`object.NewGlobalEnvironment`), and each root records its
 own imports (`AddImport`/`Imports`/`FindImport`, holding `object.Import`
 and `object.Module`). `Interpreter.loadModule` caches modules by resolved
@@ -196,7 +196,7 @@ This is a deliberate fix: the legacy interpreter stored one mutable
 variable map *per function definition*, shared by every call to that
 function, which broke recursion (a recursive call would stomp the outer
 call's locals mid-execution). Fresh-per-call environments make recursion
-work correctly (see `testdata/recursion.t`).
+work correctly (see `testdata/recursion.trt`).
 
 Loops are a partial exception to "no shared scope": a C-style loop's
 induction variable lives in the *same* environment as everything else
@@ -205,7 +205,7 @@ with the same induction-variable name would clobber each other's
 iteration state. `evalLoop` guards against this by snapshotting the
 variable's pre-loop value (or noting it didn't exist) and restoring it via
 `defer` when the loop exits — so nested loops reusing a name like `i` work
-correctly (verified: `testdata/loop.t`, an outer/inner loop pair that both
+correctly (verified: `testdata/loop.trt`, an outer/inner loop pair that both
 use `i`).
 
 ### Control flow: `Signal` / `ExecResult`
@@ -229,7 +229,7 @@ A runtime error is a `fatalError` panic: `fatalf`/`fatalKind`
 `math`, `index`, `key`, `name`, `type`, `json`, `date`, `http`, `sql`, `csv`, `custom`), and the line and file
 it happened in. Two package-level variables track where code is running:
 `currentLine` (set by every statement) and `currentFile` ("" for the main
-script, "lib/utils.t" for a module; switched by `callFunction` and
+script, "lib/utils.trt" for a module; switched by `callFunction` and
 `loadModule`, which restore both when they return or unwind).
 
 `Interpreter.Run` recovers a `fatalError` and returns it; the CLI prints
@@ -249,7 +249,7 @@ naming the operation and the value involved.
 - `parser/`, `lexer/`, `object/` tests cover syntax and values;
   `evaluator/evaluator_test.go` runs Turtle source and checks its output
   or error, for every feature and library.
-- `testdata/everything.t` uses every feature and checks its own results;
+- `testdata/everything.trt` uses every feature and checks its own results;
   `testdata/shop/` is a whole program (modules in `lib/`, JSON data) with
   its own checks. Both run in `go test`.
 - `sqlite/sqlite_test.go` checks that this package's answers match real
@@ -282,8 +282,8 @@ naming the operation and the value involved.
 - `testdata/books.db` is a small committed SQLite file the Turtle-level
   tests read. `testdata/sql/` has one Turtle program per SQL topic, run
   by `TestSQLExamples`.
-- The `postgres` and `mysql` packages, and `testdata/sql/13_servers.t`,
+- The `postgres` and `mysql` packages, and `testdata/sql/13_servers.trt`,
   need real servers: they run when `TURTLE_PG_URL` / `TURTLE_MYSQL_URL`
   are set (CI starts both as service containers) and skip otherwise.
-- The historical scripts (`*.txt`, `legacy/test.trt`, `testdata/*.t`) should keep
+- The historical scripts (`*.txt`, `legacy/test.trt`, `testdata/*.trt`) should keep
   producing the same output.

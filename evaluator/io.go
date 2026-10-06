@@ -19,7 +19,7 @@ import (
 // resolvePath resolves a file path used by [read]/[write]/[append]/
 // [directory] and system's exists/isFile/isFolder: relative to the folder
 // turtle was run from, like any command-line tool — so
-// "turtle ~/tools/count.t notes.txt" finds ./notes.txt. Scripts that want
+// "turtle ~/tools/count.trt notes.txt" finds ./notes.txt. Scripts that want
 // files next to themselves can build the path from system's
 // scriptFolder[].
 func (it *Interpreter) resolvePath(p string) string {
@@ -140,7 +140,7 @@ func (it *Interpreter) evalDirectory(s *ast.DirectoryStatement, env *object.Envi
 // evalImport makes a module's functions available to the importing file:
 // all of them for "import m", or just the listed ones for "import m [a,
 // b]". Recognized builtin module names ("math", "time" — see
-// builtinModules) are handled natively; anything else is <name>.t. Each
+// builtinModules) are handled natively; anything else is <name>.trt. Each
 // .t module runs once, in its own global scope, no matter how many files
 // import it — its top-level variables stay private to it, and its
 // functions keep reading those, not the importer's. Two imports exporting
@@ -178,7 +178,7 @@ func (it *Interpreter) loadModule(name string) *object.Module {
 	if _, ok := builtinModules[pathpkg.Base(name)]; ok {
 		fatalKind(kindName, "import %s: %q is the name of a builtin module — rename the file", name, pathpkg.Base(name))
 	}
-	path := it.resolveImportPath(filepath.FromSlash(name) + ".t")
+	path := it.resolveImportPath(filepath.FromSlash(name) + ".trt")
 	if mod, ok := it.modules[path]; ok {
 		return mod
 	}
@@ -186,12 +186,12 @@ func (it *Interpreter) loadModule(name string) *object.Module {
 		if p == path {
 			chain := append(append([]string{}, it.loading[i:]...), path)
 			for j := range chain {
-				chain[j] = strings.TrimSuffix(filepath.Base(chain[j]), ".t")
+				chain[j] = strings.TrimSuffix(filepath.Base(chain[j]), ".trt")
 			}
 			fatalKind(kindName, "import %s: circular import (%s)", name, strings.Join(chain, " -> "))
 		}
 	}
-	file := name + ".t"
+	file := name + ".trt"
 	if rel, err := filepath.Rel(it.Dir, path); err == nil {
 		file = filepath.ToSlash(rel)
 	}
