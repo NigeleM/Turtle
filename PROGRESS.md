@@ -807,3 +807,10 @@ safe [end]
 - The error that stops a program goes to the log file too.
 - testdata/stdlib/log.trt; tests for levels, parts, JSON, appending,
   rotation, outputfile, modules and functions, mistakes.
+
+## 2026-10-06: log files aren't held open (v0.9.149)
+
+- v0.9.148 failed on Windows: the log library kept log files open until
+  the program ended, and Windows won't delete an open file (log.trt
+  erases its log at the end). Each line now opens, adds to and closes
+  the file, so a log can be read, moved or deleted while a program runs.

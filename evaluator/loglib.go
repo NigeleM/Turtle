@@ -228,64 +228,39 @@ func fieldText(v object.Object) string {
 
 // ---- files: log files and the copy of the console ----
 
-type openFile struct {
-	f    *os.File
-	size int64
-}
-
-// appendLine adds line to the file at path, opening it once (it stays
-// open until the program ends). With maxSize set, a file that would grow
-// past it is rotated first: app.log becomes app.log.1, app.log.1 becomes
-// app.log.2, ..., keeping keep of them.
+// appendLine adds line to the file at path. The file is opened, added to
+// and closed each time, so nothing is held open: another program (or the
+// same one) can read, move or delete it at any moment, which Windows
+// otherwise refuses. With maxSize set, a file that would grow past it is
+// rotated first: app.log becomes app.log.1, app.log.1 becomes app.log.2,
+// ..., keeping keep of them.
 func (it *Interpreter) appendLine(path, line string, maxSize int64, keep int) {
 	full := it.resolvePath(path)
-	of := it.openForAppend(path, full)
 	data := line + "\n"
-	if maxSize > 0 && of.size > 0 && of.size+int64(len(data)) > maxSize {
-		of.f.Close()
-		delete(it.files, full)
-		os.Remove(fmt.Sprintf("%s.%d", full, keep))
-		for n := keep - 1; n >= 1; n-- {
-			os.Rename(fmt.Sprintf("%s.%d", full, n), fmt.Sprintf("%s.%d", full, n+1))
+	if maxSize > 0 {
+		if info, err := os.Stat(full); err == nil && info.Size() > 0 && info.Size()+int64(len(data)) > maxSize {
+			os.Remove(fmt.Sprintf("%s.%d", full, keep))
+			for n := keep - 1; n >= 1; n-- {
+				os.Rename(fmt.Sprintf("%s.%d", full, n), fmt.Sprintf("%s.%d", full, n+1))
+			}
+			if keep > 0 {
+				os.Rename(full, full+".1")
+			} else {
+				os.Remove(full)
+			}
 		}
-		if keep > 0 {
-			os.Rename(full, full+".1")
-		} else {
-			os.Remove(full)
-		}
-		of = it.openForAppend(path, full)
-	}
-	n, err := of.f.WriteString(data)
-	if err != nil {
-		fatalKind(kindFile, "%s: %s", path, fileProblem(err))
-	}
-	of.size += int64(n)
-}
-
-func (it *Interpreter) openForAppend(path, full string) *openFile {
-	if it.files == nil {
-		it.files = map[string]*openFile{}
-	}
-	if of, ok := it.files[full]; ok {
-		return of
 	}
 	f, err := os.OpenFile(full, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
 		fatalKind(kindFile, "%s: %s", path, fileProblem(err))
 	}
-	of := &openFile{f: f}
-	if info, err := f.Stat(); err == nil {
-		of.size = info.Size()
+	_, werr := f.WriteString(data)
+	if cerr := f.Close(); werr == nil {
+		werr = cerr
 	}
-	it.files[full] = of
-	return of
-}
-
-func (it *Interpreter) closeFiles() {
-	for _, of := range it.files {
-		of.f.Close()
+	if werr != nil {
+		fatalKind(kindFile, "%s: %s", path, fileProblem(werr))
 	}
-	it.files = nil
 }
 
 // copyOutput adds what show or warn printed to outputfile, when the

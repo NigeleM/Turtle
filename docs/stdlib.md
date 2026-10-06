@@ -596,7 +596,7 @@ function, for that function. An imported library that logs uses its own.
 |---|---|---|
 | `loglevel` | `"info"` | the lowest level shown: `"debug"`, `"info"`, `"warn"`, `"error"`, or `"off"` for nothing |
 | `logconsole` | `true` | print log lines to the console. They go to stderr, so a program's own output (`show`) stays clean, and `turtle report.trt > out.txt` captures only that |
-| `logfile` | `none` | a file to add each line to. It's added to across runs, never replaced |
+| `logfile` | `none` | a file to add each line to. It's added to across runs, never replaced, and not held open, so it can be read, moved or deleted while the program runs |
 | `logtime` | `"YYYY-MM-DD hh:mm:ss"` | the time, in `format_date`'s patterns (`"hh:mm"`, `"DD Mon hh:mm"` ...); `none` leaves it out |
 | `logparts` | `list ["time", "level", "message"]` | what a line shows, in order: `time`, `level`, `message`, `file`, `line`, `where` (`file:line`) |
 | `logformat` | `"text"` | `"json"`: one JSON object per line, for tools that read logs: `{"time": ..., "level": "warn", "message": ..., "file": ..., "line": 12, "sku": "B1"}` (fields are keys of their own) |

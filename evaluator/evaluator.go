@@ -51,7 +51,6 @@ type Interpreter struct {
 	// inBuiltin is true while a builtin library's Turtle code runs:
 	// errors then point at the caller's line, not the library's.
 	inBuiltin bool
-	files     map[string]*openFile // log files and outputfile, open until Run ends
 }
 
 func New(dir string) *Interpreter {
@@ -228,7 +227,6 @@ func (it *Interpreter) Run(program *ast.Program) (err error) {
 	// it ends: an unfinished transaction is rolled back and files are let
 	// go (Windows can't delete or reopen a file a program still holds).
 	defer it.closeDatabases()
-	defer it.closeFiles()
 	defer func() {
 		if r := recover(); r != nil {
 			if fe, ok := r.(fatalError); ok {
