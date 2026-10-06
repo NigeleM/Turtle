@@ -32,6 +32,10 @@ func forget(db *DB) {
 	delete(openFiles, fileKey(db.path))
 	openMu.Unlock()
 	db.f.Close()
+	if db.walSt != nil && db.walSt.shm != nil {
+		db.walSt.shm.Close() // the OS closes every file of a program that dies
+		db.walSt.shm = nil
+	}
 	db.closed = true
 }
 
@@ -135,7 +139,7 @@ DELETE FROM c WHERE id > 1500;
 .shell cp ` + path + ` ` + crash + ` && cp ` + path + `-journal ` + crash + `-journal
 ROLLBACK;
 `
-	cmd := exec.Command(bin, path)
+	cmd := exec.Command(bin, "-cmd", "PRAGMA auto_vacuum = NONE", path)
 	cmd.Stdin = strings.NewReader(script)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("sqlite3: %v\n%s", err, out)
@@ -180,7 +184,7 @@ func TestLocksWithSQLite(t *testing.T) {
 	// sqlite3 takes an exclusive lock, says so with a marker file, and
 	// holds the lock for two seconds.
 	marker := filepath.Join(t.TempDir(), "locked")
-	cmd := exec.Command(bin, path)
+	cmd := exec.Command(bin, "-cmd", "PRAGMA auto_vacuum = NONE", path)
 	cmd.Stdin = strings.NewReader("BEGIN EXCLUSIVE;\nINSERT INTO l VALUES (2);\n.shell touch " + marker + " && sleep 2\nCOMMIT;\n")
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
@@ -255,7 +259,7 @@ func TestCommitWaitsForReaders(t *testing.T) {
 	db, path := createTest(t, 4096)
 	mustExec(t, db, "CREATE TABLE w (v)")
 	marker := filepath.Join(t.TempDir(), "reading")
-	cmd := exec.Command(bin, path)
+	cmd := exec.Command(bin, "-cmd", "PRAGMA auto_vacuum = NONE", path)
 	cmd.Stdin = strings.NewReader("BEGIN;\nSELECT count(*) FROM w;\n.shell touch " + marker + " && sleep 2\nCOMMIT;\n")
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
@@ -312,4 +316,36 @@ func TestCrashDuringVacuum(t *testing.T) {
 	}
 	mustCheck(t, db2)
 	sqlite3Check(t, path)
+}
+
+// TestCheckAutoVacuum: files sqlite3 makes with auto_vacuum (some
+// builds, such as GitHub's macOS one, turn it on by default) have
+// pointer-map pages; Check counts them, and Turtle reads the file but
+// refuses to change it.
+func TestCheckAutoVacuum(t *testing.T) {
+	bin := unixSQLite3(t)
+	for _, mode := range []string{"FULL", "INCREMENTAL"} {
+		path := filepath.Join(t.TempDir(), "av.db")
+		cmd := exec.Command(bin, "-cmd", "PRAGMA page_size = 1024; PRAGMA auto_vacuum = "+mode, path)
+		cmd.Stdin = strings.NewReader("CREATE TABLE t (id INTEGER PRIMARY KEY, v TEXT); CREATE INDEX t_v ON t (v);" +
+			"WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 3000) INSERT INTO t (v) SELECT printf('%.*c', i % 300, 'x') FROM n;" +
+			"DELETE FROM t WHERE id % 3 = 0;")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("sqlite3: %v %s", err, out)
+		}
+		db, err := Open(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := db.Check(); err != nil {
+			t.Errorf("%s: %v", mode, err)
+		}
+		if got := mustQuery(t, db, "SELECT count(*) FROM t"); got[0][0] != int64(2000) {
+			t.Errorf("%s: %v", mode, got)
+		}
+		if _, err := db.Exec("DELETE FROM t", nil); err == nil || !strings.Contains(err.Error(), "auto_vacuum") {
+			t.Errorf("%s: writing: %v", mode, err)
+		}
+		db.Close()
+	}
 }

@@ -78,7 +78,7 @@ func (it *Interpreter) callSQL(name string, args []object.Object) object.Object 
 			}
 			fatalKind(kindFile, "sql_create %s: %s", path, fileProblem(err))
 		}
-		return &object.Database{Name: path, Conn: sqliteConn{db}}
+		return it.track(&object.Database{Name: path, Conn: sqliteConn{db}})
 	case "sql_tables":
 		requireFuncArgs(name, args, 1)
 		names, err := asDatabaseArg(name, args[0]).Tables()
@@ -177,6 +177,22 @@ func (it *Interpreter) callSQL(name string, args []object.Object) object.Object 
 	return nil
 }
 
+// track remembers a database so Run can close it if the program doesn't.
+func (it *Interpreter) track(d *object.Database) *object.Database {
+	it.dbs = append(it.dbs, d)
+	return d
+}
+
+func (it *Interpreter) closeDatabases() {
+	for _, d := range it.dbs {
+		if !d.Closed {
+			d.Conn.(sqlConn).Close()
+			d.Closed = true
+		}
+	}
+	it.dbs = nil
+}
+
 // sqlConn is an open database of any kind.
 type sqlConn interface {
 	Query(sql string, params []any) ([]string, [][]any, error)
@@ -267,13 +283,13 @@ func (it *Interpreter) sqlOpen(target string) object.Object {
 		if err != nil {
 			fatalKind(kindSQL, "sql_open: %v", err)
 		}
-		return &object.Database{Name: hidePassword(target), Conn: postgresConn{db}}
+		return it.track(&object.Database{Name: hidePassword(target), Conn: postgresConn{db}})
 	case strings.HasPrefix(target, "mysql://"), strings.HasPrefix(target, "mariadb://"):
 		db, err := mysql.Open(target)
 		if err != nil {
 			fatalKind(kindSQL, "sql_open: %v", err)
 		}
-		return &object.Database{Name: hidePassword(target), Conn: mysqlConn{db}}
+		return it.track(&object.Database{Name: hidePassword(target), Conn: mysqlConn{db}})
 	case strings.HasPrefix(target, "sqlite:"):
 		path = strings.TrimPrefix(target, "sqlite:")
 	}
@@ -289,7 +305,7 @@ func (it *Interpreter) sqlOpen(target string) object.Object {
 		}
 		fatalKind(kindFile, "sql_open %s: %s", path, fileProblem(err))
 	}
-	return &object.Database{Name: path, Conn: sqliteConn{db}}
+	return it.track(&object.Database{Name: path, Conn: sqliteConn{db}})
 }
 
 func asDatabaseArg(fn string, obj object.Object) sqlConn {

@@ -65,3 +65,28 @@ jobs:
 
       - name: Test
         run: go test ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./token/... -v
+
+  # The same tests on macOS and Windows, so a problem on either shows up
+  # on the push that causes it, not only when a release is tagged (file
+  # locking, open files and the system sqlite3 differ there). Database
+  # server containers only run on Linux, so those tests skip here.
+  other-systems:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Vet
+        run: go vet ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./token/...
+
+      - name: Test
+        run: go test ./Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./token/...

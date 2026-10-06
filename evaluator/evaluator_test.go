@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"Turtle/sqlite"
 	"bufio"
 	"errors"
 	"fmt"
@@ -2999,5 +3000,30 @@ func TestDoc(t *testing.T) {
 	}
 	if _, err := Doc("sql_lod", dir); err == nil || !strings.Contains(err.Error(), "did you mean sql_load") {
 		t.Errorf("unknown topic: %v", err)
+	}
+}
+
+// A program that ends without sql_close: its databases are closed for
+// it, an unfinished transaction rolled back, and the files let go.
+func TestDatabasesClosedAtEnd(t *testing.T) {
+	dir := t.TempDir()
+	src := `import sql
+db = sql_create["end.db"]
+sql_run[db, "CREATE TABLE t (v INTEGER)"]
+sql_run[db, "BEGIN"]
+sql_run[db, "INSERT INTO t VALUES (1)"]`
+	if _, err := runFull(t, dir, src, "", nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "end.db-journal")); !os.IsNotExist(err) {
+		t.Errorf("the journal is still there: %v", err)
+	}
+	db, err := sqlite.Open(filepath.Join(dir, "end.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if _, rows, _ := db.Query("SELECT count(*) FROM t", nil); rows[0][0] != int64(0) {
+		t.Errorf("the unfinished insert was kept: %v", rows)
 	}
 }

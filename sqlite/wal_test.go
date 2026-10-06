@@ -24,7 +24,7 @@ WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 300) IN
 UPDATE t SET v = 'changed' WHERE id % 10 = 0;
 .shell cp ` + path + ` ` + copyPath + ` && cp ` + path + `-wal ` + copyPath + `-wal
 `
-	cmd := exec.Command(bin, path)
+	cmd := exec.Command(bin, "-cmd", "PRAGMA auto_vacuum = NONE", path)
 	cmd.Stdin = strings.NewReader(script)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("sqlite3: %v\n%s", err, out)
@@ -108,7 +108,7 @@ func TestWALOpenElsewhere(t *testing.T) {
 	mustExec(t, db, "PRAGMA journal_mode = WAL")
 	db.Close()
 	marker := filepath.Join(t.TempDir(), "open")
-	cmd := exec.Command(bin, path)
+	cmd := exec.Command(bin, "-cmd", "PRAGMA auto_vacuum = NONE", path)
 	cmd.Stdin = strings.NewReader("SELECT count(*) FROM t;\n.shell touch " + marker + " && sleep 2\n")
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)

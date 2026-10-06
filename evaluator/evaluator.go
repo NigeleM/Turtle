@@ -44,6 +44,7 @@ type Interpreter struct {
 	modules map[string]*object.Module // loaded .t modules, by resolved path
 	depth   int                       // function calls in progress (see maxCallDepth)
 	loading []string                  // .t modules mid-import, outermost first
+	dbs     []*object.Database        // databases opened, closed when Run ends
 }
 
 func New(dir string) *Interpreter {
@@ -206,6 +207,10 @@ type ExitRequest struct{ Code int }
 func (e ExitRequest) Error() string { return fmt.Sprintf("exit %d", e.Code) }
 
 func (it *Interpreter) Run(program *ast.Program) (err error) {
+	// Databases the program didn't close are closed when it ends, however
+	// it ends: an unfinished transaction is rolled back and files are let
+	// go (Windows can't delete or reopen a file a program still holds).
+	defer it.closeDatabases()
 	defer func() {
 		if r := recover(); r != nil {
 			if fe, ok := r.(fatalError); ok {

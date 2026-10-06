@@ -58,6 +58,7 @@ type dbFile struct {
 	schemaRows []schemaRow
 	cantWrite  string // why this file can't be changed, or ""
 	wal        bool   // in WAL mode (see wal.go)
+	autoVacuum bool   // has pointer-map pages (auto_vacuum or incremental)
 	walSt      *walState
 
 	// cache holds pages as they are in the file (or WAL), so a page is
@@ -368,6 +369,7 @@ func (f *dbFile) readHeader(h []byte) error {
 	f.format = h[47]
 	f.cantWrite = ""
 	f.wal = h[18] == 2 || h[19] == 2
+	f.autoVacuum = binary.BigEndian.Uint32(h[52:]) != 0
 	switch {
 	case h[19] > 2:
 		f.cantWrite = "it was made by a newer SQLite"

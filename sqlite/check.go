@@ -26,6 +26,15 @@ func (db *DB) checkLocked() (err error) {
 	defer catch(&err)
 	c := &checker{f: db.dbFile, used: make([]bool, db.pageCount+1)}
 	c.mark(1, "the header page")
+	if c.f.autoVacuum {
+		// Pointer-map pages: page 2, then one every usable/5 + 1 pages.
+		for p := uint32(2); p <= c.f.pageCount; p += uint32(c.f.usable/5) + 1 {
+			if p == c.f.pendingPage() {
+				p++
+			}
+			c.mark(p, "a pointer-map page")
+		}
+	}
 	if c.f.pendingPage() <= c.f.pageCount {
 		c.used[c.f.pendingPage()] = true
 	}

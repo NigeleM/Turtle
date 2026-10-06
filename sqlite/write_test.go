@@ -303,7 +303,7 @@ func TestReservedBytes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	defer func() { db.Close() }() // whichever db is open at the end
 	mustExec(t, db, "CREATE TABLE r (id INTEGER PRIMARY KEY, v TEXT)")
 	mustExec(t, db, "CREATE INDEX r_v ON r (v)")
 	mustExec(t, db, "BEGIN")
