@@ -412,6 +412,10 @@ func (p *Parser) parseIdentifierLeadStatement() ast.Statement {
 	if p.startsTestStatement() {
 		return p.parseTestStatement()
 	}
+	// "put 99 to nums at 2 ." (put is otherwise an ordinary name).
+	if p.curToken.Literal == "put" && p.peekStartsArgument() && !p.peekTokenIs(token.LBRACKET) {
+		return p.parseAtIndexStatement(ast.OpPut)
+	}
 	if p.peekTokenIs(token.OF) && p.peekToken.Line == p.curToken.Line {
 		return p.parseFieldStatement()
 	}
@@ -796,6 +800,12 @@ func (p *Parser) parseReverseStatement() ast.Statement {
 }
 
 func (p *Parser) parseInsertStatement() ast.Statement {
+	return p.parseAtIndexStatement(ast.OpInsert)
+}
+
+// parseAtIndexStatement parses "insert <expr> to <ident> at <expr> ." and
+// "put <expr> to <ident> at <expr> .".
+func (p *Parser) parseAtIndexStatement(kind ast.OpKind) ast.Statement {
 	tok := p.curToken
 	p.nextToken()
 	val := p.parseExpression(LOWEST)
@@ -814,7 +824,7 @@ func (p *Parser) parseInsertStatement() ast.Statement {
 	if !p.requirePeriod() {
 		return nil
 	}
-	return &ast.DataOpStatement{Token: tok, Kind: ast.OpInsert, Target: target, Value: val, Index: idx}
+	return &ast.DataOpStatement{Token: tok, Kind: kind, Target: target, Value: val, Index: idx}
 }
 
 func (p *Parser) parseMinMaxLengthStatement() ast.Statement {

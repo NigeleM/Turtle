@@ -603,6 +603,17 @@ start each test by setting up what it needs (a list, a database table)
 rather than relying on the run before. A run that fails is reported with
 its number: `test_lists.t line 8, benchmark run 37: ...`.
 
+### Speed of the language itself
+
+`testdata/speed/test_speed.t` times common work across Turtle (calls,
+loops, strings, lists, maps, sorting, JSON, dates, random values,
+SQLite) with `benchmark = true`. Every test passes; the timings are for
+comparing before and after a change to the interpreter:
+
+```sh
+turtle test testdata/speed
+```
+
 ## Outside of turtle test
 
 `check`, `verify` and `validate` work in any file with `import test`. A

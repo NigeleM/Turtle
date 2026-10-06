@@ -3244,3 +3244,54 @@ show "ab" + "cd" at upper + "ef" at slice[1] + "-" + 5 at abs .`
 		t.Fatalf("got %q (%v), want %q", out, err, want)
 	}
 }
+
+// TestPut: the item at a position becomes a new value, as a sentence, a
+// method in an expression, or the is-statement form.
+func TestPut(t *testing.T) {
+	cases := []struct{ name, src, want, wantErr string }{
+		{name: "sentence", src: `nums = list [10, 20, 30]
+put 99 to nums at 1 .
+show nums, length of nums .`, want: "[ 10, 99, 30 ]3\n"},
+		{name: "method gives the list", src: `nums = list [10, 20, 30]
+r = nums at put[0, 5]
+show r, " ", nums .`, want: "[ 5, 20, 30 ] [ 5, 20, 30 ]\n"},
+		{name: "is form", src: `nums = list [10, 20, 30]
+r is nums at put 2, 7 .
+show nums .`, want: "[ 10, 20, 7 ]\n"},
+		{name: "in an expression", src: `nums = list [1, 2, 3]
+show nums at put[0, nums at get[2]] at get[0] + 1 .`, want: "4\n"},
+		{name: "swap", src: `nums = list [1, 2, 3]
+a = nums at get[0]
+put nums at get[2] to nums at 0 .
+put a to nums at 2 .
+show nums .`, want: "[ 3, 2, 1 ]\n"},
+		{name: "put is still a name", src: `put = 4
+def put_one[x]
+    return x
+def [end]
+show put, put_one[2] .`, want: "42\n"},
+		{name: "past the end", src: `nums = list [1]
+put 2 to nums at 1 .`, wantErr: "index 1 out of range for list nums (length 1)"},
+		{name: "negative", src: `nums = list [1]
+r = nums at put[-1, 2]`, wantErr: "index -1 out of range"},
+		{name: "a map", src: `m = map ["a": 1]
+put 2 to m at 0 .`, wantErr: "'put ... to m' needs a list, got MAP"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := run(t, c.src, "")
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("want error containing %q, got %v (output %q)", c.wantErr, err, out)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v (output %q)", err, out)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}

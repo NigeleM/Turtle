@@ -72,6 +72,17 @@ func (it *Interpreter) evalDataOp(s *ast.DataOpStatement, env *object.Environmen
 		default:
 			fatalf("'reverse %s' needs a list or set, got %s", s.Target, target.Type())
 		}
+	case ast.OpPut:
+		val := it.evalExpression(s.Value, env)
+		idxObj, ok := it.evalExpression(s.Index, env).(*object.Integer)
+		if !ok {
+			fatalf("'put ... at ...' needs an integer index")
+		}
+		list, ok := target.(*object.List)
+		if !ok {
+			fatalf("'put ... to %s' needs a list, got %s", s.Target, target.Type())
+		}
+		list.Elements[listIndex("list "+s.Target, int(idxObj.Value), len(list.Elements))] = val
 	case ast.OpInsert:
 		val := it.evalExpression(s.Value, env)
 		idxObj, ok := it.evalExpression(s.Index, env).(*object.Integer)
@@ -316,6 +327,12 @@ func listMethod(l *object.List, method string, args []object.Object) object.Obje
 			fatalKind(kindIndex, "index %d out of range for list (length %d)", idx, len(l.Elements))
 		}
 		l.Elements = append(l.Elements[:idx:idx], append([]object.Object{args[0]}, l.Elements[idx:]...)...)
+		return l
+	case "put":
+		// put[i, v]: the item at i becomes v (insert pushes the rest along;
+		// put replaces). From 0; like get, a negative index is out of range.
+		requireArgs(method, args, 2)
+		l.Elements[listIndex("list", asIndex(method, args[0]), len(l.Elements))] = args[1]
 		return l
 	case "get":
 		requireArgs(method, args, 1)

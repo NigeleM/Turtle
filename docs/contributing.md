@@ -68,8 +68,14 @@ parser change is needed, since calls are ordinary `name[args]`.
 ## Worked example: library functions written in Turtle
 
 A builtin library can be partly written in Turtle (the hybrid standard
-library). `random` is: its sentence and `seed` are Go, and `pick`,
-`shuffle`, `sample` and `chance` are Turtle, in `evaluator/lib/random.t`.
+library). `random` is: its sentence, `seed`, `shuffle` and `sample` are
+Go, and `pick` and `chance` are Turtle, in `evaluator/lib/random.t`.
+
+Which to write in Turtle: code that does a little work around calls to
+other functions costs little more in Turtle (`chance` is about 2× its Go
+version). Code that goes through every item of a collection is 15× to
+150× slower in Turtle, so it belongs in Go (`shuffle` and `sample` were
+moved back after timing them; see `testdata/speed/test_speed.t`).
 
 1. Write the functions in `evaluator/lib/<name>.t`. It's built into
    turtle (Go's `embed`) and runs once per program, when a file first

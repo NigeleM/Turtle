@@ -383,8 +383,8 @@ integers; without one, 0 to 10 items.
 each run. seed = 42 gives the same values every run from there on, to
 repeat a run exactly; setting it again starts them over.
 random is a sentence word only in a file with "import random".
-pick, shuffle, sample and chance are written in Turtle, on the Go-written
-sentence (the first hybrid library; see evaluator/lib/random.t).
+pick and chance are written in Turtle, on the Go-written sentence (the
+first hybrid library; see evaluator/lib/random.t); shuffle and sample are Go.
 
 ### pick[x]
   One item, chosen at random.
@@ -403,7 +403,7 @@ sentence (the first hybrid library; see evaluator/lib/random.t).
 ### sample[x, n]
   n different items (different positions), chosen at random.
   x   a list, set, map (its keys) or string
-  n   how many; more than x has is an error
+  n   how many; more than x has is an index error
   Gives back: a list.
   Example:
     hand = sample[deck, 5]

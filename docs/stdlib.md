@@ -39,6 +39,7 @@ arbitrary expression).
 | `sort <target> .` | list, set | Sorts in place: numerically if all elements are numbers, lexicographically (by display string) otherwise. |
 | `reverse <target> .` | list, set | Reverses in place. |
 | `insert <expr> to <target> at <expr> .` | list | Inserts at the given index. Fatal if index is out of range (`0..length` inclusive). |
+| `put <expr> to <target> at <expr> .` | list | Replaces the item at the given index (`0..length-1`); the length stays the same. |
 | `length of <expr> .` | list, set, map, string | Prints the count (map: number of keys; string: character count, in Unicode code points, not bytes). |
 | `min of <expr> .` | list, set, map | Prints the smallest element (list/set) or smallest **key** (map — matches legacy behavior; map values aren't compared). |
 | `max of <expr> .` | list, set, map | Same as `min of`, but largest. |
@@ -72,6 +73,7 @@ computed value, store it first: `ab = a + b` then `length of ab`.
 | `pop` | — | the **removed last element** (fatal if empty) |
 | `contains` / `find` | value | Boolean, whether present: `nums at contains[3]` |
 | `insert` | value, index | the list, with value inserted |
+| `put` | index, value | the list, with the item at index replaced: `nums at put[2, 99]` |
 | `get` | index | the element at that index, from `0`; fatal if out of range (including negative indexes; use `slice` to count from the end) |
 | `slice` | start [, end] | a new `list`, the elements `[start, end)`; same negative-index/clamping rules as string's `slice` below |
 
@@ -523,9 +525,9 @@ orders = random list of 20 Order [string, integer, float]
   elsewhere it's an ordinary name, and `n at random` (math) works as
   before.
 
-**Choosing from your own values** (these four are written in Turtle, in
-`evaluator/lib/random.t`, on the `random` sentence; an empty collection,
-or a count or chance out of range, is an error of kind `custom`):
+**Choosing from your own values** (`pick` and `chance` are written in
+Turtle, in `evaluator/lib/random.t`, on the `random` sentence; `shuffle`
+and `sample`, which go through every item, are in Go for speed):
 
 | Function | Gives |
 |---|---|

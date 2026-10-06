@@ -287,6 +287,7 @@ remove 1 from nums .
 sort nums .
 reverse nums .
 insert 99 to nums at 0 .
+put 7 to nums at 1 .   // replaces the item at 1
 delete "Bob" from ages .
 length of nums .    // prints
 min of nums .        // prints

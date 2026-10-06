@@ -213,6 +213,7 @@ const (
 	OpSort
 	OpReverse
 	OpInsert
+	OpPut // "put v to xs at i .": replace the item at i
 )
 
 // DataOpStatement covers the data-structure "sentence" operations:
@@ -222,7 +223,7 @@ type DataOpStatement struct {
 	Kind   OpKind
 	Target string
 	Value  Expression // nil for Sort/Reverse
-	Index  Expression // OpInsert only
+	Index  Expression // OpInsert and OpPut
 }
 
 func (dop *DataOpStatement) statementNode()       {}

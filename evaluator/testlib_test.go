@@ -433,3 +433,21 @@ func TestTestExamples(t *testing.T) {
 		t.Fatalf("exit %d:\n%s", code, out.String())
 	}
 }
+
+// TestSpeedFile runs testdata/speed/test_speed.t once, with benchmarking
+// off, so the speed test keeps working (its timings are for reading, not
+// checking).
+func TestSpeedFile(t *testing.T) {
+	src, err := os.ReadFile("../testdata/speed/test_speed.t")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := strings.Replace(string(src), "\nbenchmark = true\n", "\nbenchmark = false\n", 1)
+	if text == string(src) {
+		t.Fatal("test_speed.t no longer sets benchmark = true at the top")
+	}
+	out, code := testRun(t, map[string]string{"test_speed.t": text})
+	if code != 0 || strings.Contains(out, " runs ") {
+		t.Fatalf("exit %d:\n%s", code, out)
+	}
+}

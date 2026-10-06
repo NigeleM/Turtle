@@ -48,6 +48,9 @@ Next, roughly in priority order:
       suites, benchmarks (2026-10-06)
 - [x] `/` is exact, `div` keeps the whole part; methods work on the
       value right before them (2026-10-06)
+- [x] `put` (set the item at a position); a general speed test
+      (testdata/speed) (2026-10-06)
+- [ ] Benchmark suite with a baseline (held off by the user, 2026-10-06)
 - [ ] Log library (next, after the test library)
 - [ ] `sql` leftovers: writing WITHOUT ROWID tables, UTF-16 and
       auto-vacuum files; virtual tables (fts5)

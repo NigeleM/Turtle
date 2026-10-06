@@ -334,3 +334,50 @@ func (it *Interpreter) shapeRange(s *ast.Shape, what string, from, to ast.Expres
 	}
 	return int(randomBetween(rng, lo, hi))
 }
+
+// ---- shuffle and sample (pick and chance are in lib/random.t) ----
+
+func (it *Interpreter) callRandom(name string, args []object.Object, env *object.Environment) object.Object {
+	rng := it.randomSource(env)
+	switch name {
+	case "shuffle":
+		requireFuncArgs(name, args, 1)
+		items := append([]object.Object{}, randomItems(name, args[0])...)
+		rng.Shuffle(len(items), func(i, j int) { items[i], items[j] = items[j], items[i] })
+		if _, isText := args[0].(*object.String); isText {
+			var b strings.Builder
+			for _, c := range items {
+				b.WriteString(c.(*object.String).Value)
+			}
+			return &object.String{Value: b.String()}
+		}
+		return &object.List{Elements: items}
+	case "sample":
+		requireFuncArgs(name, args, 2)
+		items := randomItems(name, args[0])
+		n, ok := args[1].(*object.Integer)
+		if !ok {
+			fatalf("sample: how many must be a whole number, got %s", object.Shown(args[1]))
+		}
+		if n.Value < 0 || n.Value > int64(len(items)) {
+			fatalKind(kindIndex, "sample: can't take %d different items from %d", n.Value, len(items))
+		}
+		picked := make([]object.Object, n.Value)
+		for i, p := range rng.Perm(len(items))[:n.Value] {
+			picked[i] = items[p]
+		}
+		return &object.List{Elements: picked}
+	}
+	fatalKind(kindName, "no random function %q", name)
+	return nil
+}
+
+// randomItems are what shuffle and sample choose from: a list's or set's
+// items, a map's keys, a string's characters.
+func randomItems(fn string, x object.Object) []object.Object {
+	if items, ok := changeItems(x); ok {
+		return items
+	}
+	fatalf("%s needs a list, set, map or string, got %s", fn, object.Shown(x))
+	return nil
+}

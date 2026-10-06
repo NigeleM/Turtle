@@ -675,6 +675,8 @@ func (it *Interpreter) callBuiltin(module, name string, args []object.Object, en
 		return it.callJSON(name, args)
 	case "http":
 		return it.callHTTP(name, args)
+	case "random":
+		return it.callRandom(name, args, env)
 	case "sql":
 		return it.callSQL(name, args)
 	case "sort":

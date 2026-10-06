@@ -765,3 +765,16 @@ safe [end]
 - `change x to list` / `set` take a map (its keys) and a string (its
   characters); `change m to keys` / `values` pick a map's keys or values.
 - docs/contributing.md: how to write library functions in Turtle.
+
+## 2026-10-06: put, Go shuffle and sample, a speed test (not yet released)
+
+- Timing the Turtle-written random functions against Go: `chance` was
+  2x slower, `pick` 16x, `shuffle` / `sample` 14x to 180x and growing
+  with size (Turtle had no way to set an item, so shuffle removed items
+  one by one). `shuffle` and `sample` are Go again; `pick` and `chance`
+  stay Turtle.
+- `put`: set the item at a position. `put 99 to nums at 2 .`,
+  `nums at put[2, 99]`, `r is nums at put 2, 99 .`. A Turtle shuffle
+  with put (Fisher-Yates) takes 289µs for 1,000 items (was 700µs).
+- `testdata/speed/test_speed.t`: 32 timed tests across the language
+  (`turtle test testdata/speed`); the Go tests run it once unbenchmarked.

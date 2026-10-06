@@ -713,6 +713,7 @@ delete <expr> from <ident> .      // map only
 sort <ident> .
 reverse <ident> .
 insert <expr> to <ident> at <expr> .
+put <expr> to <ident> at <expr> .  // list only: replaces the item there
 length of <expr> .                 // prints
 min of <expr> .                     // prints
 max of <expr> .                      // prints
@@ -725,6 +726,13 @@ Method-call form:
 ```
 
 Plain `<ident> is <expr> .` (no `at`) is assignment/aliasing.
+
+`insert` and `put` both take a position from 0: `insert 99 to nums at 1 .`
+pushes the items from 1 along (the list gets longer); `put 99 to nums at
+1 .` replaces the item at 1 (the length stays). `put` is a statement word
+only at the start of a line followed by a value; otherwise it's an
+ordinary name. As a method, `nums at put[1, 99]` takes the position first,
+then the value, and gives back the list.
 
 ## Files
 
