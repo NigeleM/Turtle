@@ -63,7 +63,7 @@ func Highlight(src string, w Words) []Span {
 		prevEnd = t.End
 		c := Plain
 		switch {
-		case t.Type == token.STRING:
+		case t.Type == token.STRING || t.Type == token.RAWSTRING:
 			c = String
 		case t.Type == token.INT || t.Type == token.FLOAT || t.Type == token.TRUE || t.Type == token.FALSE || t.Type == token.NONE:
 			c = Constant
@@ -96,6 +96,9 @@ func Highlight(src string, w Words) []Span {
 				if w.Builtin[t.Literal] {
 					c = Builtin
 				}
+			case w.Builtin[t.Literal] && sentenceAfter(prev, t):
+				// nums process x give x + 1: a library function in a sentence.
+				c = Builtin
 			}
 		}
 		if c != Plain {
@@ -103,6 +106,19 @@ func Highlight(src string, w Words) []Span {
 		}
 	}
 	return append(out, comments(src, prevEnd, len(src))...)
+}
+
+// sentenceAfter tells whether prev is a value a sentence call could
+// follow on the same line: a name, a literal, or a closing ] or ).
+func sentenceAfter(prev, t token.Token) bool {
+	if prev.Line != t.Line {
+		return false
+	}
+	switch prev.Type {
+	case token.IDENT, token.INT, token.FLOAT, token.STRING, token.RAWSTRING, token.RBRACKET, token.RPAREN:
+		return true
+	}
+	return false
 }
 
 // comments finds the comments in src[from:to], the space between two
@@ -137,7 +153,7 @@ var Methods = []string{
 	"intersection", "invert", "isempty", "isnumber", "len", "length", "lower",
 	"pop", "pow", "put", "random", "remove", "replace", "reverse", "round",
 	"slice", "sort", "split", "sqrt", "subset", "superset", "tostring", "trim",
-	"union", "upper",
+	"union", "upper", "fixed", "commas", "padleft", "padright",
 }
 
 // ShapeWords are the kinds of value that can follow random (and "as" in

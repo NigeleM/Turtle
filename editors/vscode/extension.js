@@ -22,18 +22,38 @@ class Connection {
     this.pending = new Map(); // id -> {resolve, reject}
     this.handlers = new Map(); // notification method -> function
     this.buffer = Buffer.alloc(0);
+    this.ready = false; // set once the server has answered initialize
+    this.lastError = ""; // the last thing it wrote to stderr
     this.process = spawn(command, ["lsp"], { stdio: ["pipe", "pipe", "pipe"] });
     this.process.stdout.on("data", (chunk) => this.receive(chunk));
-    this.process.stderr.on("data", (chunk) => output.append(chunk.toString()));
+    this.process.stderr.on("data", (chunk) => {
+      output.append(chunk.toString());
+      const text = chunk.toString().trim();
+      if (text) this.lastError = text.split("\n").pop();
+    });
     this.process.on("error", (err) => {
+      this.reported = true;
       output.appendLine(`turtle lsp didn't start: ${err.message}`);
-      vscode.window.showWarningMessage(
-        `Turtle: couldn't run "${command} lsp" (${err.message}). Colors still work; set turtle.path if turtle isn't on your PATH.`
+      const missing = err.code === "ENOENT";
+      showProblem(
+        output,
+        missing
+          ? `Turtle: no "${command}" command found. Install turtle (github.com/NigeleM/Turtle/releases), or set turtle.path to it. Colors still work without it.`
+          : `Turtle: couldn't run "${command} lsp" (${err.message}). Colors still work.`
       );
       this.fail(err);
     });
     this.process.on("exit", (code) => {
       output.appendLine(`turtle lsp stopped (${code})`);
+      if (!this.ready && !this.reported && !this.stopping) {
+        // It ran but never started up: most likely a turtle from before
+        // turtle lsp existed (v0.9.151), which takes "lsp" for a file.
+        const said = this.lastError ? ` It said: "${this.lastError}".` : "";
+        showProblem(
+          output,
+          `Turtle: "${command} lsp" stopped before starting.${said} Is turtle up to date? "turtle version" should say v0.9.151 or later. Colors still work without it.`
+        );
+      }
       this.fail(new Error("turtle lsp stopped"));
     });
   }
@@ -98,6 +118,7 @@ class Connection {
   }
 
   stop() {
+    this.stopping = true;
     if (this.closed) return;
     this.request("shutdown", null)
       .catch(() => {})
@@ -106,6 +127,13 @@ class Connection {
         setTimeout(() => this.process.kill(), 500);
       });
   }
+}
+
+// showProblem tells the user, with a button to see the details.
+function showProblem(output, message) {
+  vscode.window.showWarningMessage(message, "Show Details").then((choice) => {
+    if (choice === "Show Details") output.show(true);
+  });
 }
 
 // ---- converting between the protocol and VS Code ----
@@ -167,6 +195,7 @@ function start(context, output) {
       clientInfo: { name: "vscode-turtle" },
     })
     .then(() => {
+      conn.ready = true;
       conn.notify("initialized", {});
       vscode.workspace.textDocuments.forEach(open);
     })

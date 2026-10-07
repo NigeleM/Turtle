@@ -91,6 +91,8 @@ func exprText(e ast.Expression) string {
 		return "length of " + exprText(x.Arg)
 	case *ast.ChangeExpression:
 		return "change " + exprText(x.Source) + " to " + x.TypeName
+	case *ast.TypeCheckExpression:
+		return exprText(x.Value) + " type " + x.Kind
 	case *ast.RandomExpression:
 		return "random " + x.Shape.Describe()
 	}

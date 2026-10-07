@@ -134,6 +134,14 @@ All indices are Unicode code points (runes), not bytes — consistent with
 | `replace` | old, new | new string, all occurrences of `old` replaced with `new` |
 | `isnumber` | — | Boolean: would `change ... to integer/float` succeed on this string |
 | `tostring` | — | itself |
+| `padleft` | width [, fill] | the text with `fill` (one character, a space if left out) added on the left until it's `width` characters; longer text is left as it is |
+| `padright` | width [, fill] | the same, added on the right |
+
+```
+id = "7"
+show id at padleft[3, "0"] .         // 007
+show "ab" at padright[5, "."], "|" . // ab...|
+```
 
 `isnumber` exists so you can validate untrusted input (from `?`) before
 converting it, instead of letting a bad `change` crash the program:
@@ -162,9 +170,23 @@ tail is s at slice 7 .         // "World" (index 7 to the end)
 
 #### number
 
-Every method here requires `import math` first (see
-[`reference.md`](reference.md#modules)) — calling one before that is a
-fatal error naming exactly which import is missing.
+Every method here except `fixed` and `commas` requires `import math`
+first (see [`reference.md`](reference.md#modules)) — calling one before
+that is a fatal error naming exactly which import is missing. `fixed` and
+`commas` write a number as text and need no import:
+
+| Method | Args | Returns |
+|---|---|---|
+| `fixed` | places | text with exactly that many digits after the point (0 to 20), rounded: `3.5 at fixed[2]` is `"3.50"` |
+| `commas` | — | text with commas between thousands: `1234567 at commas` is `"1,234,567"`; a fraction is kept (`-1234.5` gives `"-1,234.5"`) |
+
+```
+price = 1234.5
+show "$", price at fixed[2] .    // $1234.50
+show 1234567 at commas .         // 1,234,567
+```
+
+The math methods:
 
 | Method | Args | Returns |
 |---|---|---|
@@ -285,9 +307,9 @@ Plain `<result> is <receiver> .` (no `at`) is just assignment/aliasing —
 
 ## Data library
 
-`import data` (or `import data [process, keep, copy, table, table_read,
-table_write]`) provides six functions. `table`, `table_read` and
-`table_write` are described [below](#tables).
+`import data` (or `import data [process, keep, copy, range, reduce, sum,
+table, table_read, table_write]`) provides nine functions. `table`,
+`table_read` and `table_write` are described [below](#tables).
 
 **`process` and `keep`: alone or as a value.** Written as a sentence on
 its own, they change the collection **in place**. Used as a value
@@ -313,8 +335,37 @@ when the caller's should stay as it was.
 | `keep` | collection, function | keeps only the elements (list/set) or entries (map) for which the function gives a truthy result: a filter |
 | `copy` | collection [, deep] | a new list/set/map/assembled value. `copy[x]`: the same items, so lists, maps or assembled values *inside* are shared; `copy[x, true]`: everything inside is copied too, so nothing is shared |
 
+| `range` | from, to [, step] | a list of the whole numbers from `from` to `to`, **both included**; counts down when `from` is bigger. `step` (1 or more) counts by that much; the direction still comes from `from` and `to` |
+| `reduce` | collection, start, function | one value: a running total that begins as `start` and, for each item (a map's values), becomes what `[total, x] give ...` gives. Changes nothing |
+| `sum` | collection | the numbers of a list or set (a map's values) added up: an `integer` if they all are, else a `float`; `0` when empty. Anything that isn't a number is an error |
+
 For a map, the function takes the value (`x give ...`), or the key and the
 value (`[k, v] give ...`).
+
+Each has a call form and a sentence form:
+
+```
+import data
+
+r = range[1, 5]                      // [ 1, 2, 3, 4, 5 ]
+r = 1 range 5                        //   the same
+evens = range[0, 10, 2]              // [ 0, 2, 4, 6, 8, 10 ]
+down = 5 range 1                     // [ 5, 4, 3, 2, 1 ]
+[loop][i in 1 range 3]               // 1, 2, 3
+    show i .
+[loop][end]
+
+nums = list [1, 2, 3]
+total = sum[nums]                    // 6
+total = nums sum                     //   the same
+total = nums reduce 0, [t, x] give t + x       // 6, spelled out
+word = list ["t", "u"] reduce "", [w, c] give w + c   // "tu"
+```
+
+`reduce` works through the items in order: with `nums` above, the total
+goes `0` → `0 + 1` → `1 + 2` → `3 + 3`, and the last total is the answer.
+Where `process` gives one new item for each item, `reduce` gives one value
+for the whole collection.
 
 ```
 import data
@@ -489,6 +540,42 @@ show rows at get[0] .
   object in a `text` column becomes its JSON text.
 
 For `sql_load`, see [Files: CSV in and out](#files-csv-in-and-out).
+
+## Pattern library
+
+`import pattern` finds and changes text by pattern (regular expressions).
+Write patterns in **backticks**: a backtick string keeps every character
+as typed, so `{3}` isn't interpolation and `\d` isn't an escape (see
+[`reference.md`](reference.md#literals)).
+
+| Function | Args | Returns |
+|---|---|---|
+| `matches` | text, pattern | `true` if the pattern is found anywhere in the text (`^` and `$` to match all of it) |
+| `findall` | text, pattern | a list of every match, in order (empty if none) |
+| `replaceall` | text, pattern, with | the text with every match replaced; in `with`, `$1` is the first group |
+| `splitby` | text, pattern | a list of the pieces between matches |
+| `groups` | text, pattern | a list of the parts in `( )` of the first match, or `none` if nothing matches |
+
+```
+import pattern
+
+code = "ab-1234"
+if ] matches[code, `^[a-z]{2}-\d{4}$`] [
+    show "valid" .
+if [end]
+
+show findall["a1 b22 c333", `\d+`] .                      // [ "1", "22", "333" ]
+show replaceall["2026-10-06", `(\d+)-(\d+)-(\d+)`, `$3/$2/$1`] .   // 06/10/2026
+show splitby["a, b;c", `[,;]\s*`] .                        // [ "a", "b", "c" ]
+parts = groups["2026-10-06", `(\d+)-(\d+)`]               // [ "2026", "10" ]
+```
+
+The pattern words: `\d` a digit, `\w` a letter, digit or `_`, `\s` a
+space, `.` any character; `[abc]` one of, `[^abc]` none of; `+` one or
+more, `*` any number, `?` maybe, `{3}` / `{2,4}` exactly / between; `^`
+start, `$` end; `( )` a group; `a|b` either. The syntax is Go's (RE2):
+no backreferences, and no pattern can take forever. Patterns are compiled
+once and reused. A pattern that isn't valid is an error of kind `pattern`.
 
 ## Random library
 

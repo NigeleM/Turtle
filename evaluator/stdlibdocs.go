@@ -168,6 +168,32 @@ table[...] shows. Change it like any variable; none shows every row.
     outer = copy[rows]
     full = copy[rows, true]
 
+### range[from, to, step]
+  The whole numbers from from to to, both included, as a list; counting
+  down when from is bigger. Sentence form: 1 range 5.
+  from, to   whole numbers
+  step       optional: 2 counts by twos (1 or more; the direction is
+             worked out from from and to)
+  Example:
+    range[1, 5]          // [ 1, 2, 3, 4, 5 ]
+    range[0, 10, 2]      // [ 0, 2, 4, 6, 8, 10 ]
+    [loop][i in 1 range 3] ... [loop][end]
+
+### reduce[collection, start, function]
+  Boils a collection down to one value: a running total that starts at
+  start, and for each item (a map's values) becomes what the function
+  gives for the total so far and the item. Changes nothing.
+  function   [total, x] give ...
+  Example:
+    total = nums reduce 0, [t, x] give t + x
+    word = letters reduce "", [w, c] give w + c
+
+### sum[collection]
+  Adds up a list's or set's numbers (a map's values): an integer if they
+  all are, 0 when there are none. Sentence form: nums sum.
+  Example:
+    total = sum[prices]
+
 ### table[rows, limit]
   Lays rows out as a text table, one row per line, columns lined up.
   rows    a list of maps (what sql_query gives), a list of assembled
@@ -337,6 +363,44 @@ characters from 0.
   Gives back: a map with "status" (a number), "body" (text) and
   "headers" (a map). Only a network problem is an error; check the
   status yourself.
+`,
+
+	"pattern": `Patterns (regular expressions) in text. Write patterns in backticks,
+which keep { } and \ exactly as typed: \d is a digit, \s a space, \w a
+letter, digit or _; {3} three of the one before, + one or more, * any
+number, ? maybe; [abc] one of; ^ start, $ end; ( ) a group. The syntax is
+Go's (RE2), so no pattern can take forever. A pattern that isn't valid is
+an error of kind pattern.
+
+### matches[text, pattern]
+  Whether the pattern is found anywhere in text (^ and $ for all of it).
+  Gives back: true or false.
+  Example:
+    if ] matches[code, ` + "`" + `^[A-Z]{3}-\d{4}$` + "`" + `] [ ... if [end]
+
+### findall[text, pattern]
+  Every match, in order.
+  Gives back: a list of text (empty if none).
+  Example:
+    findall["a1 b22", ` + "`" + `\d+` + "`" + `]          // [ "1", "22" ]
+
+### replaceall[text, pattern, with]
+  Replaces every match. In with, $1 is the first group, $2 the second
+  (write with in backticks too, so {} and $ stay as typed).
+  Example:
+    replaceall["2026-10-06", ` + "`" + `(\d+)-(\d+)-(\d+)` + "`" + `, ` + "`" + `$3/$2/$1` + "`" + `]   // "06/10/2026"
+
+### splitby[text, pattern]
+  Splits text wherever the pattern matches.
+  Gives back: a list of text.
+  Example:
+    splitby["a, b;c", ` + "`" + `[,;]\s*` + "`" + `]      // [ "a", "b", "c" ]
+
+### groups[text, pattern]
+  The parts in ( ) of the first match.
+  Gives back: a list of text, or none if nothing matches.
+  Example:
+    groups["2026-10-06", ` + "`" + `(\d+)-(\d+)` + "`" + `]    // [ "2026", "10" ]
 `,
 
 	"log": `Log lines: a level, a time and where they came from, to the console

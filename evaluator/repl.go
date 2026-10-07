@@ -41,7 +41,7 @@ func (it *Interpreter) RunEntry(program *ast.Program) (shown object.Object, err 
 			return it.evalExpression(st.Expression, it.Global), nil
 		}
 	}
-	it.evalStatements(program.Statements, it.Global)
+	it.runFile(program.Statements, it.Global)
 	return nil, nil
 }
 

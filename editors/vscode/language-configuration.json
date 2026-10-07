@@ -8,10 +8,6 @@
   },
   "brackets": [
     [
-      "[",
-      "]"
-    ],
-    [
       "(",
       ")"
     ],
@@ -68,5 +64,11 @@
   "indentationRules": {
     "increaseIndentPattern": "^\\s*(def\\s+[A-Za-z_]\\w*\\s*\\[.*\\]\\s*$|if \\].*\\[\\s*$|else\\b.*$|\\[loop\\]\\[(?!end\\]).*\\]\\s*$|safe\\s*$|handle\\b.*$|.*\\bgive\\s*$|\\[(write|append)\\].*$)",
     "decreaseIndentPattern": "^\\s*(def \\[end\\]|if \\[end\\]|\\[loop\\]\\[end\\]|safe \\[end\\]|give \\[end\\]|\\[end\\]|else\\b|handle\\b)"
-  }
+  },
+  "colorizedBracketPairs": [
+    [
+      "(",
+      ")"
+    ]
+  ]
 }

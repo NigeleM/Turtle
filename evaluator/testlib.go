@@ -193,7 +193,7 @@ func (it *Interpreter) isKind(v object.Object, kind string, env *object.Environm
 	}
 	shape := findShape(env, kind)
 	if shape == nil {
-		fatalKind(kindName, "check ... is %s: %s isn't a kind (integer, float, number, string, boolean, list, set, map, date, none, function, empty) or an assembled type", kind, kind)
+		fatalKind(kindName, "%s isn't a kind (integer, float, number, string, boolean, list, set, map, date, none, function, empty) or an assembled type", kind)
 	}
 	a, ok := v.(*object.Assembly)
 	return ok && a.Shape == shape
@@ -789,4 +789,40 @@ func commonShape(vals []object.Object) *ast.Shape {
 		}
 	}
 	return out
+}
+
+// typeName is typeof's answer: "integer", "list", "Order" ...
+func typeName(v object.Object) string {
+	switch x := v.(type) {
+	case *object.Integer:
+		return "integer"
+	case *object.Float:
+		return "float"
+	case *object.String:
+		return "string"
+	case *object.Boolean:
+		return "boolean"
+	case *object.List:
+		return "list"
+	case *object.Set:
+		return "set"
+	case *object.Map:
+		return "map"
+	case *object.Date:
+		return "date"
+	case *object.None:
+		return "none"
+	case *object.Function:
+		if x.Shape != nil {
+			return "assembled type"
+		}
+		return "function"
+	case *object.Assembly:
+		return x.Shape.Name
+	case *object.Error:
+		return "error"
+	case *object.Database:
+		return "database"
+	}
+	return strings.ToLower(string(v.Type()))
 }

@@ -242,6 +242,10 @@ check x is not none .      // "is not" for any of them
 `check "42" is number .` **fails**: the value is a string.
 `check "x" is integer .` says `"x" is a string, not an integer`.
 
+Outside a test, the same kinds work as a true/false value with `type`
+(`if ] o type order [`), and `typeof[x]` gives the kind as text; see
+[`reference.md`](reference.md#the-kind-of-a-value-typeof-type).
+
 ### Decimals: `is close to`
 
 Decimals are stored in binary, so most aren't exact: `0.1 + 0.2` is

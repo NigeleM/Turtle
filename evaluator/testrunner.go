@@ -317,7 +317,7 @@ func (it *Interpreter) runTop(program *ast.Program) (fe *fatalError, exited bool
 			}
 		}
 	}()
-	it.evalStatements(program.Statements, it.Global)
+	it.runFile(program.Statements, it.Global)
 	return nil, false
 }
 

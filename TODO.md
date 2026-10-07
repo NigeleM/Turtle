@@ -60,10 +60,24 @@ Next, roughly in priority order:
       auto-vacuum files; virtual tables (fts5)
 - [x] Sort by a function, and search: `import sort`, `import search`
       (2026-10-06)
-- [ ] `data`: `reduce`, range generator, the
-      discrete-math tier (powerset, combinations, ...) proposed 2026-09-30
-- [ ] Assembled types: "is this an Order?" check, looping over fields,
+- [x] `data`: `reduce`, `range`, `sum` (2026-10-06)
+- [ ] `data`: the discrete-math tier (powerset, combinations, ...)
+      proposed 2026-09-30
+- [x] Patterns (`import pattern`), backtick strings, number and text
+      formatting (`fixed`, `commas`, `padleft`, `padright`), `typeof` and
+      `x type order` (2026-10-06)
+- [x] Calling a function before its def (top-level functions only;
+      2026-10-06)
+- [ ] Assembled types: looping over fields,
       default field values
+- [ ] A cookbook doc (asked for 2026-10-06): runnable code examples
+      for every stdlib library and function (math, time, data, strings,
+      system, json, http, sql, sort, search, random, pattern, log, test),
+      from simple to real-world, each checked by a test so it can't go
+      stale; plus a guide to writing the best and fastest Turtle code:
+      the idiomatic ways (sentences, give, process/keep vs. loops), what's
+      fast and slow (Go builtins vs. Turtle loops, in-place vs. copies,
+      sql for big data), with measured numbers from the speed tests
 - [x] Delete files: `system`'s `erase[path]` (2026-10-03)
 - [x] stderr (`warn ... .`), string interpolation, subfolder imports,
       module file names in errors (2026-10-03)

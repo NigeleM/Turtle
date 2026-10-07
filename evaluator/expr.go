@@ -132,6 +132,9 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 	case *ast.RandomExpression:
 		return it.evalRandom(e.Shape, env)
 
+	case *ast.TypeCheckExpression:
+		return &object.Boolean{Value: it.isKind(it.evalExpression(e.Value, env), e.Kind, env)}
+
 	default:
 		fatalf("no evaluator for expression type %T", expr)
 		return nil
@@ -541,6 +544,10 @@ func (it *Interpreter) callByName(name string, args []object.Object, env *object
 	if im := resolveImported(env, name); im != nil {
 		return it.callImported(im, name, args, env)
 	}
+	if name == "typeof" { // core: no import
+		requireFuncArgs(name, args, 1)
+		return &object.String{Value: typeName(args[0])}
+	}
 	for _, mod := range builtinModules {
 		if mod.ExportsFunction(name) {
 			requireModule(env, mod.Name, name)
@@ -681,6 +688,12 @@ func (it *Interpreter) callBuiltin(module, name string, args []object.Object, en
 			return it.tableRead(args)
 		case "table_write":
 			return it.tableWrite(args)
+		case "range":
+			return dataRange(args)
+		case "reduce":
+			return it.dataReduce(args)
+		case "sum":
+			return dataSum(args)
 		}
 	case "system":
 		return it.callSystem(name, args)
@@ -692,6 +705,8 @@ func (it *Interpreter) callBuiltin(module, name string, args []object.Object, en
 		return it.callHTTP(name, args)
 	case "random":
 		return it.callRandom(name, args, env)
+	case "pattern":
+		return it.callPattern(name, args)
 	case "sql":
 		return it.callSQL(name, args)
 	case "sort":

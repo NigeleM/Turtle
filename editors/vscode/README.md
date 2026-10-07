@@ -37,3 +37,10 @@ code --install-extension turtle-0.1.0.vsix
 **Turtle: Restart Language Server** (in the command palette) restarts it
 after updating turtle. Messages from the server are in the Output panel,
 under Turtle.
+
+## Checking the extension
+
+`test/run.sh` runs `extension.js` against stand-ins for VS Code and for
+starting `turtle lsp` (turtle missing, an old turtle, a working server)
+and prints what the user would see. On macOS it uses the built-in
+JavaScript engine; elsewhere, Node.js.

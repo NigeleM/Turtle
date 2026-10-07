@@ -26,6 +26,9 @@ const (
 	INT    Type = "INT"
 	FLOAT  Type = "FLOAT"
 	STRING Type = "STRING"
+	// RAWSTRING is text in backticks, kept exactly as typed: no {...}
+	// interpolation, no escapes. For patterns (`\d{3}`) and Windows paths.
+	RAWSTRING Type = "RAWSTRING"
 
 	ASSIGN   Type = "="
 	PLUS     Type = "+"

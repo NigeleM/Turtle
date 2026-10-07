@@ -46,7 +46,7 @@ func (it *Interpreter) loadTurtleLib(base *object.Module) *object.Module {
 	prevBuiltin := it.inBuiltin
 	it.inBuiltin = true
 	defer func() { currentFile, currentLine, it.inBuiltin = prevFile, prevLine, prevBuiltin }()
-	it.evalStatements(program.Statements, mod.Env)
+	it.runFile(program.Statements, mod.Env)
 	it.modules[key] = mod
 	return mod
 }

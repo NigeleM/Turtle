@@ -565,6 +565,10 @@ func mapMethod(m *object.Map, method string, args []object.Object) object.Object
 
 func stringMethod(s *object.String, method string, args []object.Object) object.Object {
 	switch method {
+	case "padleft":
+		return padText(method, s, args, true)
+	case "padright":
+		return padText(method, s, args, false)
 	case "len", "length":
 		requireArgs(method, args, 0)
 		return &object.Integer{Value: int64(utf8.RuneCountInString(s.Value))}
@@ -675,6 +679,10 @@ func runeIndexOf(s, sub string) int {
 // not core syntax.
 func (it *Interpreter) numberMethod(receiver object.Object, method string, args []object.Object, env *object.Environment) object.Object {
 	switch method {
+	case "fixed":
+		return fixedText(method, receiver, args)
+	case "commas":
+		return commasText(method, receiver, args)
 	case "sqrt":
 		requireModule(env, "math", "sqrt")
 		requireArgs(method, args, 0)

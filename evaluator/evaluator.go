@@ -102,12 +102,14 @@ const maxCallDepth = 100000
 // max_sort and the classic sorting algorithms (see sortlib.go), "search"
 // provides find_* and the search algorithms (see searchlib.go), "random"
 // provides pick/shuffle/sample/chance and, with the parser, the random
-// sentence (see randomlib.go). Anything else falls through to
+// sentence (see randomlib.go), "pattern" provides matches/findall/
+// replaceall/splitby/groups (see patternlib.go), "log" and "test" make
+// their sentence words active (see loglib.go, testlib.go). Anything else falls through to
 // the file-based import.
 var builtinModules = map[string]*object.Module{
 	"math":    {Name: "math", Methods: []string{"sqrt", "abs", "round", "floor", "ceil", "pow", "random"}},
 	"time":    {Name: "time", Funcs: []string{"now", "sleep", "today", "today_utc", "make_date", "to_date", "add_time", "time_between", "format_date", "wait_until", "every"}},
-	"data":    {Name: "data", Funcs: []string{"process", "keep", "copy", "table", "table_read", "table_write"}},
+	"data":    {Name: "data", Funcs: []string{"process", "keep", "copy", "table", "table_read", "table_write", "range", "reduce", "sum"}},
 	"system":  {Name: "system", Aliases: map[string]string{"isFile": "isfile", "isFolder": "isfolder", "scriptFolder": "scriptfolder"}, Funcs: []string{"args", "exists", "isfile", "isfolder", "exit", "env", "scriptfolder", "contents", "erase", "warn"}},
 	"strings": {Name: "strings", Funcs: []string{"find", "substring", "isinstring", "join"}},
 	"json":    {Name: "json", Funcs: []string{"load", "json_text", "json_read", "json_write", "json_get"}},
@@ -115,6 +117,7 @@ var builtinModules = map[string]*object.Module{
 	"sort":    {Name: "sort", Funcs: []string{"min_sort", "max_sort", "is_sorted", "reverse_list", "bubble_sort", "insertion_sort", "selection_sort", "merge_sort", "quick_sort", "heap_sort", "shell_sort", "counting_sort", "radix_sort"}},
 	"search":  {Name: "search", Funcs: []string{"find_first", "find_last", "find_all", "find_index", "count_where", "find_key", "linear_search", "binary_search", "jump_search", "exponential_search", "interpolation_search", "ternary_search", "insert_position"}},
 	"test":    {Name: "test"},
+	"pattern": {Name: "pattern", Funcs: []string{"matches", "findall", "replaceall", "splitby", "groups"}},
 	"log":     {Name: "log"},
 	"random":  {Name: "random", Funcs: []string{"pick", "shuffle", "sample", "chance"}},
 	"sql":     {Name: "sql", Funcs: []string{"sql_open", "sql_create", "sql_query", "sql_run", "sql_tables", "sql_load", "sql_save", "sql_update", "sql_delete", "sql_upsert", "sql_close"}},
@@ -174,20 +177,21 @@ func (e fatalError) Error() string { return e.msg }
 // Anything not given a kind by fatalKind is kindType: a value of the
 // wrong type, or the wrong number of arguments.
 const (
-	kindFile   = "file"   // missing file, can't write, end of input
-	kindNumber = "number" // text that isn't a number: change "abc" to integer
-	kindMath   = "math"   // division by zero, overflow, sqrt of a negative
-	kindIndex  = "index"  // index out of range, pop or min of an empty collection
-	kindKey    = "key"    // map key not found
-	kindName   = "name"   // undefined variable, function, method, module or field
-	kindType   = "type"   // the wrong kind of value or number of arguments
-	kindJSON   = "json"   // text that isn't valid JSON
-	kindDate   = "date"   // text that isn't a date, or a date that doesn't exist
-	kindHTTP   = "http"   // a web request that failed, or got a 4xx/5xx status
-	kindSQL    = "sql"    // a bad query, or a database problem
-	kindCSV    = "csv"    // a .csv or .tsv file that isn't well formed
-	kindTest   = "test"   // a check, verify or validate that failed (import test)
-	kindCustom = "custom" // the program's own, from fail "..."
+	kindFile    = "file"    // missing file, can't write, end of input
+	kindNumber  = "number"  // text that isn't a number: change "abc" to integer
+	kindMath    = "math"    // division by zero, overflow, sqrt of a negative
+	kindIndex   = "index"   // index out of range, pop or min of an empty collection
+	kindKey     = "key"     // map key not found
+	kindName    = "name"    // undefined variable, function, method, module or field
+	kindType    = "type"    // the wrong kind of value or number of arguments
+	kindJSON    = "json"    // text that isn't valid JSON
+	kindDate    = "date"    // text that isn't a date, or a date that doesn't exist
+	kindHTTP    = "http"    // a web request that failed, or got a 4xx/5xx status
+	kindSQL     = "sql"     // a bad query, or a database problem
+	kindCSV     = "csv"     // a .csv or .tsv file that isn't well formed
+	kindTest    = "test"    // a check, verify or validate that failed (import test)
+	kindPattern = "pattern" // a pattern that isn't a valid regular expression
+	kindCustom  = "custom"  // the program's own, from fail "..."
 )
 
 // fatalf reports a runtime error and unwinds the current evaluation via
@@ -251,8 +255,24 @@ func (it *Interpreter) Run(program *ast.Program) (err error) {
 			panic(r)
 		}
 	}()
-	it.evalStatements(program.Statements, it.Global)
+	it.runFile(program.Statements, it.Global)
 	return nil
+}
+
+// runFile runs a file's statements in env, its global scope. Its
+// top-level functions are defined first, so a call can come before its
+// def; everything else (variables, assembled types) still runs top to
+// bottom. A name def'd twice is the first def until the second one's
+// line runs.
+func (it *Interpreter) runFile(stmts []ast.Statement, env *object.Environment) ExecResult {
+	defined := map[string]bool{}
+	for _, st := range stmts {
+		if d, ok := st.(*ast.FunctionDefStatement); ok && !defined[d.Name] {
+			defined[d.Name] = true
+			env.DefineFunction(&object.Function{Name: d.Name, Parameters: d.Parameters, Body: d.Body, Env: env})
+		}
+	}
+	return it.evalStatements(stmts, env)
 }
 
 // evalSafe runs a safe block. An error of a kind its handle line lists

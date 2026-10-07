@@ -652,3 +652,15 @@ type LogStatement struct {
 func (l *LogStatement) statementNode()       {}
 func (l *LogStatement) TokenLiteral() string { return l.Token.Literal }
 func (l *LogStatement) Line() int            { return l.Token.Line }
+
+// TypeCheckExpression is "<value> type <kind>": whether the value is an
+// integer, float, number, string, boolean, list, set, map, date, none,
+// function, or an assembled type such as Order.
+type TypeCheckExpression struct {
+	Token token.Token // type
+	Value Expression
+	Kind  string
+}
+
+func (t *TypeCheckExpression) expressionNode()      {}
+func (t *TypeCheckExpression) TokenLiteral() string { return t.Token.Literal }

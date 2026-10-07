@@ -669,7 +669,7 @@ safe [end]
   compiled `turtle` binary is no longer tracked (`/turtle` is ignored).
 - The release workflow now vets and tests `postgres/` and `mysql/` too.
 
-## 2026-10-06: column types for table files (not yet released)
+## 2026-10-06: column types for table files (released by v0.9.153)
 
 - `table_read[path, types]` and `sql_load[db, table, path, types]` take
   a map of column name to type (a literal or a variable): Turtle words
@@ -683,7 +683,7 @@ safe [end]
 - Errors name the row and column. `testdata/sql/14_typed_load.trt`, a
   typed load in `13_servers.trt` (PostgreSQL and MySQL), unit tests.
 
-## 2026-10-06: random library (not yet released)
+## 2026-10-06: random library (released by v0.9.153)
 
 - `import random`: random values of any shape as a sentence:
   `random integer from 1 to 6`, `random list of 5 integers from 0 to 9`,
@@ -700,7 +700,7 @@ safe [end]
   (parser/random.go); the shape grammar (ast.Shape) is meant to be shared
   with the test library's `validate`.
 
-## 2026-10-06: methods work on the value right before them (not yet released)
+## 2026-10-06: methods work on the value right before them (released by v0.9.153)
 
 - `a at invert == b at invert` compares the two inverted maps, like
   Python's `a.invert() == b.invert()`; `"a" + "b" at upper` is `"aB"`,
@@ -715,7 +715,7 @@ safe [end]
 - Strings gained `at length` / `at len`, as lists have. Test of long
   expressions mixing strings, lists, maps and sets with chained methods.
 
-## 2026-10-06: `/` is exact, `div` keeps the whole part (not yet released)
+## 2026-10-06: `/` is exact, `div` keeps the whole part (released by v0.9.153)
 
 - `7 / 2` is 3.5 and `6 / 3` is 2.0: `/` always gives a float. The new
   operator `div` (a reserved word) gives the whole part, toward zero:
@@ -725,7 +725,7 @@ safe [end]
 - Example programs that meant whole numbers now use `div` (the shop's
   money and averages); tests for both operators.
 
-## 2026-10-06: the test library (not yet released)
+## 2026-10-06: the test library (released by v0.9.153)
 
 - `import test` makes `check`, `verify` and `validate` statements (only
   in that file; elsewhere they're ordinary names):
@@ -753,7 +753,7 @@ safe [end]
   test`; testdata/testlib/ examples (run by TestTestExamples), and tests
   of every message and runner case.
 
-## 2026-10-06: the first hybrid library (not yet released)
+## 2026-10-06: the first hybrid library (released by v0.9.153)
 
 - Builtin libraries can be written partly in Turtle: `evaluator/lib/
   <name>.trt` is built in (Go's embed) and runs once per program on first
@@ -766,7 +766,7 @@ safe [end]
   characters); `change m to keys` / `values` pick a map's keys or values.
 - docs/contributing.md: how to write library functions in Turtle.
 
-## 2026-10-06: put, Go shuffle and sample, a speed test (not yet released)
+## 2026-10-06: put, Go shuffle and sample, a speed test (released by v0.9.153)
 
 - Timing the Turtle-written random functions against Go: `chance` was
   2x slower, `pick` 16x, `shuffle` / `sample` 14x to 180x and growing
@@ -786,7 +786,7 @@ safe [end]
   \r\n line endings. The test now normalizes them; the interpreter
   itself already handled both (checked with a \r\n copy).
 
-## 2026-10-06: .trt for everything (not yet released)
+## 2026-10-06: .trt for everything (released by v0.9.153)
 
 - Turtle files end in `.trt`: imports (`import utils` finds `utils.trt`),
   test files (`test_*.trt`), the built-in Turtle libraries
@@ -795,7 +795,7 @@ safe [end]
   and test program in the repo was renamed; docs updated. A file named
   on the command line runs whatever its extension; `legacy/` unchanged.
 
-## 2026-10-06: the log library (not yet released)
+## 2026-10-06: the log library (released by v0.9.153)
 
 - `import log`: `log [debug|info|warn|error] <values> .`, joined like
   show; a map adds key=value fields. To stderr (logconsole) and/or a
@@ -815,7 +815,7 @@ safe [end]
   erases its log at the end). Each line now opens, adds to and closes
   the file, so a log can be read, moved or deleted while a program runs.
 
-## 2026-10-06: the REPL (not yet released)
+## 2026-10-06: the REPL (released by v0.9.153)
 
 - `turtle` with no file opens the REPL (package repl): a lone expression
   or call shows its value, blocks wait for their end with `...` and
@@ -833,7 +833,7 @@ safe [end]
 - docs/repl.md; tests for colors, block detection, keys, editing,
   redraws, sessions, commands, history, Ctrl-C; checked live in a pty.
 
-## 2026-10-06: give, not gives (not yet released)
+## 2026-10-06: give, not gives (released by v0.9.153)
 
 - The anonymous-function word is `give`: `x give x + 1`,
   `[k, v] give ...`, a multi-line body closed by `give [end]` (the
@@ -843,7 +843,7 @@ safe [end]
 - The REPL shows one clear error for a line that isn't valid Turtle,
   not the parser's follow-on complaints.
 
-## 2026-10-06: turtle lsp and a VS Code extension (not yet released)
+## 2026-10-06: turtle lsp and a VS Code extension (released by v0.9.153)
 
 - `turtle lsp` (package lsp): a language server in pure Go. Errors as
   you type (the parser's first error; missing import files as warnings),
@@ -860,7 +860,7 @@ safe [end]
 - Fix: `turtle test` / `lsp` / `doc` in a project with a folder of that
   name ran the folder as a script.
 
-## 2026-10-06: every name lowercase (not yet released)
+## 2026-10-06: every name lowercase (released by v0.9.153)
 
 - The nine names with capitals are lowercase, words run together (the
   user's choice): methods `isempty`, `isnumber`, `getkeys`, `getvalues`,
@@ -869,7 +869,7 @@ safe [end]
   functions through the module's Aliases, also in `import ... [...]`
   lists); docs, completion and hover show only the new ones.
 
-## 2026-10-06: put takes insert's order (not yet released)
+## 2026-10-06: put takes insert's order (released by v0.9.153)
 
 - `nums at put[99, 2]` (value, then position), like `nums at
   insert[99, 2]` and the sentence `put 99 to nums at 2 .`; the is form
@@ -879,7 +879,7 @@ safe [end]
   a copy is made on purpose (copy[...]), the way data frames work (the
   user's decision). A separate copying form may come later.
 
-## 2026-10-06: process and keep, alone or as a value; copy deep (not yet released)
+## 2026-10-06: process and keep, alone or as a value; copy deep (released by v0.9.153)
 
 - As a sentence on its own (`prices process p give p * 2 .`, or
   `process[prices, f]` alone), process and keep change the collection in
@@ -890,9 +890,36 @@ safe [end]
 - `copy[x, true]` copies everything inside too; `copy[x]` and
   `copy[x, false]` share what's inside, as before.
 
-## 2026-10-06: function descriptions inside the function, and in blocks (not yet released)
+## 2026-10-06: function descriptions inside the function, and in blocks (released by v0.9.153)
 
 - A function's description is the comment directly above its def and/or
   the comment its body starts with (like Python's docstrings), as //
   lines or a //* *// block (package syntax: FunctionDoc). Hover,
   completion and turtle doc all read it the same way.
+
+## 2026-10-06: patterns, formatting, range/reduce/sum, typeof (not yet released)
+
+- Backtick strings keep every character as typed (no escapes, no
+  interpolation, may span lines), for patterns and Windows paths.
+- `import pattern`: matches, findall, replaceall, splitby, groups (Go's
+  RE2; patterns compiled once). A bad pattern is an error of kind
+  pattern.
+- Number methods `fixed[places]` and `commas`, text methods
+  `padleft[width, fill]` and `padright[width, fill]`; none need an import.
+- data: `range[from, to, step]` (both ends included, counts down when
+  from is bigger), `reduce[collection, start, [t, x] give ...]`,
+  `sum[collection]`, each also as a sentence (`1 range 5`, `nums sum`).
+- `typeof[x]` (core) gives a value's kind as text; `x type integer` is a
+  true/false check with the same kinds as check's `is`. `type` stays a
+  usable variable name.
+- A function can be called before its def: a file's top-level defs are
+  all defined before its first line runs (main files, imported files,
+  test files, the REPL). Only functions: variables and assembled types
+  still run top to bottom (the user's decision). A name def'd twice is
+  the first def until the second one's line runs.
+- Docs: give back values instead of changing outer variables
+  (reference.md); no `outer` keyword (the user's decision).
+- Editors: `if ] ... [` brackets are no longer painted red as unmatched;
+  sentence calls (`nums process x ...`) are colored; backtick strings
+  and the new functions in the grammar. The extension tells you clearly
+  when turtle is missing or too old (v0.1.1).

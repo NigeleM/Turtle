@@ -40,8 +40,23 @@ func TestHighlight(t *testing.T) {
 			t.Errorf("%s\n got  %s\n want %s", src, got, want)
 		}
 	}
-	// A library's words color once it's imported.
+	// A library function written as a sentence, after a value.
 	w := noWords()
+	w.Builtin["process"] = true
+	sentences := map[string]string{
+		"a process x give x + 1": "process:builtin give:keyword 1:constant",
+		"b = a process x give x": "process:builtin give:keyword",
+		"process = 2":            "2:constant",
+		"show process .":         "show:keyword",
+		"p = `\\d{3}`":           "`\\d{3}`:string",
+	}
+	for src, want := range sentences {
+		if got := colored(src, w); got != want {
+			t.Errorf("%s\n got  %s\n want %s", src, got, want)
+		}
+	}
+	// A library's words color once it's imported.
+	w = noWords()
 	if got := colored(`check x is integer .`, w); got != "is:keyword" {
 		t.Errorf("before import test: %s", got)
 	}

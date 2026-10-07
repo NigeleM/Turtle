@@ -156,6 +156,10 @@ func (l *Lexer) nextToken() token.Token {
 		tok.Type = token.STRING
 		tok.Literal = l.readString(l.ch)
 		return tok
+	case '`':
+		tok.Type = token.RAWSTRING
+		tok.Literal = l.readRawString()
+		return tok
 	case 0:
 		tok.Type, tok.Literal = token.EOF, ""
 	case '.':
@@ -336,3 +340,18 @@ func isDigit(ch byte) bool {
 
 // Input is the source text being read, for messages that quote a line.
 func (l *Lexer) Input() string { return l.input }
+
+// readRawString reads `text` exactly as written, across lines too, up to
+// the closing backtick (or the end of the source).
+func (l *Lexer) readRawString() string {
+	l.readChar() // the opening backtick
+	start := l.pos
+	for l.ch != '`' && l.ch != 0 {
+		l.advanceRaw()
+	}
+	text := l.input[start:l.pos]
+	if l.ch == '`' {
+		l.readChar()
+	}
+	return text
+}

@@ -222,7 +222,7 @@ func (it *Interpreter) loadModule(name string) *object.Module {
 		it.loading = it.loading[:len(it.loading)-1]
 		currentFile, currentLine = prevFile, prevLine
 	}()
-	it.evalStatements(program.Statements, mod.Env)
+	it.runFile(program.Statements, mod.Env)
 	it.modules[path] = mod
 	return mod
 }

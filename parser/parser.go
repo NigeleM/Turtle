@@ -112,10 +112,13 @@ func New(l *lexer.Lexer) *Parser {
 	p := &Parser{l: l}
 
 	p.prefixParseFns = map[token.Type]prefixParseFn{
-		token.IDENT:    p.parseIdentifier,
-		token.INT:      p.parseIntegerLiteral,
-		token.FLOAT:    p.parseFloatLiteral,
-		token.STRING:   p.parseStringLiteral,
+		token.IDENT:  p.parseIdentifier,
+		token.INT:    p.parseIntegerLiteral,
+		token.FLOAT:  p.parseFloatLiteral,
+		token.STRING: p.parseStringLiteral,
+		token.RAWSTRING: func() ast.Expression {
+			return p.maybeSentence(&ast.StringLiteral{Token: p.curToken, Value: p.curToken.Literal})
+		},
 		token.TRUE:     p.parseBoolean,
 		token.FALSE:    p.parseBoolean,
 		token.NONE:     p.parseNone,
@@ -148,6 +151,7 @@ func New(l *lexer.Lexer) *Parser {
 		token.AND:      p.parseInfixExpression,
 		token.OR:       p.parseInfixExpression,
 		token.AT:       p.parseMethodCallExpression,
+		token.IDENT:    p.parseTypeCheck, // only "x type Order" (see typeCheckAhead)
 	}
 
 	p.nextToken()
@@ -220,6 +224,9 @@ func (p *Parser) peekPrecedence() int {
 	// maps, "a" + "b" at upper is "aB", and ("a" + "b") at upper is "AB".
 	if p.peekTokenIs(token.AT) {
 		return p.methodPrecedence()
+	}
+	if p.typeCheckAhead() {
+		return EQUALS
 	}
 	if pr, ok := precedences[p.peekToken.Type]; ok {
 		return pr
@@ -581,7 +588,7 @@ func (p *Parser) parseReturnStatement() ast.Statement {
 
 // errorKinds are the names a handle statement can list; they match the
 // kinds the evaluator gives its runtime errors.
-var errorKinds = []string{"file", "number", "math", "index", "key", "name", "type", "json", "date", "http", "sql", "csv", "test", "custom"}
+var errorKinds = []string{"file", "number", "math", "index", "key", "name", "type", "json", "date", "http", "sql", "csv", "test", "pattern", "custom"}
 
 // parseSafeStatement parses
 //
@@ -1222,6 +1229,9 @@ func (p *Parser) parsePathExpression() ast.Expression {
 	if p.curTokenIs(token.STRING) {
 		return p.stringExpression(tok)
 	}
+	if p.curTokenIs(token.RAWSTRING) {
+		return &ast.StringLiteral{Token: tok, Value: tok.Literal}
+	}
 	if tok.Type == token.IDENT && !p.peekTokenIs(token.PERIOD) && !p.peekTokenIs(token.SLASH) && !p.peekTokenIs(token.MINUS) {
 		// A lone word: a variable holding the path if one exists when this
 		// runs, else the literal filename (see Interpreter.evalPath).
@@ -1285,6 +1295,8 @@ func (p *Parser) parseFileWriteStatement(isAppend bool) ast.Statement {
 	var items []ast.ContentItem
 	for !(p.curTokenIs(token.LBRACKET) && p.peekTokenIs(token.END)) && !p.curTokenIs(token.EOF) {
 		switch p.curToken.Type {
+		case token.RAWSTRING:
+			items = append(items, ast.ContentItem{Literal: p.curToken.Literal})
 		case token.STRING:
 			switch e := p.stringExpression(p.curToken).(type) {
 			case *ast.StringLiteral:
@@ -1442,7 +1454,7 @@ func (p *Parser) argumentStartsAt(i int) bool {
 		return t.SpaceBefore && !next.SpaceBefore && next.Line == t.Line
 	}
 	switch t.Type {
-	case token.IDENT, token.INT, token.FLOAT, token.STRING, token.TRUE, token.FALSE,
+	case token.IDENT, token.INT, token.FLOAT, token.STRING, token.RAWSTRING, token.TRUE, token.FALSE,
 		token.NONE, token.LPAREN, token.LIST, token.SET, token.MAP, token.CHANGE,
 		token.MIN, token.MAX, token.LENGTH, token.BANG:
 		return true
@@ -1567,7 +1579,7 @@ func (p *Parser) parseSortModuleExpression() ast.Expression {
 }
 
 func (p *Parser) isQualifiedName() bool {
-	if p.isStop(p.peekToken.Literal) {
+	if p.isStop(p.peekToken.Literal) || p.typeCheckAhead() {
 		return false
 	}
 	return p.curTokenIs(token.IDENT) && p.peekTokenIs(token.IDENT) && p.peekToken.Line == p.curToken.Line
@@ -1705,8 +1717,8 @@ func (p *Parser) maybeSentence(subject ast.Expression) ast.Expression {
 	if !p.peekTokenIs(token.IDENT) || p.peekToken.Line != p.curToken.Line {
 		return subject
 	}
-	if p.isStop(p.peekToken.Literal) {
-		return subject // "to 99.99 rounded to 2", "nums each x give ..."
+	if p.isStop(p.peekToken.Literal) || p.typeCheckAhead() {
+		return subject // "to 99.99 rounded to 2", "nums each x give ...", "x type list"
 	}
 	tok := p.curToken
 	p.nextToken()
@@ -2026,4 +2038,39 @@ func (p *Parser) ParseExpressionOnly() ast.Expression {
 		return nil
 	}
 	return e
+}
+
+// typeCheckAhead: the next words are "type <kind>" on this line, as in
+// "o type Order" or "x type list". Elsewhere type is an ordinary name.
+func (p *Parser) typeCheckAhead() bool {
+	if !p.peekTokenIs(token.IDENT) || p.peekToken.Literal != "type" || p.peekToken.Line != p.curToken.Line {
+		return false
+	}
+	k := p.peekN(2)
+	if k.Line != p.peekToken.Line {
+		return false
+	}
+	switch k.Type {
+	case token.IDENT, token.LIST, token.SET, token.MAP, token.NONE:
+		return true
+	}
+	return false
+}
+
+// parseTypeCheck parses "type <kind>" after a value; curToken is type.
+func (p *Parser) parseTypeCheck(left ast.Expression) ast.Expression {
+	tok := p.curToken
+	p.nextToken()
+	kind := p.curToken.Literal
+	switch p.curToken.Type {
+	case token.LIST:
+		kind = "list"
+	case token.SET:
+		kind = "set"
+	case token.MAP:
+		kind = "map"
+	case token.NONE:
+		kind = "none"
+	}
+	return &ast.TypeCheckExpression{Token: tok, Value: left, Kind: kind}
 }

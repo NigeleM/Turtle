@@ -21,6 +21,10 @@ non-terminal; `[x]` is optional; `{x}` is zero-or-more; `|` is alternation.
   inside single quotes a `"` needs no escape). Escapes: `\n`, `\t`, `\"`,
   `\'`, `\\`, `\{`, `\}`.
   `{<expr>}` inside a string is interpolation (see §Strings).
+- **Raw strings**: `` `backticks` `` keep every character as typed: no
+  escapes, no interpolation, and they may span lines. For patterns
+  (`` `\d{3}` ``) and Windows paths (`` `C:\new\table` ``). A raw string
+  can't hold a backtick.
 - **Booleans**: `true`, `false`.
 - **None**: `none` — the single "no value" value (type `NONE`).
 - **Reserved words** (cannot be used as identifiers): `true false none show if
@@ -286,6 +290,17 @@ show "a plain \{brace\}" .                       // a plain {brace}
   like `"set \{1, 2}"`. A `{` with no closing `}` or an unfinished
   expression is a parse error. A `}` on its own is plain text.
 
+**Backticks** make a raw string: what's between them is the text,
+exactly. `{` and `\` are ordinary characters, and the string may run over
+several lines:
+
+```
+n = 5
+show `{n} stays` .                // {n} stays
+show `C:\new\table` .             // C:\new\table
+digits = `\d{3}-\d{4}`            // a pattern (import pattern)
+```
+
 **Single quotes** make text full of double quotes readable:
 `'She said "hi"'`, `'{"a": 1}'`. They're the same strings as
 double-quoted ones, with the same escapes and interpolation; only the
@@ -329,6 +344,59 @@ method call *does* affect it, since that mutates the same underlying value
 rather than rebinding a name. The body can call any other top-level
 function, including itself, recursively. Argument count must match
 parameter count.
+
+**A function can be called before its `def`.** A file's top-level
+functions are all defined before its first line runs, so the main code
+can come first and the helpers below it, and functions can call each
+other in any order:
+
+```
+orders = load_orders["orders.csv"]
+report[orders]
+
+def load_orders[path]
+    ...
+def [end]
+```
+
+Only functions work this way. Everything else still runs top to bottom:
+a variable is set when its line runs (a function called early can't read
+a global set further down), and so is an assembled type. A def inside a
+function is made when its line runs. A layout that reads well: imports,
+then settings, then the main code, then the functions.
+
+### Give back, don't change outer variables
+
+A function can read a top-level variable, but `x = ...` inside it makes
+a new local `x`; the outer one stays as it was. To change a value, give
+the new one back and assign it where you call:
+
+```
+total = 0
+
+def addtax[amount]
+    return amount * 1.2
+def [end]
+
+total = addtax[100]        // the caller decides what changes
+```
+
+For several results, give back a list or an assembled value:
+
+```
+def minmax[nums]
+    return list [min of nums, max of nums]
+def [end]
+
+r = minmax[scores]
+low = r at get[0]
+```
+
+Lists, sets and maps are shared, not copied, when passed in, so a
+statement that changes one (`add 4 to nums .`, `nums process x give x * 2 .`)
+inside a function changes the caller's too. That's handy for "fill this
+list", but giving back a new collection (`return nums process x give x * 2`)
+keeps the function's effect visible at the call.
 
 ### Functions are values
 
@@ -519,6 +587,30 @@ qty of o = 10
   value; and `show Order .` prints `assemble Order`.
 - Field names must be distinct, and can't be reserved words.
 
+## The kind of a value: `typeof`, `type`
+
+`typeof[x]` gives the kind of any value as text, and needs no import:
+`"integer"`, `"float"`, `"string"`, `"boolean"`, `"list"`, `"set"`,
+`"map"`, `"date"`, `"none"`, `"function"`, `"error"`, an assembled
+value's type name (`"order"`), or `"assembled type"` for a type itself.
+
+`<value> type <kind>` is `true` or `false`, and reads as a condition:
+
+```
+assemble order [item, qty]
+o = order ["tea", 2]
+
+show typeof[o] .                 // order
+if ] o type order [ ... if [end]
+if ] n type integer && s type string [ ... if [end]
+```
+
+The kinds are the ones `check ... is` takes (see
+[`testing.md`](testing.md)): `integer float number string boolean list set
+map date none function empty` and assembled type names. A kind that
+doesn't exist (`n type intger`) is an error. `type` is only special
+between a value and a kind, so it still works as a variable name.
+
 ## None
 
 `none` is Turtle's "no value". It's what a function returns when it has no
@@ -575,6 +667,7 @@ safe [end]
 | `sql`    | a bad query or a database problem (`sql` library)          |
 | `csv`    | a `.csv` or `.tsv` file that isn't well formed (`table_read`, `sql_load`, ...) |
 | `test`   | a failed `check`, `verify` or `validate` (`import test`; see [`testing.md`](testing.md)) |
+| `pattern` | a pattern that isn't valid (`import pattern`) |
 | `custom` | your own, from `fail`                                    |
 
 An error of a kind that isn't listed isn't handled: it goes on to an
@@ -774,7 +867,8 @@ import <name> [<f>, <g>, ...]  // only the listed names
 ```
 
 `<name>` is a builtin module (`math`, `time`, `data`, `strings`, `system`,
-`json`, `http`, `sql`; see [`stdlib.md`](stdlib.md)) or a file `<name>.trt`,
+`json`, `http`, `sql`, `sort`, `search`, `random`, `pattern`, `log`,
+`test`; see [`stdlib.md`](stdlib.md)) or a file `<name>.trt`,
 resolved relative to the current script's directory. A module in a
 subfolder is written with `/`: `import lib/utils` reads `lib/utils.trt`,
 and its qualified name is the last part, `utils half[4]`. Because builtin names

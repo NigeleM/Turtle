@@ -215,3 +215,89 @@ func collectionOp(op string, left, right object.Object) (object.Object, bool) {
 	}
 	return nil, false
 }
+
+// maxRange is the most items range makes: past it is almost surely a
+// mistake (range[1, 10000000000]).
+const maxRange = 10_000_000
+
+// dataRange is range[from, to [, step]]: the whole numbers from from to to,
+// both included, counting down when from is bigger.
+func dataRange(args []object.Object) object.Object {
+	if len(args) != 2 && len(args) != 3 {
+		fatalf("'range' takes a start and an end, and optionally a step: range[1, 10] or range[0, 10, 2], got %d arguments", len(args))
+	}
+	num := func(i int, what string) int64 {
+		n, ok := args[i].(*object.Integer)
+		if !ok {
+			fatalf("'range' needs whole numbers; the %s is %s", what, object.Shown(args[i]))
+		}
+		return n.Value
+	}
+	from, to := num(0, "start"), num(1, "end")
+	step := int64(1)
+	if len(args) == 3 {
+		step = num(2, "step")
+		if step <= 0 {
+			fatalKind(kindMath, "'range' step must be 1 or more (it counts down by itself when the start is bigger), got %d", step)
+		}
+	}
+	if from > to {
+		step = -step
+	}
+	count := (to-from)/step + 1
+	if count > maxRange {
+		fatalKind(kindMath, "range[%d, %d] would be %d items; the most is %d", from, to, count, maxRange)
+	}
+	out := &object.List{Elements: make([]object.Object, 0, count)}
+	for i, v := int64(0), from; i < count; i, v = i+1, v+step {
+		out.Elements = append(out.Elements, &object.Integer{Value: v})
+	}
+	return out
+}
+
+// dataReduce is reduce[collection, start, [total, x] give ...]: the
+// running total, from start, through every item (a map's values).
+func (it *Interpreter) dataReduce(args []object.Object) object.Object {
+	if len(args) != 3 {
+		fatalf("'reduce' takes a collection, a starting value and a function of two names: reduce[nums, 0, [total, x] give total + x], got %d arguments", len(args))
+	}
+	fn, ok := args[2].(*object.Function)
+	if !ok || fn.Shape != nil || len(fn.Parameters) != 2 {
+		fatalf("'reduce' needs a function of two names, the total so far and the next item: [total, x] give total + x")
+	}
+	total := args[1]
+	for _, item := range reduceItems(args[0]) {
+		total = it.callFunction(fn, "reduce", []object.Object{total, item})
+	}
+	return total
+}
+
+func reduceItems(x object.Object) []object.Object {
+	switch c := x.(type) {
+	case *object.List:
+		return c.Elements
+	case *object.Set:
+		return c.Elements
+	case *object.Map:
+		vals := make([]object.Object, len(c.Keys))
+		for i, k := range c.Keys {
+			vals[i] = c.Values[k]
+		}
+		return vals
+	}
+	fatalf("'reduce' and 'sum' need a list, set or map, got %s", x.Type())
+	return nil
+}
+
+// dataSum adds up a collection's numbers: an integer if they all are.
+func dataSum(args []object.Object) object.Object {
+	requireFuncArgs("sum", args, 1)
+	var total object.Object = &object.Integer{Value: 0}
+	for i, item := range reduceItems(args[0]) {
+		if _, _, ok := numeric(item); !ok {
+			fatalf("'sum' adds numbers; item %d is %s", i, object.Shown(item))
+		}
+		total = evalInfix("+", total, item)
+	}
+	return total
+}
