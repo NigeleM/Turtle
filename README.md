@@ -25,7 +25,7 @@ for reference; they still build and run.
 | Functions (can read globals; local assignment never writes through) | Done |
 | First-class functions + closures (lexical scope, read-only capture) | Done |
 | `none` value/type | Done |
-| Anonymous functions (`x gives x + 1`) + sentence-style calls (`nums process f`) | Done |
+| Anonymous functions (`x give x + 1`) + sentence-style calls (`nums process f`) | Done |
 | For-each loops (`[loop][x in nums]`) | Done |
 | `+`/`-` on lists, sets, maps | Done |
 | Standard library: data (`process`, `keep`, `copy`, `table`, `table_read`, `table_write`; `.csv`, `.tsv`, `.txt`, `.json` table files) | Done |
@@ -45,6 +45,7 @@ for reference; they still build and run.
 | Imports (per-module scope, `import m [a, b]`, `m name[...]` on clash) | Done |
 | File management (read/write/append/directory) | Done |
 | Testing in Turtle: `check`, `verify`, `validate` (random inputs, shrinking), `turtle test` with suites and benchmarks | Done — see `docs/testing.md` |
+| REPL: `turtle` with no file, colored as you type, history, multi-line blocks | Done — see `docs/repl.md` |
 | Automated tests (`go test ./...`) | Done |
 | CI (build/vet/test on every push) + tag-triggered releases | Done |
 | Documentation | Done — see `docs/` |
@@ -86,7 +87,7 @@ t = time now[]                 // naming the module always works, and is require
                                // when two imports both provide "now"
 ```
 
-Working with data: `gives` makes a quick function, and library functions
+Working with data: `give` makes a quick function, and library functions
 read like sentences:
 
 ```
@@ -96,7 +97,7 @@ import system [args, exists]
 assemble Order [item, qty, price]    // your own type with named fields
 
 orders = list [Order["pen", 3, 1.5], Order["pad", 1, 4.0], Order["mug", 5, 8.0]]
-orders keep o gives qty of o > 2 .   // a filter: keeps pen and mug
+orders keep o give qty of o > 2 .   // a filter: keeps pen and mug
 
 total = 0
 [loop][o in orders]                  // for-each
@@ -105,7 +106,7 @@ total = 0
 show total .                         // 44.5
 
 names = list ["ana", "bo"]
-names process n gives n at upper .   // [ "ANA", "BO" ]
+names process n give n at upper .   // [ "ANA", "BO" ]
 show names + list ["CY"] .           // [ "ANA", "BO", "CY" ]
 
 [loop][path in args[]]               // turtle report.trt notes.txt ...
@@ -126,6 +127,7 @@ library).
 - [`docs/tour.md`](docs/tour.md) — a guided, example-driven walkthrough of the language
 - [`docs/reference.md`](docs/reference.md) — the complete formal syntax reference
 - [`docs/stdlib.md`](docs/stdlib.md) — data structure methods, file I/O, `sys`, `import`
+- [`docs/repl.md`](docs/repl.md) — the interactive prompt (`turtle` with no file)
 - [`docs/testing.md`](docs/testing.md) — testing Turtle code: `check`, `verify`, `validate`, `turtle test`
 - [`docs/architecture.md`](docs/architecture.md) — how the interpreter itself is built, for contributors
 - [`docs/contributing.md`](docs/contributing.md) — how to add new syntax or standard-library functions

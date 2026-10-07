@@ -14,11 +14,11 @@ import (
 //	check x is integer .            check x is not none .
 //	check 0.1 + 0.2 is close to 0.3 .
 //	check divide[1, 0] fails [math] .
-//	verify evens[nums] each x gives x % 2 == 0 .
-//	verify rolls at least 2 r gives r == 6 .
-//	verify prices each pair [a, b] gives a <= b .
+//	verify evens[nums] each x give x % 2 == 0 .
+//	verify rolls at least 2 r give r == 6 .
+//	verify prices each pair [a, b] give a <= b .
 //	validate evens[nums] with nums as list of integer
-//	    that result each x gives x % 2 == 0 .
+//	    that result each x give x % 2 == 0 .
 //
 // Elsewhere the three are ordinary names.
 
@@ -182,7 +182,7 @@ func (p *Parser) peekIsQuant() bool {
 // parseRule reads a rule; peekToken is its first word.
 func (p *Parser) parseRule(what string) *ast.Rule {
 	if !p.peekIsQuant() {
-		p.errorf("%s: after the values, say how many must follow the rule: each, any, not, at least N, at most N or exactly N, e.g. %s nums each x gives x > 0 .", what, what)
+		p.errorf("%s: after the values, say how many must follow the rule: each, any, not, at least N, at most N or exactly N, e.g. %s nums each x give x > 0 .", what, what)
 		return nil
 	}
 	r := &ast.Rule{}
@@ -208,7 +208,7 @@ func (p *Parser) parseRule(what string) *ast.Rule {
 		r.Pair = true
 	}
 	if p.peekTokenIs(token.PERIOD) || p.peekTokenIs(token.EOF) {
-		p.errorf("%s: give the rule after %q, e.g. x gives x > 0", what, p.curToken.Literal)
+		p.errorf("%s: give the rule after %q, e.g. x give x > 0", what, p.curToken.Literal)
 		return nil
 	}
 	p.nextToken()
@@ -302,7 +302,7 @@ func (p *Parser) parseValidateStatement() ast.Statement {
 		p.nextToken()
 		v.Matches = p.parseExpression(LOWEST)
 	default:
-		p.errorf("validate %s[...]: give the rule every answer must follow: that ... (true or false), that %s each x gives ..., or matches another_function[...]", call.Name, v.ResultName)
+		p.errorf("validate %s[...]: give the rule every answer must follow: that ... (true or false), that %s each x give ..., or matches another_function[...]", call.Name, v.ResultName)
 		return nil
 	}
 	if !p.endStatement(tok.Line, &v.Text) {

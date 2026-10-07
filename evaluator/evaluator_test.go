@@ -795,35 +795,35 @@ show nums .`, "1\n1\n[ 1, 2 ]\n"},
 
 func TestGivesSentenceCallsAndDataLib(t *testing.T) {
 	cases := []struct{ name, src, want, wantErr string }{
-		{name: "gives one and many params", src: `double = x gives x * 2
-plus = [a, b] gives a + b
+		{name: "give one and many params", src: `double = x give x * 2
+plus = [a, b] give a + b
 show double[4] .
 show plus[2, 3] .`, want: "8\n5\n"},
-		{name: "gives with no params", src: `def twice[f]
+		{name: "give with no params", src: `def twice[f]
     f[]
     f[]
 def [end]
-twice[[] gives
+twice[[] give
     show "hi" .
-gives [end]]`, want: "hi\nhi\n"},
-		{name: "gives captures scope", src: `n = 10
-f = x gives x + n
+give [end]]`, want: "hi\nhi\n"},
+		{name: "give captures scope", src: `n = 10
+f = x give x + n
 show f[1] .`, want: "11\n"},
-		{name: "block form", src: `f = [x] gives
+		{name: "block form", src: `f = [x] give
     if ] x > 3 [
         return x * 100
     if [end]
     return x
-gives [end]
+give [end]
 show f[1] .
 show f[5] .`, want: "1\n500\n"},
 		{name: "process list in place", src: `import data
 nums = list [5, 3, 8, 1]
-nums process x gives x + 1 .
+nums process x give x + 1 .
 show nums .`, want: "[ 6, 4, 9, 2 ]\n"},
 		{name: "process with method in body", src: `import data
 words = list ["hey", "do"]
-words process x gives x at upper .
+words process x give x at upper .
 show words .`, want: "[ \"HEY\", \"DO\" ]\n"},
 		{name: "process with named function", src: `import data
 def double[x]
@@ -834,37 +834,37 @@ nums process double .
 show nums .`, want: "[ 2, 4 ]\n"},
 		{name: "process block", src: `import data
 vals = list [1, 5]
-vals process [x] gives
+vals process [x] give
     if ] x > 3 [
         return 0
     if [end]
     return x
-gives [end]
+give [end]
 show vals .`, want: "[ 1, 0 ]\n"},
 		{name: "process map values and key-value", src: `import data
 ages = map ["Alice": 30, "Bob": 25]
-ages process x gives x + 1 .
+ages process x give x + 1 .
 show ages .
-ages process [k, v] gives k + "=" + v .
+ages process [k, v] give k + "=" + v .
 show ages .`, want: "{ \"Alice\": 31, \"Bob\": 26 }\n{ \"Alice\": \"Alice=31\", \"Bob\": \"Bob=26\" }\n"},
 		{name: "process set dedups", src: `import data
 s = set [1, 2, 3, 4]
-s process x gives x % 2 .
+s process x give x % 2 .
 show s .`, want: "{ 1, 0 }\n"},
 		{name: "keep filters list, set, map", src: `import data
 nums = list [5, 3, 8, 1]
-nums keep x gives x > 3 .
+nums keep x give x > 3 .
 show nums .
 s = set [1, 2, 3]
-s keep x gives x != 2 .
+s keep x give x != 2 .
 show s .
 m = map ["a": 1, "b": 5]
-m keep [k, v] gives v > 2 .
+m keep [k, v] give v > 2 .
 show m .`, want: "[ 5, 8 ]\n{ 1, 3 }\n{ \"b\": 5 }\n"},
 		{name: "copy leaves original", src: `import data
 orig = list [1, 2]
 big = copy[orig]
-big process x gives x * 10 .
+big process x give x * 10 .
 show orig .
 show big .`, want: "[ 1, 2 ]\n[ 10, 20 ]\n"},
 		{name: "sentence call with user function and args", src: `def scale[xs, f, times]
@@ -875,7 +875,7 @@ show big .`, want: "[ 1, 2 ]\n[ 10, 20 ]\n"},
     return out
 def [end]
 nums = list [1, 2]
-r = nums scale x gives x + 1, 10
+r = nums scale x give x + 1, 10
 show r .`, want: "[ 20, 30 ]\n"},
 		{name: "sentence call with no args", src: `def total[xs]
     t = 0
@@ -887,13 +887,13 @@ def [end]
 nums = list [1, 2, 3]
 show nums total .`, want: "6\n"},
 		{name: "process needs import", src: `nums = list [1]
-nums process x gives x .`, wantErr: `"process" needs "import data" first`},
+nums process x give x .`, wantErr: `"process" needs "import data" first`},
 		{name: "process needs a function", src: `import data
 nums = list [1]
 nums process 5 .`, wantErr: "'process' needs a function"},
 		{name: "variable named like a module is refused", src: `import data
 data = list [1]
-data process x gives x .`, wantErr: `"data" is both a variable and an imported module`},
+data process x give x .`, wantErr: `"data" is both a variable and an imported module`},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -1312,7 +1312,7 @@ func TestStressFixes(t *testing.T) {
 		{name: "closures made in for-each keep their pass's value", src: `def make[]
     fs = list []
     [loop][x in list [1, 2, 3]]
-        add [] gives x to fs .
+        add [] give x to fs .
     [loop][end]
     return fs
 def [end]
@@ -1322,7 +1322,7 @@ c is fs at get 2 .
 show a[], c[] .`, want: "13\n"},
 		{name: "closure made in c-style loop survives the loop", src: `fs = list []
 [loop][i = 0 ; i < 3 ; i++]
-    add [] gives i to fs .
+    add [] give i to fs .
 [loop][end]
 f is fs at get 0 .
 show f[] .`, want: "3\n"},
@@ -1577,7 +1577,7 @@ func TestNotWithMethodsAndValueSubjects(t *testing.T) {
 	src := `import data
 import strings
 rows = list [list [], list [1]]
-rows keep r gives !r at isEmpty .
+rows keep r give !r at isEmpty .
 show rows .
 s = "abc"
 b is !s at contains "z" .
@@ -1585,7 +1585,7 @@ show b .
 show !s at isEmpty .
 show list [1, "a", 2.0] join "|" .
 orig = list [1, 2]
-big = copy[orig] process x gives x * 10
+big = copy[orig] process x give x * 10
 show orig, big .`
 	out, err := run(t, src, "")
 	if err != nil {
@@ -2182,7 +2182,7 @@ handle [file] e .
     show e .
 safe [end]`, want: "line 3: json_read nope.json: no such file or folder\n"},
 		{name: "function can't be JSON", src: `import json
-t = json_text[x gives x]`, wantErr: "json_text: a FUNCTION can't be written as JSON"},
+t = json_text[x give x]`, wantErr: "json_text: a FUNCTION can't be written as JSON"},
 		{name: "boolean key can't be JSON", src: `import json
 t = json_text[map [true: 1]]`, wantErr: "a map key that's a BOOLEAN can't be a JSON key"},
 		{name: "self-containing list", src: `import json
@@ -2354,9 +2354,9 @@ show week of today[] .`, wantErr: `a date has no part "week" (its parts: year, m
 d = today[]
 day of d = 3`, wantErr: "a date's parts can't be changed"},
 		{name: "every needs a no-parameter function", src: `import time
-every[1, "days", x gives x]`, wantErr: "'every' runs a function with no parameters, but this one takes 1"},
+every[1, "days", x give x]`, wantErr: "'every' runs a function with no parameters, but this one takes 1"},
 		{name: "every needs a positive amount", src: `import time
-every[0, "days", [] gives false]`, wantErr: "'every' amount must be at least 1"},
+every[0, "days", [] give false]`, wantErr: "'every' amount must be at least 1"},
 		{name: "compare a date with text", src: `import time
 x = today[] < "2026"`, wantErr: "needs two numbers, two strings or two dates, got DATE and STRING"},
 	}

@@ -8,16 +8,16 @@ assemble Order [item, qty, price]
 
 // ---------- simple values stay in their range ----------
 rolls = random list of 200 integers from 1 to 6
-check["rolls in 1 to 6", count_where[rolls, r gives r < 1 || r > 6], 0]
+check["rolls in 1 to 6", count_where[rolls, r give r < 1 || r > 6], 0]
 check["every face appears", length of change rolls to set, 6]
 prices = random list of 50 floats from 0.5 to 2.5 rounded to 1
-check["prices in range", count_where[prices, p gives p < 0.5 || p > 2.5], 0]
+check["prices in range", count_where[prices, p give p < 0.5 || p > 2.5], 0]
 pin = random digits of 4
 check["a pin is 4 characters", length of pin, 4]
 code = random string of 6 from "AB"
-check["only A and B", count_where[code, c gives c != "A" && c != "B"], 0]
+check["only A and B", count_where[code, c give c != "A" && c != "B"], 0]
 days = random list of 30 dates from "2026-02-27" to "2026-03-01"
-check["dates across a month end", count_where[days, d gives month of d == 2 && day of d < 27], 0]
+check["dates across a month end", count_where[days, d give month of d == 2 && day of d < 27], 0]
 
 // ---------- shapes nest ----------
 grid = random list of 3 lists of 4 booleans
@@ -29,7 +29,7 @@ letters = random set of 26 letters
 check["a set has different items", length of letters, 26] // every letter, upper or lower
 orders = random list of 4 Order [string of 3, integer from 1 to 10, float rounded to 2]
 check["assembled values", length of orders, 4]
-check["qty in range", count_where[orders, o gives qty of o < 1 || qty of o > 10], 0]
+check["qty in range", count_where[orders, o give qty of o < 1 || qty of o > 10], 0]
 
 // ---------- seed: the same values again ----------
 seed = 2026

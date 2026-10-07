@@ -12,14 +12,14 @@ import (
 // leaves its argument as it was. A key says what to order by:
 //
 //	min_sort[books]                          the items themselves, smallest first
-//	min_sort[books, b gives b at get["price"]]  a function of each item
+//	min_sort[books, b give b at get["price"]]  a function of each item
 //	min_sort[books, "price"]                 a map key, or an assembled value's field
 //	min_sort[pairs, 1]                       a position in a list of lists
 //	min_sort[books, list ["author", "price"]]   several keys: ties go to the next
 //	max_sort[books, "price", "first"]        just the top item (none if empty)
 //	max_sort[books, "price", 3]              the first 3, as a list
 //	min_sort[ages]                           a map: by its keys, as a new map
-//	max_sort[ages, a gives a]                a map: by its values (or [k, v] gives ...)
+//	max_sort[ages, a give a]                a map: by its values (or [k, v] give ...)
 //	max_sort[staff, "salary"]                a map of maps or assembled values: by a field
 //
 // The classic algorithms (bubble_sort ... radix_sort) take the same keys
@@ -247,7 +247,7 @@ func (it *Interpreter) newSortKey(fn string, key object.Object) sortKey {
 			k.many = append(k.many, it.newSortKey(fn, e))
 		}
 	default:
-		fatalKind(kindType, "%s: the key must be a function (x gives ...), a field or map key (\"price\"), a position (1), or a list of those, got %s", fn, key.Type())
+		fatalKind(kindType, "%s: the key must be a function (x give ...), a field or map key (\"price\"), a position (1), or a list of those, got %s", fn, key.Type())
 	}
 	return k
 }

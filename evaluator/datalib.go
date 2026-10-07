@@ -6,8 +6,8 @@ import "Turtle/object"
 // apply a function across a collection. With the sentence-style call form
 // they read as
 //
-//	nums process x gives x + 1 .     // process[nums, x gives x + 1]
-//	nums keep x gives x > 2 .        // keep[nums, x gives x > 2]
+//	nums process x give x + 1 .     // process[nums, x give x + 1]
+//	nums keep x give x > 2 .        // keep[nums, x give x > 2]
 //
 // process and keep change the collection in place and also return it;
 // copy makes a new one first when the original should stay as it was.
@@ -68,7 +68,7 @@ func (it *Interpreter) keepElements(fn *object.Function, elems []object.Object) 
 }
 
 // dataCopy returns a new list/set/map holding the same elements, so
-// "big = copy[nums]" then "big process x gives x * 10 ." leaves nums alone.
+// "big = copy[nums]" then "big process x give x * 10 ." leaves nums alone.
 func dataCopy(args []object.Object) object.Object {
 	if len(args) != 1 {
 		fatalf("'copy' expects 1 argument (a list, set, map, or assembled value), got %d", len(args))
@@ -102,7 +102,7 @@ func collectionAndFunction(name string, args []object.Object) (object.Object, *o
 	}
 	fn, ok := args[1].(*object.Function)
 	if !ok {
-		fatalf("'%s' needs a function (e.g. x gives x + 1), got %s", name, args[1].Type())
+		fatalf("'%s' needs a function (e.g. x give x + 1), got %s", name, args[1].Type())
 	}
 	return args[0], fn
 }
@@ -114,7 +114,7 @@ func mapFunctionArgs(name string, fn *object.Function, key, val object.Object) [
 	case 2:
 		return []object.Object{key, val}
 	}
-	fatalf("'%s' over a map needs a function of the value (x gives ...) or of the key and value ([k, v] gives ...), got %d parameters", name, len(fn.Parameters))
+	fatalf("'%s' over a map needs a function of the value (x give ...) or of the key and value ([k, v] give ...), got %d parameters", name, len(fn.Parameters))
 	return nil
 }
 

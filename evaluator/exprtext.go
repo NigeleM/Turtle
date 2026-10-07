@@ -79,10 +79,10 @@ func exprText(e ast.Expression) string {
 		}
 		if x.Body != nil && len(x.Body.Statements) == 1 {
 			if r, ok := x.Body.Statements[0].(*ast.ReturnStatement); ok {
-				return params + " gives " + exprText(r.Value)
+				return params + " give " + exprText(r.Value)
 			}
 		}
-		return params + " gives ..."
+		return params + " give ..."
 	case *ast.MinExpression:
 		return "min of " + exprText(x.Arg)
 	case *ast.MaxExpression:

@@ -1,12 +1,15 @@
 // Command turtle runs a .trt Turtle script, or shows documentation:
 //
+//	turtle                         the REPL (or runs piped-in code)
 //	turtle script.trt [args...]
 //	turtle doc [library | function | file.trt]
 //	turtle test [file.trt | folder ...]
+//	turtle version | help
 package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,100 +17,98 @@ import (
 	"Turtle/evaluator"
 	"Turtle/lexer"
 	"Turtle/parser"
+	"Turtle/repl"
 )
 
+// version is the release's tag, set when the release is built
+// (-ldflags "-X main.version=v0.9.150"); "dev" for a local build.
+var version = "dev"
+
+const usage = `Turtle %s
+
+  turtle                       the interactive prompt (REPL)
+  turtle script.trt [args]     run a program
+  turtle test [file | folder]  run the test_ functions in test_*.trt files
+  turtle doc [topic]           the standard library's documentation
+  turtle version               the version
+  turtle help                  this
+
+With input piped in (echo 'show 1 + 2 .' | turtle), turtle runs it.
+Docs: https://github.com/NigeleM/Turtle/tree/main/docs
+`
+
+// command reports whether the first argument is name and no file of that
+// name is here (a script called "test" still runs).
+func command(name string) bool {
+	if len(os.Args) < 2 || os.Args[1] != name {
+		return false
+	}
+	_, err := os.Stat(name)
+	return err != nil
+}
+
 func main() {
-	if len(os.Args) >= 2 && os.Args[1] == "doc" {
-		if _, err := os.Stat("doc"); err != nil { // not a script called doc
-			cwd, _ := os.Getwd()
-			text, err := evaluator.Doc(strings.Join(os.Args[2:], " "), cwd)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "turtle doc:", err)
-				os.Exit(1)
-			}
-			fmt.Print(text)
-			return
+	switch {
+	case command("version"):
+		fmt.Println("turtle " + version)
+		return
+	case command("help"):
+		fmt.Printf(usage, version)
+		return
+	case command("doc"):
+		cwd, _ := os.Getwd()
+		text, err := evaluator.Doc(strings.Join(os.Args[2:], " "), cwd)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "turtle doc:", err)
+			os.Exit(1)
 		}
+		fmt.Print(text)
+		return
+	case command("test"):
+		cwd, _ := os.Getwd()
+		os.Exit(evaluator.TestCommand(os.Args[2:], cwd, os.Stdout))
 	}
-	if len(os.Args) >= 2 && os.Args[1] == "test" {
-		if _, err := os.Stat("test"); err != nil { // not a script called test
-			cwd, _ := os.Getwd()
-			os.Exit(evaluator.TestCommand(os.Args[2:], cwd, os.Stdout))
+	if len(os.Args) < 2 {
+		if repl.IsTerminal() {
+			os.Exit(repl.Run(version))
 		}
+		// Piped in: run it as a program, as python does.
+		data, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "turtle:", err)
+			os.Exit(1)
+		}
+		cwd, _ := os.Getwd()
+		os.Exit(runProgram(string(data), cwd, "", nil))
 	}
-	path, err := resolveScriptPath()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "turtle:", err)
-		os.Exit(1)
-	}
+	path := os.Args[1]
 	data, err := os.ReadFile(path)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "turtle:", err)
 		os.Exit(1)
 	}
+	os.Exit(runProgram(string(data), filepath.Dir(path), filepath.Base(path), os.Args[2:]))
+}
 
-	p := parser.New(lexer.New(string(data)))
+// runProgram runs Turtle source and returns the exit code.
+func runProgram(src, dir, script string, args []string) int {
+	p := parser.New(lexer.New(src))
 	program := p.ParseProgram()
 	if errs := p.Errors(); len(errs) > 0 {
 		for _, e := range errs {
 			fmt.Fprintln(os.Stderr, "turtle: parse error:", e)
 		}
-		os.Exit(1)
+		return 1
 	}
-
-	it := evaluator.New(filepath.Dir(path))
-	it.Script = filepath.Base(path)
-	if len(os.Args) > 2 {
-		it.Args = os.Args[2:] // everything after the script path: system's args[]
-	}
+	it := evaluator.New(dir)
+	it.Script = script
+	it.Args = args // everything after the script path: system's args[]
 	if err := it.Run(program); err != nil {
 		if ex, ok := err.(evaluator.ExitRequest); ok {
-			os.Exit(ex.Code)
+			return ex.Code
 		}
 		fmt.Fprintln(os.Stderr, "turtle:", err)
-		os.Exit(1)
+		return 1
 	}
-}
-
-func resolveScriptPath() (string, error) {
-	if len(os.Args) >= 2 {
-		return os.Args[1], nil
-	}
-	return findLatestScript()
-}
-
-// findLatestScript: with no file given, run the most recently modified
-// .trt file in the current directory (as the legacy interpreter did with
-// its files).
-func findLatestScript() (string, error) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-	entries, err := os.ReadDir(cwd)
-	if err != nil {
-		return "", err
-	}
-	var best string
-	var bestTime int64 = -1
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
-		if !strings.EqualFold(filepath.Ext(e.Name()), ".trt") {
-			continue
-		}
-		info, err := e.Info()
-		if err != nil {
-			continue
-		}
-		if info.ModTime().Unix() > bestTime {
-			bestTime = info.ModTime().Unix()
-			best = filepath.Join(cwd, e.Name())
-		}
-	}
-	if best == "" {
-		return "", fmt.Errorf("no .trt file found in %s and none given on the command line", cwd)
-	}
-	return best, nil
+	return 0
 }

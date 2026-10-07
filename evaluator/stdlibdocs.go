@@ -142,23 +142,23 @@ table[...] shows. Change it like any variable; none shows every row.
   Replaces every element (of a list or set) or every value (of a map)
   with what the function gives for it. Changes the collection itself.
   collection   a list, set or map
-  function     x gives ...  (for a map: x gives ..., or [key, value] gives ...)
+  function     x give ...  (for a map: x give ..., or [key, value] give ...)
   Gives back: the same collection, changed.
   Example:
-    nums process x gives x * 10 .
+    nums process x give x * 10 .
 
 ### keep[collection, function]
   Keeps only the elements (or map entries) for which the function gives
   true: a filter. Changes the collection itself.
   Gives back: the same collection, changed.
   Example:
-    nums keep x gives x > 3 .
+    nums keep x give x > 3 .
 
 ### copy[value]
   A new list, set, map or assembled value with the same contents, so
   changing the copy leaves the original alone.
   Example:
-    big = copy[nums] process x gives x * 10
+    big = copy[nums] process x give x * 10
 
 ### table[rows, limit]
   Lays rows out as a text table, one row per line, columns lined up.
@@ -361,11 +361,11 @@ An error that stops the program is written to logfile too.
                                                    an assembled type, "is not"
     check 0.1 + 0.2 is close to 0.3 .              decimals ("within 0.01" to choose)
     check 1 div 0 fails [math] .                   the right answer is an error
-    verify nums each x gives x > 0 .               a rule for every item; also any, not,
+    verify nums each x give x > 0 .               a rule for every item; also any, not,
                                                    at least N, at most N, exactly N,
-                                                   and "each pair [a, b] gives a <= b"
+                                                   and "each pair [a, b] give a <= b"
     validate evens[nums] with nums as list of integer
-        that result each x gives x % 2 == 0 .      the rule on 100 random inputs,
+        that result each x give x % 2 == 0 .      the rule on 100 random inputs,
                                                    shrunk to the smallest that fails;
                                                    or: matches other_function[nums]
 
@@ -449,25 +449,25 @@ maps (entry by entry).
 ### min_sort[collection, key, how]
   Puts things in order, smallest first.
   collection   a list, set, map or text
-  key          optional: what to order by. A function (b gives b at get["price"]),
+  key          optional: what to order by. A function (b give b at get["price"]),
                a map key or field name ("price"), a position in a list of lists
                (1), or a list of those (list ["author", "price"]): ties go to
                the next. For a map, the key picks from each value; a function
-               gets the value (v gives ...) or the key and value ([k, v] gives ...).
+               gets the value (v give ...) or the key and value ([k, v] give ...).
                Leave it out (or none) to order the items themselves.
   how          optional: "first" gives just the first item (none if
                there's nothing); a number gives that many, as a list.
                For a map, "first" gives the key; a number, a smaller map.
   Gives back: a new list (or map), equal items in their first order.
   Example:
-    cheap = min_sort[books, b gives price of b]
+    cheap = min_sort[books, b give price of b]
     cheapest = min_sort[books, "price", "first"]
-    youngest = min_sort[ages, a gives a, "first"]
+    youngest = min_sort[ages, a give a, "first"]
 
 ### max_sort[collection, key, how]
   Like min_sort, largest first: max_sort[x, key, "first"] is the largest.
   Example:
-    top3 = max_sort[scores, s gives s, 3]
+    top3 = max_sort[scores, s give s, 3]
 
 ### is_sorted[collection, key]
   Whether it's already in order, smallest first (equal items allowed).
@@ -518,14 +518,14 @@ maps (entry by entry).
 `,
 	"search": `Finding things. Works on lists, sets, maps and text, and what's inside
 them, like the sort library. Over a map, a function gets the value
-(v gives ...) or the key and value ([k, v] gives ...).
+(v give ...) or the key and value ([k, v] give ...).
 
 ### find_first[collection, test]
   The first item for which test says yes.
-  test   a function giving true or false: b gives price of b < 1000
+  test   a function giving true or false: b give price of b < 1000
   Gives back: the item (for a map, its key), or none if nothing matches.
   Example:
-    cheap = find_first[books, b gives price of b < 1000]
+    cheap = find_first[books, b give price of b < 1000]
 
 ### find_last[collection, test]
   The last item for which test says yes, or none.
@@ -534,7 +534,7 @@ them, like the sort library. Over a map, a function gets the value
   Every item for which test says yes, in order.
   Gives back: a new list (for a map, a new map of the matching entries).
   Example:
-    out_of_stock = find_all[books, b gives stock of b == 0]
+    out_of_stock = find_all[books, b give stock of b == 0]
 
 ### find_index[collection, test]
   The position (from 0) of the first item for which test says yes, or -1.
@@ -550,11 +550,11 @@ them, like the sort library. Over a map, a function gets the value
 ### linear_search[collection, value, key]
   The position of the first item equal to value (by key, if given),
   checking each in turn, or -1. Works on anything, sorted or not.
-  key     optional: what to order by. A function (b gives b at get["price"]),
+  key     optional: what to order by. A function (b give b at get["price"]),
           a map key or field name ("price"), a position in a list of lists
           (1), or a list of those (list ["author", "price"]): ties go to
           the next. For a map, the key picks from each value; a function
-          gets the value (v gives ...) or the key and value ([k, v] gives ...).
+          gets the value (v give ...) or the key and value ([k, v] give ...).
           Leave it out (or none) to order the items themselves.
   Example:
     at = linear_search[names, "Ann"]

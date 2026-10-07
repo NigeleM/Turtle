@@ -1,5 +1,7 @@
 package object
 
+import "sort"
+
 // Environment holds variable bindings for one scope. Scopes form a chain:
 // each function call's scope encloses the scope its function was defined
 // in (the global scope for a top-level def, or the enclosing call's scope
@@ -170,4 +172,17 @@ func (e *Environment) FindImport(name string) (*Import, bool) {
 		}
 	}
 	return nil, false
+}
+
+// Names lists this scope's own variables and functions, sorted.
+func (e *Environment) Names() (vars, funcs []string) {
+	for n := range e.vars {
+		vars = append(vars, n)
+	}
+	for n := range e.functions {
+		funcs = append(funcs, n)
+	}
+	sort.Strings(vars)
+	sort.Strings(funcs)
+	return vars, funcs
 }

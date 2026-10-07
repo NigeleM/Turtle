@@ -103,7 +103,7 @@ pairs = ""
 check["for-each index", pairs, "0x1y"]
 show "loops ok" .
 
-// ---------- functions, closures, gives ----------
+// ---------- functions, closures, give ----------
 def fib[n]
     if ] n < 2 [
         return n
@@ -128,23 +128,23 @@ check["closure state", tick[], 2]
 def nothing[]
     x = 1
 def [end]
-check["no return gives none", nothing[], none]
+check["no return give none", nothing[], none]
 
-double = x gives x * 2
-plus = [a, b] gives a + b
-check["gives", double[plus[1, 2]], 6]
+double = x give x * 2
+plus = [a, b] give a + b
+check["give", double[plus[1, 2]], 6]
 def apply[f, v]
     return f[v]
 def [end]
 check["function as value", apply[double, 5], 10]
-check["gives inline arg", apply[x gives x + 1, 1], 2]
-pick = [x] gives
+check["give inline arg", apply[x give x + 1, 1], 2]
+pick = [x] give
     if ] x > 0 [
         return "pos"
     if [end]
     return "not"
-gives [end]
-check["gives block", pick[-1], "not"]
+give [end]
+check["give block", pick[-1], "not"]
 show "functions ok" .
 
 // ---------- lists, sets, maps ----------
@@ -206,15 +206,15 @@ show "strings ok" .
 
 // ---------- data library ----------
 vals = list [1, 2, 3, 4, 5, 6]
-vals keep x gives x % 2 == 0 .
-vals process x gives x * 10 .
+vals keep x give x % 2 == 0 .
+vals process x give x * 10 .
 check["keep process", vals, list [20, 40, 60]]
 orig = list [1, 2]
 dup = copy[orig]
-dup process x gives x + 1 .
+dup process x give x + 1 .
 check["copy", orig, list [1, 2]]
 prices = map ["pen": 1, "pad": 4]
-prices process [item, p] gives item + "=" + p .
+prices process [item, p] give item + "=" + p .
 check["process map", prices at get["pad"], "pad=4"]
 show "data ok" .
 

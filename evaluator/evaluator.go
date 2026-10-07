@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"os"
 	"slices"
+	"sync/atomic"
 
 	"Turtle/ast"
 	"Turtle/object"
@@ -51,6 +52,9 @@ type Interpreter struct {
 	// inBuiltin is true while a builtin library's Turtle code runs:
 	// errors then point at the caller's line, not the library's.
 	inBuiltin bool
+	// interrupt is set from outside (the REPL's Ctrl-C) to stop the code
+	// running; the next statement checks it.
+	interrupt atomic.Bool
 }
 
 func New(dir string) *Interpreter {
@@ -302,6 +306,10 @@ func (it *Interpreter) evalBlock(block *ast.BlockStatement, env *object.Environm
 }
 
 func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment) ExecResult {
+	if it.interrupt.Load() {
+		it.interrupt.Store(false)
+		panic(interruptRequest{})
+	}
 	if !it.inBuiltin {
 		currentLine = stmt.Line()
 	}

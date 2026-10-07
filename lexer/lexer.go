@@ -53,10 +53,21 @@ func (l *Lexer) peekChar2() byte {
 
 // NextToken returns the next token in the input.
 func (l *Lexer) NextToken() token.Token {
+	tok := l.nextToken()
+	// An unfinished string ("abc with no closing quote) reads one step
+	// past the end.
+	tok.End = min(l.pos, len(l.input))
+	if tok.Type == token.EOF {
+		tok.Pos, tok.End = len(l.input), len(l.input)
+	}
+	return tok
+}
+
+func (l *Lexer) nextToken() token.Token {
 	before := l.pos
 	l.skipWhitespaceAndComments()
 
-	tok := token.Token{Line: l.line, SpaceBefore: l.pos != before || l.pos == 0}
+	tok := token.Token{Line: l.line, SpaceBefore: l.pos != before || l.pos == 0, Pos: l.pos}
 	startOfLine := l.atLineStart
 	l.atLineStart = false
 

@@ -70,7 +70,7 @@ or parser changes.
 ## 2. List/set higher-order methods
 
 > **Superseded (2026-09-30).** Built as the `data` library's `process`
-> (map) and `keep` (filter), taking real function values (`x gives x + 1`
+> (map) and `keep` (filter), taking real function values (`x give x + 1`
 > or a named function) rather than a name passed as a string. See
 > `stdlib.md` §Data library. `reduce` isn't built yet.
 

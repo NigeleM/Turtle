@@ -6,8 +6,8 @@ three words, from simple to thorough, and a command that runs your tests:
 | Word | Tests | Example |
 |---|---|---|
 | `check` | one fact | `check total[order] == 45 .` |
-| `verify` | a rule, against every item of a collection | `verify evens[nums] each x gives x % 2 == 0 .` |
-| `validate` | a rule, against many random inputs | `validate evens[nums] with nums as list of integer that result each x gives x % 2 == 0 .` |
+| `verify` | a rule, against every item of a collection | `verify evens[nums] each x give x % 2 == 0 .` |
+| `validate` | a rule, against many random inputs | `validate evens[nums] with nums as list of integer that result each x give x % 2 == 0 .` |
 | `turtle test` | runs every `test_` function in every `test_*.trt` file | `turtle test` |
 
 The three words are independent: a test can use any one, two, or all
@@ -204,7 +204,7 @@ check big at superset[small] .
 check "Turtle" at contains["urt"] .
 check "42" at isNumber .
 check is_sorted[nums] .                         // import sort
-check find_first[books, b gives price of b > 900] != none .   // import search
+check find_first[books, b give price of b > 900] != none .   // import search
 ```
 
 A method works on the value right before it, the way Python's
@@ -281,15 +281,15 @@ item, and counts how many follow it:
 verify <collection> <how many> <rule> .
 ```
 
-The rule is a function that gives true or false: `x gives x > 0`, or a
+The rule is a function that gives true or false: `x give x > 0`, or a
 function's name.
 
 ### How many: each, any, not
 
 ```
-verify evens[nums] each x gives x % 2 == 0 .   // every item follows the rule
-verify orders any o gives qty of o > 100 .     // at least one does
-verify ages not a gives a < 0 .                // none does
+verify evens[nums] each x give x % 2 == 0 .   // every item follows the rule
+verify orders any o give qty of o > 100 .     // at least one does
+verify ages not a give a < 0 .                // none does
 verify list [2, 4, 8] each is_even .           // a function's name
 ```
 
@@ -308,19 +308,19 @@ a number. Each one is a plain comparison on the count:
 | `verify xs exactly N R .` | exactly N do | count `==` N |
 
 Worked through on one list, `rolls = list [6, 2, 6, 3, 5]`, which has
-two sixes (the count of `r gives r == 6` is 2):
+two sixes (the count of `r give r == 6` is 2):
 
 | verify | count vs N | result |
 |---|---|---|
-| `verify rolls at least 1 r gives r == 6 .` | 2 >= 1 | passes |
-| `verify rolls at least 2 r gives r == 6 .` | 2 >= 2 | passes |
-| `verify rolls at least 3 r gives r == 6 .` | 2 >= 3 | **fails** |
-| `verify rolls at most 2 r gives r == 6 .` | 2 <= 2 | passes |
-| `verify rolls at most 5 r gives r == 6 .` | 2 <= 5 | passes |
-| `verify rolls at most 1 r gives r == 6 .` | 2 <= 1 | **fails** |
-| `verify rolls exactly 2 r gives r == 6 .` | 2 == 2 | passes |
-| `verify rolls exactly 1 r gives r == 6 .` | 2 == 1 | **fails** |
-| `verify rolls exactly 3 r gives r == 6 .` | 2 == 3 | **fails** |
+| `verify rolls at least 1 r give r == 6 .` | 2 >= 1 | passes |
+| `verify rolls at least 2 r give r == 6 .` | 2 >= 2 | passes |
+| `verify rolls at least 3 r give r == 6 .` | 2 >= 3 | **fails** |
+| `verify rolls at most 2 r give r == 6 .` | 2 <= 2 | passes |
+| `verify rolls at most 5 r give r == 6 .` | 2 <= 5 | passes |
+| `verify rolls at most 1 r give r == 6 .` | 2 <= 1 | **fails** |
+| `verify rolls exactly 2 r give r == 6 .` | 2 == 2 | passes |
+| `verify rolls exactly 1 r give r == 6 .` | 2 == 1 | **fails** |
+| `verify rolls exactly 3 r give r == 6 .` | 2 == 3 | **fails** |
 
 The edges:
 
@@ -337,35 +337,35 @@ The edges:
 More examples:
 
 ```
-verify scores at least 3 s gives s >= 90 .          // three or more A grades
-verify errors at most 2 e gives e == "timeout" .    // timeouts are rare
-verify cards exactly 4 c gives c at contains["A"] . // four aces in the deck
-verify week exactly 2 d gives d == "Sat" || d == "Sun" .
-verify password at least 1 c gives c at isNumber .  // a string: its characters
+verify scores at least 3 s give s >= 90 .          // three or more A grades
+verify errors at most 2 e give e == "timeout" .    // timeouts are rare
+verify cards exactly 4 c give c at contains["A"] . // four aces in the deck
+verify week exactly 2 d give d == "Sat" || d == "Sun" .
+verify password at least 1 c give c at isNumber .  // a string: its characters
 ```
 
 ### What a failed verify says
 
 ```
-verify list [1, -2, 3, -4] each x gives x > 0 .
+verify list [1, -2, 3, -4] each x give x > 0 .
     2 of 4 items break the rule:
       at 1: -2
       at 3: -4
 
-verify rolls any r gives r == 1 .
+verify rolls any r give r == 1 .
     none of the 5 items follows the rule
 
-verify rolls not r gives r == 6 .
+verify rolls not r give r == 6 .
     2 of 5 items follow the rule, and none should:
       at 0: 6
       at 2: 6
 
-verify rolls at least 3 r gives r == 6 .
+verify rolls at least 3 r give r == 6 .
     2 of 5 items follow the rule; at least 3 should:
       at 0: 6
       at 2: 6
 
-verify rolls exactly 1 r gives r == 6 .
+verify rolls exactly 1 r give r == 6 .
     2 of 5 items follow the rule; exactly 1 should:
       at 0: 6
       at 2: 6
@@ -380,13 +380,13 @@ and second item, the second and third, and so on. It's how to say
 "sorted" or "always increasing":
 
 ```
-verify prices each pair [a, b] gives a <= b .     // never goes down
-verify days each pair [a, b] gives b == a + 1 .   // counts up by 1
-verify "abc" each pair [a, b] gives a < b .       // strings too
+verify prices each pair [a, b] give a <= b .     // never goes down
+verify days each pair [a, b] give b == a + 1 .   // counts up by 1
+verify "abc" each pair [a, b] give a < b .       // strings too
 ```
 
 ```
-verify list [3, 1, 2] each pair [a, b] gives a <= b .
+verify list [3, 1, 2] each pair [a, b] give a <= b .
     1 of 2 pairs breaks the rule:
       at 0 and 1: 3, 1
 ```
@@ -401,12 +401,12 @@ verify list [3, 1, 2] each pair [a, b] gives a <= b .
 | set | its items | `-3` |
 | string | its characters | `at 1: "b"` |
 | map, rule of one name | its values | `at key "bo": 25` |
-| map, rule of two names | key and value: `[name, age] gives ...` | `at key "bo": "bo", 25` |
+| map, rule of two names | key and value: `[name, age] give ...` | `at key "bo": "bo", 25` |
 
 ```
-verify ages each a gives a >= 18 .
-verify ages each [name, age] gives name at length <= 3 && age < 100 .
-verify grid each row gives length of row == 3 .     // nested: look inside
+verify ages each a give a >= 18 .
+verify ages each [name, age] give name at length <= 3 && age < 100 .
+verify grid each row give length of row == 3 .     // nested: look inside
 ```
 
 ## validate: many random inputs
@@ -421,7 +421,7 @@ validate <call> [to <name>] with <input> as <kind>, ... <rule> .
 
 ```
 validate evens[nums] with nums as list of integer
-    that result each x gives x % 2 == 0 .
+    that result each x give x % 2 == 0 .
 ```
 
 Read it as: call `evens[nums]` with `nums` as a random list of integers;
@@ -448,7 +448,7 @@ with o as Order [string, integer from 1 to 10, float]   // a kind per field
 | Rule | Passes when | Example |
 |---|---|---|
 | `that <true/false>` | it's true | `that result >= 0` |
-| `that <value> each/any/not/at least/... R` | the verify rule holds | `that result each x gives x > 0` |
+| `that <value> each/any/not/at least/... R` | the verify rule holds | `that result each x give x > 0` |
 | `matches <other call>` | both give the same answer | `matches min_sort[nums]` |
 
 The answer is called `result`; `to <name>` calls it something else. The
@@ -472,7 +472,7 @@ list in place doesn't change what the rule sees.
 
 ```
 FAIL  test_evens
-      test_lists.trt line 12: failed: validate bad_evens[nums] with nums as list of integer that result each x gives x % 2 == 0 .
+      test_lists.trt line 12: failed: validate bad_evens[nums] with nums as list of integer that result each x give x % 2 == 0 .
           failed on case 2 of 100 (seed 713144290)
           nums = [ -1 ]   (smallest found; first failed on [ 617, 577, -451, 999 ])
           result = [ -1 ]
@@ -499,7 +499,7 @@ test's checks on that function:
 ```
 def test_evens[]
     check evens[list [1, 2, 3, 4]] == list [2, 4] .
-    validate evens[nums] that result each x gives x % 2 == 0 .   // nums: lists of integers
+    validate evens[nums] that result each x give x % 2 == 0 .   // nums: lists of integers
 def [end]
 ```
 

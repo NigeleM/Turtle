@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"strings"
 	"testing"
 
 	"Turtle/token"
@@ -131,5 +132,27 @@ func TestSingleQuotedStrings(t *testing.T) {
 		if tok.Type != token.STRING || tok.Literal != want {
 			t.Errorf("%s: got %s %q, want STRING %q", src, tok.Type, tok.Literal, want)
 		}
+	}
+}
+
+// TestTokenPositions: each token knows where it is in the source.
+func TestTokenPositions(t *testing.T) {
+	src := `show "hi", x1 + 2.5 . // note`
+	l := New(src)
+	var got []string
+	for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
+		got = append(got, src[tok.Pos:tok.End])
+	}
+	want := []string{"show", `"hi"`, ",", "x1", "+", "2.5", "."}
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Errorf("got %q, want %q", got, want)
+	}
+	// An unfinished string ends at the end of the source.
+	src = `s = "abc`
+	l = New(src)
+	l.NextToken()
+	l.NextToken()
+	if tok := l.NextToken(); src[tok.Pos:tok.End] != `"abc` {
+		t.Errorf("unfinished string: %q", src[tok.Pos:tok.End])
 	}
 }

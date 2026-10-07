@@ -303,7 +303,7 @@ func (it *Interpreter) every(args []object.Object) {
 	unit := asUnitArg("every", args[1])
 	fn, ok := args[2].(*object.Function)
 	if !ok {
-		fatalf("'every' needs a function to run (e.g. backup, or [] gives ...), got %s", args[2].Type())
+		fatalf("'every' needs a function to run (e.g. backup, or [] give ...), got %s", args[2].Type())
 	}
 	if len(fn.Parameters) != 0 {
 		fatalf("'every' runs a function with no parameters, but this one takes %d", len(fn.Parameters))

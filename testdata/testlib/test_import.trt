@@ -28,7 +28,7 @@ def [end]
 
 def test_every_item[]
     rects = list [Rect[1, 2], Rect[3, 4]]
-    verify scale_all[rects, 2] each s gives width of s % 2 == 0 .
+    verify scale_all[rects, 2] each s give width of s % 2 == 0 .
 def [end]
 
 def test_random_shapes[]

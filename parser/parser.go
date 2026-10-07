@@ -294,7 +294,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 // consumes whatever satisfies stop(); the caller inspects/consumes it.
 func (p *Parser) parseBlockUntil(stop func() bool) *ast.BlockStatement {
 	defer func(was bool) { p.inBrackets = was }(p.inBrackets)
-	p.inBrackets = false // a block inside brackets ([x] gives ...) is ordinary code
+	p.inBrackets = false // a block inside brackets ([x] give ...) is ordinary code
 	block := &ast.BlockStatement{Token: p.curToken}
 	p.nextToken()
 	for !stop() && !p.curTokenIs(token.EOF) {
@@ -1381,11 +1381,15 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 // was otherwise valid: every word that can follow a name (is, at, to,
 // of, ...) is a keyword, not an IDENT.
 //
-// "x gives ..." is a one-parameter anonymous function.
+// "x give ..." is a one-parameter anonymous function.
 func (p *Parser) parseIdentifier() ast.Expression {
 	tok := p.curToken
 	if p.startsRandom() {
 		return p.parseRandomExpression()
+	}
+	// The keyword was "gives" before v0.9.150.
+	if p.peekTokenIs(token.IDENT) && p.peekToken.Literal == "gives" && p.peekToken.Line == tok.Line {
+		p.errorf("%s gives ...: the word is give now: %s give ...", tok.Literal, tok.Literal)
 	}
 	if p.peekTokenIs(token.OF) && p.peekToken.Line == tok.Line {
 		return p.parseFieldExpression()
@@ -1449,7 +1453,7 @@ func (p *Parser) argumentStartsAt(i int) bool {
 }
 
 // bracketStartsFunction reports whether the '[' at peekN(i) opens an
-// anonymous function's parameter list: "[a, b] gives", or "[] gives" for
+// anonymous function's parameter list: "[a, b] give", or "[] give" for
 // none.
 func (p *Parser) bracketStartsFunction(i int) bool {
 	if p.peekN(i).Type != token.LBRACKET {
@@ -1473,7 +1477,7 @@ func (p *Parser) bracketStartsFunction(i int) bool {
 	}
 }
 
-// parseBracketFunctionLiteral parses "[a, b] gives ...". curToken is '['.
+// parseBracketFunctionLiteral parses "[a, b] give ...". curToken is '['.
 func (p *Parser) parseBracketFunctionLiteral() ast.Expression {
 	tok := p.curToken
 	if !p.bracketStartsFunction(0) {
@@ -1493,14 +1497,14 @@ func (p *Parser) parseBracketFunctionLiteral() ast.Expression {
 	return p.parseFunctionBody(tok, params)
 }
 
-// parseFunctionBody parses what follows "gives" (curToken): an expression
-// on the same line, or, if "gives" ends its line, a block of statements
-// closed by "gives [end]" — the same shape as a def body.
+// parseFunctionBody parses what follows "give" (curToken): an expression
+// on the same line, or, if "give" ends its line, a block of statements
+// closed by "give [end]" — the same shape as a def body.
 func (p *Parser) parseFunctionBody(tok token.Token, params []string) ast.Expression {
 	if p.peekTokenIs(token.EOF) || p.peekToken.Line != p.curToken.Line {
 		body := p.parseBlockUntil(p.isGivesEnd)
 		if !p.curTokenIs(token.GIVES) {
-			p.errorf("expected 'gives [end]' to close the function, got %s (%q)", p.curToken.Type, p.curToken.Literal)
+			p.errorf("expected 'give [end]' to close the function, got %s (%q)", p.curToken.Type, p.curToken.Literal)
 			return nil
 		}
 		p.nextToken() // -> '['
@@ -1702,7 +1706,7 @@ func (p *Parser) maybeSentence(subject ast.Expression) ast.Expression {
 		return subject
 	}
 	if p.isStop(p.peekToken.Literal) {
-		return subject // "to 99.99 rounded to 2", "nums each x gives ..."
+		return subject // "to 99.99 rounded to 2", "nums each x give ..."
 	}
 	tok := p.curToken
 	p.nextToken()
@@ -2003,4 +2007,23 @@ func (p *Parser) skipLine() {
 		p.nextToken()
 	}
 	p.nextToken()
+}
+
+// ParseExpressionOnly parses the whole input as one expression (the REPL
+// shows a lone expression's value: "1 + 2", "nums"), allowing a closing
+// period. It returns nil, with errors, if the input is anything else.
+func (p *Parser) ParseExpressionOnly() ast.Expression {
+	if p.curTokenIs(token.EOF) {
+		p.errorf("nothing to work out")
+		return nil
+	}
+	e := p.parseExpression(LOWEST)
+	if p.peekTokenIs(token.PERIOD) {
+		p.nextToken()
+	}
+	if !p.peekTokenIs(token.EOF) {
+		p.errorf("unexpected %q after the expression", p.peekToken.Literal)
+		return nil
+	}
+	return e
 }

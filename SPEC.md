@@ -105,8 +105,8 @@ sum = plus[1, 2]
 - **(new)** Functions are values and nested `def`s are closures with
   lexical scoping — see `docs/reference.md` §Functions. Captured variables
   are read-only by assignment, by the same rule as globals.
-- **(new)** `gives` makes anonymous functions (`x gives x + 1`, block form
-  closed by `gives [end]`), and `a f args` calls `f[a, args]`
+- **(new)** `give` makes anonymous functions (`x give x + 1`, block form
+  closed by `give [end]`), and `a f args` calls `f[a, args]`
   sentence-style. Library verbs like `data`'s `process`/`keep` are
   ordinary functions, not syntax. See `docs/reference.md` §Functions.
 - **(new)** `assemble Name [fields]` declares a named type; `Name[...]`

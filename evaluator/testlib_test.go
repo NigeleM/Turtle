@@ -26,7 +26,7 @@ func caught(t *testing.T, setup, stmt string) string {
 func TestCheck(t *testing.T) {
 	setup := `assemble Order [item, qty]
 def evens[nums]
-    return nums keep x gives x % 2 == 0
+    return nums keep x give x % 2 == 0
 def [end]
 nums = list [1, 2, 3, 4]`
 	setup = "import data\n" + setup
@@ -130,23 +130,23 @@ def positive[x]
     return x > 0
 def [end]`
 	passes := []string{
-		`verify rolls each r gives r >= 1 && r <= 6 .`,
+		`verify rolls each r give r >= 1 && r <= 6 .`,
 		`verify rolls each positive .`,
-		`verify rolls any r gives r == 6 .`,
-		`verify rolls not r gives r == 7 .`,
-		`verify rolls at least 2 r gives r == 6 .`,
-		`verify rolls at least 0 r gives r == 7 .`,
-		`verify rolls at most 2 r gives r == 6 .`,
-		`verify rolls at most 0 r gives r == 7 .`,
-		`verify rolls exactly 2 r gives r == 6 .`,
-		`verify rolls exactly 0 r gives r == 7 .`,
-		`verify list [1, 2, 2, 5] each pair [a, b] gives a <= b .`,
-		`verify ages each a gives a >= 18 .`,
-		`verify ages each [name, age] gives name at length <= 3 && age > 0 .`,
-		`verify "abc" each c gives c != "z" .`,
-		`verify set [1, 2] each x gives x > 0 .`,
-		`verify list [] each x gives x > 100 .`,
-		`verify list [] not x gives x > 100 .`,
+		`verify rolls any r give r == 6 .`,
+		`verify rolls not r give r == 7 .`,
+		`verify rolls at least 2 r give r == 6 .`,
+		`verify rolls at least 0 r give r == 7 .`,
+		`verify rolls at most 2 r give r == 6 .`,
+		`verify rolls at most 0 r give r == 7 .`,
+		`verify rolls exactly 2 r give r == 6 .`,
+		`verify rolls exactly 0 r give r == 7 .`,
+		`verify list [1, 2, 2, 5] each pair [a, b] give a <= b .`,
+		`verify ages each a give a >= 18 .`,
+		`verify ages each [name, age] give name at length <= 3 && age > 0 .`,
+		`verify "abc" each c give c != "z" .`,
+		`verify set [1, 2] each x give x > 0 .`,
+		`verify list [] each x give x > 100 .`,
+		`verify list [] not x give x > 100 .`,
 	}
 	for _, p := range passes {
 		if msg := caught(t, setup, p); msg != "" {
@@ -154,19 +154,19 @@ def [end]`
 		}
 	}
 	fails := map[string][]string{
-		`verify rolls each r gives r < 6 .`:                     {"2 of 4 items break the rule:", "at 0: 6", "at 2: 6"},
-		`verify rolls any r gives r == 1 .`:                     {"none of the 4 items follows the rule"},
-		`verify list [] any r gives r == 1 .`:                   {"there are no items"},
-		`verify rolls not r gives r == 6 .`:                     {"2 of 4 items follow the rule, and none should:", "at 0: 6"},
-		`verify rolls at least 3 r gives r == 6 .`:              {"2 of 4 items follow the rule; at least 3 should:"},
-		`verify rolls at least 1 r gives r == 7 .`:              {"0 of 4 items follow the rule; at least 1 should"},
-		`verify rolls at most 1 r gives r == 6 .`:               {"2 of 4 items follow the rule; at most 1 should:"},
-		`verify rolls exactly 1 r gives r == 6 .`:               {"2 of 4 items follow the rule; exactly 1 should:"},
-		`verify rolls exactly 1 r gives r == 3 && r == 2 .`:     {"0 of 4 items follow the rule; exactly 1 should"},
-		`verify rolls exactly 3 r gives r == 3 .`:               {"1 of 4 items follows the rule; exactly 3 should:", "at 3: 3"},
-		`verify list [3, 1, 2] each pair [a, b] gives a <= b .`: {"1 of 2 pairs breaks the rule:", "at 0 and 1: 3, 1"},
-		`verify ages each a gives a > 26 .`:                     {`at key "bo": 25`},
-		`verify "abc" each c gives c != "b" .`:                  {`at 1: "b"`},
+		`verify rolls each r give r < 6 .`:                     {"2 of 4 items break the rule:", "at 0: 6", "at 2: 6"},
+		`verify rolls any r give r == 1 .`:                     {"none of the 4 items follows the rule"},
+		`verify list [] any r give r == 1 .`:                   {"there are no items"},
+		`verify rolls not r give r == 6 .`:                     {"2 of 4 items follow the rule, and none should:", "at 0: 6"},
+		`verify rolls at least 3 r give r == 6 .`:              {"2 of 4 items follow the rule; at least 3 should:"},
+		`verify rolls at least 1 r give r == 7 .`:              {"0 of 4 items follow the rule; at least 1 should"},
+		`verify rolls at most 1 r give r == 6 .`:               {"2 of 4 items follow the rule; at most 1 should:"},
+		`verify rolls exactly 1 r give r == 6 .`:               {"2 of 4 items follow the rule; exactly 1 should:"},
+		`verify rolls exactly 1 r give r == 3 && r == 2 .`:     {"0 of 4 items follow the rule; exactly 1 should"},
+		`verify rolls exactly 3 r give r == 3 .`:               {"1 of 4 items follows the rule; exactly 3 should:", "at 3: 3"},
+		`verify list [3, 1, 2] each pair [a, b] give a <= b .`: {"1 of 2 pairs breaks the rule:", "at 0 and 1: 3, 1"},
+		`verify ages each a give a > 26 .`:                     {`at key "bo": 25`},
+		`verify "abc" each c give c != "b" .`:                  {`at 1: "b"`},
 	}
 	for stmt, wants := range fails {
 		msg := caught(t, setup, stmt)
@@ -177,13 +177,13 @@ def [end]`
 		}
 	}
 	mistakes := map[string]string{
-		"import test\nverify list [1] each [a, b] gives a < b .":            "for neighbors write each pair",
-		"import test\nverify list [1] each pair x gives x .":                "",
-		"import test\nverify map [\"a\": 1] each pair [a, b] gives a < b .": "a map has no neighbors",
-		"import test\nverify list [1] each x gives x + 1 .":                 "the rule must give true or false",
-		"import test\nverify 5 each x gives x > 0 .":                        "needs a list, set, map or string",
-		"import test\nverify list [1] each 5 .":                             "the rule must be a function",
-		"import test\nverify list [1] at least \"two\" x gives x > 0 .":     "",
+		"import test\nverify list [1] each [a, b] give a < b .":            "for neighbors write each pair",
+		"import test\nverify list [1] each pair x give x .":                "",
+		"import test\nverify map [\"a\": 1] each pair [a, b] give a < b .": "a map has no neighbors",
+		"import test\nverify list [1] each x give x + 1 .":                 "the rule must give true or false",
+		"import test\nverify 5 each x give x > 0 .":                        "needs a list, set, map or string",
+		"import test\nverify list [1] each 5 .":                            "the rule must be a function",
+		"import test\nverify list [1] at least \"two\" x give x > 0 .":     "",
 	}
 	for src, want := range mistakes {
 		p := parser.New(lexer.New(src))
@@ -203,10 +203,10 @@ func TestValidate(t *testing.T) {
 import sort [min_sort, quick_sort]
 assemble Order [item, qty]
 def evens[nums]
-    return nums keep x gives x % 2 == 0
+    return nums keep x give x % 2 == 0
 def [end]
 def bad_evens[nums]
-    return nums keep x gives x % 2 != 1
+    return nums keep x give x % 2 != 1
 def [end]
 def plus[a, b]
     return a + b
@@ -215,7 +215,7 @@ def total[o]
     return qty of o * 2
 def [end]`
 	passes := []string{
-		`validate evens[xs] with xs as list of integer that result each x gives x % 2 == 0 .`,
+		`validate evens[xs] with xs as list of integer that result each x give x % 2 == 0 .`,
 		`validate evens[xs] to found with xs as list of integer from -50 to 50 that length of found <= length of xs .`,
 		`validate plus[a, b] with a as integer, b as integer that result == plus[b, a] .`,
 		`validate quick_sort[xs] with xs as list of integer matches min_sort[xs] .`,
@@ -229,15 +229,15 @@ def [end]`
 	}
 	// A real bug: -3 % 2 is -1, so bad_evens keeps negative odd numbers.
 	// Shrinking finds the smallest: one negative odd number, -1.
-	msg := caught(t, setup, `validate bad_evens[xs] with xs as list of integer that result each x gives x % 2 == 0 .`)
+	msg := caught(t, setup, `validate bad_evens[xs] with xs as list of integer that result each x give x % 2 == 0 .`)
 	for _, w := range []string{"failed on case", "xs = [ -1 ]", "result = [ -1 ]", "1 of 1 item breaks the rule", "to repeat this run: seed = "} {
 		if !strings.Contains(msg, w) {
 			t.Errorf("bad_evens: want %q in %q", w, msg)
 		}
 	}
 	// The same seed finds the same failing case.
-	first := caught(t, setup+"\nseed = 42", `validate bad_evens[xs] with xs as list of integer that result each x gives x % 2 == 0 .`)
-	again := caught(t, setup+"\nseed = 42", `validate bad_evens[xs] with xs as list of integer that result each x gives x % 2 == 0 .`)
+	first := caught(t, setup+"\nseed = 42", `validate bad_evens[xs] with xs as list of integer that result each x give x % 2 == 0 .`)
+	again := caught(t, setup+"\nseed = 42", `validate bad_evens[xs] with xs as list of integer that result each x give x % 2 == 0 .`)
 	if first == "" || first != again || !strings.Contains(first, "(seed 42)") {
 		t.Errorf("seed 42 twice: %q and %q", first, again)
 	}
@@ -252,7 +252,7 @@ def [end]`
 		t.Errorf("error in the call: got %q", msg)
 	}
 	// cases sets how many inputs are tried.
-	msg = caught(t, setup+"\ncases = 1\nseed = 1", `validate bad_evens[xs] with xs as list of 50 integers that result each x gives x % 2 == 0 .`)
+	msg = caught(t, setup+"\ncases = 1\nseed = 1", `validate bad_evens[xs] with xs as list of 50 integers that result each x give x % 2 == 0 .`)
 	if !strings.Contains(msg, "case 1 of 1") {
 		t.Errorf("cases = 1: got %q", msg)
 	}
@@ -262,21 +262,21 @@ func TestValidateLearnsFromChecks(t *testing.T) {
 	src := `import test
 import data
 def evens[nums]
-    return nums keep x gives x % 2 == 0
+    return nums keep x give x % 2 == 0
 def [end]
 def bad_evens[nums]
-    return nums keep x gives x % 2 != 1
+    return nums keep x give x % 2 != 1
 def [end]
 def test_learned[]
     check evens[list [1, 2, 3, 4]] == list [2, 4] .
-    validate evens[nums] that result each x gives x % 2 == 0 .
+    validate evens[nums] that result each x give x % 2 == 0 .
 def [end]
 def test_learned_bug[]
     check bad_evens[list [2, 4]] == list [2, 4] .
-    validate bad_evens[nums] that result each x gives x % 2 == 0 .
+    validate bad_evens[nums] that result each x give x % 2 == 0 .
 def [end]
 def test_nothing_to_learn[]
-    validate evens[nums] that result each x gives x % 2 == 0 .
+    validate evens[nums] that result each x give x % 2 == 0 .
 def [end]
 test_learned[]
 msg = ""
@@ -334,7 +334,7 @@ def test_two[]
     check 2 * 2 == 5 .
 def [end]
 def test_three[]
-    verify list [1, 2] each x gives x > 0 .
+    verify list [1, 2] each x give x > 0 .
 def [end]
 def helper[]
     check 1 == 2 .

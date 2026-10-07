@@ -11,6 +11,9 @@ type Token struct {
 	// a line) comes right before this token. It tells "nums get -1" (a
 	// negative argument) from "a b - 1" (subtraction).
 	SpaceBefore bool
+	// Pos and End are the token's byte offsets in the source, [Pos, End):
+	// what the REPL colors. Comments aren't tokens, so they lie between.
+	Pos, End int
 }
 
 const (
@@ -143,7 +146,7 @@ var keywords = map[string]Type{
 	"directory": DIR,
 	"break":     BREAK,
 	"continue":  CONTINUE,
-	"gives":     GIVES,
+	"give":      GIVES,
 	"in":        IN,
 	"assemble":  ASSEMBLE,
 	"safe":      SAFE,
@@ -160,4 +163,18 @@ func LookupIdent(literal string) Type {
 		return tok
 	}
 	return IDENT
+}
+
+// IsKeyword reports whether t is a reserved word's type (not true,
+// false or none, which are values).
+func IsKeyword(t Type) bool {
+	if t == TRUE || t == FALSE || t == NONE {
+		return false
+	}
+	for _, k := range keywords {
+		if k == t {
+			return true
+		}
+	}
+	return false
 }

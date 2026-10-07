@@ -347,8 +347,8 @@ type BooleanLiteral struct {
 func (bl *BooleanLiteral) expressionNode()      {}
 func (bl *BooleanLiteral) TokenLiteral() string { return bl.Token.Literal }
 
-// FunctionLiteral is an anonymous function: "x gives x + 1",
-// "[a, b] gives a + b", or the block form "[x] gives" ... "gives [end]".
+// FunctionLiteral is an anonymous function: "x give x + 1",
+// "[a, b] give a + b", or the block form "[x] give" ... "give [end]".
 // An expression body is stored as a one-statement block returning it.
 type FunctionLiteral struct {
 	Token      token.Token
@@ -587,9 +587,9 @@ func (c *CheckStatement) Line() int            { return c.Token.Line }
 // Rule is the part of verify (and validate's "that ... each") after the
 // collection: how many items must follow the rule, and the rule.
 //
-//	each x gives x > 0        any ...        not ...
+//	each x give x > 0        any ...        not ...
 //	at least 2 ...            at most 2 ...  exactly 2 ...
-//	each pair [a, b] gives a <= b
+//	each pair [a, b] give a <= b
 type Rule struct {
 	Quant string     // each any not atleast atmost exactly
 	Count Expression // atleast, atmost, exactly
@@ -619,7 +619,7 @@ type ValidateInput struct {
 // that <rule> ." (import test): the call, run on random inputs.
 //
 //	that <true/false>                      That
-//	that <value> each x gives ...          Collection and Rule
+//	that <value> each x give ...          Collection and Rule
 //	matches <other call>                   Matches
 //
 // Without "with", Examples are the calls to the same function in the

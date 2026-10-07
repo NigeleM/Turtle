@@ -174,7 +174,7 @@ fatal error naming exactly which import is missing.
 ```
 import math
 
-r is 16 at sqrt .        // 4.0 (sqrt always gives a float)
+r is 16 at sqrt .        // 4.0 (sqrt always give a float)
 p is 2 at pow 10 .       // 1024
 n is 10 at random .      // some integer in [0, 10)
 ```
@@ -292,32 +292,32 @@ original. `table`, `table_read` and `table_write` are described
 | `keep` | collection, function | keeps only the elements (list/set) or entries (map) for which the function gives a truthy result: a filter |
 | `copy` | collection | a new list/set/map with the same elements, or a new assembled value with the same fields |
 
-For a map, the function takes the value (`x gives ...`), or the key and the
-value (`[k, v] gives ...`).
+For a map, the function takes the value (`x give ...`), or the key and the
+value (`[k, v] give ...`).
 
 ```
 import data
 
 nums = list [5, 3, 8, 1]
-nums process x gives x + 1 .        // [ 6, 4, 9, 2 ]
-nums keep x gives x > 3 .           // [ 6, 4, 9 ]
+nums process x give x + 1 .        // [ 6, 4, 9, 2 ]
+nums keep x give x > 3 .           // [ 6, 4, 9 ]
 
 words = list ["hey", "do"]
-words process x gives x at upper .  // [ "HEY", "DO" ]
+words process x give x at upper .  // [ "HEY", "DO" ]
 
 nums process double .               // any function value works
 
 ages = map ["Alice": 30, "Bob": 25]
 labels = copy[ages]
-labels process [name, age] gives name + " is " + age .
-ages keep [name, age] gives age > 26 .   // { "Alice": 30 }
+labels process [name, age] give name + " is " + age .
+ages keep [name, age] give age > 26 .   // { "Alice": 30 }
 
-nums process [x] gives              // block form for longer logic
+nums process [x] give              // block form for longer logic
     if ] x > 5 [
         return x * 2
     if [end]
     return x
-gives [end]
+give [end]
 ```
 
 These are ordinary functions, so you can write your own in a `.trt` library
@@ -634,9 +634,9 @@ import test
 
 def test_evens[]
     check evens[list [1, 2, 3, 4]] == list [2, 4] .
-    verify evens[nums] each x gives x % 2 == 0 .
+    verify evens[nums] each x give x % 2 == 0 .
     validate evens[nums] with nums as list of integer
-        that result each x gives x % 2 == 0 .
+        that result each x give x % 2 == 0 .
 def [end]
 ```
 
@@ -663,7 +663,7 @@ list (a new map, for a map) and leaves the original unchanged. The
 | Key | Orders by | Example |
 |---|---|---|
 | left out, or `none` | the items themselves (a map: its keys) | `min_sort[nums]` |
-| a function | what it gives for each item | `min_sort[books, b gives price of b]` |
+| a function | what it gives for each item | `min_sort[books, b give price of b]` |
 | text | that map key, or assembled field | `min_sort[books, "price"]` |
 | an integer | that position in a list of lists | `min_sort[pairs, 1]` |
 | a list of those | the first, then the next for ties | `min_sort[books, list ["author", "price"]]` |
@@ -675,16 +675,16 @@ like Python's `max(books, key=...)`.
 
 **Maps** sort by entry and give back a new map in that order. With no
 key, by the map's keys; a text or integer key picks from each value; a
-function gets the value (`v gives ...`) or the key and value
-(`[k, v] gives ...`). `"first"` gives a key.
+function gets the value (`v give ...`) or the key and value
+(`[k, v] give ...`). `"first"` gives a key.
 
 ```
 import sort
 
 ages = map ["Cy": 41, "Ann": 30, "Bo": 25]
 show min_sort[ages] .                      // { "Ann": 30, "Bo": 25, "Cy": 41 }
-show max_sort[ages, a gives a] .           // { "Cy": 41, "Ann": 30, "Bo": 25 }
-show min_sort[ages, a gives a, "first"] .  // Bo
+show max_sort[ages, a give a] .           // { "Cy": 41, "Ann": 30, "Bo": 25 }
+show min_sort[ages, a give a, "first"] .  // Bo
 ```
 
 **One order for every value**, so mixed and nested collections sort with
@@ -711,7 +711,7 @@ inside them. Keys work as in the sort library.
 | `binary_search`, `jump_search`, `exponential_search`, `interpolation_search`, `ternary_search` `[sorted, value [, key]]` | the same answer, faster, on a collection sorted smallest first by the same key |
 | `insert_position[sorted, value [, key]]` | where `value` would go to keep it sorted |
 
-`test` is a function giving `true` or `false`: `b gives price of b < 1000`.
+`test` is a function giving `true` or `false`: `b give price of b < 1000`.
 
 ```
 import sort
@@ -720,7 +720,7 @@ import search
 assemble Book [title, price]
 books = list [Book["Dune", 950], Book["Emma", 700], Book["Kindred", 950]]
 
-cheap = find_all[books, b gives price of b < 900]          // [ Book Emma ]
+cheap = find_all[books, b give price of b < 900]          // [ Book Emma ]
 by_price = min_sort[books, "price"]
 at = binary_search[by_price, 950, "price"]                  // 1: the first 950
 pos = insert_position[by_price, 800, "price"]               // 1

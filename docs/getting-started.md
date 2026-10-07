@@ -38,11 +38,16 @@ File paths in a script (`[read] data.txt ...`) are relative to the folder
 you run `turtle` from, like any command-line tool. `import` always looks
 next to the script.
 
-If you omit the path, `turtle` looks for the most recently modified `.trt`
-file in the current directory and runs that instead:
+Run `turtle` with no file for the interactive prompt (the REPL), with
+the code colored as you type ([`repl.md`](repl.md)):
 
 ```sh
 ./turtle
+```
+
+```
+>>> 1 + 2
+3
 ```
 
 ## Your first script
@@ -98,6 +103,7 @@ and benchmarks.
 - [`reference.md`](reference.md) — the complete, formal syntax reference
 - [`stdlib.md`](stdlib.md) — data structure methods, file I/O, `sys`, `import`
 - [`testing.md`](testing.md) — tests: `check`, `verify`, `validate`, `turtle test`
+- [`repl.md`](repl.md) — the interactive prompt: colors, keys, commands
 - [`architecture.md`](architecture.md) — how the interpreter itself works,
   for anyone modifying it
 - [`contributing.md`](contributing.md) — how to add new syntax or stdlib

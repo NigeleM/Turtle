@@ -25,7 +25,7 @@ non-terminal; `[x]` is optional; `{x}` is zero-or-more; `|` is alternation.
 - **Reserved words** (cannot be used as identifiers): `true false none show if
   else def end loop return list set map import sys to from at of is add
   change remove delete sort reverse insert min max length read write append
-  directory break continue gives in assemble safe handle fail warn div`. Type names used after `change ... to` —
+  directory break continue give in assemble safe handle fail warn div`. Type names used after `change ... to` —
   `integer`, `float`, `string`, `ascii`, `char`, `hex` — are **not** reserved;
   like method names (`get`, `union`, ...) they're plain identifiers whose
   meaning is only special right after `to`.
@@ -394,32 +394,32 @@ show tick[] .               // 1
 show tick[] .               // 2
 ```
 
-### Anonymous functions: `gives`
+### Anonymous functions: `give`
 
 ```
-x gives <expr>             // one parameter
-[a, b] gives <expr>        // several, bracketed like a def
-[] gives <expr>            // none
-[x] gives                  // block form: a whole body, closed by gives [end]
+x give <expr>             // one parameter
+[a, b] give <expr>        // several, bracketed like a def
+[] give <expr>            // none
+[x] give                  // block form: a whole body, closed by give [end]
     <statement> ...
-gives [end]
+give [end]
 ```
 
-`gives` makes a function without a name. It's a value like any other
+`give` makes a function without a name. It's a value like any other
 function, and it can read the variables around it (it's a closure).
 
 ```
-double = x gives x * 2
+double = x give x * 2
 show double[4] .                     // 8
-plus = [a, b] gives a + b
-show apply[x gives x + 1, 3] .       // 4
+plus = [a, b] give a + b
+show apply[x give x + 1, 3] .       // 4
 
-big = [x] gives
+big = [x] give
     if ] x > 3 [
         return true
     if [end]
     return false
-gives [end]
+give [end]
 ```
 
 The expression form's body runs to the end of the expression, so inside a
@@ -436,14 +436,14 @@ becomes the first argument. It works with any function: your own, an
 imported one, or a builtin like `data`'s `process`.
 
 ```
-nums process x gives x + 1 .         // process[nums, x gives x + 1]
-r = nums scale x gives x + 1, 10     // scale[nums, x gives x + 1, 10]
+nums process x give x + 1 .         // process[nums, x give x + 1]
+r = nums scale x give x + 1, 10     // scale[nums, x give x + 1, 10]
 show nums total .                    // total[nums]
 ```
 
 - The left side is a variable name, a literal (`"lo" isinstring line`,
   `list [1, 2] join ","`), or a call's result
-  (`big = copy[nums] process x gives x * 10` processes a copy).
+  (`big = copy[nums] process x give x * 10` processes a copy).
 - An argument runs to the end of the expression, so
   `"abc" find "c" - 1` is `find["abc", "c" - 1]`. To use a sentence's
   result in arithmetic, store it first: `i = "abc" find "c"`, then
@@ -683,7 +683,7 @@ inside the loop can't make it skip or repeat elements. `break`,
 Loop names (`x`, or `k, v`) belong to the loop: a variable of the same
 name outside isn't touched, and they're gone once the loop ends. Each pass
 has its own copy, so a function made inside the loop
-(`add [] gives x to fs .`) keeps the value it saw. Every other assignment
+(`add [] give x to fs .`) keeps the value it saw. Every other assignment
 in the body works as if the loop weren't there: `t = t + x` updates `t`
 outside.
 
@@ -839,7 +839,7 @@ is a fatal error that shows the chain.
   `.csv`, `.tsv`, `.txt` and `.json` table files (see
   [`stdlib.md`](stdlib.md#data-library)). They're
   ordinary functions, usually called sentence-style:
-  `nums process x gives x + 1 .`, `show table[rows] .`
+  `nums process x give x + 1 .`, `show table[rows] .`
 - `import random` makes random values of any shape, written as a
   sentence: `random list of 5 integers from 0 to 9`, `random Order [string,
   integer]`; plus `pick`, `shuffle`, `sample`, `chance` and the `seed`
@@ -906,12 +906,12 @@ validate <call> [to <name>] [with <name> as <kind>, ...] matches <call> .
 
 - `<how many>` is `each`, `any`, `not`, `at least N`, `at most N` or
   `exactly N`, optionally followed by `pair` (neighbors two at a time).
-  `<rule>` is a function giving true or false (`x gives x > 0`, or a
+  `<rule>` is a function giving true or false (`x give x > 0`, or a
   function's name).
 - `validate`'s `<kind>` uses the random library's words
   (`list of integer`, `Order [string, integer]`); its rule is `that`
   followed by a true/false expression or a verify-style rule
-  (`that result each x gives ...`), or `matches` another call. Without
+  (`that result each x give ...`), or `matches` another call. Without
   `with`, it learns the kinds from the same test's checks on that
   function. The sentence can go over several lines; it ends at its
   period.

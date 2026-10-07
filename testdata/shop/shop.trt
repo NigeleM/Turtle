@@ -126,7 +126,7 @@ check["stock after orders", list [stock of b1, stock of b4], list [0, 5]]
 show banner["orders"] .
 
 // ---------- totals: data library, closures, module functions ----------
-totals = copy[results] process r gives r at get["total"]
+totals = copy[results] process r give r at get["total"]
 revenue = 0
 [loop][t in totals]
     revenue = revenue + t
@@ -134,7 +134,7 @@ revenue = 0
 check["revenue", revenue, 8105]
 check["money", money[revenue], "$81.05"]
 check["money pads cents", money[5], "$0.05"]
-big = copy[totals] keep t gives t > 2300
+big = copy[totals] keep t give t > 2300
 check["keep", big, list [2624, 3240]]
 check["qualified call", pricing average[totals], 2701]
 check["plain call", average[totals], 2701]
@@ -150,7 +150,7 @@ handle [math] e .
 safe [end]
 
 // ---------- customers: sets, strings ----------
-names = copy[results] process r gives r at get["customer"]
+names = copy[results] process r give r at get["customer"]
 unique = change names to set
 back = change unique to list
 sort back .

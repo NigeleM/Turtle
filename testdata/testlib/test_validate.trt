@@ -28,7 +28,7 @@ def [end]
 // that <rule about result>: the answer is called result.
 def test_rule_on_the_answer[]
     validate evens[nums] with nums as list of integer
-        that result each x gives x % 2 == 0 .
+        that result each x give x % 2 == 0 .
 def [end]
 
 // to name: call the answer something else; the rule can use the inputs.
@@ -59,21 +59,21 @@ def [end]
 // checks on the same function (here, lists of integers).
 def test_learned_inputs[]
     check evens[list [1, 2, 3, 4]] == list [2, 4] .
-    validate evens[nums] that result each x gives x % 2 == 0 .
+    validate evens[nums] that result each x give x % 2 == 0 .
 def [end]
 
 // A failing validate, caught to show what it reports. This version keeps
 // every number that isn't 1 more than an even: -3 % 2 is -1, so negative
 // odd numbers slip through.
 def bad_evens[nums]
-    return nums keep n gives n % 2 != 1
+    return nums keep n give n % 2 != 1
 def [end]
 
 def test_what_a_failure_says[]
     msg = ""
     safe
         validate bad_evens[nums] with nums as list of integer
-            that result each x gives x % 2 == 0 .
+            that result each x give x % 2 == 0 .
     handle [test] e .
         msg = message of e
     safe [end]

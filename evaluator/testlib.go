@@ -383,7 +383,7 @@ func ruleItems(coll object.Object, fn *object.Function, pair bool) []ruleItem {
 			case 2:
 				out = append(out, ruleItem{label, []object.Object{key, c.Values[k]}})
 			default:
-				fatalf("a rule for a map takes one name (the value) or two ([key, value] gives ...), got %d", n)
+				fatalf("a rule for a map takes one name (the value) or two ([key, value] give ...), got %d", n)
 			}
 		}
 		return out
@@ -392,7 +392,7 @@ func ruleItems(coll object.Object, fn *object.Function, pair bool) []ruleItem {
 	}
 	if pair {
 		if n != 2 {
-			fatalf("each pair needs a rule of two names: each pair [a, b] gives a <= b")
+			fatalf("each pair needs a rule of two names: each pair [a, b] give a <= b")
 		}
 		var out []ruleItem
 		for i := 0; i+1 < len(elems); i++ {
@@ -405,7 +405,7 @@ func ruleItems(coll object.Object, fn *object.Function, pair bool) []ruleItem {
 		return out
 	}
 	if n != 1 {
-		fatalf("the rule takes %d names; for one item at a time use one (x gives ...), for neighbors write each pair [a, b] gives ...", n)
+		fatalf("the rule takes %d names; for one item at a time use one (x give ...), for neighbors write each pair [a, b] give ...", n)
 	}
 	out := make([]ruleItem, len(elems))
 	for i, e := range elems {
@@ -420,7 +420,7 @@ func (it *Interpreter) checkRule(r *ast.Rule, coll object.Object, env *object.En
 	f := it.evalExpression(r.Fn, env)
 	fn, ok := f.(*object.Function)
 	if !ok || fn.Shape != nil {
-		fatalf("the rule must be a function, e.g. x gives x > 0, or a function's name; %s is %s", exprText(r.Fn), object.Shown(f))
+		fatalf("the rule must be a function, e.g. x give x > 0, or a function's name; %s is %s", exprText(r.Fn), object.Shown(f))
 	}
 	items := ruleItems(coll, fn, r.Pair)
 	var follow, breaks []ruleItem

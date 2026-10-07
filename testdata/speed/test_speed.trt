@@ -200,12 +200,12 @@ def [end]
 // ---------- data library and sentence calls ----------
 def test_keep_and_process_1k[]
     nums = change numbers to list
-    nums keep n gives n > 0 .
-    nums process n gives n * 2 .
+    nums keep n give n > 0 .
+    nums process n give n * 2 .
 def [end]
 
 def test_find_first[]
-    x = find_first[numbers, n gives n > 990]
+    x = find_first[numbers, n give n > 990]
 def [end]
 
 def test_table_of_100_orders[]

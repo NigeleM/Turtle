@@ -35,7 +35,7 @@ jobs:
     - name: Build the binary for macOS
       run: |
         mkdir -p release
-        CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w" -o release/turtle-darwin-arm64 ./cmd/turtle
+        CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w -X main.version=${{ github.ref_name }}" -o release/turtle-darwin-arm64 ./cmd/turtle
 
     - name: Create macOS Installer
       run: |
@@ -79,7 +79,7 @@ jobs:
     - name: Build the binary for Linux
       run: |
         mkdir -p release
-        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o release/turtle-linux-amd64 ./cmd/turtle
+        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X main.version=${{ github.ref_name }}" -o release/turtle-linux-amd64 ./cmd/turtle
 
     - name: Install fpm for packaging
       run: |
@@ -127,7 +127,7 @@ jobs:
         $env:CGO_ENABLED="0"
         $env:GOOS="windows"
         $env:GOARCH="amd64"
-        go build -ldflags "-s -w" -o release/turtle-windows-amd64.exe ./cmd/turtle
+        go build -ldflags "-s -w -X main.version=${{ github.ref_name }}" -o release/turtle-windows-amd64.exe ./cmd/turtle
 
     - name: Upload Windows Release
       uses: softprops/action-gh-release@v1

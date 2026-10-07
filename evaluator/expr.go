@@ -464,7 +464,7 @@ func evalChange(typeName string, val object.Object) object.Object {
 
 // evalCall resolves "name[...]" and runs it. Resolution order:
 //  1. a variable holding a function (a parameter, a nested def, an
-//     anonymous "gives" function, or a function returned from another
+//     anonymous "give" function, or a function returned from another
 //     call) — a variable holding a non-function doesn't block the lookup,
 //     so existing scripts with a variable and a function of the same name
 //     keep working;

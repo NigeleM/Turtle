@@ -357,3 +357,17 @@ func TestParsePlainBraces(t *testing.T) {
 		t.Errorf("first part %q", first)
 	}
 }
+
+// TestGivesIsNowGive: code written with the old word says how to fix it.
+func TestGivesIsNowGive(t *testing.T) {
+	p := New(lexer.New("f = x gives x + 1"))
+	p.ParseProgram()
+	if errs := strings.Join(p.Errors(), "\n"); !strings.Contains(errs, "x gives ...: the word is give now: x give ...") {
+		t.Errorf("got %q", errs)
+	}
+	p = New(lexer.New("f = x give x + 1"))
+	p.ParseProgram()
+	if len(p.Errors()) > 0 {
+		t.Errorf("give: %v", p.Errors())
+	}
+}

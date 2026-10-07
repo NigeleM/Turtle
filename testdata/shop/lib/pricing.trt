@@ -7,7 +7,7 @@ assemble Item [sku, title, price, stock, tags]
 // make_discount returns a closure that takes pct percent off an amount
 // in cents. Each coupon keeps its own pct.
 def make_discount[pct]
-    return amount gives amount - amount * pct div 100
+    return amount give amount - amount * pct div 100
 def [end]
 
 // add_tax adds rate percent, rounded to the nearest cent.

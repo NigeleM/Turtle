@@ -814,3 +814,31 @@ safe [end]
   the program ended, and Windows won't delete an open file (log.trt
   erases its log at the end). Each line now opens, adds to and closes
   the file, so a log can be read, moved or deleted while a program runs.
+
+## 2026-10-06: the REPL (not yet released)
+
+- `turtle` with no file opens the REPL (package repl): a lone expression
+  or call shows its value, blocks wait for their end with `...` and
+  auto-indent, errors don't end the session, imports carry on.
+- Colored as you type from the real lexer (tokens now carry their
+  positions): IDLE's scheme. NO_COLOR turns it off.
+- Line editing by hand on the standard library: raw mode through termios
+  (macOS, Linux) and the console API (Windows); arrows, words, history
+  (~/.turtle_history), Ctrl-C cancels a line or stops running code
+  (the interpreter checks an interrupt flag each statement).
+- Commands: help, quit, clear, names, load file, save file.
+- Piped input (`echo ... | turtle`) runs as a program; `turtle version`
+  (set by the release build) and `turtle help`. The old "no file runs the
+  newest .trt" is gone (the user's decision).
+- docs/repl.md; tests for colors, block detection, keys, editing,
+  redraws, sessions, commands, history, Ctrl-C; checked live in a pty.
+
+## 2026-10-06: give, not gives (not yet released)
+
+- The anonymous-function word is `give`: `x give x + 1`,
+  `[k, v] give ...`, a multi-line body closed by `give [end]` (the
+  user's choice: fewer letters to type). `gives` is no longer a keyword;
+  code that still uses it gets "x gives ...: the word is give now".
+  Every example, test and doc updated (prose "gives back" left as is).
+- The REPL shows one clear error for a line that isn't valid Turtle,
+  not the parser's follow-on complaints.

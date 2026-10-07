@@ -10,8 +10,8 @@ import (
 // compare (for a map, picked from each value). Over a map, find_first
 // and find_last give the matching key, find_all a map of the matches.
 //
-//	find_first[books, b gives b at get["price"] < 1000]   the first match, or none
-//	find_all[books, b gives b at get["stock"] == 0]       every match, a list
+//	find_first[books, b give b at get["price"] < 1000]   the first match, or none
+//	find_all[books, b give b at get["stock"] == 0]       every match, a list
 //	find_key[ages, 30]                                    the key holding 30, or none
 //	binary_search[sorted, 950, "price"]                   where 950 is, or -1
 //
@@ -27,7 +27,7 @@ func (it *Interpreter) callSearch(name string, args []object.Object) object.Obje
 		items, isMap := entriesOf(name, args[0])
 		test, ok := args[1].(*object.Function)
 		if !ok {
-			fatalf("'%s' needs a function that says yes or no (x gives x > 3), got %s", name, args[1].Type())
+			fatalf("'%s' needs a function that says yes or no (x give x > 3), got %s", name, args[1].Type())
 		}
 		match := func(e entry) bool {
 			if isMap {
