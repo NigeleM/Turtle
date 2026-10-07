@@ -262,6 +262,18 @@ show <expr> {, <expr>} .
 Each piece is evaluated and its display form concatenated, in order, with
 no separator inserted.
 
+**Floats show to 15 significant digits**, as Excel and SQLite show them,
+so the leftovers of binary arithmetic don't: `0.1 + 0.2` shows `0.3`, and
+`list [1, 2, 3] process x give x * 0.2` shows `[ 0.2, 0.4, 0.6 ]`. They
+compare the same way: when either side is a float, `==`, `!=`, `<`,
+`<=`, `>` and `>=` use the 15-digit values, so `0.1 + 0.2 == 0.3` is
+`true` and `0.30000000000000004 > 0.3` is `false`: what shows the same
+is equal. Sets, map keys, `contains` and `count` agree. Integers compare
+exactly. The value itself keeps every digit, and writing to a file
+(JSON, CSV) or a database keeps them all. For a looser match, round
+first (`x at round[2] == y at round[2]`), or use `is close to` in a test.
+For a fixed number of places on screen, use `x at fixed[2]` (`"0.30"`).
+
 ## Strings
 
 `{<expr>}` inside a string puts the value of `<expr>` there, shown the
@@ -846,7 +858,9 @@ Method-call form:
 <ident> is <expr> [at <method> [<expr> {, <expr>}]] .
 ```
 
-Plain `<ident> is <expr> .` (no `at`) is assignment/aliasing.
+Plain `<ident> is <expr> .` (no `at`) is assignment/aliasing. An `is`
+line is a sentence, so it ends with a period like `show` and `add`;
+`name = value` is the same assignment without one.
 
 `insert` and `put` both take a position from 0: `insert 99 to nums at 1 .`
 pushes the items from 1 along (the list gets longer); `put 99 to nums at

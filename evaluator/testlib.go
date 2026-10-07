@@ -113,7 +113,7 @@ func (it *Interpreter) evalCheck(c *ast.CheckStatement, env *object.Environment)
 			if c.Negate {
 				testFail(c.Text, []string{fmt.Sprintf("got %s, which is within %s of %s", v.Inspect(), allowed, other.Inspect())})
 			}
-			testFail(c.Text, []string{fmt.Sprintf("got %s, want %s (off by %s; allowed: %s)", v.Inspect(), other.Inspect(), diff, allowed)})
+			testFail(c.Text, []string{fmt.Sprintf("got %s, want %s (off by %s; allowed: %s)", object.Exact(v), object.Exact(other), diff, allowed)})
 		}
 	case "fails":
 		v, fe := it.tryEval(c.Value, env)

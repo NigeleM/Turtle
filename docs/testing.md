@@ -249,8 +249,10 @@ Outside a test, the same kinds work as a true/false value with `type`
 ### Decimals: `is close to`
 
 Decimals are stored in binary, so most aren't exact: `0.1 + 0.2` is
-`0.30000000000000004`, and `check 0.1 + 0.2 == 0.3 .` fails. Compare
-them with `is close to`:
+`0.30000000000000004` inside. Turtle shows and compares floats to 15
+significant digits, so `check 0.1 + 0.2 == 0.3 .` passes, as it reads.
+For a bigger allowance (measurements, money in cents, results of long
+calculations), use `is close to`:
 
 ```
 check 0.1 + 0.2 is close to 0.3 .              // allows a tiny rounding difference

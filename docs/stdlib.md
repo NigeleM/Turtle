@@ -192,7 +192,7 @@ The math methods:
 |---|---|---|
 | `sqrt` | — | square root, as a `float` (fatal on a negative receiver) |
 | `abs` | — | absolute value, same type as the receiver |
-| `round` | — | nearest integer (half rounds away from zero) |
+| `round` | [places] | nearest integer (half rounds away from zero). `round[2]` keeps 2 places and gives a `float` (`3.14159` → `3.14`, `0.6000000000000001` → `0.6`); `round[-2]` rounds to hundreds (`1234` → `1200`). For a fixed look with trailing zeros (`"0.60"`), use `fixed`, which gives text |
 | `floor` | — | next integer toward negative infinity |
 | `ceil` | — | next integer toward positive infinity |
 | `pow` | exponent | receiver raised to exponent: an `integer` when both are whole numbers and the exponent isn't negative, otherwise a `float` |

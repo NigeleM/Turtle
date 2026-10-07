@@ -219,7 +219,7 @@ func writeJSON(buf *bytes.Buffer, who string, v object.Object, indent, prefix st
 		if math.IsInf(x.Value, 0) || math.IsNaN(x.Value) {
 			fatalf("%s: %s can't be written as JSON", who, x.Inspect())
 		}
-		buf.WriteString(x.Inspect())
+		buf.WriteString(x.Exact()) // every digit: data, not display
 	case *object.String:
 		writeJSONString(buf, x.Value)
 	case *object.Date:

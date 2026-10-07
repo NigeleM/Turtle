@@ -83,3 +83,21 @@ func TestTextOverSeveralLines(t *testing.T) {
 		t.Errorf("quotes paired wrong: got %v", e)
 	}
 }
+
+// An is line is a sentence: it ends with a period, and the error says
+// = needs none.
+func TestIsNeedsPeriod(t *testing.T) {
+	for _, src := range []string{"b is a process x give x * 0.2\nshow b .\n", "u is \"a\" at upper\n", "x is 1"} {
+		p := New(lexer.New(src))
+		p.ParseProgram()
+		errs := p.ErrorList()
+		if len(errs) == 0 || errs[0].Line != 1 || !strings.Contains(errs[0].Msg, "a line with is ends with '.' (or write name = value, which needs none)") {
+			t.Errorf("%q: got %v", src, errs)
+		}
+	}
+	p := New(lexer.New("x is 1 .\ny is x at upper .\n"))
+	p.ParseProgram()
+	if errs := p.ErrorList(); len(errs) > 0 {
+		t.Errorf("got %v", errs)
+	}
+}

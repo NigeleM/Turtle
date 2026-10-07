@@ -3,6 +3,7 @@ package evaluator
 import (
 	"fmt"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -10,6 +11,7 @@ import (
 
 	"Turtle/ast"
 	"Turtle/object"
+	"Turtle/syntax"
 )
 
 func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environment) object.Object {
@@ -277,7 +279,11 @@ func evalInfix(op string, left, right object.Object) object.Object {
 		}
 	case "<", ">", "<=", ">=":
 		if lIsNum && rIsNum {
-			return &object.Boolean{Value: compareNum(op, lf, rf)}
+			if !lIsInt || !rIsInt { // a float: compared as they show, to 15 digits
+				c := object.CompareFloats(lf, rf)
+				return &object.Boolean{Value: compareNum(op, float64(c), 0)}
+			}
+			return &object.Boolean{Value: compareInt(op, left.(*object.Integer).Value, right.(*object.Integer).Value)}
 		}
 		ls, lok := left.(*object.String)
 		rs, rok := right.(*object.String)
@@ -304,6 +310,20 @@ func evalInfix(op string, left, right object.Object) object.Object {
 }
 
 func compareNum(op string, l, r float64) bool {
+	switch op {
+	case "<":
+		return l < r
+	case ">":
+		return l > r
+	case "<=":
+		return l <= r
+	case ">=":
+		return l >= r
+	}
+	return false
+}
+
+func compareInt(op string, l, r int64) bool {
 	switch op {
 	case "<":
 		return l < r
@@ -552,6 +572,9 @@ func (it *Interpreter) callByName(name string, args []object.Object, env *object
 		if mod.ExportsFunction(name) {
 			requireModule(env, mod.Name, name)
 		}
+	}
+	if slices.Contains(syntax.Methods, name) {
+		fatalKind(kindName, "%s is a method, not a function: write it after a value with at, as in x at %s", name, name)
 	}
 	fatalKind(kindName, "undefined function %q", name)
 	return nil

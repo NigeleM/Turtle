@@ -2,6 +2,7 @@ package object
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -17,9 +18,14 @@ import (
 // the same value — so 1 and "1" are different, even though both show
 // as 1.
 func Equal(a, b Object) bool {
+	if ai, ok := a.(*Integer); ok {
+		if bi, ok := b.(*Integer); ok {
+			return ai.Value == bi.Value
+		}
+	}
 	if af, ok := number(a); ok {
 		bf, ok := number(b)
-		return ok && af == bf
+		return ok && CompareFloats(af, bf) == 0
 	}
 	switch av := a.(type) {
 	case *List:
@@ -91,10 +97,13 @@ func Key(obj Object) string {
 	case *String:
 		return strconv.Quote(v.Value)
 	case *Float:
-		if v.Value == float64(int64(v.Value)) {
-			return strconv.FormatInt(int64(v.Value), 10)
+		// The 15-digit value, as Equal compares: 0.1 + 0.2 and 0.3 are one
+		// key, and 2.0000000000000004 is the key of 2.
+		r := Round15(v.Value)
+		if r == float64(int64(r)) {
+			return strconv.FormatInt(int64(r), 10)
 		}
-		return v.Inspect()
+		return floatText(r)
 	case *Set:
 		parts := make([]string, len(v.Elements))
 		for i, e := range v.Elements {
@@ -125,6 +134,39 @@ func Key(obj Object) string {
 		return fmt.Sprintf("function %p", v)
 	}
 	return obj.Inspect()
+}
+
+// Round15 is v to 15 significant digits, the way floats show (Inspect).
+func Round15(v float64) float64 {
+	if v == 0 || math.IsInf(v, 0) || math.IsNaN(v) {
+		return v
+	}
+	r, _ := strconv.ParseFloat(strconv.FormatFloat(v, 'g', 15, 64), 64)
+	return r
+}
+
+// CompareFloats orders two numbers as they show, to 15 significant
+// digits: 0.1 + 0.2 equals 0.3, and 0.30000000000000004 isn't more than
+// 0.3. Numbers that are clearly apart are compared directly, without
+// rounding, so loops stay fast. -1, 0 or 1.
+func CompareFloats(a, b float64) int {
+	if a == b {
+		return 0
+	}
+	if math.Abs(a-b) > 1e-12*math.Max(math.Abs(a), math.Abs(b)) || math.IsNaN(a) || math.IsNaN(b) {
+		if a < b {
+			return -1
+		}
+		return 1
+	}
+	ra, rb := Round15(a), Round15(b)
+	switch {
+	case ra < rb:
+		return -1
+	case ra > rb:
+		return 1
+	}
+	return 0
 }
 
 func number(obj Object) (float64, bool) {

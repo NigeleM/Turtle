@@ -20,7 +20,7 @@ func diffLines(got, want object.Object) []string {
 	var out []string
 	describeDiff("", got, want, &out)
 	if len(out) == 0 {
-		out = append(out, fmt.Sprintf("got %s, want %s", object.Shown(got), object.Shown(want)))
+		out = append(out, fmt.Sprintf("got %s, want %s", object.ShownExact(got), object.ShownExact(want)))
 	}
 	if len(out) > maxDiffLines {
 		out = append(out[:maxDiffLines], "...")
@@ -92,7 +92,7 @@ func describeDiff(path string, got, want object.Object, out *[]string) {
 				by = fmt.Sprint(uint64(wi - gi))
 			}
 		}
-		add("got %s, want %s (%s %s)", got.Inspect(), want.Inspect(), by, how)
+		add("got %s, want %s (%s %s)", object.Exact(got), object.Exact(want), by, how)
 		return
 	}
 	if valueKind(got) != valueKind(want) {
@@ -102,7 +102,7 @@ func describeDiff(path string, got, want object.Object, out *[]string) {
 	switch g := got.(type) {
 	case *object.String:
 		w := want.(*object.String)
-		add("got %s, want %s", object.Shown(g), object.Shown(w))
+		add("got %s, want %s", object.ShownExact(g), object.ShownExact(w))
 		gr, wr := []rune(g.Value), []rune(w.Value)
 		for i := 0; i < len(gr) || i < len(wr); i++ {
 			switch {
@@ -176,7 +176,7 @@ func describeDiff(path string, got, want object.Object, out *[]string) {
 			}
 		}
 	default:
-		add("got %s, want %s", object.Shown(got), object.Shown(want))
+		add("got %s, want %s", object.ShownExact(got), object.ShownExact(want))
 	}
 }
 

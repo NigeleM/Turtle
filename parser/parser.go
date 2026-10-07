@@ -277,6 +277,17 @@ func (p *Parser) curPrecedence() int {
 // requirePeriod consumes a trailing '.' and advances past it. Used by
 // every statement kind confirmed to require one: show, data-structure
 // operations, and "is" assignments.
+// isPeriod ends an is line, which is a sentence: it ends with a period,
+// as show and add do. Missing at the end of the line, the error says so,
+// and that = needs none.
+func (p *Parser) isPeriod() bool {
+	if !p.peekTokenIs(token.PERIOD) && (p.peekTokenIs(token.EOF) || p.peekToken.Line != p.endLine(p.curToken)) {
+		p.errorAt(p.endLine(p.curToken), p.curToken.End, "a line with is ends with '.' (or write name = value, which needs none)")
+		return false
+	}
+	return p.requirePeriod()
+}
+
 func (p *Parser) requirePeriod() bool {
 	if !p.expectPeek(token.PERIOD) {
 		return false
@@ -514,7 +525,7 @@ func (p *Parser) parseIsStatement() ast.Statement {
 		p.nextToken() // -> method name token
 		method := p.curToken.Literal
 		var args []ast.Expression
-		if !p.peekTokenIs(token.PERIOD) && !p.peekTokenIs(token.EOF) {
+		if !p.peekTokenIs(token.PERIOD) && !p.peekTokenIs(token.EOF) && p.peekToken.Line == p.curToken.Line {
 			p.nextToken()
 			args = append(args, p.parseExpression(LOWEST))
 			for p.peekTokenIs(token.COMMA) {
@@ -523,7 +534,7 @@ func (p *Parser) parseIsStatement() ast.Statement {
 				args = append(args, p.parseExpression(LOWEST))
 			}
 		}
-		if !p.requirePeriod() {
+		if !p.isPeriod() {
 			return nil
 		}
 		// The method works on the value right before it, as everywhere:
@@ -535,7 +546,7 @@ func (p *Parser) parseIsStatement() ast.Statement {
 		return &ast.AssignStatement{Token: tok, Name: name, Value: value}
 	}
 
-	if !p.requirePeriod() {
+	if !p.isPeriod() {
 		return nil
 	}
 	return &ast.AssignStatement{Token: tok, Name: name, Value: receiver}

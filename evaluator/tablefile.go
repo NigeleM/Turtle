@@ -97,7 +97,7 @@ func fileCell(v object.Object) string {
 	case *object.String:
 		return c.Value
 	}
-	return v.Inspect()
+	return object.Exact(v) // a float with every digit: data, not display
 }
 
 // readTableFile reads a .csv, .tsv or .json file: its header and its

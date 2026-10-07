@@ -64,8 +64,8 @@ def [end]
 
 // ---------- decimals: close to ----------
 def test_close[]
-    check 0.1 + 0.2 != 0.3 .              // decimals are never exact...
-    check 0.1 + 0.2 is close to 0.3 .     // ...so compare them this way
+    check 0.1 + 0.2 == 0.3 .              // floats compare as they show, to 15 digits
+    check 0.1 + 0.2 is close to 0.3 .     // close to: for a bigger allowance
     check 10 / 3 is close to 3.33 within 0.01 .
     check 3.5 is not close to 3 within 0.1 .
 def [end]

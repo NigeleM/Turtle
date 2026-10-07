@@ -3,6 +3,7 @@ package object
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -43,12 +44,45 @@ func (f *Float) Type() Type { return FLOAT }
 
 // Inspect always shows a float as a float: 4.0, not 4, so it's never
 // mistaken for an integer.
+// Inspect is how a float shows: to 15 significant digits, as Excel and
+// SQLite show numbers, so binary leftovers don't: 0.1 + 0.2 shows 0.3
+// (it's 0.30000000000000004 inside, and == still sees that). Files and
+// databases get every digit: see Exact.
 func (f *Float) Inspect() string {
-	s := strconv.FormatFloat(f.Value, 'f', -1, 64)
+	v := f.Value
+	if !math.IsInf(v, 0) && !math.IsNaN(v) {
+		v, _ = strconv.ParseFloat(strconv.FormatFloat(v, 'g', 15, 64), 64)
+	}
+	return floatText(v)
+}
+
+// Exact is every digit of the float: what JSON, CSV and test failures
+// write, so nothing is lost.
+func (f *Float) Exact() string { return floatText(f.Value) }
+
+func floatText(v float64) string {
+	s := strconv.FormatFloat(v, 'f', -1, 64)
 	if !strings.ContainsAny(s, ".eEIN") { // integral and finite (not Inf/NaN)
 		s += ".0"
 	}
 	return s
+}
+
+// Exact is a value's text with floats in full (Float.Exact); anything
+// else as it shows.
+func Exact(o Object) string {
+	if f, ok := o.(*Float); ok {
+		return f.Exact()
+	}
+	return o.Inspect()
+}
+
+// ShownExact is Shown, with a float in full.
+func ShownExact(o Object) string {
+	if f, ok := o.(*Float); ok {
+		return f.Exact()
+	}
+	return Shown(o)
 }
 
 type String struct{ Value string }

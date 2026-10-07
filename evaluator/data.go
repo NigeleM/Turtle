@@ -700,10 +700,33 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		}
 		return &object.Float{Value: math.Abs(f)}
 	case "round":
+		// round: to a whole number. round[2]: to 2 places, still a
+		// number (3.14159 -> 3.14); round[-2]: to hundreds (1234 -> 1200).
 		requireModule(env, "math", "round")
-		requireArgs(method, args, 0)
+		if len(args) > 1 {
+			fatalf("'round' takes nothing, or how many places (round[2]), got %d arguments", len(args))
+		}
 		f, _, _ := numeric(receiver)
-		return &object.Integer{Value: int64(math.Round(f))}
+		if len(args) == 0 {
+			return &object.Integer{Value: int64(math.Round(f))}
+		}
+		p, ok := args[0].(*object.Integer)
+		if !ok || p.Value < -15 || p.Value > 15 {
+			fatalf("'round' takes a whole number of places from -15 to 15 (round[2]), got %s", args[0].Inspect())
+		}
+		places := int(p.Value)
+		if places <= 0 {
+			scale := math.Pow(10, float64(-places))
+			return &object.Integer{Value: int64(math.Round(f/scale) * scale)}
+		}
+		if _, isInt := receiver.(*object.Integer); isInt {
+			return receiver // a whole number already has every place
+		}
+		// Through the decimal text, so the answer is the number nearest the
+		// rounded digits (0.6000000000000001 -> 0.6). A value stored a hair
+		// below a half (2.675 is 2.67499...) rounds down, as in Python.
+		r, _ := strconv.ParseFloat(strconv.FormatFloat(f, 'f', places, 64), 64)
+		return &object.Float{Value: r}
 	case "floor":
 		requireModule(env, "math", "floor")
 		requireArgs(method, args, 0)

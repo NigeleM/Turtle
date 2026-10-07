@@ -22,10 +22,14 @@ var moduleDocs = map[string]string{
   Example:
     a is -7 at abs .
 
-### number at round
+### number at round places
   The nearest whole number; a half rounds away from zero (4.5 becomes 5).
+  places     optional: round[2] keeps 2 places and gives a float
+             (3.14159 -> 3.14, 0.6000000000000001 -> 0.6); round[-2]
+             rounds to hundreds (1234 -> 1200). -15 to 15.
   Example:
     r is 4.5 at round .
+    c is prices process p give p * 1.08 at round[2] .
 
 ### number at floor
   The whole number at or below it (4.7 becomes 4, -4.2 becomes -5).

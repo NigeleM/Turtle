@@ -965,3 +965,22 @@ safe [end]
   hashlib and hmac.
 - Next: the schedule library (running things side by side), proposed
   for review.
+
+## 2026-10-07: round to places (not yet released)
+
+- `x at round[2]` keeps 2 places and gives a float (0.6000000000000001
+  -> 0.6, so it then equals 0.6); `round[-2]` rounds to hundreds; plain
+  `round` is unchanged. `fixed` stays the way to get text with trailing
+  zeros ("0.60").
+- A method name called as a function (`fixed[2]`) now says: "fixed is a
+  method, not a function: write it after a value with at".
+- `is` lines keep their period, for one rule: sentences (is, show, add,
+  log, check) end with a period, = lines don't (the user's decision). A
+  missing one now says: "a line with is ends with '.' (or write name =
+  value, which needs none)".
+- Floats show and compare to 15 significant digits: 0.1 + 0.2 shows 0.3
+  and == 0.3 is true (the user's requirement: assertions and == must
+  hold). ==, !=, <, <=, >, >=, sets, map keys and searches all agree;
+  integers compare exactly; numbers clearly apart skip the rounding. JSON, CSV, databases and failed tests keep
+  every digit. No language defaults to 2 places; fixed and round cover
+  that (the user's decision).

@@ -158,3 +158,77 @@ func TestCallBeforeDef(t *testing.T) {
 		t.Errorf("nested def before its line: want an error")
 	}
 }
+
+func TestRoundToPlaces(t *testing.T) {
+	src := `import data
+import math
+b is list [1, 2, 3] process x give x * 0.2 .
+c is b process x give x at round[2] .
+show c, " ", c at get[2] == 0.6 .
+show 3.14159 at round[2], " ", 3.14159 at round, " ", 1234 at round[-2], " ", 1250.0 at round[-2], " ", 7 at round[2], " ", -2.5 at round[0] .
+show typeof[3.14159 at round[2]], " ", typeof[1234 at round[-2]] .`
+	got, err := run(t, src, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "[ 0.2, 0.4, 0.6 ] true\n3.14 3 1200 1300 7 -3\nfloat integer\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+	for src, msg := range map[string]string{
+		"import math\nx = 2.5 at round[2, 3]": "'round' takes nothing, or how many places",
+		"import math\nx = 2.5 at round[99]":   "from -15 to 15",
+		"import math\nx = 2.5 at round[1.5]":  "from -15 to 15",
+		"x = fixed[2]":                        "fixed is a method, not a function: write it after a value with at",
+	} {
+		if _, err := run(t, src, ""); err == nil || !strings.Contains(err.Error(), msg) {
+			t.Errorf("%q: got %v, want %q", src, err, msg)
+		}
+	}
+}
+
+func TestFloatsShowFifteenDigits(t *testing.T) {
+	src := `import json
+x = 0.1 + 0.2
+show x, " ", x == 0.3, " ", 1/3.0, " ", 2.5, " ", 7.0, " ", 0.000001234 .
+show "{x}", " ", list [0.6000000000000001] .
+show json_text[list [x]] .`
+	got, err := run(t, src, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "0.3 true 0.333333333333333 2.5 7.0 0.000001234\n0.3 [ 0.6 ]\n[0.30000000000000004]\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+// Floats compare as they show: ==, <, sets, map keys, searches and check
+// all agree, and integers stay exact.
+func TestFloatsCompareAsTheyShow(t *testing.T) {
+	src := `import test
+import data
+import math
+x = 0.1 + 0.2
+show x == 0.3, x != 0.3, x > 0.3, x >= 0.3, x < 0.3, x <= 0.3 .
+show 1.1 * 3 == 3.3, 0.3 < 0.30000000000001, 2.0000000000000004 == 2 .
+s = set [0.3, x, 0.6000000000000001, 0.6]
+show length of s .
+m = map [0.3: "a"]
+show m at get[x] .
+nums = list [0.2, 0.4, 0.6000000000000001]
+show nums at contains[0.6], nums at index[0.6] .
+b is list [1, 2, 3] process v give v * 0.2 .
+show b == list [0.2, 0.4, 0.6] .
+check 0.1 + 0.2 == 0.3 .
+check x at round[2] == 0.3 .
+show 9007199254740993 == 9007199254740992 .`
+	got, err := run(t, src, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "truefalsefalsetruefalsetrue\ntruetruetrue\n2\na\ntrue2\ntrue\nfalse\n"
+	if got != want {
+		t.Errorf("got %q\nwant %q", got, want)
+	}
+}
