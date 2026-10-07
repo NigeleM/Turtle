@@ -53,9 +53,7 @@ Next, roughly in priority order:
 - [ ] Benchmark suite with a baseline (held off by the user, 2026-10-06)
 - [x] Log library (2026-10-06)
 - [x] REPL with colors (2026-10-06); editor: see the next option below
-- [ ] Next option: `turtle lsp`, a language server in pure Go, and a
-      small VS Code extension (colors, live errors, completion in any
-      editor that speaks LSP)
+- [x] `turtle lsp` and a VS Code extension (2026-10-06)
 - [ ] `sql` leftovers: writing WITHOUT ROWID tables, UTF-16 and
       auto-vacuum files; virtual tables (fts5)
 - [x] Sort by a function, and search: `import sort`, `import search`

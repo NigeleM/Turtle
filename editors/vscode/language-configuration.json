@@ -1,0 +1,72 @@
+{
+  "comments": {
+    "lineComment": "//",
+    "blockComment": [
+      "//*",
+      "*//"
+    ]
+  },
+  "brackets": [
+    [
+      "[",
+      "]"
+    ],
+    [
+      "(",
+      ")"
+    ],
+    [
+      "{",
+      "}"
+    ]
+  ],
+  "autoClosingPairs": [
+    {
+      "open": "[",
+      "close": "]"
+    },
+    {
+      "open": "(",
+      "close": ")"
+    },
+    {
+      "open": "\"",
+      "close": "\"",
+      "notIn": [
+        "string",
+        "comment"
+      ]
+    },
+    {
+      "open": "'",
+      "close": "'",
+      "notIn": [
+        "string",
+        "comment"
+      ]
+    }
+  ],
+  "surroundingPairs": [
+    [
+      "[",
+      "]"
+    ],
+    [
+      "(",
+      ")"
+    ],
+    [
+      "\"",
+      "\""
+    ],
+    [
+      "'",
+      "'"
+    ]
+  ],
+  "wordPattern": "[A-Za-z_][A-Za-z0-9_]*|-?\\d+(\\.\\d+)?",
+  "indentationRules": {
+    "increaseIndentPattern": "^\\s*(def\\s+[A-Za-z_]\\w*\\s*\\[.*\\]\\s*$|if \\].*\\[\\s*$|else\\b.*$|\\[loop\\]\\[(?!end\\]).*\\]\\s*$|safe\\s*$|handle\\b.*$|.*\\bgive\\s*$|\\[(write|append)\\].*$)",
+    "decreaseIndentPattern": "^\\s*(def \\[end\\]|if \\[end\\]|\\[loop\\]\\[end\\]|safe \\[end\\]|give \\[end\\]|\\[end\\]|else\\b|handle\\b)"
+  }
+}

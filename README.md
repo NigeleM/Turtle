@@ -46,6 +46,7 @@ for reference; they still build and run.
 | File management (read/write/append/directory) | Done |
 | Testing in Turtle: `check`, `verify`, `validate` (random inputs, shrinking), `turtle test` with suites and benchmarks | Done — see `docs/testing.md` |
 | REPL: `turtle` with no file, colored as you type, history, multi-line blocks | Done — see `docs/repl.md` |
+| Editors: `turtle lsp` language server (errors, colors, completion, hover, go to definition) and a VS Code extension | Done — see `docs/editors.md` |
 | Automated tests (`go test ./...`) | Done |
 | CI (build/vet/test on every push) + tag-triggered releases | Done |
 | Documentation | Done — see `docs/` |
@@ -127,6 +128,7 @@ library).
 - [`docs/tour.md`](docs/tour.md) — a guided, example-driven walkthrough of the language
 - [`docs/reference.md`](docs/reference.md) — the complete formal syntax reference
 - [`docs/stdlib.md`](docs/stdlib.md) — data structure methods, file I/O, `sys`, `import`
+- [`docs/editors.md`](docs/editors.md) — VS Code, Neovim, Helix and others, through `turtle lsp`
 - [`docs/repl.md`](docs/repl.md) — the interactive prompt (`turtle` with no file)
 - [`docs/testing.md`](docs/testing.md) — testing Turtle code: `check`, `verify`, `validate`, `turtle test`
 - [`docs/architecture.md`](docs/architecture.md) — how the interpreter itself is built, for contributors

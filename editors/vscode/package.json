@@ -1,0 +1,65 @@
+{
+  "name": "turtle",
+  "displayName": "Turtle",
+  "description": "The Turtle programming language: colors, errors as you type, completion, hover help and go to definition (through turtle lsp).",
+  "version": "0.1.0",
+  "publisher": "nigelem",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NigeleM/Turtle"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onLanguage:turtle"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "turtle",
+        "aliases": [
+          "Turtle",
+          "turtle"
+        ],
+        "extensions": [
+          ".trt"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "turtle",
+        "scopeName": "source.turtle",
+        "path": "./syntaxes/turtle.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "title": "Turtle",
+      "properties": {
+        "turtle.path": {
+          "type": "string",
+          "default": "turtle",
+          "description": "The turtle command (a full path if it isn't on your PATH)."
+        },
+        "turtle.languageServer": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run turtle lsp for errors as you type, completion, hover and go to definition. Colors work without it."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "turtle.restartServer",
+        "title": "Turtle: Restart Language Server"
+      }
+    ]
+  }
+}

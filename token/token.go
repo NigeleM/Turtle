@@ -1,6 +1,8 @@
 // Package token defines the lexical tokens of the Turtle language.
 package token
 
+import "sort"
+
 type Type string
 
 type Token struct {
@@ -177,4 +179,14 @@ func IsKeyword(t Type) bool {
 		}
 	}
 	return false
+}
+
+// Keywords are the reserved words, sorted.
+func Keywords() []string {
+	var out []string
+	for w := range keywords {
+		out = append(out, w)
+	}
+	sort.Strings(out)
+	return out
 }

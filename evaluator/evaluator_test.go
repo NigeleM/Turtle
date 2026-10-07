@@ -15,8 +15,11 @@ import (
 	"testing"
 	"time"
 
+	"Turtle/ast"
 	"Turtle/lexer"
+	"Turtle/object"
 	"Turtle/parser"
+	"Turtle/syntax"
 )
 
 // run parses and evaluates src, feeding stdin to any "?" prompts, and
@@ -3308,5 +3311,33 @@ func TestImportsUseTrt(t *testing.T) {
 	_, err = runIn(t, dir, "import old", "")
 	if err == nil || !strings.Contains(err.Error(), "import old: old.trt: no such file") {
 		t.Fatalf("import old: got %v", err)
+	}
+}
+
+// TestSyntaxMethodsExist: every name the language server and REPL offer
+// after "at" is a method of some kind of value.
+func TestSyntaxMethodsExist(t *testing.T) {
+	it := New(t.TempDir())
+	receivers := []object.Object{
+		&object.List{}, &object.Set{}, object.NewMap(), &object.String{Value: "a"}, &object.Integer{Value: 4},
+	}
+	for _, m := range syntax.Methods {
+		exists := false
+		for _, r := range receivers {
+			func() {
+				defer func() {
+					if p := recover(); p != nil {
+						if fe, ok := p.(fatalError); ok && !strings.Contains(fe.text, "unknown") {
+							exists = true
+						}
+					}
+				}()
+				it.applyMethod(&ast.MethodCallExpression{Method: m}, r, nil, it.Global)
+				exists = true
+			}()
+		}
+		if !exists {
+			t.Errorf("syntax.Methods has %q, which no value has", m)
+		}
 	}
 }

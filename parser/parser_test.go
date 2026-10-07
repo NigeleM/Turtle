@@ -6,6 +6,7 @@ import (
 
 	"Turtle/ast"
 	"Turtle/lexer"
+	"Turtle/syntax"
 )
 
 // parseOK parses src and fails the test immediately if there were any
@@ -369,5 +370,18 @@ func TestGivesIsNowGive(t *testing.T) {
 	p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Errorf("give: %v", p.Errors())
+	}
+}
+
+// TestShapeWordsMatch: the words editors complete after random are the
+// ones the parser reads.
+func TestShapeWordsMatch(t *testing.T) {
+	if len(syntax.ShapeWords) != len(shapeWords) {
+		t.Fatalf("syntax.ShapeWords has %d words, the parser %d", len(syntax.ShapeWords), len(shapeWords))
+	}
+	for _, w := range syntax.ShapeWords {
+		if _, ok := shapeWords[w]; !ok {
+			t.Errorf("syntax.ShapeWords has %q, which the parser doesn't read", w)
+		}
 	}
 }

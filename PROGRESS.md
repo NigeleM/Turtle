@@ -842,3 +842,20 @@ safe [end]
   Every example, test and doc updated (prose "gives back" left as is).
 - The REPL shows one clear error for a line that isn't valid Turtle,
   not the parser's follow-on complaints.
+
+## 2026-10-06: turtle lsp and a VS Code extension (not yet released)
+
+- `turtle lsp` (package lsp): a language server in pure Go. Errors as
+  you type (the parser's first error; missing import files as warnings),
+  semantic-token colors from package syntax (the REPL's highlighter,
+  moved out of repl), completion (keywords, your functions, types and
+  variables, imported files' functions, library functions, methods
+  after `at`, libraries and files after `import`, shape words after
+  `random`), hover (your `//` docs, `turtle doc` text, keyword help), go
+  to definition (also into imported files), document symbols. UTF-16 or
+  UTF-8 positions.
+- editors/vscode: a VS Code extension with no npm packages: grammar,
+  comments/brackets/indenting, and a small hand-written LSP client.
+  docs/editors.md also covers Neovim, Helix, Sublime and Emacs.
+- Fix: `turtle test` / `lsp` / `doc` in a project with a folder of that
+  name ran the folder as a script.

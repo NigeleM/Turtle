@@ -4,6 +4,7 @@
 //	turtle script.trt [args...]
 //	turtle doc [library | function | file.trt]
 //	turtle test [file.trt | folder ...]
+//	turtle lsp                     the language server, for editors
 //	turtle version | help
 package main
 
@@ -16,6 +17,7 @@ import (
 
 	"Turtle/evaluator"
 	"Turtle/lexer"
+	"Turtle/lsp"
 	"Turtle/parser"
 	"Turtle/repl"
 )
@@ -30,6 +32,7 @@ const usage = `Turtle %s
   turtle script.trt [args]     run a program
   turtle test [file | folder]  run the test_ functions in test_*.trt files
   turtle doc [topic]           the standard library's documentation
+  turtle lsp                   the language server, for editors (VS Code, Neovim ...)
   turtle version               the version
   turtle help                  this
 
@@ -38,13 +41,14 @@ Docs: https://github.com/NigeleM/Turtle/tree/main/docs
 `
 
 // command reports whether the first argument is name and no file of that
-// name is here (a script called "test" still runs).
+// name is here (a script called "test" still runs; a folder called test
+// doesn't count).
 func command(name string) bool {
 	if len(os.Args) < 2 || os.Args[1] != name {
 		return false
 	}
-	_, err := os.Stat(name)
-	return err != nil
+	info, err := os.Stat(name)
+	return err != nil || info.IsDir()
 }
 
 func main() {
@@ -64,6 +68,9 @@ func main() {
 		}
 		fmt.Print(text)
 		return
+	case command("lsp"):
+		// The language server, for editors: JSON-RPC on stdin and stdout.
+		os.Exit(lsp.Serve(os.Stdin, os.Stdout, version))
 	case command("test"):
 		cwd, _ := os.Getwd()
 		os.Exit(evaluator.TestCommand(os.Args[2:], cwd, os.Stdout))

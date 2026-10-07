@@ -29,6 +29,7 @@ import (
 	"Turtle/lexer"
 	"Turtle/object"
 	"Turtle/parser"
+	"Turtle/syntax"
 	"Turtle/token"
 )
 
@@ -44,7 +45,7 @@ type Session struct {
 	it      *evaluator.Interpreter
 	out     io.Writer
 	color   bool
-	words   words
+	words   syntax.Words
 	libs    map[string]bool // libraries imported: their words color, and parse
 	entries []string        // entries that ran, for save
 	dir     string
@@ -55,9 +56,9 @@ type Session struct {
 func NewSession(dir string, out io.Writer, color bool) *Session {
 	s := &Session{it: evaluator.New(dir), out: out, color: color, libs: map[string]bool{}, dir: dir}
 	s.it.Script = ""
-	s.words = words{context: map[string]bool{}, builtin: map[string]bool{}}
+	s.words = syntax.Words{Context: map[string]bool{}, Builtin: map[string]bool{}}
 	for _, f := range evaluator.LibraryFunctions() {
-		s.words.builtin[f] = true
+		s.words.Builtin[f] = true
 	}
 	return s
 }
@@ -139,8 +140,8 @@ func (s *Session) noteImports(program *ast.Program) {
 	for _, st := range program.Statements {
 		if im, ok := st.(*ast.ImportStatement); ok {
 			s.libs[im.Path] = true
-			for _, w := range libraryWords[im.Path] {
-				s.words.context[w] = true
+			for _, w := range syntax.LibraryWords[im.Path] {
+				s.words.Context[w] = true
 			}
 		}
 	}

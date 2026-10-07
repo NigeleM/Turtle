@@ -104,6 +104,7 @@ and benchmarks.
 - [`stdlib.md`](stdlib.md) — data structure methods, file I/O, `sys`, `import`
 - [`testing.md`](testing.md) — tests: `check`, `verify`, `validate`, `turtle test`
 - [`repl.md`](repl.md) — the interactive prompt: colors, keys, commands
+- [`editors.md`](editors.md) — Turtle in VS Code and other editors
 - [`architecture.md`](architecture.md) — how the interpreter itself works,
   for anyone modifying it
 - [`contributing.md`](contributing.md) — how to add new syntax or stdlib

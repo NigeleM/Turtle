@@ -7,52 +7,12 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"Turtle/syntax"
 )
 
-func noWords() words {
-	return words{context: map[string]bool{}, builtin: map[string]bool{"sql_open": true}}
-}
-
-// colored names each colored piece of src: "def:keyword double:definition ...".
-func colored(src string, w words) string {
-	names := map[class]string{keyword: "keyword", constant: "constant", stringLit: "string", comment: "comment", definition: "definition", call: "call", builtin: "builtin"}
-	var parts []string
-	for _, s := range highlight(src, w) {
-		parts = append(parts, src[s.start:s.end]+":"+names[s.c])
-	}
-	return strings.Join(parts, " ")
-}
-
-func TestHighlight(t *testing.T) {
-	cases := map[string]string{
-		`def double[x]`:                    "def:keyword double:definition",
-		`show "hi", 42, 2.5, true, none .`: `show:keyword "hi":string 42:constant 2.5:constant true:constant none:constant`,
-		`x = 1 // note`:                    "1:constant // note:comment",
-		`//* block *// y = 2`:              "//* block *//:comment 2:constant",
-		`total = add_tax[5]`:               "add_tax:call 5:constant",
-		`db = sql_open["a.db"]`:            `sql_open:builtin "a.db":string`,
-		`if ] x > 1 [`:                     "if:keyword 1:constant",
-		`assemble Order [item]`:            "assemble:keyword Order:definition",
-		`nums at get[0]`:                   "at:keyword get:call 0:constant",
-		`sys ls -la`:                       "sys:keyword",
-		`7 div 2`:                          "7:constant div:keyword 2:constant",
-		`s = "unfinished`:                  `"unfinished:string`,
-		`show "a // not a comment" .`:      `show:keyword "a // not a comment":string`,
-	}
-	for src, want := range cases {
-		if got := colored(src, noWords()); got != want {
-			t.Errorf("%s\n got  %s\n want %s", src, got, want)
-		}
-	}
-	// A library's words color once it's imported.
-	w := noWords()
-	if got := colored(`check x is integer .`, w); got != "is:keyword" {
-		t.Errorf("before import test: %s", got)
-	}
-	w.context["check"] = true
-	if got := colored(`check x is integer .`, w); got != "check:keyword is:keyword" {
-		t.Errorf("after import test: %s", got)
-	}
+func noWords() syntax.Words {
+	return syntax.Words{Context: map[string]bool{}, Builtin: map[string]bool{"sql_open": true}}
 }
 
 func TestColorizeKeepsTheText(t *testing.T) {
@@ -304,7 +264,7 @@ func TestSessionRemembersLibraryWords(t *testing.T) {
 	if !strings.Contains(out.String(), "error (test): failed: check 1 == 2 .") || strings.Count(out.String(), "error") != 1 {
 		t.Errorf("got %q", out.String())
 	}
-	if !s.words.context["check"] || !s.words.context["log"] {
+	if !s.words.Context["check"] || !s.words.Context["log"] {
 		t.Error("imported words should color")
 	}
 }

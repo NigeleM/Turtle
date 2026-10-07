@@ -197,3 +197,37 @@ func editDistance(a, b string) int {
 	}
 	return prev[len(b)]
 }
+
+// LibraryDoc is a library function's documentation, as turtle doc shows
+// it: how it's called ("sql_load[db, table, path [, types]]"), its
+// library, and the description. For the language server's hover.
+func LibraryDoc(name string) (call, module, body string, ok bool) {
+	for _, e := range allEntries() {
+		if e.name() == name && !strings.Contains(e.call, " at ") {
+			return e.call, e.module, e.body, true
+		}
+	}
+	return "", "", "", false
+}
+
+// Libraries are the builtin libraries' names (what import takes).
+func Libraries() []string {
+	var out []string
+	for name := range builtinModules {
+		out = append(out, name)
+	}
+	sort.Strings(out)
+	return out
+}
+
+// LibraryOf is the library a function comes from ("" if none).
+func LibraryOf(name string) string {
+	for _, m := range builtinModules {
+		for _, f := range m.Funcs {
+			if f == name {
+				return m.Name
+			}
+		}
+	}
+	return ""
+}
