@@ -953,3 +953,15 @@ safe [end]
 - Fixed: after "text over several lines" (multi-line SQL, say), line
   numbers in errors were too small by the lines inside it. Backtick text
   was already right.
+
+## 2026-10-07: the crypt library (not yet released)
+
+- `import crypt`: hash and filehash (sha256 by default; sha512, sha1,
+  md5), hmac, encode/decode (base64, base64url, hex), uuid, token,
+  passwordhash/passwordcheck (salted PBKDF2-SHA256, 600,000 rounds),
+  encrypt/decrypt (AES-256-GCM, the key from the passphrase with PBKDF2).
+  Functions and sentences, no new keywords (the user's choice of name).
+  Bad input is an error of kind crypt. Results checked against Python's
+  hashlib and hmac.
+- Next: the schedule library (running things side by side), proposed
+  for review.

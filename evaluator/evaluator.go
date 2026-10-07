@@ -111,7 +111,8 @@ const maxCallDepth = 100000
 // provides find_* and the search algorithms (see searchlib.go), "random"
 // provides pick/shuffle/sample/chance and, with the parser, the random
 // sentence (see randomlib.go), "pattern" provides matches/findall/
-// replaceall/splitby/groups (see patternlib.go), "log" and "test" make
+// replaceall/splitby/groups (see patternlib.go), "crypt" provides hashes,
+// encodings, ids, passwords and encryption (see cryptlib.go), "log" and "test" make
 // their sentence words active (see loglib.go, testlib.go). Anything else falls through to
 // the file-based import.
 var builtinModules = map[string]*object.Module{
@@ -127,6 +128,7 @@ var builtinModules = map[string]*object.Module{
 	"test":    {Name: "test"},
 	"pattern": {Name: "pattern", Funcs: []string{"matches", "findall", "replaceall", "splitby", "groups"}},
 	"log":     {Name: "log"},
+	"crypt":   {Name: "crypt", Funcs: []string{"hash", "filehash", "hmac", "encode", "decode", "uuid", "token", "passwordhash", "passwordcheck", "encrypt", "decrypt"}},
 	"random":  {Name: "random", Funcs: []string{"pick", "shuffle", "sample", "chance"}},
 	"sql":     {Name: "sql", Funcs: []string{"sql_open", "sql_create", "sql_query", "sql_run", "sql_tables", "sql_load", "sql_save", "sql_update", "sql_delete", "sql_upsert", "sql_close"}},
 }
@@ -199,6 +201,7 @@ const (
 	kindCSV     = "csv"     // a .csv or .tsv file that isn't well formed
 	kindTest    = "test"    // a check, verify or validate that failed (import test)
 	kindPattern = "pattern" // a pattern that isn't a valid regular expression
+	kindCrypt   = "crypt"   // text that isn't base64/hex, a wrong passphrase, an unknown algorithm
 	kindCustom  = "custom"  // the program's own, from fail "..."
 )
 

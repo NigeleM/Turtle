@@ -692,6 +692,7 @@ safe [end]
 | `csv`    | a `.csv` or `.tsv` file that isn't well formed (`table_read`, `sql_load`, ...) |
 | `test`   | a failed `check`, `verify` or `validate` (`import test`; see [`testing.md`](testing.md)) |
 | `pattern` | a pattern that isn't valid (`import pattern`) |
+| `crypt`  | text that isn't base64 or hex, a wrong passphrase, an unknown algorithm (`import crypt`) |
 | `custom` | your own, from `fail`                                    |
 
 An error of a kind that isn't listed isn't handled: it goes on to an
@@ -891,8 +892,8 @@ import <name> [<f>, <g>, ...]  // only the listed names
 ```
 
 `<name>` is a builtin module (`math`, `time`, `data`, `strings`, `system`,
-`json`, `http`, `sql`, `sort`, `search`, `random`, `pattern`, `log`,
-`test`; see [`stdlib.md`](stdlib.md)) or a file `<name>.trt`,
+`json`, `http`, `sql`, `sort`, `search`, `random`, `pattern`, `crypt`,
+`log`, `test`; see [`stdlib.md`](stdlib.md)) or a file `<name>.trt`,
 resolved relative to the current script's directory. A module in a
 subfolder is written with `/`: `import lib/utils` reads `lib/utils.trt`,
 and its qualified name is the last part, `utils half[4]`. Because builtin names

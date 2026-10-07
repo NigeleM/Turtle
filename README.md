@@ -43,6 +43,7 @@ for reference; they still build and run.
 | Standard library: sort (`min_sort`, `max_sort`, the classic sorts) and search (`find_first`, `find_all`, binary search, ...) | Done |
 | Standard library: random (`random list of 5 integers from 0 to 9`, any shape, `pick`, `shuffle`, `sample`, `chance`, `seed`) | Done |
 | Standard library: log (`log warn "disk at ", pct, "%" .`, levels, files, rotation, JSON lines, a copy of the console) | Done |
+| Standard library: crypt (`hash`, `hmac`, `encode`/`decode`, `uuid`, `token`, `passwordhash`/`passwordcheck`, `encrypt`/`decrypt`) | Done |
 | Standard library: pattern (`matches`, `findall`, `replaceall`, `splitby`, `groups`; backtick strings) | Done |
 | Number and text formatting (`fixed`, `commas`, `padleft`, `padright`), `typeof[x]`, `x type integer` | Done |
 | Standard library: JSON (`import json`) | Done |

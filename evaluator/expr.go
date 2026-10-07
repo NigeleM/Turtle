@@ -711,6 +711,8 @@ func (it *Interpreter) callBuiltin(module, name string, args []object.Object, en
 		return it.callRandom(name, args, env)
 	case "pattern":
 		return it.callPattern(name, args)
+	case "crypt":
+		return it.callCrypt(name, args)
 	case "sql":
 		return it.callSQL(name, args)
 	case "sort":

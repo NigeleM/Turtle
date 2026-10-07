@@ -73,6 +73,10 @@ Next, roughly in priority order:
 - [x] Quick wins: files and folders, archives, .env, named options,
       `turtle trace` (2026-10-06)
 - [x] Clearer parse errors, `turtle fmt`, `turtle debug` (2026-10-07)
+- [x] `crypt` library: hashes, hmac, base64/hex, uuid, tokens, passwords,
+      encryption (2026-10-07)
+- [ ] `schedule` library: running things side by side (proposal in
+      NEXT.md, to review)
 - [ ] A VS Code debugger (Debug Adapter Protocol), built on turtle debug
 - [ ] Later from the 2026-10-06 list: time zones, a web server (`serve`),
       TOML (or .env + JSON only?)

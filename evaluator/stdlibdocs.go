@@ -463,6 +463,78 @@ an error of kind pattern.
     groups["2026-10-06", ` + "`" + `(\d+)-(\d+)` + "`" + `]    // [ "2026", "10" ]
 `,
 
+	"crypt": `Hashes, signatures, encodings, random ids and tokens, passwords and
+encryption. Bad input (text that isn't base64, a wrong passphrase, an
+unknown algorithm) is an error of kind crypt.
+
+### hash[text, algorithm]
+  A fingerprint of the text: the same text always gives the same hash.
+  algorithm  optional: "sha256" (the default), "sha512", "sha1" or "md5"
+             (sha1 and md5 only to match old systems)
+  Gives back: hex text.
+  Example:
+    h = hash["hello"]
+    h = "hello" hash "sha512"
+
+### filehash[path, algorithm]
+  hash of a file's contents (a checksum), read a piece at a time.
+  Example:
+    sum = filehash["release.zip"]
+
+### hmac[text, key, algorithm]
+  A signature: the hash of text with a secret key, as web APIs and
+  webhooks use. algorithm as for hash.
+  Gives back: hex text.
+  Example:
+    sig = body hmac secret
+
+### encode[text, how]
+  how: "base64" (the default), "base64url" (for links, no padding) or
+  "hex".
+  Example:
+    b = encode["hi"]              // "aGk="
+
+### decode[text, how]
+  The other way; how as for encode.
+  Example:
+    s = decode["aGk="]            // "hi"
+
+### uuid[]
+  A random id (a version 4 UUID): 36 characters, different every time.
+
+### token[length]
+  Random letters and digits from the system's secure source, for keys,
+  session ids and reset links. length: 32 if left out (1 to 4096).
+  Example:
+    key = token[]
+
+### passwordhash[password]
+  What to store instead of a password: salted PBKDF2-SHA256 (600,000
+  rounds), different each time for the same password.
+  Example:
+    stored = passwordhash[pw]
+
+### passwordcheck[password, stored]
+  Whether password is the one stored was made from.
+  Gives back: true or false.
+  Example:
+    if ] passwordcheck[typed, stored] [ ... if [end]
+
+### encrypt[text, passphrase]
+  Locks text with a passphrase (AES-256-GCM, the key made from the
+  passphrase with PBKDF2). Different each time; only decrypt with the
+  same passphrase opens it.
+  Gives back: text starting "turtle1:", safe to save or send.
+  Example:
+    box = encrypt[notes, phrase]
+
+### decrypt[box, passphrase]
+  Opens what encrypt made. A wrong passphrase, or a box that was
+  changed, is an error.
+  Example:
+    notes = decrypt[box, phrase]
+`,
+
 	"log": `Log lines: a level, a time and where they came from, to the console
 (stderr) and, if you like, a file. In a file with "import log":
 
