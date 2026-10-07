@@ -145,3 +145,7 @@ library).
 - [`SPEC.md`](SPEC.md) — the language specification this rewrite was built from, including every deliberate deviation from the original interpreter's behavior and why
 - [`PROGRESS.md`](PROGRESS.md) — session-by-session log of what's been done and what's left
 - [`TODO.md`](TODO.md) — forward-looking punch list of what's next
+
+## Credits
+
+Written by Nigele McCoy, Claude-assisted.

@@ -897,7 +897,7 @@ safe [end]
   lines or a //* *// block (package syntax: FunctionDoc). Hover,
   completion and turtle doc all read it the same way.
 
-## 2026-10-06: patterns, formatting, range/reduce/sum, typeof (not yet released)
+## 2026-10-06: patterns, formatting, range/reduce/sum, typeof (released v0.9.154)
 
 - Backtick strings keep every character as typed (no escapes, no
   interpolation, may span lines), for patterns and Windows paths.
@@ -924,7 +924,7 @@ safe [end]
   and the new functions in the grammar. The extension tells you clearly
   when turtle is missing or too old (v0.1.1).
 
-## 2026-10-06: files, folders, archives, .env, options, turtle trace (not yet released)
+## 2026-10-06: files, folders, archives, .env, options, turtle trace (released v0.9.155)
 
 - system: `copyto`, `moveto`, `makefolder`, `walk`, `pack` and `unpack`
   (.zip, .tar, .tar.gz by the name), `loadenv` (.env files; the
@@ -937,7 +937,7 @@ safe [end]
 - `turtle trace script.trt`: each line as it runs, with the values
   assignments set, on stderr.
 
-## 2026-10-07: clearer parse errors, turtle fmt, turtle debug (not yet released)
+## 2026-10-07: clearer parse errors, turtle fmt, turtle debug (released v0.9.157)
 
 - Parse errors: only the first is shown, with the line and a ^ under the
   spot, in plain words, with the fix for the usual mistakes (a missing
@@ -954,7 +954,7 @@ safe [end]
   numbers in errors were too small by the lines inside it. Backtick text
   was already right.
 
-## 2026-10-07: the crypt library (not yet released)
+## 2026-10-07: the crypt library (released v0.9.158)
 
 - `import crypt`: hash and filehash (sha256 by default; sha512, sha1,
   md5), hmac, encode/decode (base64, base64url, hex), uuid, token,
@@ -966,7 +966,7 @@ safe [end]
 - Next: the schedule library (running things side by side), proposed
   for review.
 
-## 2026-10-07: round to places (not yet released)
+## 2026-10-07: round to places (released v0.9.159)
 
 - `x at round[2]` keeps 2 places and gives a float (0.6000000000000001
   -> 0.6, so it then equals 0.6); `round[-2]` rounds to hundreds; plain
