@@ -1,5 +1,6 @@
 .ds_store
-*debug*
+# Go debugger binaries (dlv, VS Code)
+__debug_bin*
 *.txt
 testdata/sql/work*.db
 testdata/sql/export_*.csv
