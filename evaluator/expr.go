@@ -482,7 +482,20 @@ func (it *Interpreter) evalCall(ce *ast.CallExpression, env *object.Environment)
 	for i, a := range ce.Arguments {
 		args[i] = it.evalExpression(a, env)
 	}
+	if ce == it.statementCall {
+		it.statementCall = nil
+		it.inPlace = true
+		defer func() { it.inPlace = false }()
+	}
 	return it.applyCall(ce, args, env)
+}
+
+// takeInPlace reports (once) whether the call now running is a whole
+// statement, for process and keep.
+func (it *Interpreter) takeInPlace() bool {
+	v := it.inPlace
+	it.inPlace = false
+	return v
 }
 
 // applyCall calls ce's function on arguments already worked out.
@@ -557,6 +570,7 @@ func (it *Interpreter) callFunction(fn *object.Function, name string, args []obj
 	if len(args) != len(fn.Parameters) {
 		fatalf("function %q expects %d argument(s), got %d", name, len(fn.Parameters), len(args))
 	}
+	it.inPlace = false // only data's process / keep take it, right away
 	it.depth++
 	defer func() { it.depth-- }()
 	if it.depth > maxCallDepth {
@@ -585,6 +599,7 @@ func (it *Interpreter) callFunction(fn *object.Function, name string, args []obj
 }
 
 func (it *Interpreter) callImported(im *object.Import, name string, args []object.Object, env *object.Environment) object.Object {
+	name = im.Module.Canonical(name)
 	if isBuiltin(im.Module, "random") {
 		// The library's Turtle code has no seed of its own: the caller's
 		// seed decides its values.

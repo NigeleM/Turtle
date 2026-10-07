@@ -3,11 +3,11 @@
 // TABLE ... AS SELECT, and DROP.
 import sql
 import data
-import system [scriptFolder]
+import system [scriptfolder]
 import lib/verify [check, finish]
 import lib/shop [make_shop, drop_shop]
 
-path = "{scriptFolder[]}/work08.db"
+path = "{scriptfolder[]}/work08.db"
 db = make_shop[path]
 
 // ---------- indexes ----------
@@ -34,7 +34,7 @@ sql_run[db, "ALTER TABLE orders DROP COLUMN region"]
 check["tables", sql_tables[db], list ["authors", "books", "orders"]]
 rows = sql_query[db, "SELECT * FROM orders ORDER BY id LIMIT 2"]
 show table[rows] .
-check["dropped column is gone", rows at get[0] at getKeys[], list ["id", "sku", "day", "qty"]]
+check["dropped column is gone", rows at get[0] at getkeys[], list ["id", "sku", "day", "qty"]]
 check["renamed column", sql_query[db, "SELECT on_hand FROM books WHERE sku = 'B6'"], list [map ["on_hand": 9]]]
 
 // ---------- a table made from a query ----------

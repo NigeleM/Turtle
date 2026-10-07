@@ -65,21 +65,21 @@ running = true
         running = false
     else ]
         aStr = ? "  first number: "
-        aOk is aStr at isNumber .
+        aOk is aStr at isnumber .
         if ] !aOk [
             show "  -> \"", aStr, "\" isn't a number, try again." .
             continue
         if [end]
 
         bStr = ? "  second number: "
-        bOk is bStr at isNumber .
+        bOk is bStr at isnumber .
         if ] !bOk [
             show "  -> \"", bStr, "\" isn't a number, try again." .
             continue
         if [end]
 
         // ? always reads a raw string; change converts it to a real
-        // number so it can flow into calculate[]'s arithmetic. isNumber
+        // number so it can flow into calculate[]'s arithmetic. isnumber
         // above already validated it, so this can't fail here.
         a = change aStr to float
         b = change bStr to float

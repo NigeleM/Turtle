@@ -3,10 +3,10 @@
 // table_read reads .csv and .tsv files. They take any collection: a list
 // of maps, of assembled values, of lists, a plain list, a map.
 import data
-import system [scriptFolder, erase]
+import system [scriptfolder, erase]
 import lib/verify [check, finish]
 
-here = scriptFolder[]
+here = scriptfolder[]
 
 // ---------- a list of assembled values ----------
 assemble Order [item, qty, price]

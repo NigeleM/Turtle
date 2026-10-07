@@ -144,7 +144,7 @@ func (e *Environment) AddImport(mod *Module, names []string) {
 			im.Names = nil
 		} else if im.Names != nil {
 			for _, n := range names {
-				im.Names[n] = true
+				im.Names[mod.Canonical(n)] = true
 			}
 		}
 		return
@@ -153,7 +153,7 @@ func (e *Environment) AddImport(mod *Module, names []string) {
 	if names != nil {
 		im.Names = map[string]bool{}
 		for _, n := range names {
-			im.Names[n] = true
+			im.Names[mod.Canonical(n)] = true
 		}
 	}
 	r.imports = append(r.imports, im)

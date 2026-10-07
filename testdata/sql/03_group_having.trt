@@ -3,11 +3,11 @@
 // and FILTER.
 import sql
 import data
-import system [scriptFolder]
+import system [scriptfolder]
 import lib/verify [check, finish]
 import lib/shop [make_shop, drop_shop]
 
-path = "{scriptFolder[]}/work03.db"
+path = "{scriptfolder[]}/work03.db"
 db = make_shop[path]
 
 // ---------- one row per region ----------

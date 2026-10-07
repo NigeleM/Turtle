@@ -14,7 +14,8 @@ non-terminal; `[x]` is optional; `{x}` is zero-or-more; `|` is alternation.
   (`report.trt`, `lib/utils.trt`, `test_orders.trt`).
 - **Comments**: `// ...` runs to end of line. `//* ... *//` is a block
   comment that may span multiple lines. Both are stripped by the lexer.
-- **Identifiers**: `<letter|_> {letter|digit|_}`.
+- **Identifiers**: `<letter|_> {letter|digit|_}`. Turtle's own names are
+  all lowercase (`isempty`, `scriptfolder`, `sql_open`).
 - **Numbers**: `<digits>` (integer) or `<digits>.<digits>` (float).
 - **Strings**: `"double"` or `'single'` quoted (the same kind of string;
   inside single quotes a `"` needs no escape). Escapes: `\n`, `\t`, `\"`,
@@ -101,7 +102,7 @@ never equals `0`, `""`, or `"none"`. The same equality is used for set
 deduplication and membership and for `count`/`index`/`find`/`remove`.
 Map keys can be any value and keep their type: in `map [1: "a", "1":
 "b"]` the integer `1` and the string `"1"` are two different keys, and
-looping over a map or `getKeys` gives back integers as integers. Equal
+looping over a map or `getkeys` gives back integers as integers. Equal
 values are the same key (`1` and `1.0`; `set [1, 2]` and `set [2, 1]`).
 
 Values show as their type. An integer shows as `4`, a float always with a
@@ -119,7 +120,7 @@ bigger numbers. An integer literal past the limit is a parse error.
 Truthiness (conditions, `&&`, `||`, `!`), the Python rule: `false`,
 `none`, `0`, `0.0`, `""`, and an empty list, set or map are falsy;
 everything else is truthy. So `if ] matches [` means "if there are any
-matches". `matches at isEmpty` asks the same thing explicitly.
+matches". `matches at isempty` asks the same thing explicitly.
 
 `+` and `-` on two collections of the same kind always make a new one;
 neither side changes:
@@ -151,7 +152,7 @@ whole calculation:
 | `nums at get[0] + nums at get[2]` | adds two items | `nums[0] + nums[2]` |
 | `-7 at abs` | `7`: `-7` is one number | `abs(-7)` |
 | `-x at abs` | `-(x at abs)` | `-abs(x)` |
-| `!r at isEmpty` | "r is not empty" | `not r.isEmpty()` |
+| `!r at isempty` | "r is not empty" | `not r.isempty()` |
 | `title of b at upper` | the title, upper-cased (`title of b` is one value) | `b.title.upper()` |
 
 The same rule holds in the statement form: `r is "a" + "b" at upper .`
@@ -733,8 +734,9 @@ Plain `<ident> is <expr> .` (no `at`) is assignment/aliasing.
 pushes the items from 1 along (the list gets longer); `put 99 to nums at
 1 .` replaces the item at 1 (the length stays). `put` is a statement word
 only at the start of a line followed by a value; otherwise it's an
-ordinary name. As a method, `nums at put[1, 99]` takes the position first,
-then the value, and gives back the list.
+ordinary name. As methods, both take the value first, then the position,
+as the sentences do: `nums at insert[99, 1]`, `nums at put[99, 1]`; both
+give back the list.
 
 ## Files
 
@@ -824,8 +826,8 @@ is a fatal error that shows the chain.
   (pauses; `<unit>` is `"seconds"`, the default, or `"ms"`; returns
   `none`). Builtin functions can be called but not used as values.
 - `import system` provides `args[]` (the command-line arguments after the
-  script path), `exists`/`isFile`/`isFolder`, `contents[path]`,
-  `exit[code]`, `env[name]` and `scriptFolder[]` (see
+  script path), `exists`/`isfile`/`isfolder`, `contents[path]`,
+  `exit[code]`, `env[name]` and `scriptfolder[]` (see
   [`stdlib.md`](stdlib.md#system-library)).
 - `import strings` provides `find`, `substring`, `isinstring` and `join`
   (see [`stdlib.md`](stdlib.md#strings-library)).

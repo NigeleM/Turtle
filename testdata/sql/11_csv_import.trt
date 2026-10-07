@@ -4,10 +4,10 @@
 // is refused, no line of that file is kept.
 import sql
 import data
-import system [scriptFolder, erase, exists]
+import system [scriptfolder, erase, exists]
 import lib/verify [check, finish]
 
-here = scriptFolder[]
+here = scriptfolder[]
 path = "{here}/work11.db"
 if ] exists[path] [
     erase[path]

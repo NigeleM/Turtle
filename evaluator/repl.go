@@ -31,7 +31,10 @@ func (it *Interpreter) RunEntry(program *ast.Program) (shown object.Object, err 
 	if len(program.Statements) == 1 {
 		switch st := program.Statements[0].(type) {
 		case *ast.CallStatement:
+			// A sentence on its own: process and keep change in place.
 			currentLine = st.Line()
+			it.statementCall = st.Call
+			defer func() { it.statementCall = nil }()
 			return it.evalExpression(st.Call, it.Global), nil
 		case *ast.ExpressionStatement:
 			currentLine = st.Line()

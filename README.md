@@ -29,7 +29,7 @@ for reference; they still build and run.
 | For-each loops (`[loop][x in nums]`) | Done |
 | `+`/`-` on lists, sets, maps | Done |
 | Standard library: data (`process`, `keep`, `copy`, `table`, `table_read`, `table_write`; `.csv`, `.tsv`, `.txt`, `.json` table files) | Done |
-| Standard library: system (`args`, `exit`, `env`, `scriptFolder`, `contents`, `exists`/`isFile`/`isFolder`) | Done |
+| Standard library: system (`args`, `exit`, `env`, `scriptfolder`, `contents`, `exists`/`isfile`/`isfolder`) | Done |
 | Standard library: strings (`find`, `substring`, `isinstring`, `join`) | Done |
 | Assembled types (`assemble Order [item, qty]`, `qty of o`) | Done |
 | Data structures (list/set/map) | Done |

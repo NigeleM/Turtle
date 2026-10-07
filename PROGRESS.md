@@ -859,3 +859,33 @@ safe [end]
   docs/editors.md also covers Neovim, Helix, Sublime and Emacs.
 - Fix: `turtle test` / `lsp` / `doc` in a project with a folder of that
   name ran the folder as a script.
+
+## 2026-10-06: every name lowercase (not yet released)
+
+- The nine names with capitals are lowercase, words run together (the
+  user's choice): methods `isempty`, `isnumber`, `getkeys`, `getvalues`,
+  `indexof`, `tostring`; system's `scriptfolder`, `isfile`, `isfolder`.
+- The old spellings still work (methods through a table in data.go,
+  functions through the module's Aliases, also in `import ... [...]`
+  lists); docs, completion and hover show only the new ones.
+
+## 2026-10-06: put takes insert's order (not yet released)
+
+- `nums at put[99, 2]` (value, then position), like `nums at
+  insert[99, 2]` and the sentence `put 99 to nums at 2 .`; the is form
+  is `r is nums at put 99, 2 .`. Before, the method took the position
+  first. (The two orders can't be told apart, so the old one is gone.)
+- process and keep stay as they are: they change the data in place, and
+  a copy is made on purpose (copy[...]), the way data frames work (the
+  user's decision). A separate copying form may come later.
+
+## 2026-10-06: process and keep, alone or as a value; copy deep (not yet released)
+
+- As a sentence on its own (`prices process p give p * 2 .`, or
+  `process[prices, f]` alone), process and keep change the collection in
+  place. Used as a value (`doubled is prices process ... .`,
+  `doubled = process[prices, f]`, inside an expression), they give a new
+  collection and leave the original alone. Before, both changed it (the
+  user's decision; the interpreter marks the call a statement is made of).
+- `copy[x, true]` copies everything inside too; `copy[x]` and
+  `copy[x, false]` share what's inside, as before.

@@ -16,7 +16,7 @@ import (
 //	if ] exists["data.txt"] [ ... if [end]
 //	home = env["HOME"]               // a string, or none if unset
 //	exit[2]                          // end now, with exit code 2
-//	here = scriptFolder[]            // the script's own folder
+//	here = scriptfolder[]            // the script's own folder
 //	names = contents["sub"]          // what's in a folder ("." if omitted)
 //	erase["old.txt"]                 // delete a file, or a folder and all in it
 //	warn "can't find ", name .       // like show, but to stderr (evaluator.go)
@@ -103,7 +103,7 @@ func (it *Interpreter) callSystem(name string, args []object.Object) object.Obje
 			fatalKind(kindFile, "erase %s: %s", target, fileProblem(err))
 		}
 		return object.NoneValue
-	case "scriptFolder":
+	case "scriptfolder":
 		requireFuncArgs(name, args, 0)
 		abs, err := filepath.Abs(it.Dir)
 		if err != nil {
@@ -131,9 +131,9 @@ func (it *Interpreter) callSystem(name string, args []object.Object) object.Obje
 	info, err := os.Stat(it.resolvePath(path.Value))
 	found := err == nil
 	switch name {
-	case "isFile":
+	case "isfile":
 		found = found && info.Mode().IsRegular()
-	case "isFolder":
+	case "isfolder":
 		found = found && info.IsDir()
 	}
 	return &object.Boolean{Value: found}

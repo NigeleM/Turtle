@@ -3,11 +3,11 @@
 // leaves the file as it was.
 import sql
 import data
-import system [scriptFolder]
+import system [scriptfolder]
 import lib/verify [check, finish]
 import lib/shop [make_shop, drop_shop]
 
-path = "{scriptFolder[]}/work07.db"
+path = "{scriptfolder[]}/work07.db"
 db = make_shop[path]
 
 def stock_of[db, sku]

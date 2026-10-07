@@ -55,6 +55,12 @@ type Interpreter struct {
 	// interrupt is set from outside (the REPL's Ctrl-C) to stop the code
 	// running; the next statement checks it.
 	interrupt atomic.Bool
+	// statementCall is the call a statement is made of ("nums process
+	// x give x + 1 ."), and inPlace tells data's process and keep that
+	// they're that call: then they change the collection itself; used as a
+	// value (new is nums process ... .) they work on a copy.
+	statementCall *ast.CallExpression
+	inPlace       bool
 }
 
 func New(dir string) *Interpreter {
@@ -102,7 +108,7 @@ var builtinModules = map[string]*object.Module{
 	"math":    {Name: "math", Methods: []string{"sqrt", "abs", "round", "floor", "ceil", "pow", "random"}},
 	"time":    {Name: "time", Funcs: []string{"now", "sleep", "today", "today_utc", "make_date", "to_date", "add_time", "time_between", "format_date", "wait_until", "every"}},
 	"data":    {Name: "data", Funcs: []string{"process", "keep", "copy", "table", "table_read", "table_write"}},
-	"system":  {Name: "system", Funcs: []string{"args", "exists", "isFile", "isFolder", "exit", "env", "scriptFolder", "contents", "erase", "warn"}},
+	"system":  {Name: "system", Aliases: map[string]string{"isFile": "isfile", "isFolder": "isfolder", "scriptFolder": "scriptfolder"}, Funcs: []string{"args", "exists", "isfile", "isfolder", "exit", "env", "scriptfolder", "contents", "erase", "warn"}},
 	"strings": {Name: "strings", Funcs: []string{"find", "substring", "isinstring", "join"}},
 	"json":    {Name: "json", Funcs: []string{"load", "json_text", "json_read", "json_write", "json_get"}},
 	"http":    {Name: "http", Funcs: []string{"http_get", "http_post", "http_request"}},
@@ -359,7 +365,9 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		return noneResult
 
 	case *ast.CallStatement:
+		it.statementCall = s.Call
 		it.evalExpression(s.Call, env)
+		it.statementCall = nil
 		return noneResult
 
 	case *ast.ReturnStatement:

@@ -48,7 +48,7 @@ show "operators ok" .
 
 // ---------- input and conversion ----------
 raw = ? ""
-ok is raw at isNumber .
+ok is raw at isnumber .
 check["input is number", ok, true]
 n = change raw to integer
 check["change integer", n + 1, 6]
@@ -176,7 +176,7 @@ check["set + -", ab - set [4], a]
 ages = map ["Ana": 30, "Bo": 25]
 ages is ages at add "Cy", 35 .
 check["map get", ages at get["Bo"], 25]
-keys is ages at getKeys .
+keys is ages at getkeys .
 check["map keys", keys, list ["Ana", "Bo", "Cy"]]
 delete "Bo" from ages .
 check["map + keeps left", map ["a": 1] + map ["a": 2, "b": 3], map ["a": 1, "b": 3]]
@@ -325,7 +325,7 @@ check["compare dates", today[] > start_day, true]
 show "dates ok" .
 
 // ---------- sql ----------
-shelf = sql_open[scriptFolder[] + "/books.db"]
+shelf = sql_open[scriptfolder[] + "/books.db"]
 cheap = sql_query[shelf, "SELECT title FROM books WHERE price < ? ORDER BY price", list [1000]]
 check["sql rows", length of cheap, 3]
 check["sql first row", json_get[cheap, 0, "title"], "Café 🐢"]
@@ -362,7 +362,7 @@ out = "everything_out.txt"
 [read] out to lines [end]
 check["file round trip", lines, list ["first", "second"]]
 check["exists", out exists, true]
-check["isFile", isFile[out], true]
+check["isfile", isfile[out], true]
 check["contents", contents[] at find["everything.trt"], true]
 check["args", args[], list ["first", "second arg"]]
 erase[out]

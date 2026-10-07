@@ -52,6 +52,11 @@ computed value, store it first: `ab = a + b` then `length of ab`.
 
 ### Method-call form
 
+Every name is lowercase: `isempty`, `getkeys`, `indexof`. (Before
+v0.9.152 a few had capitals: `isEmpty`, `isNumber`, `getKeys`,
+`getValues`, `indexOf`, `toString`, and system's `scriptFolder`, `isFile`,
+`isFolder`. Those spellings still work.)
+
 ```
 <result> is <receiver> at <method> [<arg> {, <arg>}] .
 ```
@@ -62,8 +67,8 @@ computed value, store it first: `ab = a + b` then `length of ab`.
 |---|---|---|
 | `add` | value | the list (mutated) |
 | `len` / `length` | — | element count (Integer) |
-| `isEmpty` | — | Boolean: `true` when there are no elements |
-| `toString` | — | display string |
+| `isempty` | — | Boolean: `true` when there are no elements |
+| `tostring` | — | display string |
 | `clear` | — | the list, now empty |
 | `count` | value | number of matching elements (Integer) |
 | `index` | value | first matching index, or `-1` |
@@ -73,7 +78,7 @@ computed value, store it first: `ab = a + b` then `length of ab`.
 | `pop` | — | the **removed last element** (fatal if empty) |
 | `contains` / `find` | value | Boolean, whether present: `nums at contains[3]` |
 | `insert` | value, index | the list, with value inserted |
-| `put` | index, value | the list, with the item at index replaced: `nums at put[2, 99]` |
+| `put` | value, index | the list, with the item at index replaced: `nums at put[99, 2]` (the same order as `insert`) |
 | `get` | index | the element at that index, from `0`; fatal if out of range (including negative indexes; use `slice` to count from the end) |
 | `slice` | start [, end] | a new `list`, the elements `[start, end)`; same negative-index/clamping rules as string's `slice` below |
 
@@ -101,13 +106,13 @@ methods per type.)
 | `get` | key | the value (fatal if key not found) |
 | `len` / `length` | — | how many entries (Integer), like `length of m` |
 | `contains` | key | Boolean, whether the map has that key |
-| `getValues` | — | a list of values, insertion order |
-| `getKeys` | — | a list of the keys, insertion order, each with its own type |
-| `isEmpty` | — | Boolean: `true` when the map has no entries |
+| `getvalues` | — | a list of values, insertion order |
+| `getkeys` | — | a list of the keys, insertion order, each with its own type |
+| `isempty` | — | Boolean: `true` when the map has no entries |
 | `add` | key, value | the map, with the entry set |
 | `delete` | key | the map, with the entry removed (fatal if not found) |
 | `invert` | — | new map: values become keys, keys become values |
-| `toString` | — | display string |
+| `tostring` | — | display string |
 
 #### string
 
@@ -119,23 +124,23 @@ All indices are Unicode code points (runes), not bytes — consistent with
 |---|---|---|
 | `len` / `length` | — | how many characters (Integer), like `length of s` |
 | `upper` / `lower` | — | case-converted string |
-| `isEmpty` | — | Boolean: `true` for `""` |
+| `isempty` | — | Boolean: `true` for `""` |
 | `trim` | — | leading/trailing whitespace stripped |
 | `get` | index | the one-character string at that index, from `0`; fatal if out of range (including negative) |
 | `slice` | start [, end] | substring `[start, end)`; see below |
 | `split` | separator | a `list` of substrings |
 | `contains` | substring | Boolean |
-| `indexOf` | substring | first matching index, or `-1` |
+| `indexof` | substring | first matching index, or `-1` |
 | `replace` | old, new | new string, all occurrences of `old` replaced with `new` |
-| `isNumber` | — | Boolean: would `change ... to integer/float` succeed on this string |
-| `toString` | — | itself |
+| `isnumber` | — | Boolean: would `change ... to integer/float` succeed on this string |
+| `tostring` | — | itself |
 
-`isNumber` exists so you can validate untrusted input (from `?`) before
+`isnumber` exists so you can validate untrusted input (from `?`) before
 converting it, instead of letting a bad `change` crash the program:
 
 ```
 raw = ? "Enter a number: "
-ok is raw at isNumber .
+ok is raw at isnumber .
 if ] ok [
     n = change raw to float
 else ]
@@ -281,16 +286,32 @@ Plain `<result> is <receiver> .` (no `at`) is just assignment/aliasing —
 ## Data library
 
 `import data` (or `import data [process, keep, copy, table, table_read,
-table_write]`) provides six functions. `process` and `keep` change the
-collection **in place** and also return it. Use `copy` first to keep the
-original. `table`, `table_read` and `table_write` are described
-[below](#tables).
+table_write]`) provides six functions. `table`, `table_read` and
+`table_write` are described [below](#tables).
+
+**`process` and `keep`: alone or as a value.** Written as a sentence on
+its own, they change the collection **in place**. Used as a value
+(assigned with `=` or `is`, or inside an expression), they give a **new**
+collection and leave the original alone:
+
+```
+prices = list [100, 250]
+prices process p give p * 2 .                  // prices is now [ 200, 500 ]
+
+doubled is prices process p give p * 2 .        // doubled is [ 400, 1000 ];
+doubled = prices process p give p * 2           //   prices stays [ 200, 500 ]
+doubled = process[prices, p give p * 2]         // the call form, the same
+```
+
+Inside a function, a sentence changes the list the caller passed in
+(the function gets that list, not a copy); give back a new one instead
+when the caller's should stay as it was.
 
 | Function | Args | Effect |
 |---|---|---|
 | `process` | collection, function | replaces each element (list/set) or each value (map) with the function's result; a set is deduplicated afterwards |
 | `keep` | collection, function | keeps only the elements (list/set) or entries (map) for which the function gives a truthy result: a filter |
-| `copy` | collection | a new list/set/map with the same elements, or a new assembled value with the same fields |
+| `copy` | collection [, deep] | a new list/set/map/assembled value. `copy[x]`: the same items, so lists, maps or assembled values *inside* are shared; `copy[x, true]`: everything inside is copied too, so nothing is shared |
 
 For a map, the function takes the value (`x give ...`), or the key and the
 value (`[k, v] give ...`).
@@ -308,9 +329,12 @@ words process x give x at upper .  // [ "HEY", "DO" ]
 nums process double .               // any function value works
 
 ages = map ["Alice": 30, "Bob": 25]
-labels = copy[ages]
-labels process [name, age] give name + " is " + age .
+labels is ages process [name, age] give name + " is " + age .
 ages keep [name, age] give age > 26 .   // { "Alice": 30 }
+
+rows = list [list [1, 2], list [3, 4]]
+outer = copy[rows]          // a new list holding the same inner lists
+full = copy[rows, true]     // the inner lists copied too
 
 nums process [x] give              // block form for longer logic
     if ] x > 5 [
@@ -1157,7 +1181,7 @@ file is kind `file`.
 
 `import strings` (or `import strings [find, join]`) provides string
 functions that read well sentence-style. Three share their behaviour with
-string methods: `find` is `indexOf`, `substring` is `slice`, `isinstring`
+string methods: `find` is `indexof`, `substring` is `slice`, `isinstring`
 is `contains`. All indices count characters, not bytes.
 
 | Function | Args | Returns |
@@ -1190,11 +1214,11 @@ literal on the left: `"wor" isinstring line`.
 |---|---|---|
 | `args[]` | — | a `list` of the command-line arguments after the script path, as strings (empty if none) |
 | `exists[path]` | path string | Boolean: is there a file or folder at `path` |
-| `isFile[path]` | path string | Boolean: is `path` a regular file |
-| `isFolder[path]` | path string | Boolean: is `path` a folder |
+| `isfile[path]` | path string | Boolean: is `path` a regular file |
+| `isfolder[path]` | path string | Boolean: is `path` a folder |
 | `exit[code]` | optional integer (default `0`) | ends the program immediately with that exit code; `0` means success, anything else failure |
 | `env[name]` | variable name string | the environment variable's value as a string, or `none` if it isn't set |
-| `scriptFolder[]` | — | the full path of the folder the running script is in |
+| `scriptfolder[]` | — | the full path of the folder the running script is in |
 | `erase[path]` | path string | deletes the file, or the folder and **everything in it** (no undo); returns `none`. A missing path is a `file` error. It refuses the folder `turtle` runs in and any folder above it |
 | `contents[path]` | optional folder path (default `"."`) | a `list` of the names of the files and folders inside, sorted (names only, not full paths); a missing folder is a fatal error. The same listing as the `[directory]` statement, usable inline |
 
@@ -1215,11 +1239,11 @@ command-line tool, unless absolute. That applies here and to `[read]`,
 `turtle ~/tools/count.trt notes.txt` reads `./notes.txt`. (`import` is
 different: it always looks next to the script, so a program and its
 libraries can be moved together.) To use a file that sits next to the
-script, build its path from `scriptFolder[]`:
+script, build its path from `scriptfolder[]`:
 
 ```
 import system
-config = scriptFolder[] + "/config.txt"
+config = scriptfolder[] + "/config.txt"
 [read] config to lines [end]
 ```
 
@@ -1251,7 +1275,7 @@ Listing a folder:
 import system
 show contents[] .                    // the folder turtle was run in
 [loop][name in contents["sub"]]
-    if ] isFolder["sub/" + name] [
+    if ] isfolder["sub/" + name] [
         show name, "/" .
     else ]
         show name .
@@ -1268,7 +1292,7 @@ import system
 
 [loop][name in args[]]
     if ] name exists [
-        if ] isFolder[name] [
+        if ] isfolder[name] [
             show name, " is a folder" .
         else ]
             show name, " is a file" .
@@ -1283,7 +1307,7 @@ import system
 
 Paths are quoted strings or barewords (`file.txt`, `data/in.csv`),
 resolved relative to the folder `turtle` was run in, like any command-line
-tool (use `system`'s `scriptFolder[]` for files next to the script). A
+tool (use `system`'s `scriptfolder[]` for files next to the script). A
 single bare word with no `.` or `/` uses the variable of that name if one
 exists. Any I/O failure (file not found, permission denied, etc.) is a
 fatal error. Check first with `system`'s `exists[path]`.

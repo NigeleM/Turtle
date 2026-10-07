@@ -33,7 +33,7 @@ starts is s at startsWith "Mr" .
 ends   is s at endsWith "!" .
 fixed  is s at replace "foo", "bar" .
 piece  is s at substring 0, 3 .
-where  is s at indexOf "abc" .
+where  is s at indexof "abc" .
 ```
 
 | Method | Args | Returns | Fatal error |
@@ -47,7 +47,7 @@ where  is s at indexOf "abc" .
 | `endsWith` | suffix | Boolean | — |
 | `replace` | old, new | string, **all** occurrences of `old` replaced with `new` | — |
 | `substring` | start, end | substring `[start, end)` | start/end out of range |
-| `indexOf` | substring | first index found, or `-1` | — |
+| `indexof` | substring | first index found, or `-1` | — |
 
 Companion **list** method (receiver is a list of strings, not a string —
 the inverse of `split`):

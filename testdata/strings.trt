@@ -37,9 +37,9 @@ show hasWorld .
 hasZ is t at contains "Z" .
 show hasZ .
 
-idx is t at indexOf "World" .
+idx is t at indexof "World" .
 show idx .
-idxMissing is t at indexOf "nope" .
+idxMissing is t at indexof "nope" .
 show idxMissing .
 
 r is t at replace "World", "Turtle" .

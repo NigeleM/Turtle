@@ -2,10 +2,10 @@
 // constraints, and add rows with ? values.
 import sql
 import data
-import system [scriptFolder, erase, exists]
+import system [scriptfolder, erase, exists]
 import lib/verify [check, finish]
 
-here = scriptFolder[]
+here = scriptfolder[]
 path = "{here}/work01.db"
 if ] exists[path] [
     erase[path]

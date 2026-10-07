@@ -208,18 +208,18 @@ show r .`, "Hello\n"},
 		{"slice negative", `s = "Hello, World"
 r is s at slice -5 .
 show r .`, "World\n"},
-		{"split/contains/indexOf/replace", `s = "a,b,c"
+		{"split/contains/indexof/replace", `s = "a,b,c"
 p is s at split "," .
 hasB is s at contains "b" .
-idxC is s at indexOf "c" .
+idxC is s at indexof "c" .
 r is s at replace "b", "X" .
 show p .
 show hasB .
 show idxC .
 show r .`, "[ \"a\", \"b\", \"c\" ]\ntrue\n4\na,X,c\n"},
-		{"isNumber true", `ok is "42" at isNumber .
+		{"isnumber true", `ok is "42" at isnumber .
 show ok .`, "true\n"},
-		{"isNumber false", `ok is "abc" at isNumber .
+		{"isnumber false", `ok is "abc" at isnumber .
 show ok .`, "false\n"},
 		{"unicode length and indexing are rune-based", `s = "café"
 c is s at get 3 .
@@ -1026,10 +1026,10 @@ show a .
 show length of a .`, args: []string{"one", "two words"}, want: "[ \"one\", \"two words\" ]\n2\n"},
 		{name: "no args is an empty list", src: `import system
 show length of args[] .`, want: "0\n"},
-		{name: "exists, isFile, isFolder", src: `import system
-show exists["notes.txt"], isFile["notes.txt"], isFolder["notes.txt"] .
-show exists["sub"], isFile["sub"], isFolder["sub"] .
-show exists["missing.txt"], isFile["missing.txt"], isFolder["missing.txt"] .`,
+		{name: "exists, isfile, isfolder", src: `import system
+show exists["notes.txt"], isfile["notes.txt"], isfolder["notes.txt"] .
+show exists["sub"], isfile["sub"], isfolder["sub"] .
+show exists["missing.txt"], isfile["missing.txt"], isfolder["missing.txt"] .`,
 			want: "truetruefalse\ntruefalsetrue\nfalsefalsefalse\n"},
 		{name: "sentence style", src: `import system
 p = "notes.txt"
@@ -1284,7 +1284,7 @@ import system
 [read] data.txt to l [end]
 show hi[], " ", l .
 show exists["helpers.trt"] .
-show scriptFolder[] == "` + scriptDir + `" .`))
+show scriptfolder[] == "` + scriptDir + `" .`))
 	program := p.ParseProgram()
 	if errs := p.Errors(); len(errs) > 0 {
 		t.Fatal(errs)
@@ -1536,15 +1536,15 @@ show -lo .`, wantErr: "integer overflow"},
 }
 
 func TestIsEmpty(t *testing.T) {
-	src := `show list [] at isEmpty, list [1] at isEmpty .
-show set [] at isEmpty, set [1] at isEmpty .
-show map [] at isEmpty, map ["a": 1] at isEmpty .
-show "" at isEmpty, "x" at isEmpty .
+	src := `show list [] at isempty, list [1] at isempty .
+show set [] at isempty, set [1] at isempty .
+show map [] at isempty, map ["a": 1] at isempty .
+show "" at isempty, "x" at isempty .
 found = list []
-if ] found at isEmpty [
+if ] found at isempty [
     show "nothing found" .
 if [end]
-e is found at isEmpty .
+e is found at isempty .
 show e .`
 	out, err := run(t, src, "")
 	if err != nil {
@@ -1580,12 +1580,12 @@ func TestNotWithMethodsAndValueSubjects(t *testing.T) {
 	src := `import data
 import strings
 rows = list [list [], list [1]]
-rows keep r give !r at isEmpty .
+rows keep r give !r at isempty .
 show rows .
 s = "abc"
 b is !s at contains "z" .
 show b .
-show !s at isEmpty .
+show !s at isempty .
 show list [1, "a", 2.0] join "|" .
 orig = list [1, 2]
 big = copy[orig] process x give x * 10
@@ -2137,7 +2137,7 @@ func TestJSONLibrary(t *testing.T) {
 d = load['{"s": "x", "i": 3, "f": 2.5, "w": 2.0, "b": true, "n": null, "l": [1, "a"], "m": {}}']
 show d .`, want: `{ "s": "x", "i": 3, "f": 2.5, "w": 2.0, "b": true, "n": none, "l": [ 1, "a" ], "m": {  } }` + "\n"},
 		{name: "key order kept", src: `import json
-show load['{"z": 1, "a": 2, "m": 3}'] at getKeys .`, want: `[ "z", "a", "m" ]` + "\n"},
+show load['{"z": 1, "a": 2, "m": 3}'] at getkeys .`, want: `[ "z", "a", "m" ]` + "\n"},
 		{name: "numbers", src: `import json
 show load["1e3"], " ", load["-4"], " ", load["99999999999999999999"] .`, want: "1000.0 -4 100000000000000000000.0\n"},
 		{name: "json_text one line", src: `import json
@@ -3130,7 +3130,7 @@ x = -7
 show -7 at abs, " ", -2.5 at abs, " ", -x at abs, " ", 3 -7 at abs .`, want: "7 2.5 -7 -4\n"},
 		{name: "conditions", src: `nums = list [3, 1]
 s = ""
-if ] nums at isEmpty == false && nums at length == 2 && s at isEmpty [
+if ] nums at isempty == false && nums at length == 2 && s at isempty [
     show "ok" .
 if [end]`, want: "ok\n"},
 		{name: "is statements follow the same rule", src: `import math
@@ -3228,7 +3228,7 @@ show a at slice[1, 4] + a at get[0] at upper + a at replace["l", "L"] .
 show "x,y,z" at split[","] at length + "a b" at split[" "] at length .
 show nums at get[0] + nums at get[1] * nums at get[2] - nums at length .
 show nums at get[2] at sqrt + nums at get[1] at sqrt * 2 .
-show m at get["x"] + m at get["y"] * 2 - m at getKeys at length .
+show m at get["x"] + m at get["y"] * 2 - m at getkeys at length .
 show rows at get[0] at get["name"] at upper + " & " + rows at get[1] at get["name"] + "!" .
 show rows at get[0] at get["age"] + rows at get[1] at get["age"] > 50 && a at contains["ell"] .
 show list [1, 2] + list [3] + nums at slice[0, 1] - list [2] .
@@ -3249,25 +3249,31 @@ show "ab" + "cd" at upper + "ef" at slice[1] + "-" + 5 at abs .`
 }
 
 // TestPut: the item at a position becomes a new value, as a sentence, a
-// method in an expression, or the is-statement form.
+// method in an expression, or the is-statement form; value first, then
+// position, as insert takes them.
 func TestPut(t *testing.T) {
 	cases := []struct{ name, src, want, wantErr string }{
 		{name: "sentence", src: `nums = list [10, 20, 30]
 put 99 to nums at 1 .
 show nums, length of nums .`, want: "[ 10, 99, 30 ]3\n"},
 		{name: "method gives the list", src: `nums = list [10, 20, 30]
-r = nums at put[0, 5]
+r = nums at put[5, 0]
 show r, " ", nums .`, want: "[ 5, 20, 30 ] [ 5, 20, 30 ]\n"},
 		{name: "is form", src: `nums = list [10, 20, 30]
-r is nums at put 2, 7 .
+r is nums at put 7, 2 .
 show nums .`, want: "[ 10, 20, 7 ]\n"},
 		{name: "in an expression", src: `nums = list [1, 2, 3]
-show nums at put[0, nums at get[2]] at get[0] + 1 .`, want: "4\n"},
+show nums at put[nums at get[2], 0] at get[0] + 1 .`, want: "4\n"},
 		{name: "swap", src: `nums = list [1, 2, 3]
 a = nums at get[0]
 put nums at get[2] to nums at 0 .
 put a to nums at 2 .
 show nums .`, want: "[ 3, 2, 1 ]\n"},
+		{name: "the same order as insert", src: `a = list [1, 2, 3]
+b = list [1, 2, 3]
+x = a at insert[9, 1]
+y = b at put[9, 1]
+show a, " ", b .`, want: "[ 1, 9, 2, 3 ] [ 1, 9, 3 ]\n"},
 		{name: "put is still a name", src: `put = 4
 def put_one[x]
     return x
@@ -3276,7 +3282,7 @@ show put, put_one[2] .`, want: "42\n"},
 		{name: "past the end", src: `nums = list [1]
 put 2 to nums at 1 .`, wantErr: "index 1 out of range for list nums (length 1)"},
 		{name: "negative", src: `nums = list [1]
-r = nums at put[-1, 2]`, wantErr: "index -1 out of range"},
+r = nums at put[2, -1]`, wantErr: "index -1 out of range"},
 		{name: "a map", src: `m = map ["a": 1]
 put 2 to m at 0 .`, wantErr: "'put ... to m' needs a list, got MAP"},
 	}
@@ -3339,5 +3345,122 @@ func TestSyntaxMethodsExist(t *testing.T) {
 		if !exists {
 			t.Errorf("syntax.Methods has %q, which no value has", m)
 		}
+	}
+}
+
+// TestOldNamesStillWork: the names from before every name was lowercase
+// (isEmpty, scriptFolder ...) still work, everywhere a name is used.
+func TestOldNamesStillWork(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "f.txt"), []byte("x"), 0o644)
+	src := `import system [scriptFolder, isFile]
+nums = list [3, 1]
+m = map ["a": 1]
+show nums at isEmpty, " ", "42" at isNumber, " ", m at getKeys, " ", m at getValues .
+show "hello" at indexOf["l"], " ", nums at toString .
+r is nums at isEmpty .
+show r, " ", isFile["f.txt"], " ", scriptFolder[] != "" .
+show system isFolder["."] .`
+	out, err := runIn(t, dir, strings.Replace(src, "import system [scriptFolder, isFile]", "import system [scriptFolder, isFile, isFolder]", 1), "")
+	want := "false true [ \"a\" ] [ 1 ]\n2 [ 3, 1 ]\nfalse true true\ntrue\n"
+	if err != nil || out != want {
+		t.Fatalf("got %q, %v; want %q", out, err, want)
+	}
+	// An old name in the import list allows the new name, and the other way.
+	out, err = runIn(t, dir, "import system [isFile]\nshow isfile[\"f.txt\"] .", "")
+	if err != nil || out != "true\n" {
+		t.Fatalf("old name imported, new name called: %q, %v", out, err)
+	}
+	// Your own function of an old name is yours.
+	out, err = run(t, "import system\ndef scriptFolder[]\n    return \"mine\"\ndef [end]\nshow scriptFolder[] .", "")
+	if err != nil || out != "mine\n" {
+		t.Fatalf("own function: %q, %v", out, err)
+	}
+}
+
+// TestProcessAloneOrAsAValue: as a sentence on its own, process and keep
+// change the collection in place; used as a value they give a new one
+// and leave the original alone.
+func TestProcessAloneOrAsAValue(t *testing.T) {
+	cases := []struct{ name, src, want string }{
+		{name: "a sentence changes in place", src: `prices = list [100, 250]
+prices process p give p * 2 .
+show prices .`, want: "[ 200, 500 ]\n"},
+		{name: "the call form alone too", src: `w = list ["x"]
+process[w, s give s + "!"]
+keep[w, s give s != ""]
+show w .`, want: "[ \"x!\" ]\n"},
+		{name: "is gives a new list", src: `prices = list [100, 250]
+new_prices is prices process p give p * 2 .
+show prices, " ", new_prices .`, want: "[ 100, 250 ] [ 200, 500 ]\n"},
+		{name: "= and the call form give a new list", src: `prices = list [100, 250]
+a = prices process p give p + 1
+b = process[prices, p give p + 2]
+show prices, " ", a, " ", b .`, want: "[ 100, 250 ] [ 101, 251 ] [ 102, 252 ]\n"},
+		{name: "keep as a value", src: `nums = list [1, 2, 3, 4]
+evens is nums keep n give n % 2 == 0 .
+show nums, " ", evens .
+nums keep n give n > 2 .
+show nums .`, want: "[ 1, 2, 3, 4 ] [ 2, 4 ]\n[ 3, 4 ]\n"},
+		{name: "inside an expression", src: `nums = list [1, 2]
+show length of keep[nums, n give n > 1], " ", nums .`, want: "1 [ 1, 2 ]\n"},
+		{name: "maps and sets", src: `ages = map ["ann": 30]
+older is ages process a give a + 1 .
+s = set [1, 2]
+t is s process x give x * 10 .
+show ages, " ", older, " ", s, " ", t .`, want: "{ \"ann\": 30 } { \"ann\": 31 } { 1, 2 } { 10, 20 }\n"},
+		{name: "in a function, a sentence still changes the list", src: `def clean[rows]
+    rows keep r give r != none .
+def [end]
+data = list [1, none, 2]
+clean[data]
+show data .`, want: "[ 1, 2 ]\n"},
+		{name: "your own function called process", src: `def process[x, f]
+    return data process[x, y give y + 1]
+def [end]
+r = list [5]
+process[r, 0]
+show r .`, want: "[ 5 ]\n"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := run(t, "import data\n"+c.src, "")
+			if err != nil || out != c.want {
+				t.Fatalf("got %q, %v; want %q", out, err, c.want)
+			}
+		})
+	}
+}
+
+// TestCopyDeepOrShallow: copy[x] copies the outer collection; copy[x,
+// true] everything inside too.
+func TestCopyDeepOrShallow(t *testing.T) {
+	src := `import data
+assemble Order [item, qty]
+rows = list [list [1, 2], map ["a": list [1]], Order["pen", 1]]
+shallow = copy[rows]
+deep = copy[rows, true]
+also = copy[rows, false]
+inner = shallow at get[0]
+add 99 to inner .
+o = deep at get[2]
+qty of o = 50
+m = deep at get[1]
+l = m at get["a"]
+add 7 to l .
+show rows .
+show deep .
+show also at get[0] .`
+	want := `[ [ 1, 2, 99 ], { "a": [ 1 ] }, Order { item: "pen", qty: 1 } ]
+[ [ 1, 2 ], { "a": [ 1, 7 ] }, Order { item: "pen", qty: 50 } ]
+[ 1, 2, 99 ]
+`
+	out, err := run(t, src, "")
+	if err != nil || out != want {
+		t.Fatalf("got\n%s(%v)\nwant\n%s", out, err, want)
+	}
+	_, err = run(t, "import data\nx = copy[list [1], \"yes\"]", "")
+	if err == nil || !strings.Contains(err.Error(), "'copy' takes true (copy what's inside too) or false") {
+		t.Errorf("bad second argument: %v", err)
 	}
 }

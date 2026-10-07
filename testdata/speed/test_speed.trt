@@ -18,7 +18,7 @@ import search [find_first]
 import random
 import time [add_time, make_date]
 import sql
-import system [scriptFolder, erase, exists]
+import system [scriptfolder, erase, exists]
 
 benchmark = true
 benchtime = 0.2
@@ -30,7 +30,7 @@ numbers = random list of 1000 integers
 words = random list of 1000 strings of 5
 orders = random list of 100 Order [string, integer from 1 to 9, integer from 100 to 999]
 ages = random map of 100 string of 6 to integer from 0 to 99
-here = scriptFolder[]
+here = scriptfolder[]
 
 def fib[n]
     if ] n < 2 [

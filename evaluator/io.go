@@ -17,11 +17,11 @@ import (
 )
 
 // resolvePath resolves a file path used by [read]/[write]/[append]/
-// [directory] and system's exists/isFile/isFolder: relative to the folder
+// [directory] and system's exists/isfile/isfolder: relative to the folder
 // turtle was run from, like any command-line tool — so
 // "turtle ~/tools/count.trt notes.txt" finds ./notes.txt. Scripts that want
 // files next to themselves can build the path from system's
-// scriptFolder[].
+// scriptfolder[].
 func (it *Interpreter) resolvePath(p string) string {
 	if filepath.IsAbs(p) {
 		return p

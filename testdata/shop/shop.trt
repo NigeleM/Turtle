@@ -254,7 +254,7 @@ check["number keys become text", json_get[saved, "problems", "3"], "key"]
 [read] shop_log.txt to logged [end]
 check["log lines", length of logged, length of log_lines + 1]
 check["log header", logged at get[0], "Turtle Books log, cashier Sam"]
-check["files exist", exists["shop_report.json"] && isFile["shop_log.txt"], true]
+check["files exist", exists["shop_report.json"] && isfile["shop_log.txt"], true]
 
 erase["shop_report.json"]
 erase["shop_log.txt"]

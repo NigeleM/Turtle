@@ -1,10 +1,10 @@
 // log.trt: the log library. Log lines go to the console (stderr) and,
 // with logfile, to a file; outputfile keeps a copy of what show prints.
 import log
-import system [scriptFolder, erase, exists]
+import system [scriptfolder, erase, exists]
 import lib/verify [check, finish]
 
-here = scriptFolder[]
+here = scriptfolder[]
 path = "{here}/work_log.log"
 copy = "{here}/work_output.txt"
 [loop][f in list [path, copy, "{path}.1"]]

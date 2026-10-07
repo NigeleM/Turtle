@@ -1536,7 +1536,7 @@ func (p *Parser) parseMethodCallExpression(receiver ast.Expression) ast.Expressi
 	method := p.curToken.Literal
 	mc := &ast.MethodCallExpression{Token: tok, Receiver: receiver, Method: method}
 	// Same rule as function calls: real arguments start on the '[' line;
-	// a '[' that ends its line closes an if-header ("if ] x at isEmpty [").
+	// a '[' that ends its line closes an if-header ("if ] x at isempty [").
 	if p.peekTokenIs(token.LBRACKET) && p.peekToken.Line == p.curToken.Line && p.peekN(2).Line == p.peekToken.Line {
 		p.nextToken()
 		mc.Arguments = p.parseExpressionList(token.RBRACKET)
@@ -1764,8 +1764,8 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 	}
 	p.nextToken()
 	right := p.parseExpression(PREFIX)
-	// "!" applies to a whole method call: "!r at isEmpty" is
-	// !(r at isEmpty), like Python's "not r.isEmpty()". (The is-statement
+	// "!" applies to a whole method call: "!r at isempty" is
+	// !(r at isempty), like Python's "not r.isempty()". (The is-statement
 	// form with unbracketed args is handled in parseIsStatement.)
 	if tok.Type == token.BANG && !p.inIsReceiver {
 		for p.peekTokenIs(token.AT) {

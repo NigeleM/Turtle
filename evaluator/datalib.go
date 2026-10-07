@@ -9,14 +9,22 @@ import "Turtle/object"
 //	nums process x give x + 1 .     // process[nums, x give x + 1]
 //	nums keep x give x > 2 .        // keep[nums, x give x > 2]
 //
-// process and keep change the collection in place and also return it;
-// copy makes a new one first when the original should stay as it was.
+// As a sentence on its own, process and keep change the collection in
+// place (nums process x give x + 1 .). Used as a value (assigned, or
+// inside an expression) they give a new collection and leave the
+// original alone: new is nums process x give x + 1 . copy makes a copy
+// on purpose: copy[x] (the outer collection), copy[x, true] (everything
+// inside it too).
 
 // dataProcess replaces every element (list/set) or every value (map) with
 // f's result. A set is deduplicated afterwards. For a map, f takes the
 // value, or the key and the value if it has two parameters.
 func (it *Interpreter) dataProcess(args []object.Object) object.Object {
+	inPlace := it.takeInPlace()
 	coll, fn := collectionAndFunction("process", args)
+	if !inPlace {
+		coll = shallowCopy(coll)
+	}
 	switch c := coll.(type) {
 	case *object.List:
 		for i, e := range c.Elements {
@@ -40,7 +48,11 @@ func (it *Interpreter) dataProcess(args []object.Object) object.Object {
 // dataKeep keeps only the elements (list/set) or entries (map) for which
 // f gives a truthy result — a filter.
 func (it *Interpreter) dataKeep(args []object.Object) object.Object {
+	inPlace := it.takeInPlace()
 	coll, fn := collectionAndFunction("keep", args)
+	if !inPlace {
+		coll = shallowCopy(coll)
+	}
 	switch c := coll.(type) {
 	case *object.List:
 		c.Elements = it.keepElements(fn, c.Elements)
@@ -67,13 +79,33 @@ func (it *Interpreter) keepElements(fn *object.Function, elems []object.Object) 
 	return out
 }
 
-// dataCopy returns a new list/set/map holding the same elements, so
-// "big = copy[nums]" then "big process x give x * 10 ." leaves nums alone.
+// dataCopy is copy[x [, deep]]: a new list/set/map/assembled value. With
+// deep false (the default) it holds the same items, so lists inside are
+// shared; with deep true everything inside is copied too, so nothing is.
 func dataCopy(args []object.Object) object.Object {
-	if len(args) != 1 {
-		fatalf("'copy' expects 1 argument (a list, set, map, or assembled value), got %d", len(args))
+	if len(args) != 1 && len(args) != 2 {
+		fatalf("'copy' expects 1 or 2 arguments (a list, set, map, or assembled value, and true to copy what's inside too), got %d", len(args))
 	}
-	switch c := args[0].(type) {
+	switch args[0].(type) {
+	case *object.List, *object.Set, *object.Map, *object.Assembly:
+	default:
+		fatalf("'copy' needs a list, set, map, or assembled value, got %s", args[0].Type())
+	}
+	if len(args) == 2 {
+		deep, ok := args[1].(*object.Boolean)
+		if !ok {
+			fatalf("'copy' takes true (copy what's inside too) or false as its second argument, got %s", object.Shown(args[1]))
+		}
+		if deep.Value {
+			return deepCopy(args[0])
+		}
+	}
+	return shallowCopy(args[0])
+}
+
+// shallowCopy is a new collection holding the same items.
+func shallowCopy(x object.Object) object.Object {
+	switch c := x.(type) {
 	case *object.List:
 		return &object.List{Elements: append([]object.Object{}, c.Elements...)}
 	case *object.Set:
@@ -87,8 +119,7 @@ func dataCopy(args []object.Object) object.Object {
 	case *object.Assembly:
 		return &object.Assembly{Shape: c.Shape, Values: append([]object.Object{}, c.Values...)}
 	}
-	fatalf("'copy' needs a list, set, map, or assembled value, got %s", args[0].Type())
-	return nil
+	return x
 }
 
 func collectionAndFunction(name string, args []object.Object) (object.Object, *object.Function) {

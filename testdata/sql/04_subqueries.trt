@@ -2,11 +2,11 @@
 // WITH tables (also recursive), and VALUES.
 import sql
 import data
-import system [scriptFolder]
+import system [scriptfolder]
 import lib/verify [check, finish]
 import lib/shop [make_shop, drop_shop]
 
-path = "{scriptFolder[]}/work04.db"
+path = "{scriptfolder[]}/work04.db"
 db = make_shop[path]
 
 // ---------- a subquery as a value ----------

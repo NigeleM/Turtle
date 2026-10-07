@@ -26,11 +26,11 @@ def test_methods[]
     check nums at contains[3] .
     check nums at find[2] .
     check nums at index[2] == 2 .
-    check !nums at isEmpty .
+    check !nums at isempty .
     check set [1, 2] at subset[set [1, 2, 3]] .
     check set [1, 2, 3] at superset[set [2]] .
     check "Turtle" at contains["urt"] .
-    check "42" at isNumber .
+    check "42" at isnumber .
     check is_sorted[min_sort[nums]] .
     check nums at length == 3 && "abc" at length == 3 .
     check map ["a": 1] at length == 1 && set [1, 2] at length == 2 .

@@ -125,7 +125,7 @@ sum = plus[1, 2]
   their values. Runaway recursion stops with "recursion too deep" at
   100,000 calls in progress.
 - **(changed)** An empty list, set or map is falsy, like `""` and `0`
-  (the Python rule); new `isEmpty` method on lists, sets, maps, strings.
+  (the Python rule); new `isempty` method on lists, sets, maps, strings.
 - **(changed)** Inside lists, sets, maps and assembled values, text shows
   quoted (`[ 1, "1" ]`). Integer arithmetic past the 64-bit limits is an
   "integer overflow" error instead of wrapping around.
@@ -171,7 +171,7 @@ sum = plus[1, 2]
   `import lib/utils` for modules in subfolders; errors inside a module
   name its file (`lib/utils.trt line 2: ...`); `system` gained `erase[path]`
   and the `warn ... .` statement (show to stderr).
-- **(new)** `system` gained `exit[code]`, `env[name]`, `scriptFolder[]`;
+- **(new)** `system` gained `exit[code]`, `env[name]`, `scriptfolder[]`;
   new `strings` library: `find`, `substring`, `isinstring`, `join`.
 - **(new)** For-each loops `[loop][x in c]` / `[loop][k, v in c]`, and
   `+`/`-` on two lists, sets, or maps. See `docs/reference.md`.
@@ -308,14 +308,14 @@ max of a .                // prints
 result is a at get 0 .
 result is a at count 5 .
 result is s1 at union s2 .
-result is m at getKeys .
+result is m at getkeys .
 result is a .              // plain alias/assign, no "at"
 ```
 
-Supported methods — list: `add len toString clear count index sort
+Supported methods — list: `add len tostring clear count index sort
 remove reverse pop find insert length get`; set: all list methods except
 `count`/`copy` plus `union intersection difference subset superset`;
-map: `get getValues getKeys add delete invert toString`.
+map: `get getvalues getkeys add delete invert tostring`.
 
 - **(fixed)** `at invert` on a map used to panic (legacy allocated the
   result struct without initializing its underlying Go map before
@@ -323,7 +323,7 @@ map: `get getValues getKeys add delete invert toString`.
 - **(fixed)** `at copy` and `at delete` (the method-chain spelling of
   map deletion) used to be silently-parsed no-ops; both now actually do
   the operation their name promises.
-- **(fixed)** Map iteration order (`toString`, `getKeys`, `getValues`)
+- **(fixed)** Map iteration order (`tostring`, `getkeys`, `getvalues`)
   is deterministic (insertion order), not Go's randomized map order.
 - **(fixed)** List/set/map operations inside a function body now
   correctly read/write that function's local scope. (Legacy's method

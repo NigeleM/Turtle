@@ -156,7 +156,7 @@
     },
     "library": {
       "name": "support.function.turtle",
-      "match": "\\b(add_time|args|binary_search|bubble_sort|chance|contents|copy|count_where|counting_sort|env|erase|every|exists|exit|exponential_search|find|find_all|find_first|find_index|find_key|find_last|format_date|heap_sort|http_get|http_post|http_request|insert_position|insertion_sort|interpolation_search|isFile|isFolder|is_sorted|isinstring|join|json_get|json_read|json_text|json_write|jump_search|keep|linear_search|load|make_date|max_sort|merge_sort|min_sort|now|pick|process|quick_sort|radix_sort|reverse_list|sample|scriptFolder|selection_sort|shell_sort|shuffle|sleep|sql_close|sql_create|sql_delete|sql_load|sql_open|sql_query|sql_run|sql_save|sql_tables|sql_update|sql_upsert|substring|table|table_read|table_write|ternary_search|time_between|to_date|today|today_utc|wait_until|warn)(?=\\[)"
+      "match": "\\b(add_time|args|binary_search|bubble_sort|chance|contents|copy|count_where|counting_sort|env|erase|every|exists|exit|exponential_search|find|find_all|find_first|find_index|find_key|find_last|format_date|heap_sort|http_get|http_post|http_request|insert_position|insertion_sort|interpolation_search|isfile|isfolder|is_sorted|isinstring|join|json_get|json_read|json_text|json_write|jump_search|keep|linear_search|load|make_date|max_sort|merge_sort|min_sort|now|pick|process|quick_sort|radix_sort|reverse_list|sample|scriptfolder|selection_sort|shell_sort|shuffle|sleep|sql_close|sql_create|sql_delete|sql_load|sql_open|sql_query|sql_run|sql_save|sql_tables|sql_update|sql_upsert|substring|table|table_read|table_write|ternary_search|time_between|to_date|today|today_utc|wait_until|warn)(?=\\[)"
     },
     "calls": {
       "name": "entity.name.function.call.turtle",

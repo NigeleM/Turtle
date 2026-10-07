@@ -196,8 +196,20 @@ func (it *Interpreter) evalMethodCall(mc *ast.MethodCallExpression, env *object.
 	return it.applyMethod(mc, receiver, args, env)
 }
 
+// oldMethodNames are the methods' names from before every name was
+// lowercase (2026-10-06). They still work; the docs show the new ones.
+var oldMethodNames = map[string]string{
+	"isEmpty": "isempty", "isNumber": "isnumber", "getKeys": "getkeys",
+	"getValues": "getvalues", "indexOf": "indexof", "toString": "tostring",
+}
+
 // applyMethod runs mc's method on values already worked out.
 func (it *Interpreter) applyMethod(mc *ast.MethodCallExpression, receiver object.Object, args []object.Object, env *object.Environment) object.Object {
+	if newName, ok := oldMethodNames[mc.Method]; ok {
+		c := *mc
+		c.Method = newName
+		mc = &c
+	}
 	switch r := receiver.(type) {
 	case *object.List:
 		return listMethod(r, mc.Method, args)
@@ -264,7 +276,7 @@ func asIndex(method string, obj object.Object) int {
 
 func listMethod(l *object.List, method string, args []object.Object) object.Object {
 	switch method {
-	case "isEmpty":
+	case "isempty":
 		requireArgs(method, args, 0)
 		return &object.Boolean{Value: len(l.Elements) == 0}
 	case "add":
@@ -273,7 +285,7 @@ func listMethod(l *object.List, method string, args []object.Object) object.Obje
 		return l
 	case "len", "length":
 		return &object.Integer{Value: int64(len(l.Elements))}
-	case "toString":
+	case "tostring":
 		return &object.String{Value: l.Inspect()}
 	case "clear":
 		l.Elements = nil
@@ -329,10 +341,11 @@ func listMethod(l *object.List, method string, args []object.Object) object.Obje
 		l.Elements = append(l.Elements[:idx:idx], append([]object.Object{args[0]}, l.Elements[idx:]...)...)
 		return l
 	case "put":
-		// put[i, v]: the item at i becomes v (insert pushes the rest along;
-		// put replaces). From 0; like get, a negative index is out of range.
+		// put[v, i]: the item at i becomes v, in insert's order (insert
+		// pushes the rest along; put replaces). From 0; like get, a
+		// negative index is out of range.
 		requireArgs(method, args, 2)
-		l.Elements[listIndex("list", asIndex(method, args[0]), len(l.Elements))] = args[1]
+		l.Elements[listIndex("list", asIndex(method, args[1]), len(l.Elements))] = args[0]
 		return l
 	case "get":
 		requireArgs(method, args, 1)
@@ -360,7 +373,7 @@ func listMethod(l *object.List, method string, args []object.Object) object.Obje
 
 func setMethod(s *object.Set, method string, args []object.Object) object.Object {
 	switch method {
-	case "isEmpty":
+	case "isempty":
 		requireArgs(method, args, 0)
 		return &object.Boolean{Value: len(s.Elements) == 0}
 	case "add":
@@ -369,7 +382,7 @@ func setMethod(s *object.Set, method string, args []object.Object) object.Object
 		return s
 	case "len", "length":
 		return &object.Integer{Value: int64(len(s.Elements))}
-	case "toString":
+	case "tostring":
 		return &object.String{Value: s.Inspect()}
 	case "clear":
 		s.Elements = nil
@@ -505,7 +518,7 @@ func mapMethod(m *object.Map, method string, args []object.Object) object.Object
 		requireArgs(method, args, 1)
 		_, ok := m.Get(args[0])
 		return &object.Boolean{Value: ok}
-	case "isEmpty":
+	case "isempty":
 		requireArgs(method, args, 0)
 		return &object.Boolean{Value: len(m.Keys) == 0}
 	case "get":
@@ -515,13 +528,13 @@ func mapMethod(m *object.Map, method string, args []object.Object) object.Object
 			fatalKind(kindKey, "key %s not found in map", showKey(args[0]))
 		}
 		return v
-	case "getValues":
+	case "getvalues":
 		list := &object.List{}
 		for _, k := range m.Keys {
 			list.Elements = append(list.Elements, m.Values[k])
 		}
 		return list
-	case "getKeys":
+	case "getkeys":
 		list := &object.List{}
 		for _, k := range m.Keys {
 			list.Elements = append(list.Elements, m.KeyOf(k))
@@ -543,7 +556,7 @@ func mapMethod(m *object.Map, method string, args []object.Object) object.Object
 			result.Put(m.Values[k], m.KeyOf(k))
 		}
 		return result
-	case "toString":
+	case "tostring":
 		return &object.String{Value: m.Inspect()}
 	}
 	fatalKind(kindName, "unknown map method %q", method)
@@ -555,10 +568,10 @@ func stringMethod(s *object.String, method string, args []object.Object) object.
 	case "len", "length":
 		requireArgs(method, args, 0)
 		return &object.Integer{Value: int64(utf8.RuneCountInString(s.Value))}
-	case "isEmpty":
+	case "isempty":
 		requireArgs(method, args, 0)
 		return &object.Boolean{Value: s.Value == ""}
-	case "isNumber":
+	case "isnumber":
 		requireArgs(method, args, 0)
 		_, err := strconv.ParseFloat(strings.TrimSpace(s.Value), 64)
 		return &object.Boolean{Value: err == nil}
@@ -588,7 +601,7 @@ func stringMethod(s *object.String, method string, args []object.Object) object.
 	case "contains":
 		requireArgs(method, args, 1)
 		return &object.Boolean{Value: strings.Contains(s.Value, asStringArg(method, args[0]))}
-	case "indexOf":
+	case "indexof":
 		requireArgs(method, args, 1)
 		return &object.Integer{Value: int64(runeIndexOf(s.Value, asStringArg(method, args[0])))}
 	case "replace":
@@ -596,7 +609,7 @@ func stringMethod(s *object.String, method string, args []object.Object) object.
 		old := asStringArg(method, args[0])
 		new_ := asStringArg(method, args[1])
 		return &object.String{Value: strings.ReplaceAll(s.Value, old, new_)}
-	case "toString":
+	case "tostring":
 		return s
 	}
 	fatalKind(kindName, "unknown string method %q", method)

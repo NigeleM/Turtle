@@ -133,10 +133,10 @@ func comments(src string, from, to int) []Span {
 // (Library functions are called by name, sql_open[...], not with at.)
 var Methods = []string{
 	"abs", "add", "ceil", "clear", "contains", "count", "delete", "difference",
-	"find", "floor", "get", "getKeys", "getValues", "index", "indexOf", "insert",
-	"intersection", "invert", "isEmpty", "isNumber", "len", "length", "lower",
+	"find", "floor", "get", "getkeys", "getvalues", "index", "indexof", "insert",
+	"intersection", "invert", "isempty", "isnumber", "len", "length", "lower",
 	"pop", "pow", "put", "random", "remove", "replace", "reverse", "round",
-	"slice", "sort", "split", "sqrt", "subset", "superset", "toString", "trim",
+	"slice", "sort", "split", "sqrt", "subset", "superset", "tostring", "trim",
 	"union", "upper",
 }
 

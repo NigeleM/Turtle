@@ -6,10 +6,10 @@
 // date) or SQL ones (VARCHAR(10), NUMERIC(4, 2), ...).
 import sql
 import data
-import system [scriptFolder, erase, exists]
+import system [scriptfolder, erase, exists]
 import lib/verify [check, finish]
 
-here = scriptFolder[]
+here = scriptfolder[]
 agents = "{here}/data/agents.csv"
 path = "{here}/work14.db"
 if ] exists[path] [

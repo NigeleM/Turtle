@@ -140,25 +140,33 @@ table[...] shows. Change it like any variable; none shows every row.
 
 ### process[collection, function]
   Replaces every element (of a list or set) or every value (of a map)
-  with what the function gives for it. Changes the collection itself.
+  with what the function gives for it.
   collection   a list, set or map
   function     x give ...  (for a map: x give ..., or [key, value] give ...)
-  Gives back: the same collection, changed.
+  As a sentence on its own it changes the collection itself; used as a
+  value (assigned, or in an expression) it gives a new collection and
+  leaves the original alone.
   Example:
     nums process x give x * 10 .
+    bigger is nums process x give x * 10 .
 
 ### keep[collection, function]
   Keeps only the elements (or map entries) for which the function gives
-  true: a filter. Changes the collection itself.
-  Gives back: the same collection, changed.
+  true: a filter. As a sentence on its own it changes the collection
+  itself; used as a value it gives a new one and leaves the original.
   Example:
     nums keep x give x > 3 .
+    big is nums keep x give x > 3 .
 
-### copy[value]
-  A new list, set, map or assembled value with the same contents, so
-  changing the copy leaves the original alone.
+### copy[value, deep]
+  A new list, set, map or assembled value with the same contents.
+  value   what to copy
+  deep    optional: true copies what's inside too (lists in a list, maps
+          in a list, an assembled value's lists), so nothing is shared;
+          false or left out shares what's inside
   Example:
-    big = copy[nums] process x give x * 10
+    outer = copy[rows]
+    full = copy[rows, true]
 
 ### table[rows, limit]
   Lays rows out as a text table, one row per line, columns lined up.
@@ -206,7 +214,7 @@ table[...] shows. Change it like any variable; none shows every row.
 `,
 
 	"system": `The command line, environment, files and folders, and the program itself.
-Paths start from the folder turtle was run in (scriptFolder[] gives the
+Paths start from the folder turtle was run in (scriptfolder[] gives the
 script's own folder).
 
 ### args[]
@@ -217,11 +225,11 @@ script's own folder).
   Is there a file or folder at path?
   Gives back: true or false.
 
-### isFile[path]
+### isfile[path]
   Is path a file?
   Gives back: true or false.
 
-### isFolder[path]
+### isfolder[path]
   Is path a folder?
   Gives back: true or false.
 
@@ -237,10 +245,10 @@ script's own folder).
   Example:
     home = env["HOME"]
 
-### scriptFolder[]
+### scriptfolder[]
   The full path of the folder the running script is in.
   Example:
-    data = "{scriptFolder[]}/data.csv"
+    data = "{scriptfolder[]}/data.csv"
 
 ### contents[path]
   The names of the files and folders in a folder (path is optional, "."

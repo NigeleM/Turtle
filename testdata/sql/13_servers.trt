@@ -6,10 +6,10 @@
 // Without either, it only says so.
 import sql
 import data
-import system [scriptFolder, erase, env]
+import system [scriptfolder, erase, env]
 import lib/verify [check, finish]
 
-here = scriptFolder[]
+here = scriptfolder[]
 
 def price_of[db, sku]
     rows = sql_query[db, "SELECT price FROM turtle_books WHERE sku = ?", list [sku]]

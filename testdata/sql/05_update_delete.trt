@@ -2,11 +2,11 @@
 // with WHERE, counts of changed rows, upserts, and OR IGNORE / REPLACE.
 import sql
 import data
-import system [scriptFolder]
+import system [scriptfolder]
 import lib/verify [check, finish]
 import lib/shop [make_shop, drop_shop]
 
-path = "{scriptFolder[]}/work05.db"
+path = "{scriptfolder[]}/work05.db"
 db = make_shop[path]
 
 // ---------- UPDATE gives back how many rows changed ----------

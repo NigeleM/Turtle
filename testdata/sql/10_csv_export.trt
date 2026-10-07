@@ -3,11 +3,11 @@
 // table show table[x] prints (.txt). table_read reads them back.
 import sql
 import data
-import system [scriptFolder, erase]
+import system [scriptfolder, erase]
 import lib/verify [check, finish]
 import lib/shop [make_shop, drop_shop]
 
-here = scriptFolder[]
+here = scriptfolder[]
 path = "{here}/work10.db"
 db = make_shop[path]
 

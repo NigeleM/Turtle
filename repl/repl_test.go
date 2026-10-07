@@ -321,3 +321,18 @@ func TestOneClearParseError(t *testing.T) {
 		t.Errorf("got:\n%s", out.String())
 	}
 }
+
+// TestProcessInTheREPL: a process sentence alone changes the list (and
+// shows it); assigned, it makes a new one.
+func TestProcessInTheREPL(t *testing.T) {
+	s, out := session(t)
+	s.Eval("import data")
+	s.Eval("prices = list [1, 2]")
+	s.Eval("prices process p give p * 10 .")
+	s.Eval("doubled is prices process p give p * 2 .")
+	s.Eval("prices")
+	s.Eval("doubled")
+	if out.String() != "[ 10, 20 ]\n[ 10, 20 ]\n[ 20, 40 ]\n" {
+		t.Errorf("got %q", out.String())
+	}
+}

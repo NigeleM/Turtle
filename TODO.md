@@ -8,7 +8,7 @@ Done so far: string methods, `strings` (`find`, `substring`, `isinstring`,
 `join`), `math`, `time` (`now`, `sleep`, dates: `today`, `make_date`,
 `to_date`, `add_time`, `time_between`, `format_date`, `wait_until`,
 `every`), `data` (`process`, `keep`, `copy`), `system` (`args`, `exit`,
-`env`, `scriptFolder`, `contents`, `exists`, `isFile`, `isFolder`,
+`env`, `scriptfolder`, `contents`, `exists`, `isfile`, `isfolder`,
 `erase`, `warn`), `json` (`load`, `json_text`, `json_read`, `json_write`,
 `json_get`), `http` (`http_get`, `http_post`, `http_request`), `sql`
 (`sql_open`, `sql_create`, `sql_query`, `sql_run`, `sql_tables`,
@@ -50,6 +50,8 @@ Next, roughly in priority order:
       value right before them (2026-10-06)
 - [x] `put` (set the item at a position); a general speed test
       (testdata/speed) (2026-10-06)
+- [x] process / keep give a new collection when used as a value, and
+      copy[x, true] copies deeply (2026-10-06)
 - [ ] Benchmark suite with a baseline (held off by the user, 2026-10-06)
 - [x] Log library (2026-10-06)
 - [x] REPL with colors (2026-10-06); editor: see the next option below

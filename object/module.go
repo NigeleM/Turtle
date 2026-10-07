@@ -15,6 +15,18 @@ type Module struct {
 	Funcs   []string     // builtin only
 	Methods []string     // builtin only
 	Hybrid  bool         // a builtin with Turtle functions in Env
+	// Aliases are a builtin's old function names, each to its current
+	// one: scriptFolder still means scriptfolder.
+	Aliases map[string]string
+}
+
+// Canonical is name's current spelling (name itself unless it's an old
+// name of one of this module's functions).
+func (m *Module) Canonical(name string) string {
+	if n, ok := m.Aliases[name]; ok {
+		return n
+	}
+	return name
 }
 
 // Exports reports whether name is something this module provides — what
@@ -30,7 +42,7 @@ func (m *Module) ExportsFunction(name string) bool {
 		_, ok := m.Env.functions[name]
 		return ok
 	}
-	return contains(m.Funcs, name)
+	return contains(m.Funcs, m.Canonical(name))
 }
 
 // Function returns the user-defined function name from a .t module (or
@@ -52,7 +64,7 @@ type Import struct {
 
 // Allows reports whether this import makes name available.
 func (im *Import) Allows(name string) bool {
-	return im.Names == nil || im.Names[name]
+	return im.Names == nil || im.Names[im.Module.Canonical(name)]
 }
 
 func contains(list []string, s string) bool {

@@ -1,5 +1,9 @@
 
 def hello [b]
+    /*
+        hello functions is to divide by 10 and return the value
+
+    */
     c = b/10.0
     // show c .
      return c 
@@ -82,3 +86,9 @@ if [end]
 def [end]
 // showStuff []
 // parserTest[]
+
+import data 
+
+a = list [1,2,3,4,5]
+
+a process x give x + 1

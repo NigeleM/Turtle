@@ -198,11 +198,11 @@ library function works:
 check nums at contains[3] .
 check nums at find[3] .
 check nums at index[3] == 2 .
-check !nums at isEmpty .
+check !nums at isempty .
 check small at subset[big] .
 check big at superset[small] .
 check "Turtle" at contains["urt"] .
-check "42" at isNumber .
+check "42" at isnumber .
 check is_sorted[nums] .                         // import sort
 check find_first[books, b give price of b > 900] != none .   // import search
 ```
@@ -238,7 +238,7 @@ check nums is empty .      // a list, set, map or string with nothing in it
 check x is not none .      // "is not" for any of them
 ```
 
-`"42" at isNumber` is **true** (the text looks like a number), but
+`"42" at isnumber` is **true** (the text looks like a number), but
 `check "42" is number .` **fails**: the value is a string.
 `check "x" is integer .` says `"x" is a string, not an integer`.
 
@@ -341,7 +341,7 @@ verify scores at least 3 s give s >= 90 .          // three or more A grades
 verify errors at most 2 e give e == "timeout" .    // timeouts are rare
 verify cards exactly 4 c give c at contains["A"] . // four aces in the deck
 verify week exactly 2 d give d == "Sat" || d == "Sun" .
-verify password at least 1 c give c at isNumber .  // a string: its characters
+verify password at least 1 c give c at isnumber .  // a string: its characters
 ```
 
 ### What a failed verify says

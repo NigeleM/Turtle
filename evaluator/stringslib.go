@@ -8,7 +8,7 @@ import (
 
 // The "strings" builtin module: string functions that read well
 // sentence-style, sharing their logic with the string methods
-// (find = indexOf, substring = slice, isinstring = contains).
+// (find = indexof, substring = slice, isinstring = contains).
 //
 //	pos = line find "lo"                 // find[line, "lo"]: index, or -1
 //	part = line substring 0, 5           // substring[line, 0, 5]
