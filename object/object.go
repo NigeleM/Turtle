@@ -406,6 +406,10 @@ type Database struct {
 	Name   string
 	Conn   any
 	Closed bool
+	// Address is a server's full address, password included, so more
+	// connections can be opened (schedule's queryall); "" for SQLite.
+	// Never shown: Name is what errors and show print.
+	Address string
 }
 
 func (d *Database) Type() Type      { return DATABASE }

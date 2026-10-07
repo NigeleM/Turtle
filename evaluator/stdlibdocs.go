@@ -589,6 +589,62 @@ Settings (set at the top of the file, or inside one test for that test):
 A failure is an error of kind test. Full guide: docs/testing.md.
 `,
 
+	"schedule": `Many web requests, shell commands or database queries at once. The
+work runs side by side; your Turtle code still runs one line at a time.
+
+At most schedulelimit items run at once, like a semaphore: each one that
+finishes starts the next straight away. Results come back in the list's
+order, whatever order they finish in. The first failure stops the call
+with that item's error (the running ones finish, the waiting ones never
+start); with skipschedule_error = true a failed item becomes none instead.
+
+Settings ("import schedule" makes them; change them like any variable):
+    schedulelimit = 5             how many at once; none: all of them
+    skipschedule_error = false    true: a failed item becomes none
+
+A call's own settings, for that call only, go in a map at the end:
+    map ["limit": 10, "skip_errors": true]
+
+A bad setting, a command that can't start, or queryall on SQLite is an
+error of kind schedule.
+
+### fetchall[urls, settings]
+  http_get every address.
+  urls       a list of web addresses
+  settings   optional: map ["limit": n, "skip_errors": true]
+  Gives back: a list of the pages' text, in the same order. A failed
+  request (no answer, a 4xx/5xx status) is an http error naming the item.
+  Example:
+    pages = fetchall[urls]
+    pages = urls fetchall
+
+### runall[commands, settings]
+  Runs every shell command (sh -c; cmd /C on Windows) in the script's
+  folder, capturing what each prints.
+  commands   a list of command lines
+  settings   optional, as for fetchall
+  Gives back: a list of maps, one per command: output (what it printed),
+  errors (what it printed as errors), code (its exit code, 0 for
+  success). A nonzero code isn't an error; check code. Trailing newlines
+  are dropped.
+  Example:
+    outs = runall[list ["git pull", "make test"]]
+    show outs at get[1] at get["code"] .
+
+### queryall[db, queries, settings]
+  Runs every query on a PostgreSQL or MySQL database, over extra
+  connections that close when it's done (they don't see an open
+  transaction on db). Not for SQLite: use sql_query there.
+  db         a server database from sql_open
+  queries    a list of queries; a query with ? placeholders goes as
+             list [query, list of values]
+  settings   optional, as for fetchall
+  Gives back: a list of results, each a list of maps as sql_query gives.
+  A bad query is an sql error naming the item.
+  Example:
+    r = queryall[db, list ["SELECT count(*) AS n FROM books", list ["SELECT * FROM books WHERE price < ?", list [1000]]]]
+`,
+
 	"random": `Random values of any shape, written as a sentence after "random":
 
     die = random integer from 1 to 6

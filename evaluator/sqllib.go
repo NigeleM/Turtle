@@ -339,13 +339,13 @@ func (it *Interpreter) sqlOpen(target string) object.Object {
 		if err != nil {
 			fatalKind(kindSQL, "sql_open: %v", err)
 		}
-		return it.track(&object.Database{Name: hidePassword(target), Conn: postgresConn{db}})
+		return it.track(&object.Database{Name: hidePassword(target), Conn: postgresConn{db}, Address: target})
 	case strings.HasPrefix(target, "mysql://"), strings.HasPrefix(target, "mariadb://"):
 		db, err := mysql.Open(target)
 		if err != nil {
 			fatalKind(kindSQL, "sql_open: %v", err)
 		}
-		return it.track(&object.Database{Name: hidePassword(target), Conn: mysqlConn{db}})
+		return it.track(&object.Database{Name: hidePassword(target), Conn: mysqlConn{db}, Address: target})
 	case strings.HasPrefix(target, "sqlite:"):
 		path = strings.TrimPrefix(target, "sqlite:")
 	}

@@ -613,7 +613,7 @@ func (p *Parser) parseReturnStatement() ast.Statement {
 
 // errorKinds are the names a handle statement can list; they match the
 // kinds the evaluator gives its runtime errors.
-var errorKinds = []string{"file", "number", "math", "index", "key", "name", "type", "json", "date", "http", "sql", "csv", "test", "pattern", "crypt", "custom"}
+var errorKinds = []string{"file", "number", "math", "index", "key", "name", "type", "json", "date", "http", "sql", "csv", "test", "pattern", "crypt", "schedule", "custom"}
 
 // parseSafeStatement parses
 //

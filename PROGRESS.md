@@ -984,3 +984,19 @@ safe [end]
   integers compare exactly; numbers clearly apart skip the rounding. JSON, CSV, databases and failed tests keep
   every digit. No language defaults to 2 places; fixed and round cover
   that (the user's decision).
+
+## 2026-10-07: the schedule library, level A (released v0.9.160)
+
+- `import schedule`: fetchall (http_get each address), runall (shell
+  commands: output, errors, code), queryall (PostgreSQL/MySQL only, one
+  extra connection per worker; SQLite is an error, the user's decision).
+- A semaphore like an async pool (the user's design): at most
+  schedulelimit at once (default 5, none = no cap), a free slot starts
+  the next item at once, results in list order. skipschedule_error
+  (default false; name chosen by the user): the first failure stops the
+  call with the item's error and index, or with true the item is none.
+  A call's map ["limit": n, "skip_errors": b] overrides both.
+- Workers recover their own errors and never touch interpreter state;
+  results become Turtle values on the main goroutine. Tests run with
+  -race and check the limit is never exceeded.
+- Level B (your own functions side by side): later, the user's decision.

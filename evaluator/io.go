@@ -169,6 +169,9 @@ func (it *Interpreter) evalImport(s *ast.ImportStatement, env *object.Environmen
 	if isBuiltin(mod, "log") {
 		defineLogSettings(env)
 	}
+	if isBuiltin(mod, "schedule") {
+		defineScheduleSettings(env)
+	}
 }
 
 func (it *Interpreter) loadModule(name string) *object.Module {

@@ -44,6 +44,7 @@ for reference; they still build and run.
 | Standard library: random (`random list of 5 integers from 0 to 9`, any shape, `pick`, `shuffle`, `sample`, `chance`, `seed`) | Done |
 | Standard library: log (`log warn "disk at ", pct, "%" .`, levels, files, rotation, JSON lines, a copy of the console) | Done |
 | Standard library: crypt (`hash`, `hmac`, `encode`/`decode`, `uuid`, `token`, `passwordhash`/`passwordcheck`, `encrypt`/`decrypt`) | Done |
+| Standard library: schedule (`fetchall`, `runall`, `queryall`: many at once, `schedulelimit` at a time) | Done |
 | Standard library: pattern (`matches`, `findall`, `replaceall`, `splitby`, `groups`; backtick strings) | Done |
 | Number and text formatting (`fixed`, `commas`, `padleft`, `padright`), `typeof[x]`, `x type integer` | Done |
 | Standard library: JSON (`import json`) | Done |

@@ -75,8 +75,9 @@ Next, roughly in priority order:
 - [x] Clearer parse errors, `turtle fmt`, `turtle debug` (2026-10-07)
 - [x] `crypt` library: hashes, hmac, base64/hex, uuid, tokens, passwords,
       encryption (2026-10-07)
-- [ ] `schedule` library: running things side by side (proposal in
-      NEXT.md, to review)
+- [x] `schedule` library, level A: fetchall, runall, queryall, with
+      schedulelimit and skipschedule_error (2026-10-07)
+- [ ] `schedule` level B: your own functions side by side (later)
 - [ ] A VS Code debugger (Debug Adapter Protocol), built on turtle debug
 - [ ] Later from the 2026-10-06 list: time zones, a web server (`serve`),
       TOML (or .env + JSON only?)

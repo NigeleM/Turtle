@@ -736,6 +736,8 @@ func (it *Interpreter) callBuiltin(module, name string, args []object.Object, en
 		return it.callPattern(name, args)
 	case "crypt":
 		return it.callCrypt(name, args)
+	case "schedule":
+		return it.callSchedule(name, args, env)
 	case "sql":
 		return it.callSQL(name, args)
 	case "sort":
