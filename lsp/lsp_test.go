@@ -457,3 +457,43 @@ func sortedKeys(m map[string]bool) []string {
 	sort.Strings(out)
 	return out
 }
+
+// TestHoverDocInsideAndBlocks: a function's description can be above it
+// or first in its body, as // lines or a //* *// block.
+func TestHoverDocInsideAndBlocks(t *testing.T) {
+	_, uri := folder(t)
+	s := newSession(t)
+	s.start(false)
+	s.open(uri, `//*
+  run calls hello.
+*//
+def run[c]
+    // c is any number.
+    show c .
+def [end]
+
+def quiet[]
+    x = 1 // not a description
+def [end]
+
+run[1]
+quiet[]
+`)
+	runHover := s.request("textDocument/hover", at(uri, 12, 1))
+	quietHover := s.request("textDocument/hover", at(uri, 13, 1))
+	s.end()
+	text := func(id int) string {
+		var h *struct{ Contents markup }
+		s.result(id, &h)
+		if h == nil {
+			return ""
+		}
+		return h.Contents.Value
+	}
+	if v := text(runHover); !strings.Contains(v, "run calls hello.\nc is any number.") {
+		t.Errorf("run: %q", v)
+	}
+	if v := text(quietHover); strings.Contains(v, "not a description") {
+		t.Errorf("quiet: %q", v)
+	}
+}

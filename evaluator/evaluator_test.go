@@ -3464,3 +3464,20 @@ show also at get[0] .`
 		t.Errorf("bad second argument: %v", err)
 	}
 }
+
+// TestDocCommentsInsideFunctions: turtle doc reads a function's
+// description from above it and from the start of its body.
+func TestDocCommentsInsideFunctions(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "tools.trt"), []byte("x = 1\n\n// add_tax adds rate percent.\ndef add_tax[cents, rate]\n    //* cents is a whole number;\n        rate is a percent. *//\n    return cents\ndef [end]\n\ndef bare[x]\n    return x\ndef [end]\n"), 0o644)
+	text, err := Doc("tools.trt", dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(text, "add_tax[cents, rate]\n  add_tax adds rate percent.\n  cents is a whole number;\n  rate is a percent.") {
+		t.Errorf("got:\n%s", text)
+	}
+	if !strings.Contains(text, "bare[x]\n  (no description") {
+		t.Errorf("bare: %s", text)
+	}
+}

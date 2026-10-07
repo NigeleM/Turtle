@@ -130,28 +130,22 @@ var (
 )
 
 // definitions finds the top-level functions and assembled types in src
-// (and, when vars, the top-level variables), with the // lines above
-// each as its description.
+// (and, when vars, the top-level variables), each with its description:
+// the comments above it and, for a function, the ones its body starts
+// with (syntax.FunctionDoc).
 func definitions(uri, src string, t *text, vars bool) []symbol {
 	var out []symbol
 	seen := map[string]bool{}
 	lines := strings.Split(strings.ReplaceAll(src, "\r\n", "\n"), "\n")
-	doc := func(n int) string {
-		var d []string
-		for k := n - 1; k >= 0 && strings.HasPrefix(strings.TrimSpace(lines[k]), "//"); k-- {
-			d = append([]string{strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(lines[k]), "//"))}, d...)
-		}
-		return strings.Join(d, "\n")
-	}
 	for n, line := range lines {
 		if m := defLine.FindStringSubmatchIndex(line); m != nil && m[3]-m[2] == 0 {
 			name := line[m[4]:m[5]]
-			out = append(out, symbol{name: name, kind: symFunc, detail: name + "[" + line[m[6]:m[7]] + "]", doc: doc(n), uri: uri, line: n, col: m[4], endCol: m[5]})
+			out = append(out, symbol{name: name, kind: symFunc, detail: name + "[" + line[m[6]:m[7]] + "]", doc: syntax.FunctionDoc(lines, n), uri: uri, line: n, col: m[4], endCol: m[5]})
 			continue
 		}
 		if m := assembleLine.FindStringSubmatchIndex(line); m != nil && m[3]-m[2] == 0 {
 			name := line[m[4]:m[5]]
-			out = append(out, symbol{name: name, kind: symType, detail: name + " [" + line[m[6]:m[7]] + "]", doc: doc(n), uri: uri, line: n, col: m[4], endCol: m[5]})
+			out = append(out, symbol{name: name, kind: symType, detail: name + " [" + line[m[6]:m[7]] + "]", doc: syntax.CommentAbove(lines, n), uri: uri, line: n, col: m[4], endCol: m[5]})
 			continue
 		}
 		if m := assignLine.FindStringSubmatchIndex(line); vars && m != nil {

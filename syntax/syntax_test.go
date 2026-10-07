@@ -50,3 +50,73 @@ func TestHighlight(t *testing.T) {
 		t.Errorf("after import test: %s", got)
 	}
 }
+
+func TestFunctionDoc(t *testing.T) {
+	src := `// above, line one
+// above, line two
+def a[x]
+    return x
+def [end]
+
+def b[x]
+    // inside, line one
+    // inside, line two
+    return x
+def [end]
+
+//*
+  above as a block,
+    over two lines
+*//
+def c[x]
+    //* inside as a block *//
+    return x
+def [end]
+
+// above too
+def d[x]
+
+    //* inside after a blank line,
+        ending here *//
+    // and a // line right after
+
+    // not this one: after a blank line
+    return x
+def [end]
+
+def e[x]
+    x = 1 // not a description: code comes first
+    // nor this
+def [end]
+
+x = 1
+def f[x]
+    return x
+def [end]`
+	lines := strings.Split(src, "\n")
+	defAt := func(name string) int {
+		for i, l := range lines {
+			if strings.HasPrefix(l, "def "+name+"[") {
+				return i
+			}
+		}
+		t.Fatalf("no def %s", name)
+		return -1
+	}
+	cases := map[string]string{
+		"a": "above, line one\nabove, line two",
+		"b": "inside, line one\ninside, line two",
+		"c": "above as a block,\nover two lines\ninside as a block",
+		"d": "above too\ninside after a blank line,\nending here\nand a // line right after",
+		"e": "",
+		"f": "",
+	}
+	for name, want := range cases {
+		if got := FunctionDoc(lines, defAt(name)); got != want {
+			t.Errorf("%s: got %q, want %q", name, got, want)
+		}
+	}
+	if got := CommentAbove(lines, defAt("c")); got != "above as a block,\nover two lines" {
+		t.Errorf("CommentAbove c: %q", got)
+	}
+}

@@ -1,6 +1,8 @@
 package evaluator
 
 import (
+	"Turtle/syntax"
+
 	"fmt"
 	"os"
 	"path/filepath"
@@ -155,12 +157,18 @@ func fileDoc(name, src string) string {
 				continue // def [end]
 			}
 		}
+		text := syntax.CommentAbove(lines, n)
+		if strings.HasPrefix(line, "def ") {
+			text = syntax.FunctionDoc(lines, n)
+		}
 		var doc []string
-		for k := n - 1; k >= 0 && strings.HasPrefix(strings.TrimSpace(lines[k]), "//"); k-- {
-			doc = append([]string{"  " + commentText(lines[k])}, doc...)
+		for _, l := range strings.Split(text, "\n") {
+			if text != "" {
+				doc = append(doc, "  "+l)
+			}
 		}
 		if len(doc) == 0 {
-			doc = []string{"  (no description: write // lines just above it)"}
+			doc = []string{"  (no description: write // lines just above it, or first in its body)"}
 		}
 		fmt.Fprintf(&sb, "\n%s\n%s\n", head, strings.Join(doc, "\n"))
 		found++

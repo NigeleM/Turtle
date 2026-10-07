@@ -889,3 +889,10 @@ safe [end]
   user's decision; the interpreter marks the call a statement is made of).
 - `copy[x, true]` copies everything inside too; `copy[x]` and
   `copy[x, false]` share what's inside, as before.
+
+## 2026-10-06: function descriptions inside the function, and in blocks (not yet released)
+
+- A function's description is the comment directly above its def and/or
+  the comment its body starts with (like Python's docstrings), as //
+  lines or a //* *// block (package syntax: FunctionDoc). Hover,
+  completion and turtle doc all read it the same way.

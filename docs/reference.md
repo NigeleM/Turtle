@@ -939,10 +939,11 @@ turtle doc sql_update   # one function
 turtle doc lib/shop.trt      # the functions of your own file
 ```
 
-Document your own functions the way Go does: `//` lines directly above a
-`def` (or `assemble`) describe it, and the `//` lines at the very top of
-a file describe the file. Say what each parameter is and what the
-function gives back:
+Document your own functions with comments **directly above** the `def`
+(or `assemble`), or **first in the function's body** (as Python's
+docstrings are), either kind: `//` lines or a `//* ... *//` block. The `//`
+lines at the very top of a file describe the file. Say what each
+parameter is and what the function gives back:
 
 ```
 // shop.trt: helpers for the bookshop database.
@@ -956,4 +957,18 @@ def [end]
 ```
 
 `turtle doc shop.trt` then lists `add_tax[cents, rate]` with those lines.
-A function without them is listed as having no description.
+A function without them is listed as having no description. The same
+comment can go inside, as the first thing in the body:
+
+```
+def add_tax[cents, rate]
+    //* adds rate percent to an amount, rounded to the cent.
+        Gives back the new amount in cents. *//
+    ...
+def [end]
+```
+
+A comment after the first line of code is an ordinary comment, not the
+description. Comments in both places are shown together, the one above
+first. Editors show the description on hover (see
+[`editors.md`](editors.md)).

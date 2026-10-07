@@ -1,9 +1,8 @@
 
-def hello [b]
-    /*
-        hello functions is to divide by 10 and return the value
 
-    */
+// hello function
+def hello [b]
+   
     c = b/10.0
     // show c .
      return c 
