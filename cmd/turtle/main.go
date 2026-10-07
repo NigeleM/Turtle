@@ -2,6 +2,7 @@
 //
 //	turtle                         the REPL (or runs piped-in code)
 //	turtle script.trt [args...]
+//	turtle trace script.trt [args...]
 //	turtle doc [library | function | file.trt]
 //	turtle test [file.trt | folder ...]
 //	turtle lsp                     the language server, for editors
@@ -30,6 +31,7 @@ const usage = `Turtle %s
 
   turtle                       the interactive prompt (REPL)
   turtle script.trt [args]     run a program
+  turtle trace script.trt      run it, showing each line as it runs (on stderr)
   turtle test [file | folder]  run the test_ functions in test_*.trt files
   turtle doc [topic]           the standard library's documentation
   turtle lsp                   the language server, for editors (VS Code, Neovim ...)
@@ -71,6 +73,18 @@ func main() {
 	case command("lsp"):
 		// The language server, for editors: JSON-RPC on stdin and stdout.
 		os.Exit(lsp.Serve(os.Stdin, os.Stdout, version))
+	case command("trace"):
+		if len(os.Args) < 3 {
+			fmt.Fprintln(os.Stderr, "usage: turtle trace script.trt [args]")
+			os.Exit(2)
+		}
+		path := os.Args[2]
+		data, err := os.ReadFile(path)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "turtle:", err)
+			os.Exit(1)
+		}
+		os.Exit(runTraced(string(data), filepath.Dir(path), filepath.Base(path), os.Args[3:], os.Stderr))
 	case command("test"):
 		cwd, _ := os.Getwd()
 		os.Exit(evaluator.TestCommand(os.Args[2:], cwd, os.Stdout))
@@ -99,6 +113,12 @@ func main() {
 
 // runProgram runs Turtle source and returns the exit code.
 func runProgram(src, dir, script string, args []string) int {
+	return runTraced(src, dir, script, args, nil)
+}
+
+// runTraced is runProgram, writing each line to trace as it runs (when
+// trace isn't nil).
+func runTraced(src, dir, script string, args []string, trace io.Writer) int {
 	p := parser.New(lexer.New(src))
 	program := p.ParseProgram()
 	if errs := p.Errors(); len(errs) > 0 {
@@ -110,6 +130,10 @@ func runProgram(src, dir, script string, args []string) int {
 	it := evaluator.New(dir)
 	it.Script = script
 	it.Args = args // everything after the script path: system's args[]
+	if trace != nil {
+		it.Trace = trace
+		it.TraceSource("", src)
+	}
 	if err := it.Run(program); err != nil {
 		if ex, ok := err.(evaluator.ExitRequest); ok {
 			return ex.Code

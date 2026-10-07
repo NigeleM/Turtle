@@ -97,6 +97,13 @@ ok: 1 passed, 0 failed (1 file, 1.3ms)
 See [`testing.md`](testing.md) for `check`, `verify`, `validate`, suites
 and benchmarks.
 
+To see a program run line by line, with each variable's new value, use
+`turtle trace` (the trace goes to standard error):
+
+```sh
+./turtle trace hello.trt
+```
+
 ## Where to go next
 
 - [`tour.md`](tour.md) — a guided walkthrough of the language, by example

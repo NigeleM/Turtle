@@ -1418,7 +1418,7 @@ func (p *Parser) parseIdentifier() ast.Expression {
 	name := p.curToken
 	if p.peekTokenIs(token.LBRACKET) && p.peekToken.Line == name.Line && !p.bracketStartsFunction(1) && p.peekN(2).Line == p.peekToken.Line {
 		p.nextToken()
-		args := p.parseExpressionList(token.RBRACKET)
+		args := p.parseCallArguments()
 		return p.maybeSentence(&ast.CallExpression{Token: tok, Module: module, Name: name.Literal, Arguments: args})
 	}
 	if module != "" && p.peekStartsArgument() {
@@ -1726,7 +1726,7 @@ func (p *Parser) maybeSentence(subject ast.Expression) ast.Expression {
 	var args []ast.Expression
 	if p.peekTokenIs(token.LBRACKET) && p.peekToken.Line == p.curToken.Line && !p.bracketStartsFunction(1) {
 		p.nextToken()
-		args = p.parseExpressionList(token.RBRACKET)
+		args = p.parseCallArguments()
 	} else if p.peekStartsArgument() {
 		p.nextToken()
 		args = append(args, p.parseExpression(LOWEST))
@@ -1833,6 +1833,52 @@ func (p *Parser) parseExpressionList(end token.Type) []ast.Expression {
 		return nil
 	}
 	return list
+}
+
+// parseCallArguments is a call's [ ... ]: expressions, or key: value
+// pairs, which are one map argument: options["--out": "a.csv", "-v": false]
+// is options[map ["--out": "a.csv", "-v": false]].
+func (p *Parser) parseCallArguments() []ast.Expression {
+	defer func(was bool) { p.inBrackets = was }(p.inBrackets)
+	p.inBrackets = true
+	if p.peekTokenIs(token.RBRACKET) {
+		p.nextToken()
+		return nil
+	}
+	p.nextToken()
+	first := p.parseExpression(LOWEST)
+	if !p.peekTokenIs(token.COLON) {
+		list := []ast.Expression{first}
+		for p.peekTokenIs(token.COMMA) {
+			p.nextToken()
+			p.nextToken()
+			list = append(list, p.parseExpression(LOWEST))
+		}
+		if !p.expectPeek(token.RBRACKET) {
+			return nil
+		}
+		return list
+	}
+	m := &ast.MapLiteral{Token: token.Token{Type: token.MAP, Literal: "map", Line: p.curToken.Line}}
+	k := first
+	for {
+		if !p.expectPeek(token.COLON) {
+			return nil
+		}
+		p.nextToken()
+		m.Keys = append(m.Keys, k)
+		m.Values = append(m.Values, p.parseExpression(LOWEST))
+		if !p.peekTokenIs(token.COMMA) {
+			break
+		}
+		p.nextToken()
+		p.nextToken()
+		k = p.parseExpression(LOWEST)
+	}
+	if !p.expectPeek(token.RBRACKET) {
+		return nil
+	}
+	return []ast.Expression{m}
 }
 
 func (p *Parser) parseListLiteral() ast.Expression {

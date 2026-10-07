@@ -329,7 +329,9 @@ def <name>[<param>, ...]
 def [end]
 ```
 
-Call: `<name>[<expr>, ...]`. Each call gets a fresh scope seeded with its
+Call: `<name>[<expr>, ...]`. Written as `key: value` pairs, the arguments
+are one map: `options["--out": "a.csv", "-v": false]` is
+`options[map ["--out": "a.csv", "-v": false]]`. Each call gets a fresh scope seeded with its
 parameters. At most 100,000 calls can be in progress at once; past that
 is a "recursion too deep" error (usually a recursive function missing its
 stopping case). Scoping is **lexical**: a name that isn't a parameter or local
@@ -1021,6 +1023,29 @@ validate <call> [to <name>] [with <name> as <kind>, ...] matches <call> .
 `turtle test [file.trt | folder ...]` runs every top-level `test_` function
 (no arguments) in every `test_*.trt` file, after the file's own top-level
 code, and exits with 1 if any failed.
+
+## Watching it run: `turtle trace`
+
+`turtle trace script.trt [args]` runs the program as usual and, on
+standard error, shows each line as it runs. A line that sets a variable
+shows the value it got:
+
+```
+line 1   nums = list [5, 7]               nums = [ 5, 7 ]
+line 2   total = 0                        total = 0
+line 3   [loop][x in nums]
+line 4       total = total + x            total = 5
+line 4       total = total + x            total = 12
+line 6   d = double[total]
+line 9       return n * 2
+line 6   ...                              d = 24
+```
+
+When a line calls a function, the function's lines come next, and the
+value follows on a `...` line. Lines of an imported file are named with
+the file (`utils.trt:4`). `def` lines are left out: functions are defined
+before the file runs. The program's own output stays on standard output,
+so `turtle trace report.trt 2> trace.txt` keeps the two apart.
 
 ## Documentation: `turtle doc`
 

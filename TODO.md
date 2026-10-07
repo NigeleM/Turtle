@@ -70,6 +70,10 @@ Next, roughly in priority order:
       2026-10-06)
 - [ ] Assembled types: looping over fields,
       default field values
+- [x] Quick wins: files and folders, archives, .env, named options,
+      `turtle trace` (2026-10-06)
+- [ ] Later from the 2026-10-06 list: time zones, a web server (`serve`),
+      TOML (or .env + JSON only?), step mode, a VS Code debugger
 - [ ] A cookbook doc (asked for 2026-10-06): runnable code examples
       for every stdlib library and function (math, time, data, strings,
       system, json, http, sql, sort, search, random, pattern, log, test),

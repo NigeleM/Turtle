@@ -40,6 +40,9 @@ func realPath(p string) (string, error) {
 }
 
 func (it *Interpreter) callSystem(name string, args []object.Object) object.Object {
+	if v, ok := it.callFiles(name, args); ok {
+		return v
+	}
 	switch name {
 	case "exit":
 		code := int64(0)

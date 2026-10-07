@@ -290,6 +290,66 @@ script's own folder).
   piped or saved.
   Example:
     warn "can't read ", name .
+
+### copyto[from, to, replace]
+  Copies a file, or a folder and everything in it, to the path to
+  (missing folders on the way are made).
+  replace    optional: true replaces what's already at to; without it,
+             something there is an error
+  Example:
+    copyto["report.csv", "backup/report.csv"]
+
+### moveto[from, to, replace]
+  Moves (or renames) a file or folder; replace as for copyto. Works
+  across disks.
+  Example:
+    moveto["old.txt", "archive/old.txt"]
+
+### makefolder[path]
+  Makes a folder, and any missing folders above it. Fine if it's there.
+  Example:
+    makefolder["out/2026/october"]
+
+### walk[folder]
+  Every file under the folder, in its subfolders too, sorted; each path
+  starts with folder and uses /. "." if left out.
+  Gives back: a list of text.
+  Example:
+    [loop][f in walk["src"]] ... [loop][end]
+
+### pack[from, archive, replace]
+  Puts a file, or a folder and everything in it, into an archive. The
+  kind comes from the name: .zip, .tar, .tar.gz or .tgz. A folder goes in
+  under its own name, so unpacking gives the folder back.
+  Example:
+    pack["src", "src.zip"]
+
+### unpack[archive, folder, replace]
+  Puts an archive's files into folder. A file already there is an error
+  unless replace is true; an entry that would land outside the folder is
+  refused.
+  Example:
+    unpack["src.zip", "restored"]       // restored/src/...
+
+### loadenv[file]
+  Reads a .env file (".env" if left out): KEY=value lines, # comments,
+  "quoted" or 'quoted' values. Each key is also set for env[...], unless
+  the environment already has it.
+  Gives back: a map of the file's keys and values (all text).
+  Example:
+    settings = loadenv[]
+    key = env["API_KEY"]
+
+### options[name: default, ...]
+  Named options from the command line. Each default sets the option's
+  kind: false is an on/off switch (-v), a number takes a number (--count
+  5), text takes text (--out file.csv or --out=file.csv). -- ends the
+  options; --help shows them and ends the program. What isn't an option
+  is left for args[].
+  Gives back: a map of every option and its value.
+  Example:
+    opts = options["--out": "result.csv", "-v": false]
+    out = opts at get["--out"]
 `,
 
 	"strings": `Text functions that read well as sentences. Positions count

@@ -202,6 +202,9 @@ func (it *Interpreter) loadModule(name string) *object.Module {
 	if err != nil {
 		fatalKind(kindFile, "import %s: %s: %s", name, file, fileProblem(err))
 	}
+	if it.Trace != nil {
+		it.TraceSource(file, string(data))
+	}
 	p := parser.New(lexer.New(string(data)))
 	program := p.ParseProgram()
 	if errs := p.Errors(); len(errs) > 0 {

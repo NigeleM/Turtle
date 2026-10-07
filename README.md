@@ -29,7 +29,8 @@ for reference; they still build and run.
 | For-each loops (`[loop][x in nums]`) | Done |
 | `+`/`-` on lists, sets, maps | Done |
 | Standard library: data (`process`, `keep`, `copy`, `range`, `reduce`, `sum`, `table`, `table_read`, `table_write`; `.csv`, `.tsv`, `.txt`, `.json` table files) | Done |
-| Standard library: system (`args`, `exit`, `env`, `scriptfolder`, `contents`, `exists`/`isfile`/`isfolder`) | Done |
+| Standard library: system (`args`, `options`, `exit`, `env`, `loadenv`, `scriptfolder`, `contents`, `walk`, `exists`/`isfile`/`isfolder`, `copyto`, `moveto`, `makefolder`, `erase`, `pack`/`unpack` for .zip/.tar/.tar.gz) | Done |
+| `turtle trace`: each line as it runs, with the values it sets | Done |
 | Standard library: strings (`find`, `substring`, `isinstring`, `join`) | Done |
 | Assembled types (`assemble Order [item, qty]`, `qty of o`) | Done |
 | Data structures (list/set/map) | Done |

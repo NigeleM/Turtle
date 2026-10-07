@@ -61,6 +61,11 @@ type Interpreter struct {
 	// value (new is nums process ... .) they work on a copy.
 	statementCall *ast.CallExpression
 	inPlace       bool
+	// Trace, when set, gets each line as it runs (turtle trace; see
+	// trace.go).
+	Trace     io.Writer
+	traceSrc  map[string][]string
+	traceOpen *traceLine
 }
 
 func New(dir string) *Interpreter {
@@ -110,7 +115,7 @@ var builtinModules = map[string]*object.Module{
 	"math":    {Name: "math", Methods: []string{"sqrt", "abs", "round", "floor", "ceil", "pow", "random"}},
 	"time":    {Name: "time", Funcs: []string{"now", "sleep", "today", "today_utc", "make_date", "to_date", "add_time", "time_between", "format_date", "wait_until", "every"}},
 	"data":    {Name: "data", Funcs: []string{"process", "keep", "copy", "table", "table_read", "table_write", "range", "reduce", "sum"}},
-	"system":  {Name: "system", Aliases: map[string]string{"isFile": "isfile", "isFolder": "isfolder", "scriptFolder": "scriptfolder"}, Funcs: []string{"args", "exists", "isfile", "isfolder", "exit", "env", "scriptfolder", "contents", "erase", "warn"}},
+	"system":  {Name: "system", Aliases: map[string]string{"isFile": "isfile", "isFolder": "isfolder", "scriptFolder": "scriptfolder"}, Funcs: []string{"args", "exists", "isfile", "isfolder", "exit", "env", "scriptfolder", "contents", "erase", "warn", "copyto", "moveto", "makefolder", "walk", "pack", "unpack", "loadenv", "options"}},
 	"strings": {Name: "strings", Funcs: []string{"find", "substring", "isinstring", "join"}},
 	"json":    {Name: "json", Funcs: []string{"load", "json_text", "json_read", "json_write", "json_get"}},
 	"http":    {Name: "http", Funcs: []string{"http_get", "http_post", "http_request"}},
@@ -241,6 +246,7 @@ func (it *Interpreter) Run(program *ast.Program) (err error) {
 	// it ends: an unfinished transaction is rolled back and files are let
 	// go (Windows can't delete or reopen a file a program still holds).
 	defer it.closeDatabases()
+	defer it.traceClose() // an error's message then starts a line of its own
 	defer func() {
 		if r := recover(); r != nil {
 			if fe, ok := r.(fatalError); ok {
@@ -336,12 +342,20 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		it.interrupt.Store(false)
 		panic(interruptRequest{})
 	}
+	var trace *traceLine
 	if !it.inBuiltin {
 		currentLine = stmt.Line()
+		if it.Trace != nil {
+			trace = it.traceStart(stmt)
+		}
 	}
 	switch s := stmt.(type) {
 	case *ast.AssignStatement:
-		env.Set(s.Name, it.evalExpression(s.Value, env))
+		v := it.evalExpression(s.Value, env)
+		env.Set(s.Name, v)
+		if trace != nil {
+			it.traceAssign(trace, s.Name, v.Inspect())
+		}
 		return noneResult
 
 	case *ast.InputStatement:

@@ -923,3 +923,16 @@ safe [end]
   sentence calls (`nums process x ...`) are colored; backtick strings
   and the new functions in the grammar. The extension tells you clearly
   when turtle is missing or too old (v0.1.1).
+
+## 2026-10-06: files, folders, archives, .env, options, turtle trace (not yet released)
+
+- system: `copyto`, `moveto`, `makefolder`, `walk`, `pack` and `unpack`
+  (.zip, .tar, .tar.gz by the name), `loadenv` (.env files; the
+  environment wins), `options` (named command-line options, typed by
+  their defaults, with --help). copyto, moveto, pack and unpack won't
+  replace anything unless their last argument is true; unpack refuses
+  entries that would land outside its folder.
+- A call's arguments written as `key: value` pairs are one map:
+  `options["--out": "a.csv", "-v": false]`.
+- `turtle trace script.trt`: each line as it runs, with the values
+  assignments set, on stderr.
