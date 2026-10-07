@@ -33,6 +33,7 @@ var fakeVscode = {
     registerHoverProvider: function () { registered.push("hover"); return Disposable(); },
     registerDefinitionProvider: function () { registered.push("definition"); return Disposable(); },
     registerDocumentSymbolProvider: function () { registered.push("symbols"); return Disposable(); },
+    registerDocumentFormattingEditProvider: function () { registered.push("format"); return Disposable(); },
     registerDocumentSemanticTokensProvider: function () { registered.push("tokens"); return Disposable(); } },
   commands: { registerCommand: function () { return Disposable(); } },
   SemanticTokensLegend: function () {}, Position: function () {}, Range: function () {},

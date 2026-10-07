@@ -72,8 +72,10 @@ Next, roughly in priority order:
       default field values
 - [x] Quick wins: files and folders, archives, .env, named options,
       `turtle trace` (2026-10-06)
+- [x] Clearer parse errors, `turtle fmt`, `turtle debug` (2026-10-07)
+- [ ] A VS Code debugger (Debug Adapter Protocol), built on turtle debug
 - [ ] Later from the 2026-10-06 list: time zones, a web server (`serve`),
-      TOML (or .env + JSON only?), step mode, a VS Code debugger
+      TOML (or .env + JSON only?)
 - [ ] A cookbook doc (asked for 2026-10-06): runnable code examples
       for every stdlib library and function (math, time, data, strings,
       system, json, http, sql, sort, search, random, pattern, log, test),

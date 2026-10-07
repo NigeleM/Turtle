@@ -56,11 +56,19 @@ type infixParseFn func(ast.Expression) ast.Expression
 type Parser struct {
 	l *lexer.Lexer
 
+	prevToken token.Token
 	curToken  token.Token
 	peekToken token.Token
 	buf       []token.Token
 
 	errors []string
+	errs   []Error
+	// multilineString is the line a "..." text that ran over several lines
+	// started on: usually a missing closing quote, which a later error
+	// mentions.
+	multilineString int
+	multilinePos    int
+	multilineEnd    int // the line its closing quote is on
 
 	// inBrackets is true while parsing a comma-separated list inside
 	// [...] (call arguments, list/set/map literals). There a sentence-style
@@ -175,10 +183,11 @@ func (p *Parser) Enable(name string) {
 }
 
 func (p *Parser) errorf(format string, args ...interface{}) {
-	p.errors = append(p.errors, fmt.Sprintf("line %d: %s", p.curToken.Line, fmt.Sprintf(format, args...)))
+	p.errorAt(p.curToken.Line, p.curToken.Pos, format, args...)
 }
 
 func (p *Parser) nextToken() {
+	p.prevToken = p.curToken
 	p.curToken = p.peekToken
 	if len(p.buf) > 0 {
 		p.peekToken = p.buf[0]
@@ -211,7 +220,7 @@ func (p *Parser) expectPeek(t token.Type) bool {
 		p.nextToken()
 		return true
 	}
-	p.errorf("expected next token to be %s, got %s (%q) instead", t, p.peekToken.Type, p.peekToken.Literal)
+	p.expectError(t)
 	return false
 }
 
@@ -392,7 +401,7 @@ func (p *Parser) parseStatement() ast.Statement {
 	case token.IDENT:
 		return p.parseIdentifierLeadStatement()
 	default:
-		p.errorf("unexpected token %s (%q) at start of statement", p.curToken.Type, p.curToken.Literal)
+		p.statementStartError()
 		p.nextToken()
 		return nil
 	}
@@ -413,7 +422,7 @@ func (p *Parser) parseBracketStatement() ast.Statement {
 	case token.IF:
 		return p.parseNestedIfStatement()
 	default:
-		p.errorf("unexpected '[' at start of statement (followed by %s)", p.peekToken.Type)
+		p.errorf("a line can't start with '[' followed by %s; blocks start [loop][, [read], [write], [append] or [directory]", describe(p.peekToken))
 		p.nextToken()
 		return nil
 	}
@@ -436,6 +445,11 @@ func (p *Parser) parseIdentifierLeadStatement() ast.Statement {
 	if p.peekTokenIs(token.OF) && p.peekToken.Line == p.curToken.Line {
 		return p.parseFieldStatement()
 	}
+	if w := p.curToken.Literal; (w == "for" || w == "while") && p.peekTokenIs(token.IDENT) || w == "while" && p.peekTokenIs(token.LPAREN) {
+		p.statementStartError() // a loop from another language
+		p.nextToken()
+		return nil
+	}
 	if p.peekTokenIs(token.ASSIGN) {
 		return p.parseAssignOrInputStatement()
 	}
@@ -454,7 +468,7 @@ func (p *Parser) parseIdentifierLeadStatement() ast.Statement {
 		}
 		return &ast.ExpressionStatement{Token: tok, Expression: expr}
 	}
-	p.errorf("unexpected identifier %q at start of statement", p.curToken.Literal)
+	p.statementStartError()
 	p.nextToken()
 	return nil
 }
@@ -920,7 +934,7 @@ func (p *Parser) parseFunctionDef() ast.Statement {
 	}
 	body := p.parseBlockUntil(p.isDefEnd)
 	if !p.curTokenIs(token.DEF) {
-		p.errorf("expected 'def [end]' to close function %q, got %s (%q)", name, p.curToken.Type, p.curToken.Literal)
+		p.unclosedError(tok, fmt.Sprintf("the function %s", name), "def [end]")
 		return nil
 	}
 	if !p.expectPeek(token.LBRACKET) {
@@ -1031,7 +1045,7 @@ func (p *Parser) parseIfChain(tok token.Token, nested bool) ast.Statement {
 
 	if !nested {
 		if !p.isIfEnd() {
-			p.errorf("expected 'if [end]' to close if-statement, got %s (%q)", p.curToken.Type, p.curToken.Literal)
+			p.unclosedError(tok, "this if", "if [end]")
 			return nil
 		}
 		p.nextToken() // IF -> '['
@@ -1089,7 +1103,7 @@ func (p *Parser) parseLoopStatement() ast.Statement {
 
 	body := p.parseBlockUntil(p.isLoopEnd)
 	if !p.curTokenIs(token.LBRACKET) {
-		p.errorf("expected '[loop][end]' to close loop, got %s (%q)", p.curToken.Type, p.curToken.Literal)
+		p.unclosedError(tok, "this loop", "[loop][end]")
 		return nil
 	}
 	if !p.expectPeek(token.LOOP) {
@@ -1174,7 +1188,7 @@ func (p *Parser) parseLoopHeader() (ast.LoopKind, ast.Statement, ast.Expression,
 	if p.headerHasSemicolon() {
 		init := p.parseAssignOrInputStatement() // advances past itself, landing on ';'
 		if !p.curTokenIs(token.SEMI) {
-			p.errorf("expected ';' after loop init, got %s (%q)", p.curToken.Type, p.curToken.Literal)
+			p.errorf("a counting loop is written [loop][i = 0; i < 10; i = i + 1]: expected ';' after the start, found %s", describe(p.curToken))
 			return ast.LoopCStyle, init, nil, nil
 		}
 		p.nextToken() // ';' -> first token of condition
@@ -1255,7 +1269,7 @@ func (p *Parser) parseFileReadStatement() ast.Statement {
 	p.nextToken()     // '[' -> READ
 	p.nextToken()     // READ -> ']'
 	if !p.curTokenIs(token.RBRACKET) {
-		p.errorf("expected ']' after [read, got %s (%q)", p.curToken.Type, p.curToken.Literal)
+		p.errorf("expected ']' after [read, found %s: write [read] file to name [end]", describe(p.curToken))
 		return nil
 	}
 	p.nextToken() // -> first token of path
@@ -1285,7 +1299,7 @@ func (p *Parser) parseFileWriteStatement(isAppend bool) ast.Statement {
 	p.nextToken()     // '[' -> WRITE/APPEND
 	p.nextToken()     // -> ']'
 	if !p.curTokenIs(token.RBRACKET) {
-		p.errorf("expected ']' after [write/[append, got %s (%q)", p.curToken.Type, p.curToken.Literal)
+		p.errorf("expected ']' after [write or [append, found %s: write [write] file ... [end]", describe(p.curToken))
 		return nil
 	}
 	p.nextToken() // -> first token of path
@@ -1312,7 +1326,7 @@ func (p *Parser) parseFileWriteStatement(isAppend bool) ast.Statement {
 		p.nextToken()
 	}
 	if !p.curTokenIs(token.LBRACKET) {
-		p.errorf("expected '[end]' to close file block, got %s (%q)", p.curToken.Type, p.curToken.Literal)
+		p.unclosedError(tok, "this block", "[end]")
 		return nil
 	}
 	if !p.expectPeek(token.END) {
@@ -1330,7 +1344,7 @@ func (p *Parser) parseDirectoryStatement() ast.Statement {
 	p.nextToken()     // '[' -> DIRECTORY
 	p.nextToken()     // -> ']'
 	if !p.curTokenIs(token.RBRACKET) {
-		p.errorf("expected ']' after [directory, got %s (%q)", p.curToken.Type, p.curToken.Literal)
+		p.errorf("expected ']' after [directory, found %s", describe(p.curToken))
 		return nil
 	}
 	p.nextToken() // -> first token of path
@@ -1360,7 +1374,7 @@ func (p *Parser) parseDirectoryStatement() ast.Statement {
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	prefix := p.prefixParseFns[p.curToken.Type]
 	if prefix == nil {
-		p.errorf("no prefix parse function for %s (%q)", p.curToken.Type, p.curToken.Literal)
+		p.noValueError()
 		return nil
 	}
 	left := prefix()
@@ -1516,7 +1530,7 @@ func (p *Parser) parseFunctionBody(tok token.Token, params []string) ast.Express
 	if p.peekTokenIs(token.EOF) || p.peekToken.Line != p.curToken.Line {
 		body := p.parseBlockUntil(p.isGivesEnd)
 		if !p.curTokenIs(token.GIVES) {
-			p.errorf("expected 'give [end]' to close the function, got %s (%q)", p.curToken.Type, p.curToken.Literal)
+			p.unclosedError(tok, "this give", "give [end]")
 			return nil
 		}
 		p.nextToken() // -> '['
@@ -1601,7 +1615,7 @@ func (p *Parser) parseNegativeNumber() ast.Expression {
 	}
 	v, err := strconv.ParseFloat(tok.Literal, 64)
 	if err != nil {
-		p.errorf("could not parse %q as float", tok.Literal)
+		p.errorf("%q isn't a number Turtle can read", tok.Literal)
 		return nil
 	}
 	return p.maybeSentence(&ast.FloatLiteral{Token: tok, Value: v})
@@ -1619,13 +1633,25 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 func (p *Parser) parseFloatLiteral() ast.Expression {
 	v, err := strconv.ParseFloat(p.curToken.Literal, 64)
 	if err != nil {
-		p.errorf("could not parse %q as float", p.curToken.Literal)
+		p.errorf("%q isn't a number Turtle can read", p.curToken.Literal)
 		return nil
 	}
 	return p.maybeSentence(&ast.FloatLiteral{Token: p.curToken, Value: v})
 }
 
 func (p *Parser) parseStringLiteral() ast.Expression {
+	switch {
+	case p.curToken.Unclosed && p.multilineString > 0:
+		// The quotes paired up wrong further up: point there.
+		line, pos := p.multilineString, p.multilinePos
+		p.multilineString = 0
+		p.errorAt(line, pos, "this text runs over several lines and the quotes don't pair up: is its closing %c missing?", p.l.Source()[pos])
+	case p.curToken.Unclosed:
+		p.errorAt(p.curToken.Line, p.curToken.Pos, "this text never closes: add the closing %c", p.l.Source()[p.curToken.Pos])
+	case strings.Contains(p.curToken.Literal, "\n") && p.multilineString == 0:
+		p.multilineString, p.multilinePos = p.curToken.Line, p.curToken.Pos
+		p.multilineEnd = p.curToken.Line + strings.Count(p.l.Source()[p.curToken.Pos:p.curToken.End], "\n")
+	}
 	return p.maybeSentence(p.stringExpression(p.curToken))
 }
 
@@ -1660,7 +1686,7 @@ func (p *Parser) stringExpression(tok token.Token) ast.Expression {
 		plain = ""
 		end := strings.IndexByte(text[open:], '}')
 		if end < 0 {
-			p.errors = append(p.errors, fmt.Sprintf("line %d: a '{' in a string needs a closing '}' (write \\{ for a plain brace)", tok.Line))
+			p.errorAt(tok.Line, tok.Pos, "a '{' in a string needs a closing '}' (write \\{ for a plain brace)")
 			return literal(tok.Literal)
 		}
 		parts = append(parts, p.interpolatedPart(tok, text[open+1:open+end]))
@@ -1685,7 +1711,7 @@ func plainBrace(rest string) bool {
 // interpolatedPart parses the expression inside one {...} of a string.
 func (p *Parser) interpolatedPart(tok token.Token, src string) ast.Expression {
 	fail := func(why string) ast.Expression {
-		p.errors = append(p.errors, fmt.Sprintf("line %d: {%s} in a string: %s", tok.Line, src, why))
+		p.errorAt(tok.Line, tok.Pos, "{%s} in a string: %s", src, why)
 		return &ast.StringLiteral{Token: tok}
 	}
 	if strings.TrimSpace(src) == "" {
@@ -1697,7 +1723,7 @@ func (p *Parser) interpolatedPart(tok token.Token, src string) ast.Expression {
 	}
 	expr := sub.parseExpression(LOWEST)
 	if len(sub.errors) > 0 {
-		if strings.Contains(sub.errors[0], "EOF") {
+		if strings.Contains(sub.errors[0], "end of this line") || strings.Contains(sub.errors[0], "end of the file") {
 			return fail("the expression isn't finished")
 		}
 		return fail(strings.TrimPrefix(sub.errors[0], "line 1: "))
@@ -1975,7 +2001,7 @@ func (p *Parser) parseAssembleStatement() ast.Statement {
 		if p.isReservedWord(p.curToken) {
 			p.reservedNameError(p.curToken, "a field")
 		} else if !p.curTokenIs(token.IDENT) {
-			p.errorf("expected a field name in assemble %s, got %s (%q)", name, p.curToken.Type, p.curToken.Literal)
+			p.errorf("assemble %s: expected a field name, found %s", name, describe(p.curToken))
 			p.skipLine()
 			return nil
 		}
@@ -2046,8 +2072,8 @@ func (p *Parser) isReservedWord(tok token.Token) bool {
 }
 
 func (p *Parser) reservedNameError(tok token.Token, what string) {
-	p.errors = append(p.errors, fmt.Sprintf("line %d: %q is a reserved word, so it can't be used as %s name — pick another name (e.g. %s_value)",
-		tok.Line, tok.Literal, what, tok.Literal))
+	p.errorAt(tok.Line, tok.Pos, "%q is a reserved word, so it can't be used as %s name — pick another name (e.g. %s_value)",
+		tok.Literal, what, tok.Literal)
 }
 
 // checkName reports a reserved word where a name is expected.

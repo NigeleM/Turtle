@@ -5,12 +5,13 @@ Protocol get Turtle support from it.
 
 | What you get | |
 |---|---|
-| Errors as you type | the parser's own messages, on the line; imports of missing files, as warnings |
+| Errors as you type | the parser's own messages, under the spot; imports of missing files, as warnings |
 | Colors | keywords, strings, numbers, comments, definitions, calls, library functions, from Turtle's lexer (the same as the REPL) |
 | Completion | keywords, your functions, assembled types and variables, functions from your imported files, library functions (an imported library's first), methods after `at`, libraries and your files after `import`, kinds of value after `random` |
 | Hover | your function's description (comments above its `def` or first in its body, `//` lines or a `//* *//` block), a library function's `turtle doc` text, a keyword's meaning |
 | Go to definition | your functions and assembled types, also in imported files |
 | Outline | the file's functions, assembled types and top-level variables |
+| Format Document | `turtle fmt`'s layout |
 
 It's built into `turtle` (no extra install) and uses only Go's standard
 library. Files must end in `.trt`.

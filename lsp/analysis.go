@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"Turtle/ast"
@@ -59,11 +58,10 @@ func analyze(uri, path, src string, t *text) *analysis {
 	a := &analysis{libs: map[string]bool{}, idents: map[string]bool{}}
 	p := parser.New(lexer.New(src))
 	program := p.ParseProgram()
-	if errs := p.Errors(); len(errs) > 0 {
+	if errs := p.ErrorList(); len(errs) > 0 {
 		// The first error is the real one; the parser trips over what
 		// follows it.
-		line, msg := errorLine(errs[0])
-		a.diags = append(a.diags, diagnostic{Range: lineRange(t, line), Severity: severityError, Source: "turtle", Message: msg})
+		a.diags = append(a.diags, diagnostic{Range: errorRange(t, errs[0]), Severity: severityError, Source: "turtle", Message: errs[0].Msg})
 	}
 	l := lexer.New(src)
 	for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
@@ -100,16 +98,18 @@ func analyze(uri, path, src string, t *text) *analysis {
 	return a
 }
 
-// errorLine takes "line 3: message" apart: line 2 (from 0) and the message.
-func errorLine(e string) (int, string) {
-	if rest, ok := strings.CutPrefix(e, "line "); ok {
-		if n, msg, ok := strings.Cut(rest, ": "); ok {
-			if line, err := strconv.Atoi(n); err == nil {
-				return max(line-1, 0), msg
-			}
-		}
+// errorRange covers the word a parse error points at, or the line when
+// it points past the line's end.
+func errorRange(t *text, e parser.Error) rangeLSP {
+	line := max(e.Line-1, 0)
+	if line >= len(t.lines) || e.Pos < t.lines[line] || e.Pos >= len(t.src) || t.src[e.Pos] == '\n' || t.src[e.Pos] == '\r' {
+		return lineRange(t, line)
 	}
-	return 0, e
+	end := e.Pos + 1
+	for end < len(t.src) && strings.IndexByte(" \t\r\n[](),.", t.src[end]) < 0 && strings.IndexByte(" \t\r\n[](),.", t.src[e.Pos]) < 0 {
+		end++
+	}
+	return rangeLSP{Start: t.position(e.Pos), End: t.position(end)}
 }
 
 // lineRange covers a line's text, from its first non-space character.

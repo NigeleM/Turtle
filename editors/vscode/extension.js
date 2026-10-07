@@ -1,7 +1,7 @@
 // The Turtle extension for VS Code. Colors come from the grammar
 // (syntaxes/turtle.tmLanguage.json) and need nothing else. Everything
 // else (errors as you type, completion, hover help, go to definition, the
-// outline, exact colors) comes from turtle lsp, which this file starts and
+// outline, Format Document, exact colors) comes from turtle lsp, which this file starts and
 // talks to: a small Language Server Protocol client written against VS
 // Code's own API, with no npm packages.
 
@@ -254,6 +254,14 @@ function start(context, output) {
             (s) => new vscode.DocumentSymbol(s.name, s.detail || "", symbolKind(s.kind), toRange(s.range), toRange(s.selectionRange))
           )
         );
+      },
+    }),
+
+    vscode.languages.registerDocumentFormattingEditProvider(selector, {
+      provideDocumentFormattingEdits(doc) {
+        return conn
+          .request("textDocument/formatting", { textDocument: { uri: doc.uri.toString() }, options: { tabSize: 4, insertSpaces: true } })
+          .then((edits) => (edits || []).map((e) => new vscode.TextEdit(toRange(e.range), e.newText)));
       },
     }),
 

@@ -104,6 +104,10 @@ To see a program run line by line, with each variable's new value, use
 ./turtle trace hello.trt
 ```
 
+To stop at each line and look around (values, variables, where you are),
+use `turtle debug hello.trt`: Enter steps, `p name` shows a value, `h`
+lists the commands. `turtle fmt` lays your files out the standard way.
+
 ## Where to go next
 
 - [`tour.md`](tour.md) — a guided walkthrough of the language, by example

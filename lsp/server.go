@@ -20,6 +20,7 @@ import (
 	"sync"
 
 	"Turtle/evaluator"
+	"Turtle/format"
 	"Turtle/syntax"
 	"Turtle/token"
 )
@@ -172,6 +173,8 @@ func (s *Server) handle(msg *message) {
 		s.withDocument(msg, s.documentSymbols)
 	case "textDocument/semanticTokens/full":
 		s.withDocument(msg, s.semanticTokens)
+	case "textDocument/formatting":
+		s.withDocument(msg, s.formatting)
 	default:
 		if isRequest {
 			s.fail(msg.ID, errMethodNotFound, "turtle lsp doesn't do "+msg.Method)
@@ -197,12 +200,13 @@ func (s *Server) initialize(msg *message) {
 	s.initialized = true
 	s.reply(msg.ID, map[string]any{
 		"capabilities": map[string]any{
-			"positionEncoding":       encoding,
-			"textDocumentSync":       map[string]any{"openClose": true, "change": 1},
-			"completionProvider":     map[string]any{"triggerCharacters": []string{}},
-			"hoverProvider":          true,
-			"definitionProvider":     true,
-			"documentSymbolProvider": true,
+			"positionEncoding":           encoding,
+			"textDocumentSync":           map[string]any{"openClose": true, "change": 1},
+			"completionProvider":         map[string]any{"triggerCharacters": []string{}},
+			"hoverProvider":              true,
+			"definitionProvider":         true,
+			"documentSymbolProvider":     true,
+			"documentFormattingProvider": true,
 			"semanticTokensProvider": map[string]any{
 				"legend": map[string]any{"tokenTypes": tokenTypes, "tokenModifiers": tokenModifiers},
 				"full":   true,
@@ -544,4 +548,16 @@ func fileURI(path string) string {
 		p = "/" + p
 	}
 	return (&url.URL{Scheme: "file", Path: p}).String()
+}
+
+// formatting is Format Document: turtle fmt's layout, as one edit of the
+// whole text. Code that doesn't parse yet is left alone (no edits); its
+// error is already showing.
+func (s *Server) formatting(d *document) any {
+	formatted, err := format.Format(d.text.src)
+	if err != nil || formatted == d.text.src {
+		return []any{}
+	}
+	whole := rangeLSP{Start: d.text.position(0), End: d.text.position(len(d.text.src))}
+	return []any{map[string]any{"range": whole, "newText": formatted}}
 }

@@ -86,6 +86,9 @@ func (e *Environment) root() *Environment {
 // or an imported module's) rather than a function call's scope.
 func (e *Environment) IsRoot() bool { return e.outer == nil }
 
+// Outer is the scope around this one (nil for a global one).
+func (e *Environment) Outer() *Environment { return e.outer }
+
 // Get looks up name in this scope, then each enclosing scope out to the
 // global scope — so a function can read a top-level variable, or a
 // closure its enclosing function's locals, without them being passed as

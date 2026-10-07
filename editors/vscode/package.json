@@ -2,7 +2,7 @@
   "name": "turtle",
   "displayName": "Turtle",
   "description": "The Turtle programming language: colors, errors as you type, completion, hover help and go to definition (through turtle lsp).",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "nigelem",
   "license": "SEE LICENSE IN LICENSE",
   "repository": {

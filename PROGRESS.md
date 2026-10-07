@@ -936,3 +936,20 @@ safe [end]
   `options["--out": "a.csv", "-v": false]`.
 - `turtle trace script.trt`: each line as it runs, with the values
   assignments set, on stderr.
+
+## 2026-10-07: clearer parse errors, turtle fmt, turtle debug (not yet released)
+
+- Parse errors: only the first is shown, with the line and a ^ under the
+  spot, in plain words, with the fix for the usual mistakes (a missing
+  period, if without ] [, = to compare, dot-calls, ( ) calls, for loops,
+  blocks and quotes never closed). Editors underline the exact spot.
+- `turtle fmt [--check] [files | folders]`: indentation, line ends and
+  blank lines only; it refuses to change the code itself. Format Document
+  in VS Code (extension 0.1.2) and any LSP editor.
+- `turtle debug script.trt`: step, next, out, continue, breakpoints,
+  values, variables, where; anything else typed runs as Turtle there.
+- The VS Code debugger (breakpoints in the editor) is still to come; it
+  would build on turtle debug.
+- Fixed: after "text over several lines" (multi-line SQL, say), line
+  numbers in errors were too small by the lines inside it. Backtick text
+  was already right.

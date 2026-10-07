@@ -205,6 +205,9 @@ func (it *Interpreter) loadModule(name string) *object.Module {
 	if it.Trace != nil {
 		it.TraceSource(file, string(data))
 	}
+	if it.debug != nil {
+		it.debug.src[file] = splitLines(string(data))
+	}
 	p := parser.New(lexer.New(string(data)))
 	program := p.ParseProgram()
 	if errs := p.Errors(); len(errs) > 0 {

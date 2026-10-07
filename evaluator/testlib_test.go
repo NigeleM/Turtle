@@ -373,7 +373,7 @@ def [end]
 		{name: "old .t test files aren't tests", files: map[string]string{"test_old.t": "import test\ndef test_x[]\n    check true .\ndef [end]\n"}, code: 1, want: []string{"no test files (test_*.trt)"}},
 		{name: "missing import", files: map[string]string{"test_a.trt": "def test_x[]\n    show 1 .\ndef [end]\n"}, code: 1,
 			want: []string{"add import test at the top", "1 file couldn't run"}},
-		{name: "parse error", files: map[string]string{"test_a.trt": "import test\ncheck .\n"}, code: 1, want: []string{"test_a.trt: parse error"}},
+		{name: "parse error", files: map[string]string{"test_a.trt": "import test\ncheck .\n"}, code: 1, want: []string{"test_a.trt, line 2: a value is missing before '.'"}},
 		{name: "top-level error", files: map[string]string{"test_a.trt": "import test\nx = 1 div 0\ndef test_x[]\n    check true .\ndef [end]\n"}, code: 1,
 			want: []string{"the file's own code stopped before the tests: line 2: division by zero"}},
 		{name: "an error that isn't a check", files: map[string]string{"test_a.trt": "import test\ndef test_x[]\n    x = list [1] at get[5]\ndef [end]\n"}, code: 1,

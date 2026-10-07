@@ -141,10 +141,8 @@ func runTestFile(path, name string, out io.Writer) testCounts {
 	}
 	p := parser.New(lexer.New(string(data)))
 	program := p.ParseProgram()
-	if errs := p.Errors(); len(errs) > 0 {
-		for _, e := range errs {
-			fmt.Fprintf(out, "%s: parse error: %s\n", name, e)
-		}
+	if errs := p.ErrorList(); len(errs) > 0 {
+		fmt.Fprintf(out, "%s, %s\n", name, parser.Format(string(data), errs[0]))
 		return broken
 	}
 	if !importsTest(program) {

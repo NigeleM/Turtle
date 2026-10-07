@@ -192,7 +192,7 @@ func TestSession(t *testing.T) {
 [ 3, 1, 2 ]
 error (math): division by zero
 error (name): unknown module or variable "oops" in front of a function name
-error: no prefix parse function for EOF ("")
+error: a value is missing at the end of this line
 5
 3
 `

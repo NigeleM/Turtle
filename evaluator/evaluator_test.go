@@ -1879,7 +1879,7 @@ safe [end]`, want: "line 2: undefined variable \"nope\"\nmain.trt\n"},
 		{name: "after a call, errors name the caller's line", src: `import lib/utils
 x = 1
 show half[2] / 0 .`, wantErr: "line 3: division by zero"},
-		{name: "parse error in a module", src: `import lib/bad`, wantErr: "lib/bad.trt line 2: expected next token to be ."},
+		{name: "parse error in a module", src: `import lib/bad`, wantErr: "lib/bad.trt line 2: this line needs a '.' at the end"},
 		{name: "missing module", src: `import lib/nothing`, wantErr: "line 1: import lib/nothing: lib/nothing.trt: no such file or folder"},
 	}
 	for _, c := range cases {
@@ -1973,7 +1973,7 @@ func TestReviewFixes(t *testing.T) {
     import lib/bad
 handle [] e .
     show "not reached" .
-safe [end]`, wantErr: "lib/bad.trt line 2: expected next token to be ."},
+safe [end]`, wantErr: "lib/bad.trt line 2: this line needs a '.' at the end"},
 		{name: "an error's parts are read-only", src: `safe
     x = 1 / 0
 handle [] e .

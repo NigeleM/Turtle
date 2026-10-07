@@ -285,7 +285,7 @@ func TestParseSafeHandleErrors(t *testing.T) {
 		"handle [] e .\n":                          "'handle' needs a 'safe' above it",
 		"safe\n    x = 1\nshow x .\n":              "needs a 'handle [...] error .' line to close it",
 		"safe\n    x = 1\nhandle [maths] e .\n":    `"maths" isn't a kind of error`,
-		"safe\n    x = 1\nhandle [] e\nshow 1 .\n": "expected next token to be .",
+		"safe\n    x = 1\nhandle [] e\nshow 1 .\n": "this line needs a '.' at the end",
 		"safe [end]\n":                             "'safe [end]' needs a 'safe' block",
 		"fail\nshow 1 .\n":                         "'fail' needs a message",
 	}

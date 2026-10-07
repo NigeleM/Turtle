@@ -66,6 +66,9 @@ type Interpreter struct {
 	Trace     io.Writer
 	traceSrc  map[string][]string
 	traceOpen *traceLine
+	// debug, when set, stops before lines and takes commands (turtle
+	// debug; see debug.go).
+	debug *Debugger
 }
 
 func New(dir string) *Interpreter {
@@ -347,6 +350,9 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		currentLine = stmt.Line()
 		if it.Trace != nil {
 			trace = it.traceStart(stmt)
+		}
+		if it.debug != nil {
+			it.debugStop(stmt, env)
 		}
 	}
 	switch s := stmt.(type) {

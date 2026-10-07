@@ -594,6 +594,10 @@ func (it *Interpreter) callFunction(fn *object.Function, name string, args []obj
 		currentFile = defEnv.File()
 	}
 	defer func() { currentFile, currentLine, it.inBuiltin = prevFile, prevLine, prevBuiltin }()
+	if it.debug != nil && !it.inBuiltin {
+		it.debug.frames = append(it.debug.frames, debugFrame{name: name, file: prevFile, line: prevLine})
+		defer it.debugLeave()
+	}
 	callEnv := object.NewEnclosedEnvironment(defEnv)
 	for i, param := range fn.Parameters {
 		callEnv.Set(param, args[i])

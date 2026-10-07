@@ -3,8 +3,10 @@
 //	turtle                         the REPL (or runs piped-in code)
 //	turtle script.trt [args...]
 //	turtle trace script.trt [args...]
+//	turtle debug script.trt [args...]
 //	turtle doc [library | function | file.trt]
 //	turtle test [file.trt | folder ...]
+//	turtle fmt [--check] [file.trt | folder ...]
 //	turtle lsp                     the language server, for editors
 //	turtle version | help
 package main
@@ -32,7 +34,9 @@ const usage = `Turtle %s
   turtle                       the interactive prompt (REPL)
   turtle script.trt [args]     run a program
   turtle trace script.trt      run it, showing each line as it runs (on stderr)
+  turtle debug script.trt      run it a line at a time: step, breakpoints, look at values
   turtle test [file | folder]  run the test_ functions in test_*.trt files
+  turtle fmt [file | folder]   lay out .trt files the standard way (--check: only list them)
   turtle doc [topic]           the standard library's documentation
   turtle lsp                   the language server, for editors (VS Code, Neovim ...)
   turtle version               the version
@@ -73,9 +77,10 @@ func main() {
 	case command("lsp"):
 		// The language server, for editors: JSON-RPC on stdin and stdout.
 		os.Exit(lsp.Serve(os.Stdin, os.Stdout, version))
-	case command("trace"):
+	case command("trace"), command("debug"):
+		mode := os.Args[1]
 		if len(os.Args) < 3 {
-			fmt.Fprintln(os.Stderr, "usage: turtle trace script.trt [args]")
+			fmt.Fprintf(os.Stderr, "usage: turtle %s script.trt [args]\n", mode)
 			os.Exit(2)
 		}
 		path := os.Args[2]
@@ -84,7 +89,9 @@ func main() {
 			fmt.Fprintln(os.Stderr, "turtle:", err)
 			os.Exit(1)
 		}
-		os.Exit(runTraced(string(data), filepath.Dir(path), filepath.Base(path), os.Args[3:], os.Stderr))
+		os.Exit(runWatched(string(data), filepath.Dir(path), filepath.Base(path), os.Args[3:], mode))
+	case command("fmt"):
+		os.Exit(fmtCommand(os.Args[2:], os.Stdout, os.Stderr))
 	case command("test"):
 		cwd, _ := os.Getwd()
 		os.Exit(evaluator.TestCommand(os.Args[2:], cwd, os.Stdout))
@@ -113,26 +120,33 @@ func main() {
 
 // runProgram runs Turtle source and returns the exit code.
 func runProgram(src, dir, script string, args []string) int {
-	return runTraced(src, dir, script, args, nil)
+	return runWatched(src, dir, script, args, "")
 }
 
-// runTraced is runProgram, writing each line to trace as it runs (when
-// trace isn't nil).
-func runTraced(src, dir, script string, args []string, trace io.Writer) int {
+// runWatched is runProgram, with each line shown on stderr as it runs
+// (mode "trace") or run a line at a time (mode "debug").
+func runWatched(src, dir, script string, args []string, mode string) int {
 	p := parser.New(lexer.New(src))
 	program := p.ParseProgram()
-	if errs := p.Errors(); len(errs) > 0 {
-		for _, e := range errs {
-			fmt.Fprintln(os.Stderr, "turtle: parse error:", e)
+	if errs := p.ErrorList(); len(errs) > 0 {
+		// The first error only: the rest are usually the parser tripping
+		// over what follows it.
+		where := script
+		if where == "" {
+			where = "input"
 		}
+		fmt.Fprintf(os.Stderr, "turtle: %s, %s\n", where, parser.Format(src, errs[0]))
 		return 1
 	}
 	it := evaluator.New(dir)
 	it.Script = script
 	it.Args = args // everything after the script path: system's args[]
-	if trace != nil {
-		it.Trace = trace
+	switch mode {
+	case "trace":
+		it.Trace = os.Stderr
 		it.TraceSource("", src)
+	case "debug":
+		it.Debug(os.Stderr, src)
 	}
 	if err := it.Run(program); err != nil {
 		if ex, ok := err.(evaluator.ExitRequest); ok {

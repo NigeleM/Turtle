@@ -16,6 +16,9 @@ type Token struct {
 	// Pos and End are the token's byte offsets in the source, [Pos, End):
 	// what the REPL colors. Comments aren't tokens, so they lie between.
 	Pos, End int
+	// Unclosed is set on a string the file ended inside: its closing quote
+	// is missing.
+	Unclosed bool
 }
 
 const (

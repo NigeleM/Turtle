@@ -156,3 +156,16 @@ func TestTokenPositions(t *testing.T) {
 		t.Errorf("unfinished string: %q", src[tok.Pos:tok.End])
 	}
 }
+
+// Lines inside "text over several lines" count: the token after it is on
+// the right line.
+func TestLinesInsideText(t *testing.T) {
+	l := New("x = \"a\nb\nc\"\ny = 1")
+	var last token.Token
+	for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
+		last = tok
+	}
+	if last.Line != 4 {
+		t.Errorf("the last token is on line %d, want 4", last.Line)
+	}
+}

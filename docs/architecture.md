@@ -35,13 +35,17 @@ evaluator, so each stage can be reasoned about independently.
 | `token` | Token types and the keyword table (`token.LookupIdent`) |
 | `lexer` | Turns source text into a `token.Token` stream |
 | `ast` | AST node types (one Go struct per statement/expression form) |
-| `parser` | Recursive-descent parser: tokens → `*ast.Program` |
+| `parser` | Recursive-descent parser: tokens → `*ast.Program`; its errors carry the spot they point at (`errors.go`: plain words, fixes for the usual mistakes, `Format` with a `^`) |
 | `object` | Runtime value types (`Integer`, `Float`, `String`, `Boolean`, `List`, `Set`, `Map`, `Function`, `Assembly`, `None`, `Error`, `Date`, `Database`) and `Environment` (scoping) |
 | `evaluator` | Tree-walking evaluator: `*ast.Program` → executed program; the builtin libraries live here (`jsonlib.go`, `timelib.go`, `httplib.go`, `sqllib.go`, ...) |
 | `sqlite` | SQLite written from scratch (no dependencies): the file format, table and index B-trees (search, insert, delete, split, merge), overflow pages, the free-page list, the rollback journal and crash recovery, SQLite-compatible file locks (`lock_*.go`), a SQL parser, a query planner and runner (joins, groups, subqueries, `WITH`), the changing statements (`exec.go`), and a file checker (`check.go`). Knows nothing about Turtle values; `evaluator/sqllib.go` adapts it |
 | `postgres` | A PostgreSQL client from scratch: the v3 wire protocol, SCRAM-SHA-256 / MD5 / password logins, TLS, `?` → `$n`, values decoded by type. `evaluator/sqllib.go` puts it behind the same `sqlConn` interface as SQLite |
 | `mysql` | A MySQL / MariaDB client from scratch: the client/server protocol, `caching_sha2_password` (fast, RSA and TLS paths), `sha256_password` and `mysql_native_password` logins, TLS, prepared statements with binary rows |
-| `cmd/turtle` | Entry point: resolves a script path, wires the above together |
+| `syntax` | Colors from the real tokens (shared by the REPL and the language server), the words libraries turn on, and function descriptions from comments (`FunctionDoc`) |
+| `format` | `turtle fmt` and Format Document: indentation, line ends and blank lines from the tokens, checked to leave the code itself unchanged |
+| `lsp` | `turtle lsp`, the language server: errors, completion, hover, definitions, the outline, colors, formatting |
+| `repl` | The interactive prompt: line editing, history, colors, raw terminal mode per OS |
+| `cmd/turtle` | Entry point: runs a script, or the commands (`test`, `doc`, `fmt`, `trace`, `debug`, `lsp`, the REPL) |
 
 ## Parser conventions
 

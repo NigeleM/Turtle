@@ -2,7 +2,8 @@
 
 Colors for `.trt` files, and through `turtle lsp`: errors as you type,
 completion, hover help (your functions' `//` comments and the standard
-library's docs), go to definition (F12), and the outline. No npm packages:
+library's docs), go to definition (F12), the outline, and Format Document (Shift-Alt-F, the
+same as `turtle fmt`). No npm packages:
 the extension is three JSON files and one small JavaScript file.
 
 ## Install

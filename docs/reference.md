@@ -20,7 +20,9 @@ non-terminal; `[x]` is optional; `{x}` is zero-or-more; `|` is alternation.
 - **Strings**: `"double"` or `'single'` quoted (the same kind of string;
   inside single quotes a `"` needs no escape). Escapes: `\n`, `\t`, `\"`,
   `\'`, `\\`, `\{`, `\}`.
-  `{<expr>}` inside a string is interpolation (see §Strings).
+  `{<expr>}` inside a string is interpolation (see §Strings). A string
+  may go over several lines (SQL, a message): the line breaks are part
+  of the text.
 - **Raw strings**: `` `backticks` `` keep every character as typed: no
   escapes, no interpolation, and they may span lines. For patterns
   (`` `\d{3}` ``) and Windows paths (`` `C:\new\table` ``). A raw string
@@ -37,7 +39,8 @@ non-terminal; `[x]` is optional; `{x}` is zero-or-more; `|` is alternation.
 
 One statement per source line, except explicit multi-line blocks with their
 own begin/end markers (function/if/loop bodies, `[write]`/`[append]`/
-`[read]`/`[directory]` blocks). Expressions never span multiple lines — an
+`[read]`/`[directory]` blocks), and text, which may go over several lines.
+Otherwise expressions never span multiple lines — an
 operator at the start of a new line is never treated as a continuation of
 the expression on the previous line.
 
@@ -623,6 +626,25 @@ returns. It shows as `none`, is falsy, and equals only itself.
 comparisons on `none`. To put it in text, use interpolation or `show`:
 `"x={x}"`, `show "x=", x .`.
 
+## Mistakes in the code
+
+When a file has a mistake Turtle can't read past, it shows the first one,
+with the line and a `^` under the spot, and says how to fix the usual
+ones:
+
+```
+turtle: report.trt, line 2: this line needs a '.' at the end
+  2 | show x
+    |       ^
+```
+
+Only the first is shown: the ones after it are usually the same mistake
+seen again. Habits from other languages get a pointer to Turtle's way:
+`if x > 0 [` (`if ] x > 0 [`), `if ] x = 1 [` (`==`), `x.upper()`
+(`x at upper`), `f(1)` (`f[1]`), `for x in` (`[loop][x in nums]`), a
+block or a quote never closed. Editors show the same message, under the
+same spot.
+
 ## Errors: `safe` / `handle` / `fail`
 
 ```
@@ -1046,6 +1068,64 @@ value follows on a `...` line. Lines of an imported file are named with
 the file (`utils.trt:4`). `def` lines are left out: functions are defined
 before the file runs. The program's own output stays on standard output,
 so `turtle trace report.trt 2> trace.txt` keeps the two apart.
+
+## Stepping through it: `turtle debug`
+
+`turtle debug script.trt [args]` runs the program a line at a time. It
+stops before the first line, shows the line it's on, and waits:
+
+```
+→ line 9      r = n * 2
+(debug) p n
+12
+(debug) v
+here:
+  n = 12
+globals:
+  nums = [ 5, 7 ]
+  total = 12
+```
+
+| Command | Does |
+|---|---|
+| Enter or `s` | step: run this line, stop at the next (going into functions) |
+| `n` | next: run this line and any functions it calls |
+| `o` | out: run to the end of this function |
+| `c` | continue to the next breakpoint, or the end |
+| `b 12` | stop at line 12 (`b utils.trt:4` in an imported file); `b` alone lists them |
+| `d 12` | remove that breakpoint |
+| `p <value>` | show a value: `p total`, `p nums at len` |
+| `v` | the variables here, then the globals |
+| `w` | where: the functions being run, outermost first |
+| `l` | the lines around this one |
+| `q` | quit the program |
+| `h` | the commands |
+
+Anything else is run as Turtle, right there: `total` shows its value,
+`n = 100` changes `n` before the line runs, `show nums .` shows. An error
+in what you type is shown and the program carries on. The debugger
+writes to standard error and reads standard input, like the program's
+`?` prompts. If the input ends, the program runs to the end.
+
+## Layout: `turtle fmt`
+
+`turtle fmt` lays `.trt` files out the standard way: each block's lines
+four spaces in from the line that opens it (`def`, `if ] ... [`,
+`[loop][...]`, `safe`, `give`, `[write]`), `else` and `handle` lined up
+with their block, `that` one step in under its `validate`, no spaces at
+line ends, at most two blank lines in a row, and one newline at the end.
+
+```sh
+turtle fmt                    # every .trt file here and in the folders below
+turtle fmt report.trt lib     # these files and folders
+turtle fmt --check            # change nothing; list what needs it (exit 1 if any)
+```
+
+It only changes the space at the start and end of lines, never what's on
+them (in Turtle a space can matter: `nums get -1` isn't `a - 1`). Lines
+inside a `` `raw string` `` or a `//* *//` comment are left as they are. A
+file that doesn't parse is reported and left alone. In VS Code, Format
+Document (Shift-Alt-F) does the same.
 
 ## Documentation: `turtle doc`
 

@@ -15,7 +15,11 @@ type Lexer struct {
 	line           int
 	inBlockComment bool
 	atLineStart    bool
+	unclosed       bool // the last string read reached the end of the input
 }
+
+// Source is the text being read.
+func (l *Lexer) Source() string { return l.input }
 
 func New(input string) *Lexer {
 	l := &Lexer{input: input, line: 1, atLineStart: true}
@@ -155,10 +159,12 @@ func (l *Lexer) nextToken() token.Token {
 		// quotes (JSON, speech) needs no escapes: '{"name": "Ann"}'.
 		tok.Type = token.STRING
 		tok.Literal = l.readString(l.ch)
+		tok.Unclosed = l.unclosed
 		return tok
 	case '`':
 		tok.Type = token.RAWSTRING
 		tok.Literal = l.readRawString()
+		tok.Unclosed = l.unclosed
 		return tok
 	case 0:
 		tok.Type, tok.Literal = token.EOF, ""
@@ -323,9 +329,13 @@ func (l *Lexer) readString(quote byte) string {
 			}
 		} else {
 			sb.WriteByte(l.ch)
+			if l.ch == '\n' { // text over several lines: later lines count on
+				l.line++
+			}
 		}
 		l.readChar()
 	}
+	l.unclosed = l.ch == 0
 	l.readChar() // skip closing quote
 	return sb.String()
 }
@@ -350,6 +360,7 @@ func (l *Lexer) readRawString() string {
 		l.advanceRaw()
 	}
 	text := l.input[start:l.pos]
+	l.unclosed = l.ch == 0
 	if l.ch == '`' {
 		l.readChar()
 	}
