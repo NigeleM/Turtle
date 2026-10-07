@@ -226,7 +226,7 @@ show r at get[1] .`, dsn)
 		got, err := run(t, src, "")
 		if err != nil {
 			t.Errorf("%s: %v", env, err)
-		} else if strings.TrimSpace(got) != "1 2 3 4 5 6 none" {
+		} else if strings.Join(strings.Fields(got), " ") != "1 2 3 4 5 6 none" {
 			t.Errorf("%s: got %q", env, got)
 		}
 	}
