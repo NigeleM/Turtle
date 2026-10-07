@@ -1,8 +1,8 @@
 
 
-// hello function
+
 def hello [b]
-   
+    // hello function
     c = b/10.0
     // show c .
      return c 
