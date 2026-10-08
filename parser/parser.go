@@ -16,6 +16,7 @@ import (
 
 	"Turtle/ast"
 	"Turtle/lexer"
+	"Turtle/syntax"
 	"Turtle/token"
 )
 
@@ -1632,8 +1633,24 @@ func (p *Parser) parseMethodCallExpression(receiver ast.Expression) ast.Expressi
 		p.nextToken()
 		mc.Arguments = p.parseExpressionList(token.RBRACKET)
 		mc.Bracketed = true
+		return mc
+	}
+	// Without brackets, one argument: the value right after the method,
+	// on its line ("2 at pow 10", "s at contains "a""). It's just that
+	// value, so "3 at pow 2 == 9" compares the power and
+	// "s at contains "a" && ok" asks both; more than one argument needs
+	// brackets (x at get[0, 1]). A test or scroll word isn't an argument.
+	if (p.curTokenIs(token.IDENT) || slices.Contains(syntax.Methods, method)) && p.argumentStartsAt(1) && !p.isStop(p.peekToken.Literal) && !p.inVerifyValueStop() {
+		p.nextToken()
+		mc.Arguments = append(mc.Arguments, p.parseExpression(INDEX))
 	}
 	return mc
+}
+
+// inVerifyValueStop keeps "at least" / "at most" in a verify sentence
+// from being read as a method's argument.
+func (p *Parser) inVerifyValueStop() bool {
+	return p.inVerifyValue > 0 && (p.peekToken.Literal == "least" || p.peekToken.Literal == "most")
 }
 
 // sortModuleCall reports whether "sort" starts a call into the sort

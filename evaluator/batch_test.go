@@ -203,7 +203,7 @@ show json_text[list [x]] .`
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "0.3 true 0.333333333333333 2.5 7.0 0.000001234\n0.3 [ 0.6 ]\n[0.30000000000000004]\n"
+	want := "0.3 true 0.333333333333333 2.5 7.0 1.234e-06\n0.3 [ 0.6 ]\n[0.30000000000000004]\n"
 	if got != want {
 		t.Errorf("got %q, want %q", got, want)
 	}

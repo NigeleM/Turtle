@@ -276,6 +276,7 @@ func (l *Lexer) readIdentifier() string {
 
 func (l *Lexer) readNumber() (token.Type, string) {
 	start := l.pos
+	kind := token.INT
 	for isDigit(l.ch) {
 		l.readChar()
 	}
@@ -284,9 +285,25 @@ func (l *Lexer) readNumber() (token.Type, string) {
 		for isDigit(l.ch) {
 			l.readChar()
 		}
-		return token.FLOAT, l.input[start:l.pos]
+		kind = token.FLOAT
 	}
-	return token.INT, l.input[start:l.pos]
+	// Scientific notation: 1e-18, 2.5e6, 6.02E23 (a float, as in Python).
+	// The e needs digits after it (a sign first is fine), so "2e" alone
+	// stays a number and a name.
+	if l.ch == 'e' || l.ch == 'E' {
+		next := l.peekChar()
+		if isDigit(next) || (next == '+' || next == '-') && isDigit(l.peekChar2()) {
+			l.readChar()
+			if l.ch == '+' || l.ch == '-' {
+				l.readChar()
+			}
+			for isDigit(l.ch) {
+				l.readChar()
+			}
+			kind = token.FLOAT
+		}
+	}
+	return kind, l.input[start:l.pos]
 }
 
 func (l *Lexer) readNumberStartingWithDot() string {

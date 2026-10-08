@@ -1176,3 +1176,19 @@ objects 78 -> 41 (1.9x), jsondata 66 -> 60 (1.1x), patterns 32 -> 22
   that can't. Checked on all three (TestLoadTypesOnServers).
 - Tests and the sql examples (10, 12, 13, 14) updated where they expected
   all-text reads.
+
+## 2026-10-08 (later): docs per library, scientific numbers, bare method arguments (not yet released)
+
+- release.yml marks 0.x releases as pre-releases.
+- docs/library/: one page per library plus an index grouped by purpose
+  (Python's library docs as the model); stdlib.md points there.
+  TestLibraryPages checks pages name every function and examples parse;
+  it found two broken examples (a variable named at; a ... in an if).
+- Scientific notation: 1e-18, 2.5e6, 6.02E+23 (floats). Floats show as
+  Python does past 1e16 and below 0.0001 (1e-05, 1e+20): a visible change.
+  CSV reads 1e5 as a number.
+- A method's argument without brackets works anywhere: one argument, the
+  value right after the method (2 at pow 10, nums at get 0,
+  s at contains "a" && ok). It was only in the is-statement form. A first
+  try took the rest of the expression, as sentence calls do; the edge
+  tests showed 3 at pow 2 == 9 became pow[2 == 9], so it binds tightly.

@@ -14,8 +14,9 @@ import (
 //	price,code,note
 //	950,"950",007        -> 950, 950 (integers), "007" (text)
 //
-// Only a plain number is read as one: digits, maybe a minus sign and a
-// decimal point (7, -3, 2.5). 007, +5, .5, 1e5, 1,000 and a whole number
+// Only a plain number is read as one: digits, maybe a minus sign, a
+// decimal point and an exponent (7, -3, 2.5, 1e5, 6.02e-23). 007, +5,
+// .5, 1,000 and a whole number
 // too big for an integer stay text, since each is as likely a code or an
 // id (unlike pandas, which drops 007's zeros). An empty cell is none.
 // Column types (columntypes.go) say otherwise column by column.
@@ -107,9 +108,9 @@ func parseCSV(text string, sep byte) ([]csvRecord, error) {
 }
 
 // isPlainNumber reports whether s is a number as a file writes one,
-// -?(0|[1-9][0-9]*)(.[0-9]+)?: what an unquoted cell must be to be read
-// as a number, and what text must be quoted to stay text. (By hand, not
-// a regular expression: it runs on every cell.)
+// -?(0|[1-9][0-9]*)(.[0-9]+)?([eE][+-]?[0-9]+)?: what a cell must be to
+// be read as a number. (By hand, not a regular expression: it runs on
+// every cell.)
 func isPlainNumber(s string) bool {
 	i := 0
 	if i < len(s) && s[i] == '-' {
@@ -126,14 +127,38 @@ func isPlainNumber(s string) bool {
 		return true
 	}
 	if s[i] != '.' {
-		return false
+		return isExponent(s[i:])
 	}
 	i++
 	frac := i
 	for i < len(s) && s[i] >= '0' && s[i] <= '9' {
 		i++
 	}
-	return i > frac && i == len(s)
+	if i == frac {
+		return false
+	}
+	return i == len(s) || isExponent(s[i:])
+}
+
+// isExponent reports whether s is a number's exponent: e or E, maybe a
+// sign, then digits (e5, E-18, e+3).
+func isExponent(s string) bool {
+	if len(s) < 2 || s[0] != 'e' && s[0] != 'E' {
+		return false
+	}
+	i := 1
+	if s[i] == '+' || s[i] == '-' {
+		i++
+	}
+	if i == len(s) {
+		return false
+	}
+	for ; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 // cellValue is what a cell reads as: a plain number is a number, an
@@ -143,7 +168,7 @@ func cellValue(c csvCell) object.Object {
 		return object.NoneValue
 	}
 	if isPlainNumber(c.text) {
-		if !strings.Contains(c.text, ".") {
+		if !strings.ContainsAny(c.text, ".eE") {
 			if n, err := strconv.ParseInt(c.text, 10, 64); err == nil {
 				return object.Int(n)
 			}

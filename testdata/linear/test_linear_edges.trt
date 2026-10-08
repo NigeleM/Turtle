@@ -77,6 +77,25 @@ def test_integers_and_floats[]
 def [end]
 
 // ---------- equality ----------
+// ---------- numbers written the scientific way, and methods without brackets ----------
+def test_scientific_and_bare_methods[]
+    check 1e3 == 1000 .
+    check 2.5e-3 == 0.0025 .
+    check matrix [1e2, 2e2] == matrix [100, 200] .
+    check "{1e-18}" == "1e-18" .
+    check "{6.02e23}" == "6.02e+23" .
+    a = matrix [1, 2; 3, 4]
+    corner = a at get[1, 1]
+    check corner == 4 .
+    first = a at row 0
+    check first == list [1, 2] .
+    // Inside brackets a comma ends a bare argument, so two need brackets.
+    pair = list [a at get[0, 1], a at row 1]
+    check pair == list [2, list [3, 4]] .
+    check 3 at pow 2 == 9 .
+    check list [3 at pow 2, 1] == list [9, 1] .
+def [end]
+
 // ---------- a number on every element ----------
 def test_number_on_every_element[]
     a = matrix [1, 2; 3, 4]
@@ -173,7 +192,7 @@ def test_singular[]
     check rank[zeros[3]] == 0 .
     // Small numbers aren't singular: what counts is size next to the
     // matrix's largest number.
-    tiny = matrix [0.000000000000000001, 0; 0, 0.000000000000000002]
+    tiny = matrix [1e-18, 0; 0, 2e-18]
     check inverse[tiny] * tiny == identity[2] .
     check rank[tiny] == 2 .
     // A row that's a mix of the others, in a bigger matrix.
@@ -192,9 +211,9 @@ def test_ill_conditioned[]
         [loop][end]
     [loop][end]
     leftover = norm[h * inverse[h] - identity[6]]
-    check leftover < 0.000001 .
+    check leftover < 1e-6 .
     x = solve[h, h * list [1, 1, 1, 1, 1, 1]]
-    verify x each v give v - 1 at abs < 0.00001 .
+    verify x each v give v - 1 at abs < 1e-5 .
 def [end]
 
 // ---------- every decomposition rebuilds its matrix ----------

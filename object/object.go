@@ -61,6 +61,11 @@ func (f *Float) Inspect() string {
 func (f *Float) Exact() string { return floatText(f.Value) }
 
 func floatText(v float64) string {
+	// Very big and very small numbers in scientific notation, where
+	// Python switches too: 1e+16 and up, below 0.0001 (1e-05).
+	if a := math.Abs(v); a != 0 && !math.IsInf(v, 0) && !math.IsNaN(v) && (a >= 1e16 || a < 1e-4) {
+		return strconv.FormatFloat(v, 'g', -1, 64)
+	}
 	s := strconv.FormatFloat(v, 'f', -1, 64)
 	if !strings.ContainsAny(s, ".eEIN") { // integral and finite (not Inf/NaN)
 		s += ".0"

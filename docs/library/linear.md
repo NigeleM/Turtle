@@ -133,8 +133,7 @@ fit = least_squares[points, list [1, 2, 2]]   // [ 0.666666666666667, 0.5 ]
   both: "can't multiply a 2 x 3 matrix by a 2 x 3 matrix"), a singular
   matrix for `inverse` or `solve`, a non-symmetric one for `eigen`.
 - A matrix counts as singular when it is, next to the size of its
-  numbers: `matrix [0.000000000000000001, 0; 0, 0.000000000000000001]`
-  has an inverse.
+  numbers: `matrix [1e-18, 0; 0, 1e-18]` has an inverse.
 - `solve` and `least_squares` refine their answer once, which wins back
   the last digits rounding loses.
 - Big products use every core of the computer.

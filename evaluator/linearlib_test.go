@@ -305,10 +305,59 @@ func TestIsPlainNumber(t *testing.T) {
 	for s, want := range map[string]bool{
 		"0": true, "7": true, "-3": true, "2.5": true, "-0.25": true, "10": true, "0.5": true,
 		"": false, "-": false, "007": false, "01.5": false, "+5": false, ".5": false, "5.": false,
-		"1e5": false, "1,000": false, "$5": false, " 5": false, "5 ": false, "--5": false, "1.2.3": false,
+		"1e5": true, "2.5e-3": true, "6E+2": true, "1e": false, "1e+": false, "e5": false, "1.e5": false, "1e5.5": false, "1,000": false, "$5": false, " 5": false, "5 ": false, "--5": false, "1.2.3": false,
 	} {
 		if got := isPlainNumber(s); got != want {
 			t.Errorf("isPlainNumber(%q) = %v, want %v", s, got, want)
+		}
+	}
+}
+
+// TestScientificNumbers: written and shown as Python does, past 1e16 and
+// below 0.0001.
+func TestScientificNumbers(t *testing.T) {
+	cases := []struct{ src, want string }{
+		{"show 1e-18, \" \", 2.5e6, \" \", 6.02e23, \" \", -1e3 .", "1e-18 2500000.0 6.02e+23 -1000.0"},
+		{"show 0.0001, \" \", 0.00009, \" \", 1e15, \" \", 1e16 .", "0.0001 9e-05 1000000000000000.0 1e+16"},
+		{"show 1e-9 == 0.000000001, \" \", typeof[1e3] .", "true float"},
+		{"x = 2\nshow x*1e3 .", "2000.0"},
+	}
+	for _, c := range cases {
+		got, err := run(t, c.src, "")
+		if err != nil {
+			t.Errorf("%s: %v", c.src, err)
+		} else if strings.TrimSpace(got) != c.want {
+			t.Errorf("%s:\n got  %q\n want %q", c.src, strings.TrimSpace(got), c.want)
+		}
+	}
+}
+
+// TestMethodArgumentsWithoutBrackets: x at pow 2 works wherever a value
+// goes, its argument running to the end of the value, as a sentence
+// call's does; inside brackets a comma ends it.
+func TestMethodArgumentsWithoutBrackets(t *testing.T) {
+	cases := []struct{ src, want string }{
+		{"x = 2 at pow 10\nshow x .", "1024"},
+		{"show 2 at pow 10 .", "1024"},
+		{"x = list [2 at pow 10, 3]\nshow x .", "[ 1024, 3 ]"},
+		{"nums = list [5, 6]\nshow list [nums at get 0, nums at get 1] .", "[ 5, 6 ]"},
+		{"s = \"turtle\"\nif ] s at contains \"urt\" [\n    show \"yes\" .\nif [end]", "yes"},
+		{"x = 2 at pow[10] + 1\nshow x .", "1025"},
+		{"x = 2 at pow 10 + 1\nshow x .", "1025"},
+		{"show 3 at pow 2 == 9 .", "true"},
+		{"s = \"turtle\"\nok = true\nshow s at contains \"urt\" && ok .", "true"},
+		{"x = 2\nshow x at pow 3, \" \", x .", "8 2"},
+		{"nums = list [3, 4]\nshow nums at get 1 at pow 2 .", "16"},
+		{"show 5 at pow -1 .", "0.2"},
+		{"r is 2 at pow 3 .\nshow r .", "8"},
+		{"s = \"a,b\"\nshow s at split \",\" .", "[ \"a\", \"b\" ]"},
+	}
+	for _, c := range cases {
+		got, err := run(t, "import math\n"+c.src, "")
+		if err != nil {
+			t.Errorf("%s: %v", c.src, err)
+		} else if strings.TrimSpace(got) != c.want {
+			t.Errorf("%s:\n got  %q\n want %q", c.src, strings.TrimSpace(got), c.want)
 		}
 	}
 }

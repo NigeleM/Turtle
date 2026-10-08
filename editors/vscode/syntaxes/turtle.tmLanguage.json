@@ -160,7 +160,7 @@
     },
     "numbers": {
       "name": "constant.numeric.turtle",
-      "match": "\\b\\d+(\\.\\d+)?\\b|(?<![\\w.])\\.\\d+\\b"
+      "match": "\\b\\d+(\\.\\d+)?([eE][+-]?\\d+)?\\b|(?<![\\w.])\\.\\d+\\b"
     },
     "library": {
       "name": "support.function.turtle",

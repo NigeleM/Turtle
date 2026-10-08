@@ -169,3 +169,28 @@ func TestLinesInsideText(t *testing.T) {
 		t.Errorf("the last token is on line %d, want 4", last.Line)
 	}
 }
+
+// TestScientificNotation: 1e-18, 2.5e6 and 6.02E23 are floats; an e with
+// no digits after it isn't part of the number.
+func TestScientificNotation(t *testing.T) {
+	cases := []struct {
+		src  string
+		want []token.Token
+	}{
+		{"1e-18", []token.Token{{Type: token.FLOAT, Literal: "1e-18"}}},
+		{"2.5e6", []token.Token{{Type: token.FLOAT, Literal: "2.5e6"}}},
+		{"6.02E+23", []token.Token{{Type: token.FLOAT, Literal: "6.02E+23"}}},
+		{"7", []token.Token{{Type: token.INT, Literal: "7"}}},
+		{"2e x", []token.Token{{Type: token.INT, Literal: "2"}, {Type: token.IDENT, Literal: "e"}, {Type: token.IDENT, Literal: "x"}}},
+		{"3e-", []token.Token{{Type: token.INT, Literal: "3"}, {Type: token.IDENT, Literal: "e"}, {Type: token.MINUS, Literal: "-"}}},
+	}
+	for _, c := range cases {
+		l := New(c.src)
+		for i, want := range c.want {
+			got := l.NextToken()
+			if got.Type != want.Type || got.Literal != want.Literal {
+				t.Errorf("%q token %d: got %s %q, want %s %q", c.src, i, got.Type, got.Literal, want.Type, want.Literal)
+			}
+		}
+	}
+}

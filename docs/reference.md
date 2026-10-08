@@ -16,7 +16,8 @@ non-terminal; `[x]` is optional; `{x}` is zero-or-more; `|` is alternation.
   comment that may span multiple lines. Both are stripped by the lexer.
 - **Identifiers**: `<letter|_> {letter|digit|_}`. Turtle's own names are
   all lowercase (`isempty`, `scriptfolder`, `sql_open`).
-- **Numbers**: `<digits>` (integer) or `<digits>.<digits>` (float).
+- **Numbers**: `<digits>` (integer) or `<digits>.<digits>` (float), and
+  scientific notation, always a float: `1e-18`, `2.5e6`, `6.02E+23`.
 - **Strings**: `"double"` or `'single'` quoted (the same kind of string;
   inside single quotes a `"` needs no escape). Escapes: `\n`, `\t`, `\"`,
   `\'`, `\\`, `\{`, `\}`.
@@ -147,9 +148,12 @@ neither side changes:
 | `map - map` | the left map without the right map's **keys** (values ignored) |
 
 `<expr> at <method>` calls a method inside any expression:
-`show name at upper .`, `w = x at slice[0, 3]`. In this form, method
-arguments go in brackets. The statement form `r is x at slice 0, 3 .` still
-takes them unbracketed.
+`show name at upper .`, `w = x at slice[0, 3]`. One argument can go
+without brackets: it's just the value right after the method, so
+`3 at pow 2 == 9` compares the power, `s at contains "a" && ok` asks
+both, and `list [x at get 0, 1]` is two items. More than one argument
+goes in brackets (`x at slice[0, 3]`), except in the statement form,
+`r is x at slice 0, 3 .`, which takes them unbracketed.
 
 **A method works on the value right before it**, with or without
 brackets, the way Python's `a.invert()` does. Use `( )` to apply it to a
@@ -276,7 +280,8 @@ compare the same way: when either side is a float, `==`, `!=`, `<`,
 `<=`, `>` and `>=` use the 15-digit values, so `0.1 + 0.2 == 0.3` is
 `true` and `0.30000000000000004 > 0.3` is `false`: what shows the same
 is equal. Sets, map keys, `contains` and `count` agree. Integers compare
-exactly. The value itself keeps every digit, and writing to a file
+exactly. Very big and very small floats show in scientific notation, where
+Python switches too: `1e+16` and up, and below `0.0001` (`1e-05`). The value itself keeps every digit, and writing to a file
 (JSON, CSV) or a database keeps them all. For a looser match, round
 first (`x at round[2] == y at round[2]`), or use `is close to` in a test.
 For a fixed number of places on screen, use `x at fixed[2]` (`"0.30"`).

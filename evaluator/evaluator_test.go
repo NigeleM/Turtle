@@ -2139,7 +2139,7 @@ show d .`, want: `{ "s": "x", "i": 3, "f": 2.5, "w": 2.0, "b": true, "n": none, 
 		{name: "key order kept", src: `import json
 show load['{"z": 1, "a": 2, "m": 3}'] at getkeys .`, want: `[ "z", "a", "m" ]` + "\n"},
 		{name: "numbers", src: `import json
-show load["1e3"], " ", load["-4"], " ", load["99999999999999999999"] .`, want: "1000.0 -4 100000000000000000000.0\n"},
+show load["1e3"], " ", load["-4"], " ", load["99999999999999999999"] .`, want: "1000.0 -4 1e+20\n"},
 		{name: "json_text one line", src: `import json
 assemble P [x, y]
 show json_text[map ["a": list [1, none], "s": set [2], "p": P[1, "<&>"], 3: true]] .`,
@@ -2839,7 +2839,7 @@ show table_read["books.tsv"] .`, want: "[ { \"sku\": \"B1\", \"title\": \"Dune, 
 show table_read["short.csv"] .`, want: "[ { \"a\": 1, \"b\": 2, \"c\": none } ]\n"},
 		{name: "what a cell holds decides, not its quotes", src: `import data
 r = table_read["kinds.csv"] at get[0]
-show r .`, want: "{ \"n\": 7, \"q\": 7, \"z\": \"007\", \"qz\": \"007\", \"f\": -2.5, \"e\": \"1e5\", \"big\": \"123456789012345678901234\", \"t\": \"true\", \"s\": none, \"none\": none }\n"},
+show r .`, want: "{ \"n\": 7, \"q\": 7, \"z\": \"007\", \"qz\": \"007\", \"f\": -2.5, \"e\": 100000.0, \"big\": \"123456789012345678901234\", \"t\": \"true\", \"s\": none, \"none\": none }\n"},
 		{name: "a types map keeps a number-like column text", src: `import data
 r = table_read["kinds.csv", map ["q": "text"]] at get[0]
 show r at get["q"] .`, want: "7\n"},

@@ -20,7 +20,7 @@ failures = list []
 def near[label, got, want]
     gap = got - want
     allowed = want at abs + 1
-    if ] gap at abs > allowed * 0.000000001 [
+    if ] gap at abs > allowed * 1e-9 [
         add label to failures .
         show "  FAIL ", label, ": got ", got, ", want ", want .
     if [end]
@@ -80,10 +80,10 @@ ss_res = 0
 ss_tot = 0
 [loop][i in range[length of prices]]
     p = prices at get[i]
-    miss = p - fitted at get[i]
+    miss = p - fitted at get i
     spread = p - mean_price
-    ss_res = ss_res + miss * miss
-    ss_tot = ss_tot + spread * spread
+    ss_res = ss_res + miss at pow 2
+    ss_tot = ss_tot + spread at pow 2
 [loop][end]
 r2 = 1 - ss_res / ss_tot
 near["R squared", r2, 0.9954381014441794]

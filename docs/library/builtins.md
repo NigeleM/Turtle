@@ -55,6 +55,10 @@ v0.9.152 a few had capitals: `isEmpty`, `isNumber`, `getKeys`,
 <result> is <receiver> at <method> [<arg> {, <arg>}] .
 ```
 
+Anywhere else, `x at method[a, b]`, or with one argument
+`x at method a` (just the value after it: `nums at get 0`,
+`2 at pow 10`).
+
 ### list
 
 | Method | Args | Returns |
