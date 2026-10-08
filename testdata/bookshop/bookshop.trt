@@ -227,7 +227,7 @@ check["typed load kinds", kinds, list [map ["c": "text", "n": "integer"]]]
 sql_close[db]
 
 // Dune's trend, copies = a + b * month, by least squares, then month 7.
-dune is sales keep r give title of r == "Dune" .
+dune = sales keep r give title of r == "Dune" .
 months = zeros[6, 2]
 copies = list []
 [loop][r in dune]

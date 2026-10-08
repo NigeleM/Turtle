@@ -561,7 +561,11 @@ func (p *Parser) parseAssignOrInputStatement() ast.Statement {
 	p.nextToken() // '=' -> first token of value
 	val := p.parseExpression(LOWEST)
 	p.nextToken()
-	p.endScroll(val)
+	// A closing period is fine, as after a call: "x = rows keep r give
+	// ... ." reads like the sentence it is.
+	if p.curTokenIs(token.PERIOD) && p.curToken.Line == p.prevToken.Line {
+		p.nextToken()
+	}
 	return &ast.AssignStatement{Token: tok, Name: name, Value: val}
 }
 

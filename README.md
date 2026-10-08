@@ -28,7 +28,8 @@ for reference; they still build and run.
 | Anonymous functions (`x give x + 1`) + sentence-style calls (`nums process f`) | Done |
 | For-each loops (`[loop][x in nums]`) | Done |
 | `+`/`-` on lists, sets, maps | Done |
-| Standard library: data (`process`, `keep`, `copy`, `range`, `reduce`, `sum`, `table`, `table_read`, `table_write`; `.csv`, `.tsv`, `.txt`, `.json` table files) | Done |
+| Standard library: data (`process`, `keep`, `copy`, `range`, `reduce`, `sum`, `table`, `table_read`, `table_write`; `.csv`, `.tsv`, `.txt`, `.json` table files; statistics: `mean`, `median`, `stdev`, `percentile`, `correlation`, `describe`, ...) | Done |
+| Standard library: linear (`matrix [1, 2; 3, 4]`, `*` as the matrix product, `solve`, `inverse`, `determinant`, `least_squares`, `lu`, `qr`, `eigen`, `svd`) | Done |
 | Standard library: system (`args`, `options`, `exit`, `env`, `loadenv`, `scriptfolder`, `contents`, `walk`, `exists`/`isfile`/`isfolder`, `copyto`, `moveto`, `makefolder`, `erase`, `pack`/`unpack` for .zip/.tar/.tar.gz) | Done |
 | `turtle trace`: each line as it runs, with the values it sets | Done |
 | `turtle debug`: step, breakpoints, look at and change values | Done |
@@ -51,7 +52,7 @@ for reference; they still build and run.
 | Standard library: config (`config_read`/`config_write`: .toml, .json, .env) and time zones (`today["Asia/Tokyo"]`, `to_zone`) | Done |
 | Standard library: schedule (`fetchall`, `runall`, `queryall`: many at once, `schedulelimit` at a time) | Done |
 | Standard library: pattern (`matches`, `findall`, `replaceall`, `splitby`, `groups`; backtick strings) | Done |
-| Number and text formatting (`fixed`, `commas`, `padleft`, `padright`), `typeof[x]`, `x type integer` | Done |
+| Number and text formatting (`fixed`, `commas`, `padleft`, `padright`), `typeof[x]`, `x type integer`, scientific notation (`1e-9`) | Done |
 | Standard library: JSON (`import json`) | Done |
 | Standard library: HTTP (`import http`) | Done |
 | Standard library: SQL — SQLite read and write, joins, groups, window functions, JSON, triggers, transactions, CSV in and out; PostgreSQL and MySQL through the same functions (`import sql`) | Done |

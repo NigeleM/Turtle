@@ -193,7 +193,11 @@ under Functions.
 
 ```
 <ident> = <expr>
+<ident> = <expr> .
 ```
+
+The closing period is optional, as after a function call; it reads
+naturally after a sentence: `big = nums keep n give n > 10 .`
 
 ## Input
 

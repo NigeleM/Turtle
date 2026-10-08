@@ -25,7 +25,7 @@ Or build a `.vsix` to share (needs Node.js once, for the packaging tool):
 ```sh
 cd editors/vscode
 npx @vscode/vsce package
-code --install-extension turtle-0.1.0.vsix
+code --install-extension turtle-*.vsix      # the file vsce just made
 ```
 
 ## Settings

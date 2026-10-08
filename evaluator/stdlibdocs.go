@@ -498,7 +498,7 @@ isn't a number is an error. Sentence form: prices mean.
   Gives back: a list of maps, one per row, keyed by the column names
   (the same shape sql_query gives). From .csv and .tsv, what a cell holds
   decides, quoted or not (as in pandas): a plain number (950, "950",
-  -2.5) is a number; 007, 1e5 and other text is text; an empty cell is
+  -2.5, 1e5) is a number; 007 and other text is text; an empty cell is
   none. From .json, values keep their kind.
   A badly formed file is a csv error (json for a .json file); a cell
   that isn't its type is a number, date or type error.

@@ -406,3 +406,11 @@ func TestFieldOfBareGet(t *testing.T) {
 		t.Errorf("got %q, %v", got, err)
 	}
 }
+
+// TestAssignmentMayEndInAPeriod: "x = ... ." is fine, as a call line is.
+func TestAssignmentMayEndInAPeriod(t *testing.T) {
+	got, err := run(t, "import data\nnums = list [1, 2, 3]\nbig = nums keep n give n > 1 .\nx = 5 .\nshow big, x .", "")
+	if err != nil || strings.TrimSpace(got) != "[ 2, 3 ]5" {
+		t.Errorf("got %q, %v", got, err)
+	}
+}

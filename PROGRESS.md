@@ -1215,3 +1215,9 @@ objects 78 -> 41 (1.9x), jsondata 66 -> 60 (1.1x), patterns 32 -> 22
   the list as get[0] does (fixed: a bare get/slice after "of" does now).
   Noted: "x = rows keep ... ." errors on the period with no hint (only
   the is-form takes one).
+- Review and clean-up: removed the profiling helper (zz_prof_test.go)
+  and docs/stdlib-proposal.md (all of it long built); README status,
+  architecture.md and TODO.md brought up to date; stale "CSV numbers are
+  text" wording fixed; "x = ... ." may end in a period, as a call line
+  may; VS Code extension 0.1.3 (grammar: new functions, matrix, 1e-9).
+  bench/RESULTS.md rerun.

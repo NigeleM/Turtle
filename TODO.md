@@ -52,12 +52,17 @@ Next, roughly in priority order:
       (testdata/speed) (2026-10-06)
 - [x] process / keep give a new collection when used as a value, and
       copy[x, true] copies deeply (2026-10-06)
-- [ ] Benchmark suite with a baseline (held off by the user, 2026-10-06)
+- [x] Benchmark suite with a baseline: `bench/` against Python, Node, Ruby and Go (2026-10-07)
 - [x] Log library (2026-10-06)
 - [x] REPL with colors (2026-10-06); editor: see the next option below
 - [x] `turtle lsp` and a VS Code extension (2026-10-06)
 - [x] Statistics in `data`, and the `linear` library (matrices) (2026-10-08)
 - [ ] `linear`: a faster `svd` (Golub-Kahan) if big ones are needed
+- [ ] Speed: resolve each name to a slot when parsing, so variables are
+      found without searching by name (the next big speed step; then a
+      bytecode VM if still needed)
+- [ ] Windows installer (Inno Setup) and file icons; see the local
+      deployment notes
 - [ ] `machine` library (k-means, regression, kNN, naive Bayes, SVM): held
       by the user until speed and other work settle
 - [ ] `sql` leftovers: writing WITHOUT ROWID tables, UTF-16 and

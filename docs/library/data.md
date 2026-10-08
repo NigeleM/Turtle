@@ -136,9 +136,9 @@ show correlation[books, "price", "rating"] .  // two columns
   doesn't stop its column's average. With nothing left, it's an error
   (kind `index`), as is `stdev` of a single number.
 - Anything else that isn't a number is an error (kind `type`). Numbers
-  read from a CSV file are text until the file is read with
-  [column types](#column-types): `table_read["sales.csv", map ["price":
-  "float"]]`.
+  in a CSV file come back as numbers (see [table files](#table-files));
+  a column you read as text, or text from elsewhere, needs `change ...
+  to float` first.
 - Floats are added the careful way (compensated summation), so the mean
   of a thousand `0.1`s is `0.1`.
 
@@ -238,8 +238,8 @@ show rows at get[0] .                   // { "item": "pen", "qty": 3, "price": 1
 
   | Cell | Reads as |
   |---|---|
-  | `7`, `"7"`, `-3`, `2.5` | a number (`7` an integer, `2.5` a float) |
-  | `007`, `"007"`, `+5`, `.5`, `1e5`, `1,000`, `$5` | text: as likely a code or an id as a quantity, so `007` keeps its zeros (pandas would make it `7`) |
+  | `7`, `"7"`, `-3`, `2.5`, `1e5` | a number (`7` an integer; `2.5` and `1e5` floats) |
+  | `007`, `"007"`, `+5`, `.5`, `1,000`, `$5` | text: as likely a code or an id as a quantity, so `007` keeps its zeros (pandas would make it `7`) |
   | a whole number too big for an integer (`123456789012345678901234`) | text: an id, not a quantity |
   | `Dune`, `true` | text |
   | an empty cell, or `""` | `none` |
