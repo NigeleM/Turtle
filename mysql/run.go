@@ -172,12 +172,12 @@ func textValue(c column, s []byte) any {
 		}
 	case tDecimal, tNewDecimal:
 		return decimalValue(str)
-	case tDate:
-		if t, err := time.Parse("2006-01-02", str); err == nil {
+	case tDate: // DATE, DATETIME and TIMESTAMP come as wall-clock time: local
+		if t, err := time.ParseInLocation("2006-01-02", str, time.Local); err == nil {
 			return t
 		}
 	case tDatetime, tTimestamp:
-		if t, err := time.Parse("2006-01-02 15:04:05.999999", str); err == nil {
+		if t, err := time.ParseInLocation("2006-01-02 15:04:05.999999", str, time.Local); err == nil {
 			return t
 		}
 	}
@@ -245,7 +245,7 @@ func binaryValue(c column, b []byte) (any, int) {
 		if n == 0 || mo == 0 {
 			return nil, 1 + n // 0000-00-00
 		}
-		return time.Date(y, time.Month(mo), d, h, mi, s, us*1000, time.UTC), 1 + n
+		return time.Date(y, time.Month(mo), d, h, mi, s, us*1000, time.Local), 1 + n
 	case tTime:
 		n := int(b[0])
 		if n == 0 {

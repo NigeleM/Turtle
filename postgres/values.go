@@ -196,13 +196,13 @@ func decodeValue(typ uint32, b []byte) (any, error) {
 			return hex.DecodeString(s[2:])
 		}
 		return b, nil
-	case oidDate:
-		if t, err := time.Parse("2006-01-02", s); err == nil {
+	case oidDate: // a date and a timestamp without time zone are wall-clock: local
+		if t, err := time.ParseInLocation("2006-01-02", s, time.Local); err == nil {
 			return t, nil
 		}
 		return s, nil // infinity, BC dates
 	case oidTimestamp:
-		if t, err := time.Parse("2006-01-02 15:04:05.999999999", s); err == nil {
+		if t, err := time.ParseInLocation("2006-01-02 15:04:05.999999999", s, time.Local); err == nil {
 			return t, nil
 		}
 		return s, nil

@@ -64,7 +64,7 @@ func TestRoundTrip(t *testing.T) {
 		if d, ok := r[6].(time.Time); !ok || d.Format("2006-01-02") != "2026-10-05" {
 			t.Errorf("%s date: %#v", how, r[6])
 		}
-		if at, ok := r[7].(time.Time); !ok || !at.Equal(time.Date(2026, 10, 5, 14, 30, 0, 250e6, time.UTC)) {
+		if at, ok := r[7].(time.Time); !ok || !at.Equal(time.Date(2026, 10, 5, 14, 30, 0, 250e6, time.Local)) {
 			t.Errorf("%s datetime: %#v", how, r[7])
 		}
 		if r[8] != `{"a": [1, 2]}` || !reflect.DeepEqual(r[9], []byte{0xca, 0xfe}) {

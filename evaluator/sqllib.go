@@ -453,7 +453,9 @@ func fromSQL(v any) object.Object {
 	case bool:
 		return &object.Boolean{Value: x}
 	case time.Time:
-		return &object.Date{Time: x}
+		// A moment from the database (PostgreSQL's timestamptz) shows on
+		// the local clock, as dates from databases always have.
+		return &object.Date{Time: x.In(time.Local)}
 	}
 	return object.NoneValue
 }
