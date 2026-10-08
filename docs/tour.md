@@ -430,48 +430,90 @@ Runs the rest of the line as a shell command, inheriting stdin/stdout/
 stderr. Deliberately dangerous — same idea as Python's `os.system` — so use
 it only when you mean to.
 
+## Tables, CSV files and statistics
+
+`import data` works on whole collections, and reads and writes tables:
+
+```
+import data
+
+sales = table_read["sales.csv"]       // a list of maps; plain numbers come back as numbers
+show table[sales] .                   // lined up in columns
+show mean[sales, "copies"], " ", median[sales, "copies"] .
+show table[describe[sales, "price"]] .
+big = sales keep s give copies of s > 10 .
+table_write["big.csv", big]
+```
+
+A cell like `007` stays text, so codes and ids keep their zeros; give
+column types to say otherwise (`table_read["codes.csv", map ["code":
+"text"]]`).
+
+## Matrices
+
+`import linear` adds matrices. Rows end at `;` or at the end of a line,
+and `*` is the matrix product:
+
+```
+import linear
+
+a = matrix [
+    2, 1
+    1, 3
+]
+x = solve[a, list [3, 5]]        // [ 0.8, 1.4 ]
+show a * x .                     // [ 3.0, 5.0 ]
+show inverse[a] * a == identity[2] .
+```
+
+Numbers can be written the scientific way too: `1e-9`, `6.02e23`.
+
 ## Modules
 
-```
-import util
-```
-
-Runs `util.trt` once, in its own scope, and makes its top-level functions
-available to your program. Its variables stay private to it. To take only
-some of its functions, list them:
+`import` brings in a library that comes with Turtle, or a `.trt` file of
+your own:
 
 ```
-import util [parse, format]
+import data                    // a library that comes with Turtle
+import time [now, sleep]       // only some of its names
+import shop                    // shop.trt, next to your program
+import lib/money               // lib/money.trt; its name is "money"
 ```
 
-Modules in a subfolder use `/`: `import lib/utils` reads `lib/utils.trt`.
-
-If two imports export a function with the same name, say which one you
-mean by putting the module name in front: `util format[x]`. Calling the
-plain name in that case is an error that tells you exactly this.
-
-Two names are special: `import math` and `import time` don't read a file
-at all — they unlock built-in capability instead:
+A file you import runs once, in its own scope. Its top-level functions
+become yours to call; its variables stay private to it:
 
 ```
-import math
-
-r is 16 at sqrt .
-show r .              // 4.0
-
-n is 10 at random .
-show n .               // some integer in [0, 10)
-
-import time
-
-t1 = now[]
-sleep[0.5]              // seconds by default
-show now[] - t1 .      // at least 500 (now[] is always milliseconds)
-
-sleep[250, "ms"]        // or be explicit about milliseconds
+// shop.trt
+taxrate = 0.08
+def withtax[amount]
+    return amount + amount * taxrate
+def [end]
 ```
 
-`import time [now]` and `import math [sqrt]` work the same way as for
-files. Calling a math method or `now`/`sleep` before the matching `import`
-is a fatal error that names exactly which import is missing. See
-[the `math` docs](library/math.md) for the full method/function list.
+```
+import shop
+show withtax[100] .            // 108.0
+show shop withtax[50] .        // 54.0: the module named in front
+f = shop withtax               // the function itself, as a value
+```
+
+If two imports have a function with the same name, name the module in
+front (`time now[]`, `shop now[]`); calling the plain name then is an
+error that says exactly this. Your own `def` always wins over an imported
+function of the same name.
+
+Some imports turn on words of the language, in that file only:
+`import random` (`random list of 5 integers from 0 to 9`), `import test`
+(`check`, `verify`, `validate`), `import log` (`log warn "..." .`) and
+`import linear` (`matrix`).
+
+Using a library's function without its import is an error that names the
+import to add:
+
+```
+x = sum[nums]                  // "sum" needs "import data" first
+```
+
+Every library, grouped by what it's for: [the library docs](library/index.md).
+Every keyword in one table: [Keywords](reference.md#keywords).

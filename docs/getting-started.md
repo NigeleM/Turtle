@@ -124,7 +124,7 @@ See [Sharing a program](reference.md#sharing-a-program-turtle-build).
 ## Where to go next
 
 - [`tour.md`](tour.md) — a guided walkthrough of the language, by example
-- [`reference.md`](reference.md) — the complete, formal syntax reference
+- [`reference.md`](reference.md) — the complete, formal syntax reference; every keyword is in its [Keywords](reference.md#keywords) table
 - [`library/`](library/index.md) — the library, one page per library, plus built-in types, files and modules
 - [`testing.md`](testing.md) — tests: `check`, `verify`, `validate`, `turtle test`
 - [`repl.md`](repl.md) — the interactive prompt: colors, keys, commands
@@ -143,4 +143,12 @@ structures, file I/O:
 ```sh
 ./turtle testdata/play.trt
 ./turtle testdata/datastruct.trt
+```
+
+Two bigger programs use nearly everything together and check their own
+answers; run them from their folders:
+
+```sh
+cd testdata/bookshop && ../../turtle bookshop.trt   # every library, ending with a web API
+cd testdata/linear && ../../turtle housing.trt      # statistics and matrices on housing data
 ```

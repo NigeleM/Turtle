@@ -140,7 +140,7 @@ library).
 
 - [`docs/getting-started.md`](docs/getting-started.md) — build and run your first script
 - [`docs/tour.md`](docs/tour.md) — a guided, example-driven walkthrough of the language
-- [`docs/reference.md`](docs/reference.md) — the complete formal syntax reference
+- [`docs/reference.md`](docs/reference.md) — the complete formal syntax reference, with every keyword in one [table](docs/reference.md#keywords)
 - [`docs/library/`](docs/library/index.md) — the library, one page per library (data, linear, sql, server, ...), plus built-in types, files and modules
 - [`docs/editors.md`](docs/editors.md) — VS Code, Neovim, Helix and others, through `turtle lsp`
 - [`docs/repl.md`](docs/repl.md) — the interactive prompt (`turtle` with no file)

@@ -30,7 +30,8 @@ non-terminal; `[x]` is optional; `{x}` is zero-or-more; `|` is alternation.
   can't hold a backtick.
 - **Booleans**: `true`, `false`.
 - **None**: `none` — the single "no value" value (type `NONE`).
-- **Reserved words** (cannot be used as identifiers): `true false none show if
+- **Reserved words** (cannot be used as identifiers; each is explained in
+  [Keywords](#keywords)): `true false none show if
   else def end loop return list set map import sys to from at of is add
   change remove delete sort reverse insert min max length read write append
   directory break continue give in assemble safe handle fail warn div scroll`. Type names used after `change ... to` —
@@ -44,6 +45,92 @@ own begin/end markers (function/if/loop bodies, `[write]`/`[append]`/
 Otherwise expressions never span multiple lines — an
 operator at the start of a new line is never treated as a continuation of
 the expression on the previous line.
+
+## Keywords
+
+Every word Turtle reserves, what it does, and where it's explained. A
+reserved word can't name a variable or a function (`length = 3` is an
+error that says so).
+
+### Reserved words
+
+| Word | What it does | Example | See |
+|---|---|---|---|
+| `add` | adds an item to a list or set (or a key to a map) | `add 4 to nums .` | [Data structures](#data-structures) |
+| `append` | adds lines to the end of a file | `[append] log.txt` ... `[end]` | [Files](#files) |
+| `assemble` | names a kind of value with fields | `assemble Order [item, qty]` | [Assembled types](#assembled-types) |
+| `at` | calls a method on the value before it | `nums at get[0]`, `name at upper` | [Expressions](#expressions) |
+| `break` | leaves a loop | `break` | [Return / break / continue](#return--break--continue) |
+| `change` | converts a value to another type | `n = change "42" to integer` | [Type conversion](#type-conversion) |
+| `continue` | goes on to a loop's next pass | `continue` | [Return / break / continue](#return--break--continue) |
+| `def` | defines a function | `def total[a, b]` ... `def [end]` | [Functions](#functions) |
+| `delete` | removes a key from a map | `delete "Bo" from ages .` | [Data structures](#data-structures) |
+| `directory` | lists a folder's entries | `[directory] data to names [end]` | [Files](#files) |
+| `div` | whole-number division | `7 div 2` is `3` | [Expressions](#expressions) |
+| `else` | the other branches of an `if` | `else if ] x > 2 [`, `else ]` | [Conditionals](#conditionals) |
+| `end` | closes a block | `def [end]`, `if [end]`, `[loop][end]` | [Conditionals](#conditionals) |
+| `fail` | raises your own error | `fail "no stock"` | [Errors](#errors-safe--handle--fail) |
+| `false` | the boolean false | `done = false` | [Lexical grammar](#lexical-grammar) |
+| `from` | in sentences: where from | `remove 1 from nums .` | [Data structures](#data-structures) |
+| `give` | makes a function without a name | `x give x + 1`, `[a, b] give a + b` | [Anonymous functions](#anonymous-functions-give) |
+| `handle` | the part of a `safe` block that runs on an error | `handle [file] e .` | [Errors](#errors-safe--handle--fail) |
+| `if` | runs code when a condition holds | `if ] x > 1 [` ... `if [end]` | [Conditionals](#conditionals) |
+| `import` | brings in a library or your own file | `import sql`, `import lib/utils`, `import time [now]` | [Modules](#modules) |
+| `in` | the items a loop goes through | `[loop][x in nums]` | [Loops](#loops) |
+| `insert` | puts an item into a list at a position | `insert 9 to nums at 0 .` | [Data structures](#data-structures) |
+| `is` | assigns, in sentence form | `r is nums at get 0 .` | [Expressions](#expressions) |
+| `length` | how many items or characters | `length of nums` | [Data structures](#data-structures) |
+| `list` | makes a list | `list [1, 2, 3]` | [Data structures](#data-structures) |
+| `loop` | repeats code | `[loop][x in nums]`, `[loop][i = 0; i < 3; i++]` | [Loops](#loops) |
+| `map` | makes a map of keys to values | `map ["a": 1]` | [Data structures](#data-structures) |
+| `max` | the largest item | `max of nums` | [Data structures](#data-structures) |
+| `min` | the smallest item | `min of nums` | [Data structures](#data-structures) |
+| `none` | no value | `x = none` | [None](#none) |
+| `of` | a field or key of a value | `qty of order`, `length of nums` | [Assembled types](#assembled-types) |
+| `read` | reads a file's lines | `[read] notes.txt to lines [end]` | [Files](#files) |
+| `remove` | removes an item from a list or set | `remove 4 from nums .` | [Data structures](#data-structures) |
+| `return` | gives a function's answer back | `return total` | [Return / break / continue](#return--break--continue) |
+| `reverse` | reverses a list in place | `reverse nums .` | [Data structures](#data-structures) |
+| `safe` | runs code that may fail, with `handle` for the errors | `safe` ... `handle [] e .` ... `safe [end]` | [Errors](#errors-safe--handle--fail) |
+| `scroll` | steps a value goes through, in order | `x is scroll 3 into add1, double .` | [Scrolls](#scrolls) |
+| `set` | makes a set: no repeats | `set [1, 2]` | [Data structures](#data-structures) |
+| `show` | prints values | `show "total: ", n .` | [Show](#show) |
+| `sort` | sorts a list in place (`import sort` for more) | `sort nums .` | [Data structures](#data-structures) |
+| `sys` | runs a shell command | `sys ls -la` | [Shell escape](#shell-escape) |
+| `to` | in sentences: where to, or what into | `add 4 to nums .`, `change x to integer` | [Type conversion](#type-conversion) |
+| `true` | the boolean true | `done = true` | [Lexical grammar](#lexical-grammar) |
+| `warn` | prints to the error stream (`import system`) | `warn "careful" .` | [Show](#show) |
+| `write` | writes a file's lines | `[write] notes.txt` ... `[end]` | [Files](#files) |
+
+### Words an import turns on
+
+These mean something only in a file with the import; anywhere else
+they're ordinary names. In such a file they can't name a function.
+
+| Word | Import | What it does | Example | See |
+|---|---|---|---|---|
+| `random` | `import random` | a random value of any shape | `random list of 5 integers from 0 to 9` | [the `random` library](library/random.md) |
+| `check` | `import test` | one fact a test checks | `check total[o] == 45 .` | [Tests](#tests-check-verify-validate-turtle-test) |
+| `verify` | `import test` | a rule over every item | `verify evens[nums] each x give x % 2 == 0 .` | [Tests](#tests-check-verify-validate-turtle-test) |
+| `validate` | `import test` | a rule over random inputs | `validate evens[nums] with nums as list of integer that ...` | [Tests](#tests-check-verify-validate-turtle-test) |
+| `log` | `import log` | a log line, with a level | `log warn "disk at ", pct, "%" .` | [Logging](#logging-log) |
+| `matrix` | `import linear` | makes a matrix | `m = matrix [1, 2; 3, 4]` | [the `linear` library](library/linear.md) |
+
+### Words special only in one place
+
+Ordinary names everywhere else, so a variable can still be called `put`
+or `here`.
+
+| Word | Where | Example | See |
+|---|---|---|---|
+| `put` | first on a line: replace an item | `put 9 to nums at 2 .`, `put 9 to m at 1, 2 .` | [Data structures](#data-structures) |
+| `into` | in a scroll: the steps follow | `x is scroll 3 into add1, double .` | [Scrolls](#scrolls) |
+| `here` | in a scroll step: the value so far | `here at get[0]` | [Scrolls](#scrolls) |
+| `diagnose` | a line of its own, or `diagnose[...]`: look inside | `diagnose` ... `diagnose [end]` | [diagnose](#looking-inside-diagnose) |
+| `type` | after a value: whether it's that kind, true or false | `if ] n type integer [` | [The kind of a value](#the-kind-of-a-value-typeof-type) |
+| `integer`, `float`, `string`, `ascii`, `char`, `hex`, `keys`, `values` | after `change ... to` | `change x to float` | [Type conversion](#type-conversion) |
+| `each`, `any`, `not`, `exactly`, `least`, `most`, `pair`, `that`, `with`, `as`, `matches`, `fails`, `close`, `within` | in `check`, `verify` and `validate` sentences | `verify xs at least 2 x give x > 0 .` | [Tests](#tests-check-verify-validate-turtle-test) |
+| `debug`, `info`, `error` | right after `log` | `log debug "x is ", x .` | [Logging](#logging-log) |
 
 ## Statement terminators
 
@@ -1159,6 +1246,43 @@ full import makes everything available.
 Imports apply per file: the main program and each module only see what
 they themselves imported. A circular import (`a` imports `b` imports `a`)
 is a fatal error that shows the chain.
+
+**Examples**, with what each shows:
+
+```
+// shop.trt, next to the program
+taxrate = 0.08                  // private to shop
+def withtax[amount]
+    return amount + amount * taxrate
+def [end]
+def now[]
+    return "shop's now"
+def [end]
+```
+
+```
+import math                     // a built-in library
+import time [now]               // only now
+import data
+import shop                     // shop.trt
+import lib/money                // lib/money.trt, named money
+
+show withtax[100] .             // 108.0: the plain name
+show shop withtax[50] .         // 54.0: named with its module
+show money half[9] .            // 4.5
+f = shop withtax                // the function itself, as a value
+show f[10] .                    // 10.8
+show nums sum .                 // an imported function as a sentence: sum[nums]
+show time now[], shop now[] .   // both export now: name the module
+x = now[]                       // error: "now" is provided by more than one import (time, shop)
+sleep[0]                        // error: "sleep" isn't imported — add it to "import time [...]"
+show taxrate .                  // error: undefined variable "taxrate"
+```
+
+Without `import data`, `sum[nums]` is an error that names the import:
+`"sum" needs "import data" first`. Some imports also turn on words of the
+language for that file (`random`, `check`, `log`, `matrix`): see
+[Keywords](#words-an-import-turns-on).
 
 **Builtin modules.**
 

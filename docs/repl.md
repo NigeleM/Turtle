@@ -5,7 +5,7 @@ press Enter, see the result. The code is colored as you type.
 
 ```
 $ turtle
-Turtle v0.9.150 — type help for help, quit to leave
+Turtle v0.9.166 — type help for help, quit to leave
 >>> nums = list [3, 1, 2]
 >>> nums at length * 2
 6

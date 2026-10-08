@@ -1,8 +1,11 @@
 package syntax
 
 import (
+	"os"
 	"strings"
 	"testing"
+
+	"Turtle/token"
 )
 
 func noWords() Words {
@@ -133,5 +136,33 @@ def [end]`
 	}
 	if got := CommentAbove(lines, defAt("c")); got != "above as a block,\nover two lines" {
 		t.Errorf("CommentAbove c: %q", got)
+	}
+}
+
+// TestKeywordsAreDocumented: the reference's Keywords section names every
+// reserved word and every word an import turns on.
+func TestKeywordsAreDocumented(t *testing.T) {
+	data, err := os.ReadFile("../docs/reference.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(data)
+	start := strings.Index(text, "## Keywords")
+	end := strings.Index(text, "## Statement terminators")
+	if start < 0 || end < start {
+		t.Fatal("reference.md has no Keywords section before Statement terminators")
+	}
+	section := text[start:end]
+	for _, k := range token.Keywords() {
+		if !strings.Contains(section, "| `"+k+"` |") {
+			t.Errorf("reserved word %q isn't in the Keywords table", k)
+		}
+	}
+	for lib, words := range LibraryWords {
+		for _, w := range words {
+			if !strings.Contains(section, "`"+w+"`") {
+				t.Errorf("%q (import %s) isn't in the Keywords section", w, lib)
+			}
+		}
 	}
 }
