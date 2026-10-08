@@ -96,6 +96,20 @@ def test_scientific_and_bare_methods[]
     check list [3 at pow 2, 1] == list [9, 1] .
 def [end]
 
+// ---------- a method on its own line, and put's sentence ----------
+def test_method_statements[]
+    m = zeros[2]
+    m at put[1, 0, 0]
+    m at put 2, 0, 1 .
+    put 3 to m at 1, 0 .
+    check m == matrix [1, 2; 3, 0] .
+    nums = list [3, 1, 2]
+    nums at sort
+    nums at add 4
+    check nums == list [1, 2, 3, 4] .
+    check m at put[9, 5, 5] fails [index] .
+def [end]
+
 // ---------- a number on every element ----------
 def test_number_on_every_element[]
     a = matrix [1, 2; 3, 4]

@@ -87,6 +87,16 @@ func (it *Interpreter) evalDataOp(s *ast.DataOpStatement, env *object.Environmen
 		}
 	case ast.OpPut:
 		val := it.evalExpression(s.Value, env)
+		if m, ok := target.(*object.Matrix); ok {
+			if s.Index2 == nil {
+				fatalf("'put ... to %s' needs a row and a column for a matrix: put 9 to %s at 1, 2 .", s.Target, s.Target)
+			}
+			matrixMethod(m, "put", []object.Object{val, it.evalExpression(s.Index, env), it.evalExpression(s.Index2, env)})
+			return
+		}
+		if s.Index2 != nil {
+			fatalf("'put ... to %s at %s' has two positions, but %s is %s, which has one: put 9 to nums at 2 .", s.Target, "row, column", s.Target, typeName(target))
+		}
 		idxObj, ok := it.evalExpression(s.Index, env).(*object.Integer)
 		if !ok {
 			fatalf("'put ... at ...' needs an integer index")
@@ -268,6 +278,21 @@ func (it *Interpreter) applyMethod(mc *ast.MethodCallExpression, receiver object
 		c := *mc
 		c.Method = newName
 		mc = &c
+	}
+	if !mc.Bracketed && len(args) == 1 {
+		// One argument without brackets: if the method wanted more, say
+		// how to give them ("show m at get 0, 0 ." is two things to show).
+		defer func() {
+			if r := recover(); r != nil {
+				if fe, ok := r.(fatalError); ok && strings.Contains(fe.text, "expects") {
+					hint := fmt.Sprintf(" (without brackets a method takes one argument; for more, use brackets: x at %s[a, b])", mc.Method)
+					fe.text += hint
+					fe.msg += hint
+					panic(fe)
+				}
+				panic(r)
+			}
+		}()
 	}
 	switch r := receiver.(type) {
 	case *object.List:

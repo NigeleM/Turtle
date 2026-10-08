@@ -133,9 +133,9 @@ today = list [0, 0, 1]
 later = today * power[moves, 60]
 // The long-run share solves: share * moves == share, and the shares add to 1.
 system_of = transpose[moves] - identity[3]
-system_of = system_of at put[1, 2, 0]
-system_of = system_of at put[1, 2, 1]
-system_of = system_of at put[1, 2, 2]
+put 1 to system_of at 2, 0 .               // the sentence form ...
+system_of at put[1, 2, 1]                   // ... and the method form, on its own line
+system_of at put 1, 2, 2 .
 steady = solve[system_of, list [0, 0, 1]]
 near["long run: buyer's", steady at get[0], 15 / 38]
 near["long run: balanced", steady at get[1], 11 / 38]

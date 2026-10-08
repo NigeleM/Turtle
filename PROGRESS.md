@@ -1192,3 +1192,8 @@ objects 78 -> 41 (1.9x), jsondata 66 -> 60 (1.1x), patterns 32 -> 22
   s at contains "a" && ok). It was only in the is-statement form. A first
   try took the rest of the expression, as sentence calls do; the edge
   tests showed 3 at pow 2 == 9 became pow[2 == 9], so it binds tightly.
+- A method call on its own line is a statement (nums at add 4,
+  m at put[9, 1, 2], m at put 9, 1, 2 .), taking arguments as the
+  is-statement does; only real method names, so "a at give x" stays a
+  parse error. put 9 to m at 1, 2 . puts into a matrix. A one-argument
+  bare call to a method wanting more explains: use brackets.

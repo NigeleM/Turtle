@@ -34,6 +34,7 @@ arbitrary expression).
 | `reverse <target> .` | list, set | Reverses in place. |
 | `insert <expr> to <target> at <expr> .` | list | Inserts at the given index. Fatal if index is out of range (`0..length` inclusive). |
 | `put <expr> to <target> at <expr> .` | list | Replaces the item at the given index (`0..length-1`); the length stays the same. |
+| `put <expr> to <target> at <row>, <column> .` | matrix (`import linear`) | Replaces the number at that row and column. |
 | `length of <expr> .` | list, set, map, string | Prints the count (map: number of keys; string: character count, in Unicode code points, not bytes). |
 | `min of <expr> .` | list, set, map | Prints the smallest element (list/set) or smallest **key** (map — matches legacy behavior; map values aren't compared). |
 | `max of <expr> .` | list, set, map | Same as `min of`, but largest. |
@@ -58,6 +59,17 @@ v0.9.152 a few had capitals: `isEmpty`, `isNumber`, `getKeys`,
 Anywhere else, `x at method[a, b]`, or with one argument
 `x at method a` (just the value after it: `nums at get 0`,
 `2 at pow 10`).
+
+A method call can also be a line of its own, for what it does: then it
+takes its arguments the way the `is` form does, with or without
+brackets:
+
+```
+nums at add 4
+nums at sort
+nums at put 9, 0 .
+nums at put[9, 0]
+```
 
 ### list
 

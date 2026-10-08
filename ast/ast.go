@@ -224,6 +224,7 @@ type DataOpStatement struct {
 	Target string
 	Value  Expression // nil for Sort/Reverse
 	Index  Expression // OpInsert and OpPut; OpAdd's map key ("add 12 to ages at "Cy" .")
+	Index2 Expression // OpPut into a matrix: the column ("put 9 to m at 1, 2 .")
 }
 
 func (dop *DataOpStatement) statementNode()       {}

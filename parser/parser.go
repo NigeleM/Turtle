@@ -513,6 +513,27 @@ func (p *Parser) parseIdentifierLeadStatement() ast.Statement {
 		}
 		return &ast.ExpressionStatement{Token: tok, Expression: expr}
 	}
+	// "nums at add 4", "m at put[9, 1, 2]": a method call on its own line
+	// is a statement, as a function call is (the method does its work; any
+	// value it gives back is dropped). Only a method call: a line that's
+	// just a value, "nums at get 0 + 1", is still a mistake.
+	// On its own line a method takes its arguments as the is-statement
+	// does, unbracketed and separated by commas: m at put 9, 1, 2 .
+	if m := p.peekN(2); p.curTokenIs(token.IDENT) && p.peekTokenIs(token.AT) && p.peekToken.Line == p.curToken.Line &&
+		(m.Type == token.IDENT || slices.Contains(syntax.Methods, m.Literal)) {
+		tok := p.curToken
+		expr := p.parseMethodStatementValue()
+		if _, ok := expr.(*ast.MethodCallExpression); ok && (p.peekTokenIs(token.PERIOD) || p.peekToken.Line != p.endLine(p.curToken) || p.peekTokenIs(token.EOF)) {
+			p.nextToken()
+			if p.curTokenIs(token.PERIOD) {
+				p.nextToken()
+			}
+			return &ast.ExpressionStatement{Token: tok, Expression: expr}
+		}
+		p.errorAt(tok.Line, tok.Pos, "this line is a value, not a statement: to keep it, name it (r = ...); to see it, show it (show ... .)")
+		p.skipLine()
+		return nil
+	}
 	p.statementStartError()
 	p.nextToken()
 	return nil
@@ -585,6 +606,35 @@ func (p *Parser) parseIsStatement() ast.Statement {
 		return nil
 	}
 	return &ast.AssignStatement{Token: tok, Name: name, Value: receiver}
+}
+
+// parseMethodStatementValue is a method call standing as a statement,
+// parsed as the value of "r is x at m args ." is: curToken starts the
+// receiver.
+func (p *Parser) parseMethodStatementValue() ast.Expression {
+	tok := p.curToken
+	p.inIsReceiver = true
+	receiver := p.parseExpression(METHOD)
+	p.inIsReceiver = false
+	if !p.peekTokenIs(token.AT) {
+		return receiver
+	}
+	p.nextToken() // -> AT
+	p.nextToken() // -> method name
+	method := p.curToken.Literal
+	var args []ast.Expression
+	if !p.peekTokenIs(token.PERIOD) && !p.peekTokenIs(token.EOF) && p.peekToken.Line == p.curToken.Line {
+		p.nextToken()
+		args = append(args, p.parseExpression(LOWEST))
+		for p.peekTokenIs(token.COMMA) {
+			p.nextToken()
+			p.nextToken()
+			args = append(args, p.parseExpression(LOWEST))
+		}
+	}
+	return attachMethod(receiver, func(e ast.Expression) ast.Expression {
+		return &ast.MethodCallExpression{Token: tok, Receiver: e, Method: method, Arguments: args}
+	})
 }
 
 // logLevels are the words that can follow log.
@@ -940,10 +990,16 @@ func (p *Parser) parseAtIndexStatement(kind ast.OpKind) ast.Statement {
 	}
 	p.nextToken()
 	idx := p.parseExpression(LOWEST)
+	var idx2 ast.Expression
+	if kind == ast.OpPut && p.peekTokenIs(token.COMMA) { // a matrix: row, column
+		p.nextToken()
+		p.nextToken()
+		idx2 = p.parseExpression(LOWEST)
+	}
 	if !p.requirePeriod() {
 		return nil
 	}
-	return &ast.DataOpStatement{Token: tok, Kind: kind, Target: target, Value: val, Index: idx}
+	return &ast.DataOpStatement{Token: tok, Kind: kind, Target: target, Value: val, Index: idx, Index2: idx2}
 }
 
 func (p *Parser) parseMinMaxLengthStatement() ast.Statement {

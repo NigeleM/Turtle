@@ -87,7 +87,7 @@ of two matrices, use `multiply_each[a, b]`.
 | `m at rows`, `m at columns` | the counts |
 | `m at shape` | `list [rows, columns]` |
 | `m at get[r, c]` | the number at row `r`, column `c`, from 0 |
-| `m at put[value, r, c]` | puts a number there (value first, as a list's `put`); gives the matrix |
+| `m at put[value, r, c]` | puts a number there (value first, as a list's `put`); gives the matrix. On its own line: `m at put[9, 1, 2]`, `m at put 9, 1, 2 .`, or the sentence `put 9 to m at 1, 2 .` |
 | `m at row[r]`, `m at column[c]` | that row or column, as a list |
 | `m at isempty`, `m at tostring` | as for lists |
 

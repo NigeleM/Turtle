@@ -361,3 +361,39 @@ func TestMethodArgumentsWithoutBrackets(t *testing.T) {
 		}
 	}
 }
+
+// TestMethodStatements: a method call on its own line is a statement, for
+// every kind of value, and put has a matrix sentence: put v to m at r, c .
+func TestMethodStatements(t *testing.T) {
+	cases := []struct{ src, want string }{
+		{"nums = list [3, 1]\nnums at add 2\nnums at sort\nshow nums .", "[ 1, 2, 3 ]"},
+		{"nums = list [1, 2]\nnums at put[9, 0] .\nshow nums .", "[ 9, 2 ]"},
+		{"nums = list [1, 2]\nnums at put 9, 1 .\nshow nums .", "[ 1, 9 ]"},
+		{"import linear\nm = zeros[2]\nm at put 3, 1, 1 .\nshow m at get[1, 1] .", "3"},
+		{"ages = map [\"a\": 1]\nages at add[\"b\", 2]\nshow ages .", "{ \"a\": 1, \"b\": 2 }"},
+		{"import linear\nm = zeros[2]\nm at put[7, 0, 1]\nput 5 to m at 1, 0 .\nshow m .", "[ 0  7 ]\n[ 5  0 ]"},
+		{"import linear\nm = zeros[1]\nput 0.5 to m at 0, 0 .\nshow m at get[0, 0] .", "0.5"},
+	}
+	for _, c := range cases {
+		got, err := run(t, c.src, "")
+		if err != nil {
+			t.Errorf("%s: %v", c.src, err)
+		} else if strings.TrimSpace(got) != c.want {
+			t.Errorf("%s:\n got  %q\n want %q", c.src, strings.TrimSpace(got), c.want)
+		}
+	}
+	p := parser.New(lexer.New("nums = list [1]\nnums at get[0] + 1"))
+	p.ParseProgram()
+	if errs := p.Errors(); len(errs) == 0 || !strings.Contains(errs[0], "this line is a value, not a statement") {
+		t.Errorf("a value as a statement: %v", errs)
+	}
+	for _, c := range []struct{ src, want string }{
+		{"import linear\nm = zeros[2]\nx = m at get 0", "without brackets a method takes one argument; for more, use brackets: x at get[a, b]"},
+		{"import linear\nm = zeros[2]\nput 1 to m at 0 .", "needs a row and a column for a matrix"},
+		{"nums = list [1]\nput 1 to nums at 0, 0 .", "has two positions"},
+	} {
+		if _, err := run(t, c.src, ""); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s: got %v, want %q", c.src, err, c.want)
+		}
+	}
+}
