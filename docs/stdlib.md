@@ -836,7 +836,7 @@ pages = fetchall[urls, map ["limit": 10, "skip_errors": true]]
 | `queryall[db, queries [, settings]]` | a PostgreSQL or MySQL database, a list of queries (a query with `?` placeholders as `list [query, list of values]`) | a list of results, each a list of maps as `sql_query` gives |
 
 - `runall` runs each command with `sh -c` (`cmd /C` on Windows) in the
-  script's folder. A nonzero exit code isn't an error: check `code`.
+  folder turtle was run in, where file paths resolve too. A nonzero exit code isn't an error: check `code`.
   Trailing newlines are dropped from `output` and `errors`.
 - `queryall` opens one extra connection per item running at once and
   closes them when it's done, so the queries don't see a transaction
@@ -1788,9 +1788,11 @@ sys <rest of line>
 keyword, not a substring match, so it only triggers there (unlike the
 legacy interpreter, where any line merely *containing* "sys" anywhere
 would misfire into shell execution). Everything after it, verbatim to the
-end of the line, is passed to `sh -c`. The child process inherits stdin,
+end of the line, is passed to `sh -c`. It runs in the folder turtle was
+run in, where file paths resolve too. The child process inherits stdin,
 stdout, and stderr; its exit status is not checked or reported back to
-the Turtle program.
+the Turtle program (`runall` in `import schedule` gives back the output
+and exit code).
 
 This is a deliberately dangerous, unsandboxed feature — the Turtle
 equivalent of Python's `os.system`. Only use it with trusted script

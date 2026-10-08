@@ -14,6 +14,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime/debug"
@@ -25,6 +26,9 @@ import (
 	"Turtle/parser"
 	"Turtle/repl"
 )
+
+// bundleFS is a built program's packed files (see bundle.go), or nil.
+var bundleFS fs.FS
 
 // version is the release's tag, set when the release is built
 // (-ldflags "-X main.version=v0.9.150"); "dev" for a local build.
@@ -38,6 +42,7 @@ const usage = `Turtle %s
   turtle debug script.trt      run it a line at a time: step, breakpoints, look at values
   turtle test [file | folder]  run the test_ functions in test_*.trt files
   turtle fmt [file | folder]   lay out .trt files the standard way (--check: only list them)
+  turtle build script.trt      make one program file that runs without Turtle (-o name)
   turtle doc [topic]           the standard library's documentation
   turtle lsp                   the language server, for editors (VS Code, Neovim ...)
   turtle version               the version
@@ -67,6 +72,10 @@ const gcPercent = 400
 func main() {
 	if os.Getenv("GOGC") == "" {
 		debug.SetGCPercent(gcPercent)
+	}
+	// A program made by turtle build: run what's packed in it.
+	if code, ok := runBundled(); ok {
+		os.Exit(code)
 	}
 	switch {
 	case command("version"):
@@ -102,6 +111,8 @@ func main() {
 		os.Exit(runWatched(string(data), filepath.Dir(path), filepath.Base(path), os.Args[3:], mode))
 	case command("fmt"):
 		os.Exit(fmtCommand(os.Args[2:], os.Stdout, os.Stderr))
+	case command("build"):
+		os.Exit(buildCommand(os.Args[2:], os.Stdout, os.Stderr))
 	case command("test"):
 		cwd, _ := os.Getwd()
 		os.Exit(evaluator.TestCommand(os.Args[2:], cwd, os.Stdout))
@@ -158,6 +169,7 @@ func runWatched(src, dir, script string, args []string, mode string) int {
 	it := evaluator.New(dir)
 	it.Script = script
 	it.Args = args // everything after the script path: system's args[]
+	it.Bundle = bundleFS
 	switch mode {
 	case "trace":
 		it.Trace = os.Stderr

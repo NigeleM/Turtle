@@ -78,6 +78,9 @@ Next, roughly in priority order:
 - [x] `schedule` library, level A: fetchall, runall, queryall, with
       schedulelimit and skipschedule_error (2026-10-07)
 - [ ] `schedule` level B: your own functions side by side (later)
+- [x] `turtle build`: one program file, for Mac, Windows, Linux (2026-10-07)
+- [x] Performance quick wins, ~2x (2026-10-07); a bytecode compiler later (3-5x)
+- [ ] Signed installers and programs (macOS, Windows)
 - [x] Scrolls: `scroll ... into ... .`, `here`, saved scrolls,
       `diagnose` (2026-10-07)
 - [ ] diagnose for more processes (loops, blocks); `each`, fallback

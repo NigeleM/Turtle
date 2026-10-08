@@ -702,8 +702,8 @@ error of kind schedule.
     pages = urls fetchall
 
 ### runall[commands, settings]
-  Runs every shell command (sh -c; cmd /C on Windows) in the script's
-  folder, capturing what each prints.
+  Runs every shell command (sh -c; cmd /C on Windows) in the folder
+  turtle was run in, capturing what each prints.
   commands   a list of command lines
   settings   optional, as for fetchall
   Gives back: a list of maps, one per command: output (what it printed),

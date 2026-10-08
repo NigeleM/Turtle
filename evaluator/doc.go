@@ -239,3 +239,10 @@ func LibraryOf(name string) string {
 	}
 	return ""
 }
+
+// IsLibrary reports whether name is a builtin library (import json), not
+// a .trt file.
+func IsLibrary(name string) bool {
+	_, ok := builtinModules[name]
+	return ok
+}

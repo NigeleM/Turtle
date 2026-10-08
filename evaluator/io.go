@@ -204,7 +204,7 @@ func (it *Interpreter) loadModule(name string) *object.Module {
 	if rel, err := filepath.Rel(it.Dir, path); err == nil {
 		file = filepath.ToSlash(rel)
 	}
-	data, err := os.ReadFile(path)
+	data, err := it.readModule(file, path)
 	if err != nil {
 		fatalKind(kindFile, "import %s: %s: %s", name, file, fileProblem(err))
 	}
@@ -249,6 +249,17 @@ func (it *Interpreter) evalSys(s *ast.SysStatement) {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Dir = it.Dir
+	cmd.Dir = it.WorkDir // where turtle was run, as file paths resolve
 	_ = cmd.Run()
+}
+
+// readModule reads an imported file: from the program's own bundle first
+// (turtle build packs a program's imports into it), then from disk.
+func (it *Interpreter) readModule(file, path string) ([]byte, error) {
+	if it.Bundle != nil {
+		if data, err := fs.ReadFile(it.Bundle, file); err == nil {
+			return data, nil
+		}
+	}
+	return os.ReadFile(path)
 }

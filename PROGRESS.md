@@ -1105,3 +1105,20 @@ objects 78 -> 41 (1.9x), jsondata 66 -> 60 (1.1x), patterns 32 -> 22
 - put ... at ... no longer builds its error text unless there's an error.
 - Fixed along the way: seed = 7 set again now restarts the values (it
   was noticed by the seed object changing, which shared values broke).
+
+## 2026-10-07: turtle build (released v0.9.165)
+
+- `turtle build script.trt [-o name]`: one program file that runs without
+  Turtle, for the system it's built on (the user's choice: no building for
+  another system). It's turtle with the script and the .trt files it
+  imports (however deep) packed on its end as a zip; at start turtle looks
+  for them and runs the script, every argument going to it. Data files
+  aren't packed. Verified on macOS (the bookshop program, from another
+  folder, all checks pass) and Linux (in a container); TestBuild compiles
+  turtle, builds a program and runs it, on all three systems in CI.
+- macOS: the program keeps turtle's signature, which still covers
+  turtle's part, so it runs; codesign's strict check rejects data after
+  it, so a downloaded copy may be called damaged (xattr fix documented).
+- Changed: sys and runall run in the folder turtle was run in (where file
+  paths resolve), not the script's folder; they disagreed when a program
+  was run from elsewhere (found by running the built bookshop elsewhere).

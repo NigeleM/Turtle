@@ -1210,7 +1210,7 @@ sys <rest of line>
 
 `sys` must be the first word of the statement. Everything after it,
 verbatim to end of line, runs through a shell with inherited stdin/stdout/
-stderr.
+stderr, in the folder turtle was run in (where file paths resolve too).
 
 ## Logging: `log`
 
@@ -1342,6 +1342,38 @@ them (in Turtle a space can matter: `nums get -1` isn't `a - 1`). Lines
 inside a `` `raw string` `` or a `//* *//` comment are left as they are. A
 file that doesn't parse is reported and left alone. In VS Code, Format
 Document (Shift-Alt-F) does the same.
+
+## Sharing a program: `turtle build`
+
+```
+turtle build report.trt            // makes report (report.exe on Windows)
+turtle build report.trt -o tool    // makes tool
+```
+
+`turtle build` makes one program file that runs without Turtle installed:
+a copy of turtle with the script and every `.trt` file it imports (however
+deep) packed into it. Run it like any program; every argument goes to the
+script (`args[]`):
+
+```
+./report 2026 "north region"
+```
+
+- **For the system it's built on.** turtle on a Mac makes a Mac program,
+  on Windows a `.exe`, on Linux a Linux program. To share a tool with
+  Windows users, run `turtle build` on Windows.
+- **Data files aren't packed.** CSV files, settings and the like are read
+  as with turtle: file paths from the folder the program is run in.
+  `scriptfolder[]` is the program's own folder.
+- **Libraries are built in.** `import json`, `import sql` and the rest
+  are part of every program; only your own `.trt` files are packed.
+- **Size.** A program is about the size of turtle (10 to 15 MB): turtle
+  is inside it.
+- **Mistakes are found first.** A script that doesn't parse, or imports a
+  file that isn't there, isn't built.
+- **macOS.** A program made on your Mac runs on it. Copied to another Mac
+  by download, macOS may say it's damaged (it isn't signed by Apple);
+  `xattr -d com.apple.quarantine report` lets it run.
 
 ## Documentation: `turtle doc`
 

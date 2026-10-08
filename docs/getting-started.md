@@ -108,6 +108,19 @@ To stop at each line and look around (values, variables, where you are),
 use `turtle debug hello.trt`: Enter steps, `p name` shows a value, `h`
 lists the commands. `turtle fmt` lays your files out the standard way.
 
+## Share it as a program
+
+`turtle build` makes one file that runs without Turtle installed, for the
+system you're on (a `.exe` on Windows):
+
+```sh
+./turtle build hello.trt
+./hello
+```
+
+Your own imported `.trt` files are packed in; data files stay beside it.
+See [Sharing a program](reference.md#sharing-a-program-turtle-build).
+
 ## Where to go next
 
 - [`tour.md`](tour.md) — a guided walkthrough of the language, by example

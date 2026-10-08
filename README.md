@@ -33,6 +33,8 @@ for reference; they still build and run.
 | `turtle trace`: each line as it runs, with the values it sets | Done |
 | `turtle debug`: step, breakpoints, look at and change values | Done |
 | `turtle fmt` (and Format Document in editors) | Done |
+| `turtle build`: one program file that runs without Turtle (Mac, Windows, Linux) | Done |
+| Benchmark against Python, Node, Ruby and Go (`bench/`) | Done — see `bench/RESULTS.md` |
 | Parse errors: the first one, with a `^` under the spot and how to fix it | Done |
 | Standard library: strings (`find`, `substring`, `isinstring`, `join`) | Done |
 | Assembled types (`assemble Order [item, qty]`, `qty of o`) | Done |

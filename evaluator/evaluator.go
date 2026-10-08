@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"io/fs"
 	"math/rand"
 	"net/http"
 	"os"
@@ -40,6 +41,10 @@ var noneResult = ExecResult{Signal: SigNone}
 // of allocating a fresh bufio.Scanner per input prompt).
 type Interpreter struct {
 	scrollStack []*object.Function // saved scrolls running, for one found inside itself
+
+	// Bundle, when set, holds the files of a program made by turtle build:
+	// its imports are read from it before the disk.
+	Bundle fs.FS
 
 	// server is the web server serve[] runs (see serverlib.go); OnServe,
 	// when set, is told its address once it's listening (for tests).

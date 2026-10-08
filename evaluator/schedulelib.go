@@ -246,7 +246,7 @@ func (it *Interpreter) callSchedule(name string, args []object.Object, env *obje
 		argCount(name, args, 1, 2, "a list of shell commands, and optionally a map of settings")
 		cmds := scheduleTexts(name, args[0], "shell commands")
 		o := scheduleSettings(name, env, args, 1)
-		dir := it.Dir
+		dir := it.WorkDir // where turtle was run, as file paths resolve
 		results := scheduleRun(len(cmds), o, func(i, _ int) any {
 			return runCommand(cmds[i], dir)
 		})

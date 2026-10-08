@@ -36,16 +36,18 @@ evaluator, so each stage can be reasoned about independently.
 | `lexer` | Turns source text into a `token.Token` stream |
 | `ast` | AST node types (one Go struct per statement/expression form) |
 | `parser` | Recursive-descent parser: tokens → `*ast.Program`; its errors carry the spot they point at (`errors.go`: plain words, fixes for the usual mistakes, `Format` with a `^`) |
-| `object` | Runtime value types (`Integer`, `Float`, `String`, `Boolean`, `List`, `Set`, `Map`, `Function`, `Assembly`, `None`, `Error`, `Date`, `Database`) and `Environment` (scoping) |
+| `object` | Runtime value types (`Integer`, `Float`, `String`, `Boolean`, `List`, `Set`, `Map`, `Function`, `Assembly`, `None`, `Error`, `Date`, `Database`), shared small integers and booleans (`Int`, `Bool`), and `Environment` (scoping) |
 | `evaluator` | Tree-walking evaluator: `*ast.Program` → executed program; the builtin libraries live here (`jsonlib.go`, `timelib.go`, `httplib.go`, `sqllib.go`, ...) |
 | `sqlite` | SQLite written from scratch (no dependencies): the file format, table and index B-trees (search, insert, delete, split, merge), overflow pages, the free-page list, the rollback journal and crash recovery, SQLite-compatible file locks (`lock_*.go`), a SQL parser, a query planner and runner (joins, groups, subqueries, `WITH`), the changing statements (`exec.go`), and a file checker (`check.go`). Knows nothing about Turtle values; `evaluator/sqllib.go` adapts it |
 | `postgres` | A PostgreSQL client from scratch: the v3 wire protocol, SCRAM-SHA-256 / MD5 / password logins, TLS, `?` → `$n`, values decoded by type. `evaluator/sqllib.go` puts it behind the same `sqlConn` interface as SQLite |
 | `mysql` | A MySQL / MariaDB client from scratch: the client/server protocol, `caching_sha2_password` (fast, RSA and TLS paths), `sha256_password` and `mysql_native_password` logins, TLS, prepared statements with binary rows |
+| `toml` | TOML 1.0, read and written from scratch, for the `config` library |
 | `syntax` | Colors from the real tokens (shared by the REPL and the language server), the words libraries turn on, and function descriptions from comments (`FunctionDoc`) |
 | `format` | `turtle fmt` and Format Document: indentation, line ends and blank lines from the tokens, checked to leave the code itself unchanged |
 | `lsp` | `turtle lsp`, the language server: errors, completion, hover, definitions, the outline, colors, formatting |
 | `repl` | The interactive prompt: line editing, history, colors, raw terminal mode per OS |
-| `cmd/turtle` | Entry point: runs a script, or the commands (`test`, `doc`, `fmt`, `trace`, `debug`, `lsp`, the REPL) |
+| `cmd/turtle` | Entry point: runs a script, or the commands (`test`, `doc`, `fmt`, `trace`, `debug`, `build`, `lsp`, the REPL); a program made by `turtle build` (`bundle.go`) runs its packed script |
+| `bench` | The benchmark: the same programs in Turtle, Python, Node, Ruby and Go, run and compared by `bench/run.trt` (not part of the build) |
 
 ## Parser conventions
 
@@ -151,7 +153,9 @@ just last.
 ### Values and mutation
 
 `object.Object` is the runtime value interface. Scalars (`Integer`,
-`Float`, `String`, `Boolean`) are immutable value types; `List`, `Set`,
+`Float`, `String`, `Boolean`) are immutable value types, never changed
+once made, which is what lets `object.Int` and `object.Bool` share the
+common ones (-128 to 1023, true, false) instead of making new ones; `List`, `Set`,
 `Map` are always used as pointers (`*object.List` etc.) specifically so
 that in-place mutation (`add`, `sort`, ...) is visible through every
 reference to the same variable without needing to re-`Set()` it back into
@@ -194,23 +198,22 @@ function table or as a local exactly like a `def`. That's why import,
 export, clash and value rules need no special cases. `callFunction` builds
 an `object.Assembly` instead of running a body when `Shape` is set.
 
-Each call gets `object.NewEnclosedEnvironment(fn.Env)` — a fresh, empty
-variable map.
+Each call gets `object.NewEnclosedEnvironment(fn.Env)`: a fresh, empty
+scope. A scope keeps its names in a short list (most hold a few), and
+builds a map once it has more than eight.
 This is a deliberate fix: the legacy interpreter stored one mutable
 variable map *per function definition*, shared by every call to that
 function, which broke recursion (a recursive call would stomp the outer
 call's locals mid-execution). Fresh-per-call environments make recursion
 work correctly (see `testdata/recursion.trt`).
 
-Loops are a partial exception to "no shared scope": a C-style loop's
-induction variable lives in the *same* environment as everything else
-around it (loops don't get their own scope), which means two loops nested
-with the same induction-variable name would clobber each other's
-iteration state. `evalLoop` guards against this by snapshotting the
-variable's pre-loop value (or noting it didn't exist) and restoring it via
-`defer` when the loop exits — so nested loops reusing a name like `i` work
-correctly (verified: `testdata/loop.trt`, an outer/inner loop pair that both
-use `i`).
+Loops get scopes of their own that hold only the loop's names
+(`object.NewLoopEnvironment`): each for-each pass has one with its names,
+and a C-style loop one with its counter. Every other assignment in the
+body passes through to the enclosing scope, as if the loop had none. So
+two nested loops can both use `i`, an outside variable called `i` is
+untouched, and a closure made in a pass keeps that pass's values
+(`testdata/loop.trt`).
 
 ### Control flow: `Signal` / `ExecResult`
 

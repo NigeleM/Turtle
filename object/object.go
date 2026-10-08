@@ -479,7 +479,7 @@ func (d *Database) Inspect() string { return "database " + d.Name }
 // shared: Int and Bool give them out instead of making new ones, which
 // saves most of a program's memory churn.
 var (
-	smallInts [smallIntMax - smallIntMin + 1]*Integer
+	smallInts  [smallIntMax - smallIntMin + 1]*Integer
 	trueValue  = &Boolean{Value: true}
 	falseValue = &Boolean{Value: false}
 )
