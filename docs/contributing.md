@@ -10,6 +10,34 @@ ones) — that's exactly how the real if/else and loop syntax got nailed
 down for this rewrite (from the project's historical `.txt` example
 scripts), and it removes guesswork about edge cases.
 
+## Contributor terms: who owns a contribution
+
+Turtle is created by Nigele McCoy, who directs it. Programs you write
+*in* Turtle are yours (see `NOTICE`). A
+contribution *to* Turtle (a change, addition or fix to the interpreter,
+the standard library in Go or Turtle, the tools, the documentation or
+the editor support) works like this:
+
+- **You keep the copyright** in what you contribute.
+- **You give the project a permanent license to it**: worldwide,
+  royalty-free and irrevocable, to use, change, distribute and license it
+  as part of Turtle, under Turtle's license now or any license later. It
+  can't be withdrawn: once merged, a contribution stays available to
+  Turtle even if its author leaves or changes their mind.
+- **Creative control stays with the project's creator.** What goes into
+  Turtle and its standard library, what stays, how it changes and what
+  is removed is Nigele McCoy's decision.
+- **You confirm it's yours to give**: your own work, not your
+  employer's or anyone else's, or with their permission.
+
+So before a contribution can be accepted, its author signs the Turtle
+Contributor Agreement, which says the above. A contribution can't be
+merged until the agreement is signed; opening an issue with an idea or a
+bug report needs no agreement.
+
+(The agreement itself is being prepared; until it's available, outside
+code contributions aren't accepted.)
+
 ## The five layers you might touch
 
 Not every change needs all five:

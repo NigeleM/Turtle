@@ -154,6 +154,35 @@ library).
 - [`PROGRESS.md`](PROGRESS.md) — session-by-session log of what's been done and what's left
 - [`TODO.md`](TODO.md) — forward-looking punch list of what's next
 
+## License
+
+Turtle is created by **Nigele McCoy** and licensed under the
+[Apache License 2.0](LICENSE). In plain words (the license is what
+counts):
+
+- **Use Turtle for anything**, including at work and in commercial
+  projects, and include it in your own builds, devices and products.
+- **Your programs are yours.** What you write in Turtle, including
+  programs made with `turtle build`, you own, and may sell under any
+  terms.
+- **Change Turtle and share it**, keeping the [`LICENSE`](LICENSE) and
+  [`NOTICE`](NOTICE) files, which credit Turtle's creator.
+- **The name and logo are trademarks.** A changed version needs its own
+  name, and products named after Turtle need permission; see
+  [`TRADEMARKS.md`](TRADEMARKS.md).
+- **Contributions to Turtle itself** (interpreter, standard library,
+  tools, docs) stay their authors' but are licensed to the project for
+  good, and what stays in Turtle is the creator's call; see
+  [`docs/contributing.md`](docs/contributing.md#contributor-terms-who-owns-a-contribution).
+
+Versions before 0.9.168 carried an earlier license file.
+
+### Permissions and licensing
+
+For a use of the Turtle name or logo that needs permission, or anything
+else the license doesn't cover, open an issue at
+https://github.com/NigeleM/Turtle and say what you'd like to do.
+
 ## Credits
 
 Written by Nigele McCoy, Claude-assisted.
