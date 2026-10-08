@@ -19,7 +19,7 @@ func callStrings(name string, args []object.Object) object.Object {
 	case "find":
 		requireFuncArgs(name, args, 2)
 		text := asStringArg(name, args[0])
-		return &object.Integer{Value: int64(runeIndexOf(text, asStringArg(name, args[1])))}
+		return object.Int(int64(runeIndexOf(text, asStringArg(name, args[1]))))
 	case "substring":
 		if len(args) < 2 || len(args) > 3 {
 			fatalf("'substring' expects 2 or 3 arguments (text, start [, end]), got %d", len(args))
@@ -32,7 +32,7 @@ func callStrings(name string, args []object.Object) object.Object {
 	case "isinstring":
 		requireFuncArgs(name, args, 2)
 		part := asStringArg(name, args[0])
-		return &object.Boolean{Value: strings.Contains(asStringArg(name, args[1]), part)}
+		return object.Bool(strings.Contains(asStringArg(name, args[1]), part))
 	case "join":
 		if len(args) < 1 || len(args) > 2 {
 			fatalf("'join' expects 1 or 2 arguments (a list or set [, separator]), got %d", len(args))

@@ -64,7 +64,7 @@ func (it *Interpreter) callSQL(name string, args []object.Object) object.Object 
 		if err != nil {
 			fatalKind(kindSQL, "sql_run: %v", err)
 		}
-		return &object.Integer{Value: res}
+		return object.Int(res)
 	case "sql_create":
 		requireFuncArgs(name, args, 1)
 		path := asStringArg(name, args[0])
@@ -108,7 +108,7 @@ func (it *Interpreter) callSQL(name string, args []object.Object) object.Object 
 			}
 			t.add(row)
 		}
-		return &object.Integer{Value: int64(it.writeTableFile(name, asStringArg(name, args[2]), t))}
+		return object.Int(int64(it.writeTableFile(name, asStringArg(name, args[2]), t)))
 	case "sql_load":
 		if len(args) != 3 && len(args) != 4 {
 			fatalf("'sql_load' expects 3 or 4 arguments (database, table, file [, map of column types]), got %d", len(args))
@@ -122,7 +122,7 @@ func (it *Interpreter) callSQL(name string, args []object.Object) object.Object 
 		}
 		header, rows := it.readTableFile(name, path)
 		if len(header) == 0 {
-			return &object.Integer{Value: 0}
+			return object.Int(0)
 		}
 		types := applyColumnTypes(name, path, header, rows, ct)
 		for _, row := range rows {
@@ -169,7 +169,7 @@ func (it *Interpreter) callSQL(name string, args []object.Object) object.Object 
 		path := asStringArg(name, args[3])
 		header, rows := it.readTableFile(name, path)
 		if len(header) == 0 {
-			return &object.Integer{Value: 0}
+			return object.Int(0)
 		}
 		ki := -1
 		var others []string
@@ -443,7 +443,7 @@ func fromSQL(v any) object.Object {
 	case nil:
 		return object.NoneValue
 	case int64:
-		return &object.Integer{Value: x}
+		return object.Int(x)
 	case float64:
 		return &object.Float{Value: x}
 	case string:
@@ -451,7 +451,7 @@ func fromSQL(v any) object.Object {
 	case []byte:
 		return &object.String{Value: string(x)}
 	case bool:
-		return &object.Boolean{Value: x}
+		return object.Bool(x)
 	case time.Time:
 		// A moment from the database (PostgreSQL's timestamptz) shows on
 		// the local clock, as dates from databases always have.
@@ -481,7 +481,7 @@ func (it *Interpreter) sqlFileRows(fn string, conn sqlConn, stmt string, rows []
 	if err != nil {
 		fatalKind(kindSQL, "%s: %v", fn, err)
 	}
-	return &object.Integer{Value: n}
+	return object.Int(n)
 }
 
 // fileValueToSQL turns a value read from a table file into a SQL value:

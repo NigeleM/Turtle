@@ -46,14 +46,14 @@ func defineLogSettings(env *object.Environment) {
 	}
 	set(logLevelName, &object.String{Value: "info"})
 	set(logFileName, object.NoneValue)
-	set(logConsoleName, &object.Boolean{Value: true})
+	set(logConsoleName, object.Bool(true))
 	set(logTimeName, &object.String{Value: "YYYY-MM-DD hh:mm:ss"})
 	set(logPartsName, &object.List{Elements: []object.Object{
 		&object.String{Value: "time"}, &object.String{Value: "level"}, &object.String{Value: "message"},
 	}})
 	set(logFormatName, &object.String{Value: "text"})
 	set(logMaxSizeName, object.NoneValue)
-	set(logKeepName, &object.Integer{Value: 3})
+	set(logKeepName, object.Int(3))
 	set(outputFileName, object.NoneValue)
 }
 
@@ -166,7 +166,7 @@ func (it *Interpreter) formatLogLine(e logEntry, setting func(string) object.Obj
 		obj.Put(&object.String{Value: "level"}, &object.String{Value: e.level})
 		obj.Put(&object.String{Value: "message"}, &object.String{Value: e.message})
 		obj.Put(&object.String{Value: "file"}, &object.String{Value: e.file})
-		obj.Put(&object.String{Value: "line"}, &object.Integer{Value: int64(e.line)})
+		obj.Put(&object.String{Value: "line"}, object.Int(int64(e.line)))
 		for _, k := range e.fields.Keys {
 			obj.Put(&object.String{Value: e.fields.KeyOf(k).Inspect()}, e.fields.Values[k])
 		}

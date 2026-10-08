@@ -16,6 +16,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 
 	"Turtle/evaluator"
@@ -57,7 +58,16 @@ func command(name string) bool {
 	return err != nil || info.IsDir()
 }
 
+// gcPercent is how far memory may grow between garbage collections.
+// A Turtle program makes many short-lived values and keeps few, so Go's
+// default (100) collects very often; 400 collects a quarter as often,
+// for some more memory. GOGC set by the user wins.
+const gcPercent = 400
+
 func main() {
+	if os.Getenv("GOGC") == "" {
+		debug.SetGCPercent(gcPercent)
+	}
 	switch {
 	case command("version"):
 		fmt.Println("turtle " + version)

@@ -45,7 +45,7 @@ func (it *Interpreter) callPattern(name string, args []object.Object) object.Obj
 	case "matches":
 		requireFuncArgs(name, args, 2)
 		text := asStringArg(name, args[0])
-		return &object.Boolean{Value: compilePattern(name, args[1]).MatchString(text)}
+		return object.Bool(compilePattern(name, args[1]).MatchString(text))
 	case "findall":
 		requireFuncArgs(name, args, 2)
 		text := asStringArg(name, args[0])

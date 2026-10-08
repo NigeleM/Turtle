@@ -76,7 +76,7 @@ const (
 // the file already has a variable of that name.
 func defineTableRows(env *object.Environment) {
 	if _, ok := env.Get(tableRowsName); !ok {
-		env.Set(tableRowsName, &object.Integer{Value: defaultTableRows})
+		env.Set(tableRowsName, object.Int(defaultTableRows))
 	}
 }
 
@@ -125,7 +125,7 @@ func elementsTable(elems []object.Object) textTable {
 	}
 	t := textTable{header: []string{"#", "value"}}
 	for i, e := range elems {
-		t.add([]object.Object{&object.Integer{Value: int64(i)}, e})
+		t.add([]object.Object{object.Int(int64(i)), e})
 	}
 	return t
 }

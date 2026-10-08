@@ -259,7 +259,7 @@ func dataRange(args []object.Object) object.Object {
 	}
 	out := &object.List{Elements: make([]object.Object, 0, count)}
 	for i, v := int64(0), from; i < count; i, v = i+1, v+step {
-		out.Elements = append(out.Elements, &object.Integer{Value: v})
+		out.Elements = append(out.Elements, object.Int(v))
 	}
 	return out
 }
@@ -301,7 +301,7 @@ func reduceItems(x object.Object) []object.Object {
 // dataSum adds up a collection's numbers: an integer if they all are.
 func dataSum(args []object.Object) object.Object {
 	requireFuncArgs("sum", args, 1)
-	var total object.Object = &object.Integer{Value: 0}
+	var total object.Object = object.Int(0)
 	for i, item := range reduceItems(args[0]) {
 		if _, _, ok := numeric(item); !ok {
 			fatalf("'sum' adds numbers; item %d is %s", i, object.Shown(item))

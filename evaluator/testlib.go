@@ -32,11 +32,11 @@ func defineTestSettings(env *object.Environment) {
 			env.Set(name, v)
 		}
 	}
-	set(suiteName, &object.Boolean{Value: false})
-	set(benchmarkName, &object.Boolean{Value: false})
+	set(suiteName, object.Bool(false))
+	set(benchmarkName, object.Bool(false))
 	set(runsName, object.NoneValue)
-	set(benchtimeName, &object.Integer{Value: 1})
-	set(casesName, &object.Integer{Value: defaultCases})
+	set(benchtimeName, object.Int(1))
+	set(casesName, object.Int(defaultCases))
 	defineSeed(env)
 }
 

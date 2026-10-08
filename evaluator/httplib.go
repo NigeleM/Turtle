@@ -49,7 +49,7 @@ func (it *Interpreter) callHTTP(name string, args []object.Object) object.Object
 		}
 		resp, text := doHTTP(name, method, asStringArg(name, args[1]), body, headers)
 		result := object.NewMap()
-		result.Put(&object.String{Value: "status"}, &object.Integer{Value: int64(resp.StatusCode)})
+		result.Put(&object.String{Value: "status"}, object.Int(int64(resp.StatusCode)))
 		result.Put(&object.String{Value: "body"}, &object.String{Value: text})
 		result.Put(&object.String{Value: "headers"}, responseHeaders(resp.Header))
 		return result

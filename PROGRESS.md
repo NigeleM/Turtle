@@ -1084,3 +1084,24 @@ safe [end]
   slower than Python on most work, 10-13x on function calls and tight
   indexing loops; it starts fastest (6 ms). Profiles: allocation/GC ~30%,
   name lookups ~17%.
+
+## 2026-10-07: performance quick wins (released v0.9.164)
+
+Measured with bench/ (Turtle alone, best of 3 runs each, before -> after):
+fib 103 -> 48 ms (2.1x), loop 447 -> 237 (1.9x), strings 74 -> 43 (1.7x),
+lists 278 -> 97 (2.9x), maps 117 -> 83 (1.4x), sieve 595 -> 250 (2.4x),
+objects 78 -> 41 (1.9x), jsondata 66 -> 60 (1.1x), patterns 32 -> 22
+(1.5x), functional 83 -> 42 (2.0x).
+
+- Shared values: object.Int (-128..1023) and object.Bool; values never
+  change once made, so they're shared instead of made again.
+- Scopes keep their names in a short list (a map past 8 names), not a
+  map each: cheaper calls and loop passes, faster lookups.
+- Garbage collection runs a quarter as often (GOGC 400 unless set): a
+  Turtle program makes many short-lived values and keeps few.
+- Whole-number arithmetic and comparisons take a direct path.
+- sort compares whole numbers and text directly. That fixed a bug: whole
+  numbers past 2^53 were compared as floats and could sort wrongly.
+- put ... at ... no longer builds its error text unless there's an error.
+- Fixed along the way: seed = 7 set again now restarts the values (it
+  was noticed by the seed object changing, which shared values broke).

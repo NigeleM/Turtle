@@ -17,7 +17,7 @@ import (
 func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environment) object.Object {
 	switch e := expr.(type) {
 	case *ast.IntegerLiteral:
-		return &object.Integer{Value: e.Value}
+		return object.Int(e.Value)
 	case *ast.FloatLiteral:
 		return &object.Float{Value: e.Value}
 	case *ast.StringLiteral:
@@ -29,7 +29,7 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 		}
 		return &object.String{Value: sb.String()}
 	case *ast.BooleanLiteral:
-		return &object.Boolean{Value: e.Value}
+		return object.Bool(e.Value)
 	case *ast.NoneLiteral:
 		return object.NoneValue
 
@@ -67,14 +67,14 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 		switch e.Operator {
 		case "&&":
 			if !isTruthy(left) {
-				return &object.Boolean{Value: false}
+				return object.Bool(false)
 			}
-			return &object.Boolean{Value: isTruthy(it.evalExpression(e.Right, env))}
+			return object.Bool(isTruthy(it.evalExpression(e.Right, env)))
 		case "||":
 			if isTruthy(left) {
-				return &object.Boolean{Value: true}
+				return object.Bool(true)
 			}
-			return &object.Boolean{Value: isTruthy(it.evalExpression(e.Right, env))}
+			return object.Bool(isTruthy(it.evalExpression(e.Right, env)))
 		}
 		right := it.evalExpression(e.Right, env)
 		return evalInfix(e.Operator, left, right)
@@ -144,7 +144,7 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 	case *ast.MaxExpression:
 		return it.reduceExtreme(e.Arg, env, false)
 	case *ast.LengthExpression:
-		return &object.Integer{Value: int64(it.lengthOf(it.evalExpression(e.Arg, env)))}
+		return object.Int(int64(it.lengthOf(it.evalExpression(e.Arg, env))))
 	case *ast.ChangeExpression:
 		return evalChange(e.TypeName, it.evalExpression(e.Source, env))
 
@@ -152,7 +152,7 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 		return it.evalRandom(e.Shape, env)
 
 	case *ast.TypeCheckExpression:
-		return &object.Boolean{Value: it.isKind(it.evalExpression(e.Value, env), e.Kind, env)}
+		return object.Bool(it.isKind(it.evalExpression(e.Value, env), e.Kind, env))
 
 	default:
 		fatalf("no evaluator for expression type %T", expr)
@@ -168,13 +168,13 @@ func evalPrefix(op string, right object.Object) object.Object {
 			if v.Value == math.MinInt64 {
 				overflow("-", v.Value, 0)
 			}
-			return &object.Integer{Value: -v.Value}
+			return object.Int(-v.Value)
 		case *object.Float:
 			return &object.Float{Value: -v.Value}
 		}
 		fatalf("unary '-' needs a number, got %s", typeName(right))
 	case "!":
-		return &object.Boolean{Value: !isTruthy(right)}
+		return object.Bool(!isTruthy(right))
 	}
 	fatalf("unknown prefix operator %q", op)
 	return nil
@@ -199,6 +199,36 @@ func isCollection(obj object.Object) bool {
 }
 
 func evalInfix(op string, left, right object.Object) object.Object {
+	// Two whole numbers, the most common case: straight to the answer,
+	// with the same rules (overflow is an error) as the general path below.
+	if l, ok := left.(*object.Integer); ok {
+		if r, ok := right.(*object.Integer); ok {
+			switch op {
+			case "+":
+				return object.Int(addInt(l.Value, r.Value))
+			case "-":
+				return object.Int(subInt(l.Value, r.Value))
+			case "*":
+				return object.Int(mulInt(l.Value, r.Value))
+			case "<":
+				return object.Bool(l.Value < r.Value)
+			case ">":
+				return object.Bool(l.Value > r.Value)
+			case "<=":
+				return object.Bool(l.Value <= r.Value)
+			case ">=":
+				return object.Bool(l.Value >= r.Value)
+			case "==":
+				return object.Bool(l.Value == r.Value)
+			case "!=":
+				return object.Bool(l.Value != r.Value)
+			case "%":
+				if r.Value != 0 {
+					return object.Int(l.Value % r.Value)
+				}
+			}
+		}
+	}
 	if op == "+" || op == "-" {
 		if res, ok := collectionOp(op, left, right); ok {
 			return res
@@ -226,7 +256,7 @@ func evalInfix(op string, left, right object.Object) object.Object {
 		rf, rIsInt, rIsNum := numeric(right)
 		if lIsNum && rIsNum {
 			if lIsInt && rIsInt {
-				return &object.Integer{Value: addInt(left.(*object.Integer).Value, right.(*object.Integer).Value)}
+				return object.Int(addInt(left.(*object.Integer).Value, right.(*object.Integer).Value))
 			}
 			return &object.Float{Value: lf + rf}
 		}
@@ -245,12 +275,12 @@ func evalInfix(op string, left, right object.Object) object.Object {
 		switch op {
 		case "-":
 			if bothInt {
-				return &object.Integer{Value: subInt(left.(*object.Integer).Value, right.(*object.Integer).Value)}
+				return object.Int(subInt(left.(*object.Integer).Value, right.(*object.Integer).Value))
 			}
 			return &object.Float{Value: lf - rf}
 		case "*":
 			if bothInt {
-				return &object.Integer{Value: mulInt(left.(*object.Integer).Value, right.(*object.Integer).Value)}
+				return object.Int(mulInt(left.(*object.Integer).Value, right.(*object.Integer).Value))
 			}
 			return &object.Float{Value: lf * rf}
 		case "/":
@@ -271,7 +301,7 @@ func evalInfix(op string, left, right object.Object) object.Object {
 				if r == -1 && left.(*object.Integer).Value == math.MinInt64 {
 					overflow("div", math.MinInt64, -1)
 				}
-				return &object.Integer{Value: left.(*object.Integer).Value / r}
+				return object.Int(left.(*object.Integer).Value / r)
 			}
 			if rf == 0 {
 				fatalKind(kindMath, "division by zero")
@@ -280,14 +310,14 @@ func evalInfix(op string, left, right object.Object) object.Object {
 			if math.IsNaN(q) || q >= 1<<63 || q < -(1<<63) {
 				fatalKind(kindMath, "%s div %s is too big for an integer", left.Inspect(), right.Inspect())
 			}
-			return &object.Integer{Value: int64(q)}
+			return object.Int(int64(q))
 		case "%":
 			if bothInt {
 				r := right.(*object.Integer).Value
 				if r == 0 {
 					fatalKind(kindMath, "modulo by zero")
 				}
-				return &object.Integer{Value: left.(*object.Integer).Value % r}
+				return object.Int(left.(*object.Integer).Value % r)
 			}
 			if rf == 0 {
 				fatalKind(kindMath, "modulo by zero")
@@ -298,29 +328,29 @@ func evalInfix(op string, left, right object.Object) object.Object {
 		if lIsNum && rIsNum {
 			if !lIsInt || !rIsInt { // a float: compared as they show, to 15 digits
 				c := object.CompareFloats(lf, rf)
-				return &object.Boolean{Value: compareNum(op, float64(c), 0)}
+				return object.Bool(compareNum(op, float64(c), 0))
 			}
-			return &object.Boolean{Value: compareInt(op, left.(*object.Integer).Value, right.(*object.Integer).Value)}
+			return object.Bool(compareInt(op, left.(*object.Integer).Value, right.(*object.Integer).Value))
 		}
 		ls, lok := left.(*object.String)
 		rs, rok := right.(*object.String)
 		if lok && rok {
-			return &object.Boolean{Value: compareStr(op, ls.Value, rs.Value)}
+			return object.Bool(compareStr(op, ls.Value, rs.Value))
 		}
 		ld, lok := left.(*object.Date)
 		rd, rok := right.(*object.Date)
 		if lok && rok {
-			return &object.Boolean{Value: compareNum(op, float64(ld.Time.Unix()), float64(rd.Time.Unix()))}
+			return object.Bool(compareNum(op, float64(ld.Time.Unix()), float64(rd.Time.Unix())))
 		}
 		fatalf("operator %q needs two numbers, two strings or two dates, got %s and %s", op, typeName(left), typeName(right))
 	case "==":
-		return &object.Boolean{Value: valuesEqual(left, right)}
+		return object.Bool(valuesEqual(left, right))
 	case "!=":
-		return &object.Boolean{Value: !valuesEqual(left, right)}
+		return object.Bool(!valuesEqual(left, right))
 	case "&&":
-		return &object.Boolean{Value: isTruthy(left) && isTruthy(right)}
+		return object.Bool(isTruthy(left) && isTruthy(right))
 	case "||":
-		return &object.Boolean{Value: isTruthy(left) || isTruthy(right)}
+		return object.Bool(isTruthy(left) || isTruthy(right))
 	}
 	fatalf("unknown infix operator %q", op)
 	return nil
@@ -407,13 +437,13 @@ func evalChange(typeName string, val object.Object) object.Object {
 		case *object.Integer:
 			return v
 		case *object.Float:
-			return &object.Integer{Value: int64(v.Value)}
+			return object.Int(int64(v.Value))
 		case *object.String:
 			n, err := strconv.ParseInt(strings.TrimSpace(v.Value), 10, 64)
 			if err != nil {
 				fatalKind(kindNumber, "change ... to integer: %q is not a valid integer", v.Value)
 			}
-			return &object.Integer{Value: n}
+			return object.Int(n)
 		}
 	case "float":
 		switch v := val.(type) {
@@ -442,7 +472,7 @@ func evalChange(typeName string, val object.Object) object.Object {
 		if len(runes) != 1 {
 			fatalKind(kindNumber, "change ... to ascii needs exactly one character, got %q", s.Value)
 		}
-		return &object.Integer{Value: int64(runes[0])}
+		return object.Int(int64(runes[0]))
 	case "char":
 		n, ok := val.(*object.Integer)
 		if !ok {
@@ -463,7 +493,7 @@ func evalChange(typeName string, val object.Object) object.Object {
 			if err != nil {
 				fatalKind(kindNumber, "change ... to hex: %q is not valid hex", v.Value)
 			}
-			return &object.Integer{Value: n}
+			return object.Int(n)
 		}
 	case "list":
 		// Always a new list, so changing it never changes the original.

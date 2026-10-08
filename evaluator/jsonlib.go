@@ -133,7 +133,7 @@ func decodeJSON(dec *json.Decoder) (object.Object, error) {
 	case json.Number:
 		return jsonNumber(dec, t)
 	case bool:
-		return &object.Boolean{Value: t}, nil
+		return object.Bool(t), nil
 	case nil:
 		return object.NoneValue, nil
 	}
@@ -146,7 +146,7 @@ func jsonNumber(dec *json.Decoder, n json.Number) (object.Object, error) {
 	s := n.String()
 	if !strings.ContainsAny(s, ".eE") {
 		if i, err := strconv.ParseInt(s, 10, 64); err == nil {
-			return &object.Integer{Value: i}, nil
+			return object.Int(i), nil
 		}
 	}
 	f, err := strconv.ParseFloat(s, 64)

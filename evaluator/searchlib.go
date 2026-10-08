@@ -53,10 +53,10 @@ func (it *Interpreter) callSearch(name string, args []object.Object) object.Obje
 		case "find_index":
 			for i, e := range items {
 				if match(e) {
-					return &object.Integer{Value: int64(i)}
+					return object.Int(int64(i))
 				}
 			}
-			return &object.Integer{Value: -1}
+			return object.Int(-1)
 		case "find_all":
 			var ks []keyed
 			for _, e := range items {
@@ -72,7 +72,7 @@ func (it *Interpreter) callSearch(name string, args []object.Object) object.Obje
 				n++
 			}
 		}
-		return &object.Integer{Value: int64(n)}
+		return object.Int(int64(n))
 	case "find_key":
 		requireFuncArgs(name, args, 2)
 		m, ok := args[0].(*object.Map)
@@ -114,7 +114,7 @@ func (it *Interpreter) callSearch(name string, args []object.Object) object.Obje
 		case "insert_position":
 			at = s.lowerBound(0, len(ks))
 		}
-		return &object.Integer{Value: int64(at)}
+		return object.Int(int64(at))
 	}
 	fatalKind(kindName, "no search function %q", name)
 	return nil

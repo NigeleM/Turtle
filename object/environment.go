@@ -16,7 +16,11 @@ import "sort"
 // The main program and every imported .t module each have their own
 // global (root) environment, which also records what that file imported.
 type Environment struct {
-	vars      map[string]Object
+	// vars are this scope's own names and values. Most scopes (a call, a
+	// loop pass) hold a few, which a short list finds fastest; index
+	// takes over once a scope has more than smallScope names.
+	vars      []binding
+	index     map[string]int
 	outer     *Environment
 	functions map[string]*Function
 	imports   []*Import
@@ -31,8 +35,53 @@ func (e *Environment) SetFile(name string) { e.root().file = name }
 // File is the file the code running in e comes from (see SetFile).
 func (e *Environment) File() string { return e.root().file }
 
+// binding is one name and its value.
+type binding struct {
+	name string
+	val  Object
+}
+
+const smallScope = 8
+
+// find is where name is among this scope's own vars, or -1.
+func (e *Environment) find(name string) int {
+	if e.index != nil {
+		if i, ok := e.index[name]; ok {
+			return i
+		}
+		return -1
+	}
+	for i := range e.vars {
+		if e.vars[i].name == name {
+			return i
+		}
+	}
+	return -1
+}
+
+// put sets name in this exact scope.
+func (e *Environment) put(name string, val Object) {
+	if i := e.find(name); i >= 0 {
+		e.vars[i].val = val
+		return
+	}
+	if e.vars == nil {
+		e.vars = make([]binding, 0, 4)
+	}
+	e.vars = append(e.vars, binding{name, val})
+	switch {
+	case e.index != nil:
+		e.index[name] = len(e.vars) - 1
+	case len(e.vars) > smallScope:
+		e.index = make(map[string]int, len(e.vars)*2)
+		for i, b := range e.vars {
+			e.index[b.name] = i
+		}
+	}
+}
+
 func NewGlobalEnvironment() *Environment {
-	return &Environment{vars: map[string]Object{}, functions: map[string]*Function{}}
+	return &Environment{functions: map[string]*Function{}}
 }
 
 // NewEnclosedEnvironment returns a fresh scope for one function call,
@@ -41,7 +90,7 @@ func NewGlobalEnvironment() *Environment {
 // mutable state (the legacy interpreter's bug: one shared map per
 // function definition, reused by every call).
 func NewEnclosedEnvironment(outer *Environment) *Environment {
-	return &Environment{vars: map[string]Object{}, outer: outer}
+	return &Environment{outer: outer}
 }
 
 // NewLoopEnvironment returns the scope for one pass of a loop (for-each)
@@ -52,12 +101,12 @@ func NewEnclosedEnvironment(outer *Environment) *Environment {
 // scope, a closure created in the loop keeps the loop name it saw, even
 // after the loop ends.
 func NewLoopEnvironment(outer *Environment) *Environment {
-	return &Environment{vars: map[string]Object{}, outer: outer, loop: true}
+	return &Environment{outer: outer, loop: true}
 }
 
 // Define binds name in this exact scope (a loop's own names).
 func (e *Environment) Define(name string, val Object) {
-	e.vars[name] = val
+	e.put(name, val)
 }
 
 // IsTopLevel reports whether code running in e is at a file's top level:
@@ -96,8 +145,8 @@ func (e *Environment) Outer() *Environment { return e.outer }
 // outer one.
 func (e *Environment) Get(name string) (Object, bool) {
 	for s := e; s != nil; s = s.outer {
-		if v, ok := s.vars[name]; ok {
-			return v, true
+		if i := s.find(name); i >= 0 {
+			return s.vars[i].val, true
 		}
 	}
 	return nil, false
@@ -113,16 +162,26 @@ func (e *Environment) Get(name string) (Object, bool) {
 // *object.List/Set/Map value Get() returned, not through Set.)
 func (e *Environment) Set(name string, val Object) {
 	for e.loop {
-		if _, own := e.vars[name]; own {
+		if e.find(name) >= 0 {
 			break
 		}
 		e = e.outer
 	}
-	e.vars[name] = val
+	e.put(name, val)
 }
 
 func (e *Environment) Delete(name string) {
-	delete(e.vars, name)
+	i := e.find(name)
+	if i < 0 {
+		return
+	}
+	e.vars = append(e.vars[:i], e.vars[i+1:]...)
+	if e.index != nil {
+		e.index = make(map[string]int, len(e.vars)*2)
+		for j, b := range e.vars {
+			e.index[b.name] = j
+		}
+	}
 }
 
 func (e *Environment) GetFunction(name string) (*Function, bool) {
@@ -179,8 +238,8 @@ func (e *Environment) FindImport(name string) (*Import, bool) {
 
 // Names lists this scope's own variables and functions, sorted.
 func (e *Environment) Names() (vars, funcs []string) {
-	for n := range e.vars {
-		vars = append(vars, n)
+	for _, b := range e.vars {
+		vars = append(vars, b.name)
 	}
 	for n := range e.functions {
 		funcs = append(funcs, n)

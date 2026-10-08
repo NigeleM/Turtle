@@ -1,9 +1,11 @@
 package evaluator
 
 import (
+	"cmp"
 	"fmt"
 	"math"
 	"math/rand"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -93,7 +95,11 @@ func (it *Interpreter) evalDataOp(s *ast.DataOpStatement, env *object.Environmen
 		if !ok {
 			fatalf("'put ... to %s' needs a list, got %s", s.Target, typeName(target))
 		}
-		list.Elements[listIndex("list "+s.Target, int(idxObj.Value), len(list.Elements))] = val
+		i := int(idxObj.Value)
+		if i < 0 || i >= len(list.Elements) {
+			listIndex("list "+s.Target, i, len(list.Elements)) // the error, worded only when needed
+		}
+		list.Elements[i] = val
 	case ast.OpInsert:
 		val := it.evalExpression(s.Value, env)
 		idxObj, ok := it.evalExpression(s.Index, env).(*object.Integer)
@@ -128,6 +134,36 @@ func reverseElements(elems []object.Object) {
 }
 
 func sortElements(elems []object.Object) {
+	// All whole numbers, or all text, the usual cases: compared exactly
+	// and directly (a number past 2^53 has no exact float).
+	allInts, allText := true, true
+	for _, e := range elems {
+		switch e.(type) {
+		case *object.Integer:
+			allText = false
+		case *object.String:
+			allInts = false
+		default:
+			allInts, allText = false, false
+		}
+		if !allInts && !allText {
+			break
+		}
+	}
+	switch {
+	case len(elems) < 2:
+		return
+	case allInts:
+		slices.SortStableFunc(elems, func(a, b object.Object) int {
+			return cmp.Compare(a.(*object.Integer).Value, b.(*object.Integer).Value)
+		})
+		return
+	case allText:
+		slices.SortStableFunc(elems, func(a, b object.Object) int {
+			return strings.Compare(a.(*object.String).Value, b.(*object.String).Value)
+		})
+		return
+	}
 	sort.SliceStable(elems, func(i, j int) bool {
 		fi, _, iok := numeric(elems[i])
 		fj, _, jok := numeric(elems[j])
@@ -301,13 +337,13 @@ func listMethod(l *object.List, method string, args []object.Object) object.Obje
 	switch method {
 	case "isempty":
 		requireArgs(method, args, 0)
-		return &object.Boolean{Value: len(l.Elements) == 0}
+		return object.Bool(len(l.Elements) == 0)
 	case "add":
 		requireArgs(method, args, 1)
 		l.Elements = append(l.Elements, args[0])
 		return l
 	case "len", "length":
-		return &object.Integer{Value: int64(len(l.Elements))}
+		return object.Int(int64(len(l.Elements)))
 	case "tostring":
 		return &object.String{Value: l.Inspect()}
 	case "clear":
@@ -321,15 +357,15 @@ func listMethod(l *object.List, method string, args []object.Object) object.Obje
 				n++
 			}
 		}
-		return &object.Integer{Value: int64(n)}
+		return object.Int(int64(n))
 	case "index":
 		requireArgs(method, args, 1)
 		for i, e := range l.Elements {
 			if object.Equal(e, args[0]) {
-				return &object.Integer{Value: int64(i)}
+				return object.Int(int64(i))
 			}
 		}
-		return &object.Integer{Value: -1}
+		return object.Int(-1)
 	case "sort":
 		sortElements(l.Elements)
 		return l
@@ -351,10 +387,10 @@ func listMethod(l *object.List, method string, args []object.Object) object.Obje
 		requireArgs(method, args, 1)
 		for _, e := range l.Elements {
 			if object.Equal(e, args[0]) {
-				return &object.Boolean{Value: true}
+				return object.Bool(true)
 			}
 		}
-		return &object.Boolean{Value: false}
+		return object.Bool(false)
 	case "insert":
 		requireArgs(method, args, 2)
 		idx := asIndex(method, args[1])
@@ -398,13 +434,13 @@ func setMethod(s *object.Set, method string, args []object.Object) object.Object
 	switch method {
 	case "isempty":
 		requireArgs(method, args, 0)
-		return &object.Boolean{Value: len(s.Elements) == 0}
+		return object.Bool(len(s.Elements) == 0)
 	case "add":
 		requireArgs(method, args, 1)
 		s.Add(args[0])
 		return s
 	case "len", "length":
-		return &object.Integer{Value: int64(len(s.Elements))}
+		return object.Int(int64(len(s.Elements)))
 	case "tostring":
 		return &object.String{Value: s.Inspect()}
 	case "clear":
@@ -419,15 +455,15 @@ func setMethod(s *object.Set, method string, args []object.Object) object.Object
 				n++
 			}
 		}
-		return &object.Integer{Value: int64(n)}
+		return object.Int(int64(n))
 	case "index":
 		requireArgs(method, args, 1)
 		for i, e := range s.Elements {
 			if object.Equal(e, args[0]) {
-				return &object.Integer{Value: int64(i)}
+				return object.Int(int64(i))
 			}
 		}
-		return &object.Integer{Value: -1}
+		return object.Int(-1)
 	case "sort":
 		sortElements(s.Elements)
 		return s
@@ -449,7 +485,7 @@ func setMethod(s *object.Set, method string, args []object.Object) object.Object
 		return last
 	case "find", "contains":
 		requireArgs(method, args, 1)
-		return &object.Boolean{Value: s.Contains(args[0])}
+		return object.Bool(s.Contains(args[0]))
 	case "insert":
 		requireArgs(method, args, 2)
 		if s.Contains(args[0]) {
@@ -510,10 +546,10 @@ func setMethod(s *object.Set, method string, args []object.Object) object.Object
 		}
 		for _, e := range s.Elements {
 			if !other.Contains(e) {
-				return &object.Boolean{Value: false}
+				return object.Bool(false)
 			}
 		}
-		return &object.Boolean{Value: true}
+		return object.Bool(true)
 	case "superset":
 		requireArgs(method, args, 1)
 		other, ok := args[0].(*object.Set)
@@ -522,10 +558,10 @@ func setMethod(s *object.Set, method string, args []object.Object) object.Object
 		}
 		for _, e := range other.Elements {
 			if !s.Contains(e) {
-				return &object.Boolean{Value: false}
+				return object.Bool(false)
 			}
 		}
-		return &object.Boolean{Value: true}
+		return object.Bool(true)
 	}
 	fatalKind(kindName, "unknown set method %q", method)
 	return nil
@@ -535,15 +571,15 @@ func mapMethod(m *object.Map, method string, args []object.Object) object.Object
 	switch method {
 	case "len", "length":
 		requireArgs(method, args, 0)
-		return &object.Integer{Value: int64(len(m.Keys))}
+		return object.Int(int64(len(m.Keys)))
 	case "contains":
 		// Whether the map has this key.
 		requireArgs(method, args, 1)
 		_, ok := m.Get(args[0])
-		return &object.Boolean{Value: ok}
+		return object.Bool(ok)
 	case "isempty":
 		requireArgs(method, args, 0)
-		return &object.Boolean{Value: len(m.Keys) == 0}
+		return object.Bool(len(m.Keys) == 0)
 	case "get":
 		requireArgs(method, args, 1)
 		v, ok := m.Get(args[0])
@@ -594,14 +630,14 @@ func stringMethod(s *object.String, method string, args []object.Object) object.
 		return padText(method, s, args, false)
 	case "len", "length":
 		requireArgs(method, args, 0)
-		return &object.Integer{Value: int64(utf8.RuneCountInString(s.Value))}
+		return object.Int(int64(utf8.RuneCountInString(s.Value)))
 	case "isempty":
 		requireArgs(method, args, 0)
-		return &object.Boolean{Value: s.Value == ""}
+		return object.Bool(s.Value == "")
 	case "isnumber":
 		requireArgs(method, args, 0)
 		_, err := strconv.ParseFloat(strings.TrimSpace(s.Value), 64)
-		return &object.Boolean{Value: err == nil}
+		return object.Bool(err == nil)
 	case "upper":
 		requireArgs(method, args, 0)
 		return &object.String{Value: strings.ToUpper(s.Value)}
@@ -627,10 +663,10 @@ func stringMethod(s *object.String, method string, args []object.Object) object.
 		return list
 	case "contains":
 		requireArgs(method, args, 1)
-		return &object.Boolean{Value: strings.Contains(s.Value, asStringArg(method, args[0]))}
+		return object.Bool(strings.Contains(s.Value, asStringArg(method, args[0])))
 	case "indexof":
 		requireArgs(method, args, 1)
-		return &object.Integer{Value: int64(runeIndexOf(s.Value, asStringArg(method, args[0])))}
+		return object.Int(int64(runeIndexOf(s.Value, asStringArg(method, args[0]))))
 	case "replace":
 		requireArgs(method, args, 2)
 		old := asStringArg(method, args[0])
@@ -719,7 +755,7 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		requireArgs(method, args, 0)
 		f, isInt, _ := numeric(receiver)
 		if isInt {
-			return &object.Integer{Value: int64(math.Abs(f))}
+			return object.Int(int64(math.Abs(f)))
 		}
 		return &object.Float{Value: math.Abs(f)}
 	case "round":
@@ -731,7 +767,7 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		}
 		f, _, _ := numeric(receiver)
 		if len(args) == 0 {
-			return &object.Integer{Value: int64(math.Round(f))}
+			return object.Int(int64(math.Round(f)))
 		}
 		p, ok := args[0].(*object.Integer)
 		if !ok || p.Value < -15 || p.Value > 15 {
@@ -740,7 +776,7 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		places := int(p.Value)
 		if places <= 0 {
 			scale := math.Pow(10, float64(-places))
-			return &object.Integer{Value: int64(math.Round(f/scale) * scale)}
+			return object.Int(int64(math.Round(f/scale) * scale))
 		}
 		if _, isInt := receiver.(*object.Integer); isInt {
 			return receiver // a whole number already has every place
@@ -754,12 +790,12 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		requireModule(env, "math", "floor")
 		requireArgs(method, args, 0)
 		f, _, _ := numeric(receiver)
-		return &object.Integer{Value: int64(math.Floor(f))}
+		return object.Int(int64(math.Floor(f)))
 	case "ceil":
 		requireModule(env, "math", "ceil")
 		requireArgs(method, args, 0)
 		f, _, _ := numeric(receiver)
-		return &object.Integer{Value: int64(math.Ceil(f))}
+		return object.Int(int64(math.Ceil(f)))
 	case "pow":
 		requireModule(env, "math", "pow")
 		requireArgs(method, args, 1)
@@ -772,7 +808,7 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		// A whole number to a non-negative whole power is a whole number:
 		// 2 at pow 10 is 1024, not 1024.0 (as long as it fits an integer).
 		if baseInt && expInt && exp >= 0 && math.Abs(r) < 1<<53 {
-			return &object.Integer{Value: int64(r)}
+			return object.Int(int64(r))
 		}
 		return &object.Float{Value: r}
 	case "random":
@@ -785,7 +821,7 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		if n.Value <= 0 {
 			fatalKind(kindMath, "%q needs a positive upper bound, got %d", method, n.Value)
 		}
-		return &object.Integer{Value: rand.Int63n(n.Value)}
+		return object.Int(rand.Int63n(n.Value))
 	}
 	fatalKind(kindName, "unknown number method %q", method)
 	return nil

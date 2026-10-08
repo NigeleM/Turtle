@@ -390,6 +390,9 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		if fn, ok := v.(*object.Function); ok && fn.Scroll != nil && fn.Name == "" {
 			fn.Name = s.Name // a saved scroll is named after its variable
 		}
+		if s.Name == seedName {
+			it.rng = nil // seed = 7 again starts the same values again
+		}
 		env.Set(s.Name, v)
 		if trace != nil {
 			it.traceAssign(trace, s.Name, v.Inspect())
@@ -649,7 +652,7 @@ func (it *Interpreter) evalEach(s *ast.LoopStatement, env *object.Environment) E
 	}
 	if firsts == nil {
 		for i := range seconds {
-			firsts = append(firsts, &object.Integer{Value: int64(i)})
+			firsts = append(firsts, object.Int(int64(i)))
 		}
 	}
 	if len(s.Vars) == 1 && isMap {

@@ -474,3 +474,39 @@ type Database struct {
 
 func (d *Database) Type() Type      { return DATABASE }
 func (d *Database) Inspect() string { return "database " + d.Name }
+
+// Values never change once made, so the common ones are made once and
+// shared: Int and Bool give them out instead of making new ones, which
+// saves most of a program's memory churn.
+var (
+	smallInts [smallIntMax - smallIntMin + 1]*Integer
+	trueValue  = &Boolean{Value: true}
+	falseValue = &Boolean{Value: false}
+)
+
+const (
+	smallIntMin = -128
+	smallIntMax = 1023
+)
+
+func init() {
+	for i := range smallInts {
+		smallInts[i] = &Integer{Value: int64(i + smallIntMin)}
+	}
+}
+
+// Int is the integer n, shared when it's small.
+func Int(n int64) *Integer {
+	if n >= smallIntMin && n <= smallIntMax {
+		return smallInts[n-smallIntMin]
+	}
+	return &Integer{Value: n}
+}
+
+// Bool is true or false, shared.
+func Bool(b bool) *Boolean {
+	if b {
+		return trueValue
+	}
+	return falseValue
+}

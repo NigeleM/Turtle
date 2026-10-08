@@ -206,7 +206,7 @@ func (it *Interpreter) callCrypt(name string, args []object.Object) object.Objec
 			fatalKind(kindCrypt, "passwordcheck: the second argument isn't something passwordhash made")
 		}
 		got, err := pbkdf2.Key(sha256.New, pw, salt, iter, len(want))
-		return &object.Boolean{Value: err == nil && subtle.ConstantTimeCompare(got, want) == 1}
+		return object.Bool(err == nil && subtle.ConstantTimeCompare(got, want) == 1)
 
 	case "encrypt":
 		argCount(name, args, 2, 2, "text and a passphrase")

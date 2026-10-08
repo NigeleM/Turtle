@@ -139,5 +139,5 @@ func (it *Interpreter) callSystem(name string, args []object.Object) object.Obje
 	case "isfolder":
 		found = found && info.IsDir()
 	}
-	return &object.Boolean{Value: found}
+	return object.Bool(found)
 }

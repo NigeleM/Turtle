@@ -30,7 +30,7 @@ func (it *Interpreter) callTime(name string, args []object.Object) object.Object
 	switch name {
 	case "now":
 		requireFuncArgs(name, args, 0)
-		return &object.Integer{Value: time.Now().UnixMilli()}
+		return object.Int(time.Now().UnixMilli())
 	case "sleep":
 		evalSleep(args)
 		return object.NoneValue
@@ -68,7 +68,7 @@ func (it *Interpreter) callTime(name string, args []object.Object) object.Object
 	case "time_between":
 		requireFuncArgs(name, args, 3)
 		a, b := asDateArg(name, args[0]), asDateArg(name, args[1])
-		return &object.Integer{Value: timeBetween(a.Time, b.Time, asUnitArg(name, args[2]))}
+		return object.Int(timeBetween(a.Time, b.Time, asUnitArg(name, args[2])))
 	case "format_date":
 		requireFuncArgs(name, args, 2)
 		return &object.String{Value: formatDate(asDateArg(name, args[0]).Time, asStringArg(name, args[1]))}
@@ -321,7 +321,7 @@ func formatDate(t time.Time, pattern string) string {
 	return sb.String()
 }
 
-func itoa(n int) string { return (&object.Integer{Value: int64(n)}).Inspect() }
+func itoa(n int) string { return (object.Int(int64(n))).Inspect() }
 
 // every runs job now, then again every amount units, until job returns
 // false. Each run is scheduled from the start time, so a slow job doesn't

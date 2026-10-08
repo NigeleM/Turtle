@@ -263,5 +263,5 @@ func (it *Interpreter) tableRead(args []object.Object) object.Object {
 func (it *Interpreter) tableWrite(args []object.Object) object.Object {
 	requireFuncArgs("table_write", args, 2)
 	path := asStringArg("table_write", args[0])
-	return &object.Integer{Value: int64(it.writeTableFile("table_write", path, tableShape("table_write", args[1])))}
+	return object.Int(int64(it.writeTableFile("table_write", path, tableShape("table_write", args[1]))))
 }

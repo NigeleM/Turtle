@@ -65,11 +65,11 @@ func (it *Interpreter) simpler(s *ast.Shape, v object.Object, env *object.Enviro
 		// n, as QuickCheck does: -225 tries 0, -113, -169, ..., -224.
 		target := clampInt(0, lo, hi)
 		for d := n - target; d != 0; d /= 2 {
-			add(&object.Integer{Value: n - d})
+			add(object.Int(n - d))
 		}
 		// and halving: -15 tries -7, -3, -1
 		for h := n / 2; h != 0 && h >= lo && h <= hi; h /= 2 {
-			add(&object.Integer{Value: h})
+			add(object.Int(h))
 		}
 	case "float":
 		f := v.(*object.Float).Value
@@ -120,7 +120,7 @@ func (it *Interpreter) simpler(s *ast.Shape, v object.Object, env *object.Enviro
 	case "letter":
 		add(&object.String{Value: "a"})
 	case "boolean":
-		add(&object.Boolean{Value: false})
+		add(object.Bool(false))
 	case "date", "time":
 		from := defaultDateFrom
 		if s.From != nil {

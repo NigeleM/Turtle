@@ -53,7 +53,7 @@ var replyShape = &object.Shape{Name: "Reply", Fields: []string{"status", "body",
 // unless it already has variables of those names.
 func defineServerSettings(env *object.Environment) {
 	if _, ok := env.Get(serverLogName); !ok {
-		env.Set(serverLogName, &object.Boolean{Value: true})
+		env.Set(serverLogName, object.Bool(true))
 	}
 	if _, ok := env.Get(serverHostName); !ok {
 		env.Set(serverHostName, &object.String{Value: "localhost"})
@@ -93,7 +93,7 @@ func (it *Interpreter) callServer(name string, args []object.Object, env *object
 		}
 		h := object.NewMap()
 		h.Put(&object.String{Value: "Location"}, &object.String{Value: to})
-		return &object.Assembly{Shape: replyShape, Values: []object.Object{&object.Integer{Value: code}, &object.String{Value: ""}, h}}
+		return &object.Assembly{Shape: replyShape, Values: []object.Object{object.Int(code), &object.String{Value: ""}, h}}
 	case "serve":
 		argCount(name, args, 1, 2, "a map of routes, and a port (8080 if left out)")
 		routes, ok := args[0].(*object.Map)

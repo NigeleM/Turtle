@@ -215,14 +215,14 @@ func convertCell(fn, path string, row int, col string, kind columnKind, v object
 			return x
 		case *object.Float:
 			if x.Value == math.Trunc(x.Value) && math.Abs(x.Value) < 1<<63 {
-				return &object.Integer{Value: int64(x.Value)}
+				return object.Int(int64(x.Value))
 			}
 		case *object.String:
 			if n, err := strconv.ParseInt(text, 10, 64); err == nil {
-				return &object.Integer{Value: n}
+				return object.Int(n)
 			}
 			if f, err := strconv.ParseFloat(text, 64); err == nil && f == math.Trunc(f) && math.Abs(f) < 1<<63 {
-				return &object.Integer{Value: int64(f)}
+				return object.Int(int64(f))
 			}
 		}
 		return bad(kindNumber)
@@ -244,7 +244,7 @@ func convertCell(fn, path string, row int, col string, kind columnKind, v object
 			return x
 		case *object.String:
 			if n, err := strconv.ParseInt(text, 10, 64); err == nil {
-				return &object.Integer{Value: n}
+				return object.Int(n)
 			}
 			if f, err := strconv.ParseFloat(text, 64); err == nil && !math.IsInf(f, 0) && !math.IsNaN(f) {
 				return &object.Float{Value: f}
@@ -257,14 +257,14 @@ func convertCell(fn, path string, row int, col string, kind columnKind, v object
 			return x
 		case *object.Integer:
 			if x.Value == 0 || x.Value == 1 {
-				return &object.Boolean{Value: x.Value == 1}
+				return object.Bool(x.Value == 1)
 			}
 		case *object.String:
 			switch strings.ToLower(text) {
 			case "true", "yes", "1", "t", "y":
-				return &object.Boolean{Value: true}
+				return object.Bool(true)
 			case "false", "no", "0", "f", "n":
-				return &object.Boolean{Value: false}
+				return object.Bool(false)
 			}
 		}
 		return bad(kindType)

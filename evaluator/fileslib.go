@@ -625,7 +625,7 @@ func (it *Interpreter) options(args []object.Object) object.Object {
 					fatalKind(kindType, "option %s is on or off; %q isn't true or false", name, value)
 				}
 			}
-			out.Put(&object.String{Value: name}, &object.Boolean{Value: v})
+			out.Put(&object.String{Value: name}, object.Bool(v))
 			continue
 		}
 		if !hasValue {
@@ -654,7 +654,7 @@ func optionValue(name, value string, def object.Object) object.Object {
 		if err != nil {
 			fatalKind(kindNumber, "option %s takes a whole number; %q isn't one", name, value)
 		}
-		return &object.Integer{Value: n}
+		return object.Int(n)
 	case *object.Float:
 		f, err := strconv.ParseFloat(value, 64)
 		if err != nil {

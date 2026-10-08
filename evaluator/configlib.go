@@ -135,11 +135,11 @@ func fromTOML(v any) object.Object {
 	case string:
 		return &object.String{Value: x}
 	case int64:
-		return &object.Integer{Value: x}
+		return object.Int(x)
 	case float64:
 		return &object.Float{Value: x}
 	case bool:
-		return &object.Boolean{Value: x}
+		return object.Bool(x)
 	case toml.DateTime:
 		if x.Kind == toml.LocalTime {
 			// Turtle has no time of day without a date: text, "07:32:00".

@@ -46,10 +46,10 @@ const (
 // unless it already has variables of those names.
 func defineScheduleSettings(env *object.Environment) {
 	if _, ok := env.Get(scheduleLimitName); !ok {
-		env.Set(scheduleLimitName, &object.Integer{Value: defaultSchedule})
+		env.Set(scheduleLimitName, object.Int(defaultSchedule))
 	}
 	if _, ok := env.Get(scheduleSkipName); !ok {
-		env.Set(scheduleSkipName, &object.Boolean{Value: false})
+		env.Set(scheduleSkipName, object.Bool(false))
 	}
 }
 
@@ -255,7 +255,7 @@ func (it *Interpreter) callSchedule(name string, args []object.Object, env *obje
 			m := object.NewMap()
 			m.Put(&object.String{Value: "output"}, &object.String{Value: c.output})
 			m.Put(&object.String{Value: "errors"}, &object.String{Value: c.errors})
-			m.Put(&object.String{Value: "code"}, &object.Integer{Value: int64(c.code)})
+			m.Put(&object.String{Value: "code"}, object.Int(int64(c.code)))
 			return m
 		})
 

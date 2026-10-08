@@ -113,7 +113,7 @@ func (it *Interpreter) randomValue(s *ast.Shape, env *object.Environment, rng *r
 				fatalKind(kindMath, "random integer from %d to %d: from is more than to", lo, hi)
 			}
 		}
-		return &object.Integer{Value: randomBetween(rng, lo, hi)}
+		return object.Int(randomBetween(rng, lo, hi))
 	case "float":
 		lo, hi := 0.0, 1.0
 		if s.From != nil {
@@ -164,7 +164,7 @@ func (it *Interpreter) randomValue(s *ast.Shape, env *object.Environment, rng *r
 	case "letter":
 		return &object.String{Value: string(defaultLetters[rng.Intn(len(defaultLetters))])}
 	case "boolean":
-		return &object.Boolean{Value: rng.Intn(2) == 1}
+		return object.Bool(rng.Intn(2) == 1)
 	case "date":
 		from, to := defaultDateFrom, defaultDateTo
 		if s.From != nil {

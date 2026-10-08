@@ -370,3 +370,13 @@ show true && boom[] .`
 		t.Errorf("got %q, %v", got, err)
 	}
 }
+
+// sort compares whole numbers exactly, past 2^53 too, and text by its
+// characters; mixed numbers still sort by value.
+func TestSortExact(t *testing.T) {
+	got, err := run(t, "big = list [9007199254740993, 9007199254740992, 3]\nsort big .\nshow big .\nw = list [\"pear\", \"Apple\", \"apple\"]\nsort w .\nshow w .\nm = list [2, 1.5, 1]\nsort m .\nshow m .", "")
+	want := "[ 3, 9007199254740992, 9007199254740993 ]\n[ \"Apple\", \"apple\", \"pear\" ]\n[ 1, 1.5, 2 ]\n"
+	if err != nil || got != want {
+		t.Errorf("got %q, %v", got, err)
+	}
+}

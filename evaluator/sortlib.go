@@ -390,10 +390,10 @@ func (it *Interpreter) callSort(name string, args []object.Object) object.Object
 		ks, _, cmp := it.sortArgs(name, args, 2)
 		for i := 1; i < len(ks); i++ {
 			if cmp(ks[i-1], ks[i]) > 0 {
-				return &object.Boolean{Value: false}
+				return object.Bool(false)
 			}
 		}
-		return &object.Boolean{Value: true}
+		return object.Bool(true)
 	case "reverse_list":
 		requireFuncArgs(name, args, 1)
 		es, isMap := entriesOf(name, args[0])
