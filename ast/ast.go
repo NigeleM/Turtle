@@ -223,7 +223,7 @@ type DataOpStatement struct {
 	Kind   OpKind
 	Target string
 	Value  Expression // nil for Sort/Reverse
-	Index  Expression // OpInsert and OpPut
+	Index  Expression // OpInsert and OpPut; OpAdd's map key ("add 12 to ages at "Cy" .")
 }
 
 func (dop *DataOpStatement) statementNode()       {}
@@ -431,6 +431,9 @@ type MethodCallExpression struct {
 	Method    string
 	Arguments []Expression
 	Bracketed bool // args were given as "x at m[args]" (expression form)
+	// Hint, when set, is added to an error from this call: the method
+	// works on a value people often don't expect (see the parser).
+	Hint string
 }
 
 func (mc *MethodCallExpression) expressionNode()      {}
@@ -704,3 +707,24 @@ type ScrollStep struct {
 	Call  *CallExpression // StepCall: the extra values, without the value
 	Expr  Expression      // StepHere and StepValue
 }
+
+// DiagnoseStatement is a diagnose block: its lines run, and each line,
+// the value each assignment gave, and each loop pass are shown; an error
+// in it is shown and the program goes on.
+//
+//	diagnose
+//	    total = 0
+//	    [loop][x in nums]
+//	        total = total + x
+//	    [loop][end]
+//	diagnose [end]
+type DiagnoseStatement struct {
+	Token token.Token
+	Body  *BlockStatement
+	End   int      // the line of diagnose [end]
+	Lines []string // the source, for showing the lines (index 0 is line 1)
+}
+
+func (ds *DiagnoseStatement) statementNode()       {}
+func (ds *DiagnoseStatement) TokenLiteral() string { return ds.Token.Literal }
+func (ds *DiagnoseStatement) Line() int            { return ds.Token.Line }

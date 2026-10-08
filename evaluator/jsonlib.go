@@ -239,7 +239,7 @@ func writeJSON(buf *bytes.Buffer, who string, v object.Object, indent, prefix st
 	case *object.Assembly:
 		writeJSONObject(buf, who, x.Shape.Fields, x.Values, indent, prefix, seen)
 	default:
-		fatalf("%s: a %s can't be written as JSON", who, v.Type())
+		fatalf("%s: a %s can't be written as JSON", who, typeName(v))
 	}
 }
 
@@ -252,7 +252,7 @@ func jsonKey(who string, k object.Object) string {
 	case *object.Integer, *object.Float:
 		return x.Inspect()
 	}
-	fatalf("%s: a map key that's a %s can't be a JSON key (only text and numbers can)", who, k.Type())
+	fatalf("%s: a map key that's a %s can't be a JSON key (only text and numbers can)", who, typeName(k))
 	return ""
 }
 

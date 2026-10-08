@@ -214,7 +214,9 @@ def [end]`
 	want := `line 1   nums = list [5, 7]               nums = [ 5, 7 ]
 line 2   total = 0                        total = 0
 line 3   [loop][x in nums]
+                                          pass 1: x = 5
 line 4       total = total + x            total = 5
+                                          pass 2: x = 7
 line 4       total = total + x            total = 12
 line 6   d = double[total]
 line 9       return n * 2

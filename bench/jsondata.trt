@@ -1,0 +1,22 @@
+// jsondata: 20,000 records written as JSON text, read back, a field summed.
+import time
+import json
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    records = list []
+    [loop][i = 0; i < 20000; i++]
+        add map ["id": i, "name": "item{i}", "price": i % 100, "tags": list ["a", "b"]] to records .
+    [loop][end]
+    text = json_text[records]
+    back = load[text]
+    total = 0
+    [loop][rec in back]
+        total = total + price of rec
+    [loop][end]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "result=", total, " ms=", best .

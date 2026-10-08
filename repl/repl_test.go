@@ -53,6 +53,9 @@ func TestNeedsMore(t *testing.T) {
 		"x is scroll 3 into\n  add1,":                          true,
 		"x is scroll 3 into\n  add1, double .":                 false,
 		"s = scroll add1, double .":                            false,
+		"diagnose":                                             true,
+		"diagnose\n  x = 1\ndiagnose [end]":                    false,
+		"x = diagnose[s, 3]":                                   false,
 	}
 	for src, want := range cases {
 		if got := needsMore(src); got != want {

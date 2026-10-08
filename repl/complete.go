@@ -33,6 +33,15 @@ func openBlocks(src string) int {
 	}
 	depth := 0
 	for i, tok := range t {
+		if tok.Type == token.IDENT && tok.Literal == "diagnose" && (i == 0 || t[i-1].Line < tok.Line) {
+			switch {
+			case closes(i):
+				depth--
+			case at(i+1) == token.EOF || t[i+1].Line > tok.Line:
+				depth++
+			}
+			continue
+		}
 		switch tok.Type {
 		case token.DEF, token.SAFE:
 			if closes(i) {

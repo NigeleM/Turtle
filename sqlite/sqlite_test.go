@@ -473,7 +473,7 @@ func TestParameters(t *testing.T) {
 	if err != nil || rows[0][0] != "ab" {
 		t.Errorf("numbered: %v %v", rows, err)
 	}
-	// A text parameter compared with an INTEGER column converts, like SQLite.
+	// A text parameter compared with an integer column converts, like SQLite.
 	_, rows, err = db.Query("SELECT sku FROM books WHERE price = ?", []Value{"950"})
 	if err != nil || len(rows) != 1 {
 		t.Errorf("affinity on a parameter: %v %v", rows, err)

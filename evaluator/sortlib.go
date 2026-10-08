@@ -213,7 +213,7 @@ func entriesOf(fn string, x object.Object) ([]entry, bool) {
 	case *object.Assembly:
 		fatalKind(kindType, "%s: a %s is one assembled value; it works on several in a list, set or map (list [a, b, c])", fn, c.Shape.Name)
 	default:
-		fatalKind(kindType, "%s needs a list, set, map or text, got %s", fn, x.Type())
+		fatalKind(kindType, "%s needs a list, set, map or text, got %s", fn, typeName(x))
 	}
 	out := make([]entry, len(items))
 	for i, e := range items {
@@ -247,7 +247,7 @@ func (it *Interpreter) newSortKey(fn string, key object.Object) sortKey {
 			k.many = append(k.many, it.newSortKey(fn, e))
 		}
 	default:
-		fatalKind(kindType, "%s: the key must be a function (x give ...), a field or map key (\"price\"), a position (1), or a list of those, got %s", fn, key.Type())
+		fatalKind(kindType, "%s: the key must be a function (x give ...), a field or map key (\"price\"), a position (1), or a list of those, got %s", fn, typeName(key))
 	}
 	return k
 }
@@ -385,7 +385,7 @@ func (it *Interpreter) callSort(name string, args []object.Object) object.Object
 			}
 			return itemsBack(ks, isMap)
 		}
-		fatalf(`'%s': the third argument is "first" or how many items to give back, got %s`, name, args[2].Type())
+		fatalf(`'%s': the third argument is "first" or how many items to give back, got %s`, name, typeName(args[2]))
 	case "is_sorted":
 		ks, _, cmp := it.sortArgs(name, args, 2)
 		for i := 1; i < len(ks); i++ {

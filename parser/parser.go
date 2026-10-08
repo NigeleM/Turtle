@@ -116,6 +116,10 @@ type Parser struct {
 	// scroll.go): a step naming here gets the value there, not first.
 	hereUses int
 
+	// warnings are spots that parse but probably don't mean what they
+	// seem to (see Warnings).
+	warnings []Error
+
 	prefixParseFns map[token.Type]prefixParseFn
 	infixParseFns  map[token.Type]infixParseFn
 }
@@ -230,7 +234,9 @@ func (p *Parser) expectPeek(t token.Type) bool {
 }
 
 func (p *Parser) peekPrecedence() int {
-	if p.peekToken.Line != p.curToken.Line {
+	// A text over several lines ends below where it starts: an operator
+	// right after its closing quote is on its line.
+	if p.peekToken.Line != p.endLine(p.curToken) {
 		return LOWEST
 	}
 	// A method works on the value right before it, like Python's
@@ -455,6 +461,9 @@ func (p *Parser) parseBracketStatement() ast.Statement {
 // ---- assignment / input / is / bare call --------------------------------
 
 func (p *Parser) parseIdentifierLeadStatement() ast.Statement {
+	if p.curToken.Literal == "diagnose" && (p.peekTokenIs(token.EOF) || p.peekToken.Line != p.curToken.Line) {
+		return p.parseDiagnoseBlock()
+	}
 	if p.startsTestStatement() {
 		return p.parseTestStatement()
 	}
@@ -784,10 +793,17 @@ func (p *Parser) parseAddStatement() ast.Statement {
 		return nil
 	}
 	target := p.curToken.Literal
+	var key ast.Expression
+	if p.peekTokenIs(token.AT) && p.peekToken.Line == p.curToken.Line {
+		// "add 12 to ages at "Cy" .": a map's key.
+		p.nextToken()
+		p.nextToken()
+		key = p.parseExpression(LOWEST)
+	}
 	if !p.requirePeriod() {
 		return nil
 	}
-	return &ast.DataOpStatement{Token: tok, Kind: ast.OpAdd, Target: target, Value: val}
+	return &ast.DataOpStatement{Token: tok, Kind: ast.OpAdd, Target: target, Value: val, Index: key}
 }
 
 // parseChangeExpression parses "change <expr> to <type>" as an expression,
@@ -1848,6 +1864,7 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	prec := p.curPrecedence()
 	p.nextToken()
 	right := p.parseExpression(prec)
+	p.checkMethodOnRight(tok, left, right)
 	return &ast.InfixExpression{Token: tok, Left: left, Operator: tok.Literal, Right: right}
 }
 
@@ -2067,6 +2084,12 @@ func (p *Parser) parseFieldExpression() ast.Expression {
 	p.inFieldObject = true
 	obj := p.parseExpression(PREFIX)
 	p.inFieldObject = saved
+	if mc, ok := obj.(*ast.MethodCallExpression); ok && (mc.Method == "get" || mc.Method == "slice") {
+		if id, ok := mc.Receiver.(*ast.Identifier); ok {
+			mc.Hint = fmt.Sprintf("in %s of %s at %s[...], the %s works on %s first; to take part of %s of %s, name it first: v = %s of %s, then v at %s[...]",
+				tok.Literal, id.Value, mc.Method, mc.Method, id.Value, tok.Literal, id.Value, tok.Literal, id.Value, mc.Method)
+		}
+	}
 	return &ast.FieldExpression{Token: tok, Field: tok.Literal, Object: obj}
 }
 

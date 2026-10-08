@@ -1,0 +1,18 @@
+// fib: recursive function calls. fib[27], best of 3.
+import time
+def fib[n]
+    if ] n < 2 [
+        return n
+    if [end]
+    return fib[n - 1] + fib[n - 2]
+def [end]
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    result = fib[27]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "result=", result, " ms=", best .

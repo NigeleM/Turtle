@@ -643,8 +643,8 @@ show "x={x}" .`, "x=none\n"},
 
 func TestNoneArithmeticIsFatal(t *testing.T) {
 	_, err := run(t, `show none - 1 .`, "")
-	if err == nil || !strings.Contains(err.Error(), "NONE") {
-		t.Fatalf("want a type error naming NONE, got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "got none and integer") {
+		t.Fatalf("want a type error naming none, got %v", err)
 	}
 }
 
@@ -1114,7 +1114,7 @@ show z of a .`, wantErr: `A has no field "z" (its fields: x)`},
 a = A[1]
 z of a = 2`, wantErr: `A has no field "z"`},
 		{name: "field of a non-assembled value", src: `n = 5
-show x of n .`, wantErr: "'x of' needs an assembled value, a map, a date or an error, got INTEGER"},
+show x of n .`, wantErr: "'x of' needs an assembled value, a map, a date or an error, got integer"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -1158,7 +1158,7 @@ show join[words] .
 show join[list [1, 2.5, true], "-"] .
 show join[list [], ","] == "" .`, want: "a, b, c\nabc\n1-2.5-true\ntrue\n"},
 		{name: "join needs a list", src: `import strings
-show join["abc", ","] .`, wantErr: "'join' needs a list or set, got STRING"},
+show join["abc", ","] .`, wantErr: "'join' needs a list or set, got string"},
 		{name: "partial import", src: `import strings [join]
 show find["ab", "b"] .`, wantErr: `"find" isn't imported`},
 	}
@@ -2094,16 +2094,16 @@ add 2 to t .
 show a, " ", b, " ", s, " ", t .`, want: "[ 1 ] [ 1, 2 ] { 1 } { 1, 2 }\n"},
 		{name: "equal values count once", src: `show change list [1, 1.0, "1"] to set .`, want: "{ 1, \"1\" }\n"},
 		{name: "empty", src: `show change list [] to set .`, want: "{  }\n"},
-		{name: "number to list", src: `x = change 5 to list`, wantErr: "change: can't convert INTEGER to list"},
+		{name: "number to list", src: `x = change 5 to list`, wantErr: "change: can't convert integer to list"},
 		{name: "map gives its keys", src: `show change map ["a": 1, "b": 2] to list, change map ["a": 1] to set .`, want: "[ \"a\", \"b\" ]{ \"a\" }\n"},
 		{name: "string gives its characters", src: `show change "héllo" to list, change "aab" to set .`, want: "[ \"h\", \"é\", \"l\", \"l\", \"o\" ]{ \"a\", \"b\" }\n"},
-		{name: "boolean to set", src: `x = change true to set`, wantErr: "change: can't convert BOOLEAN to set"},
+		{name: "boolean to set", src: `x = change true to set`, wantErr: "change: can't convert boolean to set"},
 		{name: "unknown target lists the types", src: `x = change 5 to tuple`, wantErr: "want integer, float, string, ascii, char, hex, list, set, keys, or values"},
 		{name: "a map's keys or values", src: `ages = map ["ann": 30, "bo": 25]
 show change ages to keys, change ages to values, change ages to list .
 change ages to values .
 show ages .`, want: "[ \"ann\", \"bo\" ][ 30, 25 ][ \"ann\", \"bo\" ]\n[ 30, 25 ]\n"},
-		{name: "keys need a map", src: `x = change list [1] to keys`, wantErr: "change ... to keys: needs a map, got LIST"},
+		{name: "keys need a map", src: `x = change list [1] to keys`, wantErr: "change ... to keys: needs a map, got list"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -2185,9 +2185,9 @@ handle [file] e .
     show e .
 safe [end]`, want: "line 3: json_read nope.json: no such file or folder\n"},
 		{name: "function can't be JSON", src: `import json
-t = json_text[x give x]`, wantErr: "json_text: a FUNCTION can't be written as JSON"},
+t = json_text[x give x]`, wantErr: "json_text: a function can't be written as JSON"},
 		{name: "boolean key can't be JSON", src: `import json
-t = json_text[map [true: 1]]`, wantErr: "a map key that's a BOOLEAN can't be a JSON key"},
+t = json_text[map [true: 1]]`, wantErr: "a map key that's a boolean can't be a JSON key"},
 		{name: "self-containing list", src: `import json
 l = list [1]
 add l to l .
@@ -2197,7 +2197,7 @@ l = list [1]
 show json_text[list [l, l]] .`, want: "[[1],[1]]\n"},
 		{name: "needs import", src: `d = load["1"]`, wantErr: `"load" needs "import json" first`},
 		{name: "load needs text", src: `import json
-d = load[5]`, wantErr: `"load" argument must be a string, got INTEGER`},
+d = load[5]`, wantErr: `"load" argument must be a string, got integer`},
 		{name: "json_get needs a key", src: `import json
 d = json_get[map []]`, wantErr: "'json_get' expects a value and at least one key or index"},
 	}
@@ -2348,9 +2348,9 @@ safe [end]`, want: "date\n"},
 		{name: "bad unit", src: `import time
 d = add_time[today[], 1, "fortnights"]`, wantErr: "'add_time' unit must be one of seconds, minutes, hours, days, weeks, months, years, got \"fortnights\""},
 		{name: "amount must be whole", src: `import time
-d = add_time[today[], 1.5, "days"]`, wantErr: "'add_time' amount must be a whole number, got FLOAT"},
+d = add_time[today[], 1.5, "days"]`, wantErr: "'add_time' amount must be a whole number, got float"},
 		{name: "needs a date", src: `import time
-d = add_time["2026-01-01", 1, "days"]`, wantErr: "'add_time' needs a date (from today[], make_date or to_date), got STRING"},
+d = add_time["2026-01-01", 1, "days"]`, wantErr: "'add_time' needs a date (from today[], make_date or to_date), got string"},
 		{name: "unknown part", src: `import time
 show week of today[] .`, wantErr: `a date has no part "week" (its parts: year, month, day, hour, minute, second, weekday, zone)`},
 		{name: "parts are read-only", src: `import time
@@ -2361,7 +2361,7 @@ every[1, "days", x give x]`, wantErr: "'every' runs a function with no parameter
 		{name: "every needs a positive amount", src: `import time
 every[0, "days", [] give false]`, wantErr: "'every' amount must be at least 1"},
 		{name: "compare a date with text", src: `import time
-x = today[] < "2026"`, wantErr: "needs two numbers, two strings or two dates, got DATE and STRING"},
+x = today[] < "2026"`, wantErr: "needs two numbers, two strings or two dates, got date and string"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -2472,7 +2472,7 @@ x = http_get["ftp://example.com"]`, wantErr: `http_get: "ftp://example.com" isn'
 		{name: "headers must be a map", src: `import http
 x = http_request["GET", base + "/hello", none, list []]`, wantErr: "'http_request' headers must be a map"},
 		{name: "body can't be a number", src: `import http
-x = http_post[base + "/echo", 5]`, wantErr: "'http_post' body must be text, or a map or list to send as JSON, got INTEGER"},
+x = http_post[base + "/echo", 5]`, wantErr: "'http_post' body must be text, or a map or list to send as JSON, got integer"},
 		{name: "needs import", src: `x = http_get[base]`, wantErr: `"http_get" needs "import http" first`},
 	}
 	for _, c := range cases {
@@ -2575,9 +2575,9 @@ db = sql_open["books.db"]
 r = sql_query[db, "SELECT ?", 5]`, wantErr: "values for the ? placeholders must be a list"},
 		{name: "unsupported value", src: `import sql
 db = sql_open["books.db"]
-r = sql_query[db, "SELECT ?", list [list [1]]]`, wantErr: "value 1 for a ? placeholder can't be a LIST"},
+r = sql_query[db, "SELECT ?", list [list [1]]]`, wantErr: "value 1 for a ? placeholder can't be a list"},
 		{name: "needs a database", src: `import sql
-r = sql_query["books.db", "SELECT 1"]`, wantErr: "'sql_query' needs a database (from sql_open), got STRING"},
+r = sql_query["books.db", "SELECT 1"]`, wantErr: "'sql_query' needs a database (from sql_open), got string"},
 		{name: "needs import", src: `db = sql_open["books.db"]`, wantErr: `"sql_open" needs "import sql" first`},
 	}
 	for _, c := range cases {
@@ -2660,7 +2660,7 @@ show tablerows .`, want: "1\n"},
 tablerows = "ten"
 show table[list [1]] .`, wantErr: "tablerows must be a whole number of 0 or more"},
 		{name: "bad argument", src: `import data
-show table[5] .`, wantErr: "'table' needs a list, set, map, or assembled value, got INTEGER"},
+show table[5] .`, wantErr: "'table' needs a list, set, map, or assembled value, got integer"},
 		{name: "needs import", src: `show table[list [1]] .`, wantErr: `"table" needs "import data" first`},
 	}
 	for _, c := range cases {
@@ -2874,7 +2874,7 @@ r = table_read["twice.csv"]`, wantErr: "the header names \"a\" twice"},
 		{name: "missing file", src: `import data
 r = table_read["nope.csv"]`, wantErr: "table_read nope.csv"},
 		{name: "write needs a collection", src: `import data
-table_write["x.csv", 5]`, wantErr: "'table_write' needs a list, set, map, or assembled value, got INTEGER"},
+table_write["x.csv", 5]`, wantErr: "'table_write' needs a list, set, map, or assembled value, got integer"},
 		{name: "write to a missing folder", src: `import data
 table_write["no/such/x.csv", list [1]]`, wantErr: "table_write no/such/x.csv"},
 	}
@@ -3284,7 +3284,7 @@ put 2 to nums at 1 .`, wantErr: "index 1 out of range for list nums (length 1)"}
 		{name: "negative", src: `nums = list [1]
 r = nums at put[2, -1]`, wantErr: "index -1 out of range"},
 		{name: "a map", src: `m = map ["a": 1]
-put 2 to m at 0 .`, wantErr: "'put ... to m' needs a list, got MAP"},
+put 2 to m at 0 .`, wantErr: "'put ... to m' needs a list, got map"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

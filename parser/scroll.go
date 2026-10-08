@@ -261,3 +261,28 @@ func startsValue(t token.Type) bool {
 	}
 	return false
 }
+
+// parseDiagnoseBlock parses "diagnose" on a line of its own, the lines
+// under it, and "diagnose [end]". curToken is "diagnose".
+func (p *Parser) parseDiagnoseBlock() ast.Statement {
+	tok := p.curToken
+	body := p.parseBlockUntil(p.isDiagnoseEnd)
+	if !p.isDiagnoseEnd() {
+		p.unclosedError(tok, "this diagnose", "diagnose [end]")
+		return nil
+	}
+	end := p.curToken.Line
+	p.nextToken() // -> [
+	p.nextToken() // -> end
+	p.nextToken() // -> ]
+	p.nextToken()
+	if p.lines == nil {
+		p.lines = strings.Split(p.l.Input(), "\n")
+	}
+	return &ast.DiagnoseStatement{Token: tok, Body: body, End: end, Lines: p.lines}
+}
+
+func (p *Parser) isDiagnoseEnd() bool {
+	return p.curTokenIs(token.IDENT) && p.curToken.Literal == "diagnose" &&
+		p.peekN(1).Type == token.LBRACKET && p.peekN(2).Type == token.END && p.peekN(3).Type == token.RBRACKET
+}

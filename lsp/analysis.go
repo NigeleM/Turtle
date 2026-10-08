@@ -63,6 +63,9 @@ func analyze(uri, path, src string, t *text) *analysis {
 		// follows it.
 		a.diags = append(a.diags, diagnostic{Range: errorRange(t, errs[0]), Severity: severityError, Source: "turtle", Message: errs[0].Msg})
 	}
+	for _, w := range p.Warnings() {
+		a.diags = append(a.diags, diagnostic{Range: errorRange(t, w), Severity: severityWarning, Source: "turtle", Message: w.Msg})
+	}
 	l := lexer.New(src)
 	for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
 		if tok.Type == token.IDENT {

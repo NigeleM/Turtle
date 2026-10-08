@@ -89,3 +89,13 @@ func (it *Interpreter) traceAssign(t *traceLine, name, value string) {
 	it.traceClose()
 	fmt.Fprintf(it.Trace, "%-*s  %s = %s\n", traceWidth, t.where+"  ...", name, value)
 }
+
+// tracePass writes a loop pass's line under turtle trace (and in a
+// diagnose block): its number, and the loop's names.
+func (it *Interpreter) tracePass(n int, names string) {
+	it.traceClose()
+	if names != "" {
+		names = ": " + names
+	}
+	fmt.Fprintf(it.Trace, "%*s  pass %d%s\n", traceWidth, "", n, names)
+}

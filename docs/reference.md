@@ -129,6 +129,11 @@ Truthiness (conditions, `&&`, `||`, `!`), the Python rule: `false`,
 everything else is truthy. So `if ] matches [` means "if there are any
 matches". `matches at isempty` asks the same thing explicitly.
 
+`&&` and `||` stop as soon as the answer is known, as in other languages:
+in `x != none && x > 5` the `x > 5` only runs when `x` isn't `none`, and
+in `found || search[]` the search only runs when nothing was found.
+Either way the result is `true` or `false`.
+
 `+` and `-` on two collections of the same kind always make a new one;
 neither side changes:
 
@@ -511,6 +516,15 @@ give [end]
 The expression form's body runs to the end of the expression, so inside a
 call's `[...]` it stops at the next `,` or `]`.
 
+### Methods as functions
+
+A method can also be called like a function, the value it works on going
+first, and so also as a sentence: `trim[s]` and `s trim` are `s at trim`;
+`round[x, 2]` and `x round 2` are `x at round[2]`; `get[nums, 0]` is
+`nums at get[0]`. A function of the program's own, or a library's, with
+the same name comes first. Methods that need an import (`round` needs
+`import math`) need it in every form.
+
 ### Sentence-style calls
 
 ```
@@ -740,7 +754,7 @@ diagnose scroll (line 1)
   start          3
   1 add1       → returned 4
   2 shownumber → returned nothing (none)   is none expected!?
-  3 double     ✗ failed: operator "*" needs two numbers, got NONE and INTEGER
+  3 double     ✗ failed: operator "*" needs two numbers, got none and integer
                  (it was given none, from step 2)
 type
 ```
@@ -757,6 +771,43 @@ program, or goes to a `safe` block, as usual.
 - Only Turtle's errors are traced: `exit[]` and Ctrl-C still stop the program.
 - A program's own function called `diagnose` wins over this one.
 - `turtle trace` also shows each scroll step's result as the program runs.
+
+### Looking inside any code: the `diagnose` block
+
+`diagnose` on a line of its own starts a block, ended by `diagnose [end]`.
+The code in it runs as usual; `diagnose` shows each line as it runs, the
+value each assignment gave, and each loop pass with its names. An error
+in it is shown and the program goes on after `diagnose [end]`.
+
+```
+nums = list [4, 7]
+diagnose
+    total = 0
+    [loop][x in nums]
+        total = total + x
+    [loop][end]
+    avg = total / 0
+diagnose [end]
+show "after: ", total .
+```
+
+```
+diagnose (lines 3-7)
+  line 3       total = 0                    total = 0
+  line 4       [loop][x in nums]
+                                            pass 1: x = 4
+  line 5           total = total + x        total = 4
+                                            pass 2: x = 7
+  line 5           total = total + x        total = 11
+  line 7       avg = total / 0
+  ✗ failed: math error: line 7: division by zero
+after: 11
+```
+
+- It shows the first 60 lines, then how many more there were (a long loop).
+- Lines of functions called from the block show too, as in `turtle trace`.
+- It ends with `finished`, or `✗ failed:` and the error.
+- `turtle fmt` indents the block, and the REPL waits for `diagnose [end]`.
 
 ## None
 
@@ -781,7 +832,21 @@ turtle: report.trt, line 2: this line needs a '.' at the end
 ```
 
 Only the first is shown: the ones after it are usually the same mistake
-seen again. Habits from other languages get a pointer to Turtle's way:
+seen again.
+
+**Notes.** Some lines are valid but probably don't do what they seem to.
+Turtle runs them as written and shows a note first (editors underline
+them):
+
+```
+turtle: note: report.trt, line 4: at round works on b only, not on the whole / expression; to round the whole value, store it first: v = ... / b, then v at round
+```
+
+A method works on the value right before it, so `a / b at round[1]`
+rounds `b`. And `params of req at get["id"]` gets `"id"` from `req`
+(the `get` goes first, as in `title of books at get[0]`); when that fails,
+the error says so and how to write it: `v = params of req`, then
+`v at get["id"]`. Habits from other languages get a pointer to Turtle's way:
 `if x > 0 [` (`if ] x > 0 [`), `if ] x = 1 [` (`==`), `x.upper()`
 (`x at upper`), `f(1)` (`f[1]`), `for x in` (`[loop][x in nums]`), a
 block or a quote never closed. Editors show the same message, under the
@@ -976,6 +1041,7 @@ Statement-form operations (all require a trailing `.`):
 
 ```
 add <expr> to <ident> .
+add <expr> to <ident> at <key> .  // map only: ages["Cy"] = 12 is add 12 to ages at "Cy" .
 remove <expr> from <ident> .
 delete <expr> from <ident> .      // map only
 sort <ident> .

@@ -62,6 +62,20 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 
 	case *ast.InfixExpression:
 		left := it.evalExpression(e.Left, env)
+		// && and || stop as soon as the answer is known, as in other
+		// languages: "x != none && x > 5" never compares none.
+		switch e.Operator {
+		case "&&":
+			if !isTruthy(left) {
+				return &object.Boolean{Value: false}
+			}
+			return &object.Boolean{Value: isTruthy(it.evalExpression(e.Right, env))}
+		case "||":
+			if isTruthy(left) {
+				return &object.Boolean{Value: true}
+			}
+			return &object.Boolean{Value: isTruthy(it.evalExpression(e.Right, env))}
+		}
 		right := it.evalExpression(e.Right, env)
 		return evalInfix(e.Operator, left, right)
 
@@ -158,7 +172,7 @@ func evalPrefix(op string, right object.Object) object.Object {
 		case *object.Float:
 			return &object.Float{Value: -v.Value}
 		}
-		fatalf("unary '-' needs a number, got %s", right.Type())
+		fatalf("unary '-' needs a number, got %s", typeName(right))
 	case "!":
 		return &object.Boolean{Value: !isTruthy(right)}
 	}
@@ -200,9 +214,9 @@ func evalInfix(op string, left, right object.Object) object.Object {
 		case lNone && rNone:
 			return object.NoneValue
 		case isCollection(left) || isCollection(right):
-			fatalf("'+' can't add %s and %s — a list, set or map only adds to another of its own kind, e.g. list [1] + list [2]", left.Type(), right.Type())
+			fatalf("'+' can't add %s and %s — a list, set or map only adds to another of its own kind, e.g. list [1] + list [2]", typeName(left), typeName(right))
 		case lNone || rNone:
-			fatalf("'+' can't add %s and %s — none only adds to none; check for it first, e.g. if ] x != none [", left.Type(), right.Type())
+			fatalf("'+' can't add %s and %s — none only adds to none; check for it first, e.g. if ] x != none [", typeName(left), typeName(right))
 		}
 	}
 	// '+' overloads to string concatenation whenever either side isn't a
@@ -225,7 +239,7 @@ func evalInfix(op string, left, right object.Object) object.Object {
 	switch op {
 	case "-", "*", "/", "div", "%":
 		if !lIsNum || !rIsNum {
-			fatalf("operator %q needs two numbers, got %s and %s", op, left.Type(), right.Type())
+			fatalf("operator %q needs two numbers, got %s and %s", op, typeName(left), typeName(right))
 		}
 		bothInt := lIsInt && rIsInt
 		switch op {
@@ -298,7 +312,7 @@ func evalInfix(op string, left, right object.Object) object.Object {
 		if lok && rok {
 			return &object.Boolean{Value: compareNum(op, float64(ld.Time.Unix()), float64(rd.Time.Unix()))}
 		}
-		fatalf("operator %q needs two numbers, two strings or two dates, got %s and %s", op, left.Type(), right.Type())
+		fatalf("operator %q needs two numbers, two strings or two dates, got %s and %s", op, typeName(left), typeName(right))
 	case "==":
 		return &object.Boolean{Value: valuesEqual(left, right)}
 	case "!=":
@@ -422,7 +436,7 @@ func evalChange(typeName string, val object.Object) object.Object {
 	case "ascii":
 		s, ok := val.(*object.String)
 		if !ok {
-			fatalf("change ... to ascii needs a single-character string, got %s", val.Type())
+			fatalf("change ... to ascii needs a single-character string, got %s", typeNameOf(val))
 		}
 		runes := []rune(s.Value)
 		if len(runes) != 1 {
@@ -432,7 +446,7 @@ func evalChange(typeName string, val object.Object) object.Object {
 	case "char":
 		n, ok := val.(*object.Integer)
 		if !ok {
-			fatalf("change ... to char needs an integer code point, got %s", val.Type())
+			fatalf("change ... to char needs an integer code point, got %s", typeNameOf(val))
 		}
 		if n.Value < 0 || n.Value > utf8.MaxRune {
 			fatalKind(kindNumber, "change ... to char: %d is not a valid code point", n.Value)
@@ -461,7 +475,7 @@ func evalChange(typeName string, val object.Object) object.Object {
 		// A map's keys or values, as a new list, in the map's order.
 		m, ok := val.(*object.Map)
 		if !ok {
-			fatalf("change ... to %s: needs a map, got %s (for a list or set, change it to list)", typeName, val.Type())
+			fatalf("change ... to %s: needs a map, got %s (for a list or set, change it to list)", typeName, typeNameOf(val))
 		}
 		out := &object.List{Elements: make([]object.Object, len(m.Keys))}
 		for i, k := range m.Keys {
@@ -484,7 +498,7 @@ func evalChange(typeName string, val object.Object) object.Object {
 	default:
 		fatalf("change: unknown target type %q (want integer, float, string, ascii, char, hex, list, set, keys, or values)", typeName)
 	}
-	fatalf("change: can't convert %s to %s", val.Type(), typeName)
+	fatalf("change: can't convert %s to %s", typeNameOf(val), typeName)
 	return nil
 }
 
@@ -582,8 +596,13 @@ func (it *Interpreter) callByName(name string, args []object.Object, env *object
 			requireModule(env, mod.Name, name)
 		}
 	}
-	if slices.Contains(syntax.Methods, name) {
-		fatalKind(kindName, "%s is a method, not a function: write it after a value with at, as in x at %s", name, name)
+	// A method in function form, trim[s] (s at trim), or as a sentence,
+	// s trim: the first value is what it works on.
+	if slices.Contains(syntax.Methods, name) || oldMethodNames[name] != "" {
+		if len(args) == 0 {
+			fatalf("%s needs a value to work on: %s[x], x %s, or x at %s", name, name, name, name)
+		}
+		return it.applyMethod(&ast.MethodCallExpression{Method: name, Bracketed: true}, args[0], args[1:], env)
 	}
 	fatalKind(kindName, "undefined function %q", name)
 	return nil
@@ -802,9 +821,9 @@ func fieldOf(obj object.Object, field string) (*object.Assembly, int) {
 	if !ok {
 		switch obj.(type) {
 		case *object.List, *object.Set:
-			fatalf("'%s of' needs one assembled value or map, but this is a %s; for one item's %s, write %s of items at get[0]", field, strings.ToLower(string(obj.Type())), field, field)
+			fatalf("'%s of' needs one assembled value or map, but this is a %s; for one item's %s, write %s of items at get[0]", field, strings.ToLower(string(typeName(obj))), field, field)
 		}
-		fatalf("'%s of' needs an assembled value, a map, a date or an error, got %s", field, obj.Type())
+		fatalf("'%s of' needs an assembled value, a map, a date or an error, got %s", field, typeName(obj))
 	}
 	i := a.Shape.Index(field)
 	if i < 0 {

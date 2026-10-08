@@ -385,3 +385,29 @@ func TestShapeWordsMatch(t *testing.T) {
 		}
 	}
 }
+
+func TestWarnings(t *testing.T) {
+	cases := []struct {
+		src  string
+		want string // "" for no warning
+	}{
+		{"x = a / b at round[1]", "at round works on b only, not on the whole / expression"},
+		{"x = a + b at fixed[2]", "at fixed works on b only"},
+		{"x = a / b", ""},
+		{"x = i at sqrt + i at round", ""}, // a method on each term
+		{"x = \"a\" + s at upper", ""},     // not a finishing method
+		{"x = a * 2 at fixed[1]", ""},      // on a plain number
+		{"v = a / b\nx = v at round[1]", ""},
+	}
+	for _, c := range cases {
+		p := New(lexer.New(c.src))
+		p.ParseProgram()
+		ws := p.Warnings()
+		switch {
+		case c.want == "" && len(ws) > 0:
+			t.Errorf("%q: unexpected warning %v", c.src, ws)
+		case c.want != "" && (len(ws) == 0 || !strings.Contains(ws[0].Msg, c.want)):
+			t.Errorf("%q: got %v, want %q", c.src, ws, c.want)
+		}
+	}
+}

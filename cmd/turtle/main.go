@@ -138,6 +138,13 @@ func runWatched(src, dir, script string, args []string, mode string) int {
 		fmt.Fprintf(os.Stderr, "turtle: %s, %s\n", where, parser.Format(src, errs[0]))
 		return 1
 	}
+	for _, w := range p.Warnings() {
+		where := script
+		if where == "" {
+			where = "input"
+		}
+		fmt.Fprintf(os.Stderr, "turtle: note: %s, line %d: %s\n", where, w.Line, w.Msg)
+	}
 	it := evaluator.New(dir)
 	it.Script = script
 	it.Args = args // everything after the script path: system's args[]

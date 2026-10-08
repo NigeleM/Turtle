@@ -68,11 +68,16 @@ func TestNumberAndTextFormatting(t *testing.T) {
 
 func TestRangeReduceSum(t *testing.T) {
 	cases := []struct{ src, want string }{
-		{"import data\nshow range[1, 5] .", "[ 1, 2, 3, 4, 5 ]\n"},
-		{"import data\nr = 1 range 5\nshow r .", "[ 1, 2, 3, 4, 5 ]\n"},
-		{"import data\nshow range[0, 10, 2] .", "[ 0, 2, 4, 6, 8, 10 ]\n"},
-		{"import data\nshow range[5, 1] .", "[ 5, 4, 3, 2, 1 ]\n"},
-		{"import data\n[loop][i in 1 range 3]\n    show i .\n[loop][end]", "1\n2\n3\n"},
+		{"import data\nshow range[5] .", "[ 0, 1, 2, 3, 4 ]\n"},
+		{"import data\nshow range[1, 5] .", "[ 1, 2, 3, 4 ]\n"},
+		{"import data\nr = 1 range 5\nshow r .", "[ 1, 2, 3, 4 ]\n"},
+		{"import data\nshow range[0, 10, 2] .", "[ 0, 2, 4, 6, 8 ]\n"},
+		{"import data\nshow range[0, 9, 3] .", "[ 0, 3, 6 ]\n"},
+		{"import data\nshow range[5, 0, -1] .", "[ 5, 4, 3, 2, 1 ]\n"},
+		{"import data\nshow range[10, 0, -3] .", "[ 10, 7, 4, 1 ]\n"},
+		{"import data\nshow range[5, 1], range[0], range[3, 3] .", "[  ][  ][  ]\n"},
+		{"import data\nshow range[-2, 2] .", "[ -2, -1, 0, 1 ]\n"},
+		{"import data\n[loop][i in 1 range 4]\n    show i .\n[loop][end]", "1\n2\n3\n"},
 		{"import data\nnums = list [1, 2, 3]\nshow reduce[nums, 0, [t, x] give t + x] .", "6\n"},
 		{"import data\nnums = list [1, 2, 3]\ntotal = nums reduce 0, [t, x] give t + x\nshow total .", "6\n"},
 		{"import data\nc = list [\"t\", \"u\"]\nw = c reduce \"\", [w, x] give w + x\nshow w .", "tu\n"},
@@ -179,7 +184,8 @@ show typeof[3.14159 at round[2]], " ", typeof[1234 at round[-2]] .`
 		"import math\nx = 2.5 at round[2, 3]": "'round' takes nothing, or how many places",
 		"import math\nx = 2.5 at round[99]":   "from -15 to 15",
 		"import math\nx = 2.5 at round[1.5]":  "from -15 to 15",
-		"x = fixed[2]":                        "fixed is a method, not a function: write it after a value with at",
+		"x = fixed[2]":                        `method "fixed" expects 1 argument(s), got 0`,
+		"x = trim[]":                          "trim needs a value to work on: trim[x], x trim, or x at trim",
 	} {
 		if _, err := run(t, src, ""); err == nil || !strings.Contains(err.Error(), msg) {
 			t.Errorf("%q: got %v, want %q", src, err, msg)

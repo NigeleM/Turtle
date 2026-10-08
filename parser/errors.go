@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"Turtle/ast"
 	"Turtle/token"
 )
 
@@ -208,4 +209,44 @@ func Format(src string, e Error) string {
 	num := fmt.Sprint(e.Line)
 	gutter := strings.Repeat(" ", len(num))
 	return fmt.Sprintf("%s\n  %s | %s\n  %s | %s^", out, num, text, gutter, pad.String())
+}
+
+// Warnings are spots that are valid but probably don't do what they
+// seem to, like "a / b at round[1]" (which rounds only b). Programs run
+// as written; turtle and editors show them as notes.
+func (p *Parser) Warnings() []Error { return p.warnings }
+
+func (p *Parser) warnAt(line, pos int, format string, args ...interface{}) {
+	p.warnings = append(p.warnings, Error{Line: line, Pos: pos, Msg: fmt.Sprintf(format, args...)})
+}
+
+// finishingMethods usually finish a result (rounding, formatting); after
+// an operator they apply only to the value right before them, which is
+// rarely what's meant.
+var finishingMethods = map[string]bool{"round": true, "floor": true, "ceil": true, "fixed": true, "commas": true}
+
+// checkMethodOnRight warns about "a / b at round[1]": the method works on
+// b only, not on a / b.
+func (p *Parser) checkMethodOnRight(op token.Token, left, right ast.Expression) {
+	if _, perTerm := left.(*ast.MethodCallExpression); perTerm {
+		return // "x at floor + y at floor": each term on purpose
+	}
+	switch op.Literal {
+	case "+", "-", "*", "/", "div", "%":
+	default:
+		return
+	}
+	mc, ok := right.(*ast.MethodCallExpression)
+	if !ok || !finishingMethods[mc.Method] {
+		return
+	}
+	what := "the value just before it"
+	switch r := mc.Receiver.(type) {
+	case *ast.Identifier:
+		what = r.Value
+	case *ast.IntegerLiteral, *ast.FloatLiteral:
+		return // "x * 2 at fixed[1]" on a literal is clear enough
+	}
+	p.warnAt(mc.Token.Line, mc.Token.Pos, "at %s works on %s only, not on the whole %s; to %s the whole value, store it first: v = ... %s %s, then v at %s",
+		mc.Method, what, op.Literal+" expression", mc.Method, op.Literal, what, mc.Method)
 }

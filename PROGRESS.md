@@ -1049,3 +1049,38 @@ safe [end]
   module, config, scrolls, diagnose, closures, loops, errors, time zones,
   JSON, crypt, patterns, SQLite, files, log, random, runall, and a web
   API it calls itself); 60 checks, run by TestBookshopScript in CI.
+
+## 2026-10-07: the diagnose block (released v0.9.163)
+
+- `diagnose` on a line of its own ... `diagnose [end]`: the lines run as
+  usual; each line, each assignment's value and each loop pass show (the
+  first 60 lines, then a count); an error shows and the program goes on.
+  The diagnose[...] function is unchanged.
+- turtle trace now shows loop passes too (pass 2: x = 7), and no longer
+  repeats a C-style loop's header for its i++.
+- Fixed (pushed as 06572c1): database DATE/TIMESTAMP/DATETIME values came
+  back marked UTC and showed "UTC" after time zones; they're local again.
+
+## 2026-10-07: the user's fixes A-F, the benchmark (released v0.9.163)
+
+- A: `add 12 to ages at "Cy" .` gives a map (a dictionary) a key; the
+  `ages is ages at add[...] .` form still works.
+- B: `&&` and `||` short-circuit (found by the benchmark: `best == none ||
+  took < best` compared none).
+- C: notes (warnings) for valid lines that probably don't mean what they
+  seem: `a / b at round[1]` (only round, floor, ceil, fixed, commas, and
+  not when the left side has its own method); turtle prints them before
+  running, editors underline them. An error from `x of y at get[...]`
+  adds a hint (name it first).
+- D: methods in function and sentence form: trim[s], s trim, round[x, 2],
+  get[nums, 0]; own and library functions come first.
+- E: range works like Python and Go: the end is left out; range[5] is
+  0..4; a negative step counts down; range[5, 1] is empty. (Breaking.)
+- F: error messages use typeof's lowercase names (got none and integer).
+- The parser bug the benchmark found: an operator right after a text over
+  several lines ("Dear\n" + name) was cut off. Fixed.
+- bench/: 10 benchmarks in Turtle, Python, Node, Ruby and Go, with a
+  runner written in Turtle (bench/run.trt -> RESULTS.md). Turtle is 2-5x
+  slower than Python on most work, 10-13x on function calls and tight
+  indexing loops; it starts fastest (6 ms). Profiles: allocation/GC ~30%,
+  name lookups ~17%.

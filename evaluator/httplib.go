@@ -43,7 +43,7 @@ func (it *Interpreter) callHTTP(name string, args []object.Object) object.Object
 		if len(args) == 4 {
 			m, ok := args[3].(*object.Map)
 			if !ok {
-				fatalf("'http_request' headers must be a map, e.g. map [\"Accept\": \"application/json\"], got %s", args[3].Type())
+				fatalf("'http_request' headers must be a map, e.g. map [\"Accept\": \"application/json\"], got %s", typeName(args[3]))
 			}
 			headers = m
 		}
@@ -98,7 +98,7 @@ func doHTTP(who, method, address string, body object.Object, headers *object.Map
 		reader = bytes.NewReader(toJSON(who, b, ""))
 		contentType = "application/json"
 	default:
-		fatalf("'%s' body must be text, or a map or list to send as JSON, got %s", who, body.Type())
+		fatalf("'%s' body must be text, or a map or list to send as JSON, got %s", who, typeName(body))
 	}
 	req, err := http.NewRequest(method, address, reader)
 	if err != nil {

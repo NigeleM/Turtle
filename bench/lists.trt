@@ -1,0 +1,24 @@
+// lists: 300,000 numbers from a fixed formula, sorted, then every
+// 1000th added up.
+import time
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    nums = list []
+    x = 1
+    [loop][i = 0; i < 300000; i++]
+        x = x * 1103515245 + 12345
+        x = x % 2147483648
+        add x to nums .
+    [loop][end]
+    sort nums .
+    total = 0
+    [loop][i = 0; i < 300000; i = i + 1000]
+        total = total + nums at get[i]
+    [loop][end]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "result=", total, " ms=", best .

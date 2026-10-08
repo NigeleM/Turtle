@@ -1,0 +1,15 @@
+// loop: a counting loop with arithmetic. Sum of i*i below 3,000,000.
+import time
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    total = 0
+    [loop][i = 0; i < 3000000; i++]
+        total = total + i * i % 1000000007
+    [loop][end]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "result=", total, " ms=", best .

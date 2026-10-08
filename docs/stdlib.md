@@ -357,7 +357,7 @@ when the caller's should stay as it was.
 | `keep` | collection, function | keeps only the elements (list/set) or entries (map) for which the function gives a truthy result: a filter |
 | `copy` | collection [, deep] | a new list/set/map/assembled value. `copy[x]`: the same items, so lists, maps or assembled values *inside* are shared; `copy[x, true]`: everything inside is copied too, so nothing is shared |
 
-| `range` | from, to [, step] | a list of the whole numbers from `from` to `to`, **both included**; counts down when `from` is bigger. `step` (1 or more) counts by that much; the direction still comes from `from` and `to` |
+| `range` | [from,] to [, step] | a list of the whole numbers from `from` (0 if left out) up to `to`, **not including** `to`, as in Python and Go: `range[5]` is 0 to 4. `step` counts by that much; a negative step counts down (`range[5, 0, -1]` is 5 to 1). Empty when the start is already past the end |
 | `reduce` | collection, start, function | one value: a running total that begins as `start` and, for each item (a map's values), becomes what `[total, x] give ...` gives. Changes nothing |
 | `sum` | collection | the numbers of a list or set (a map's values) added up: an `integer` if they all are, else a `float`; `0` when empty. Anything that isn't a number is an error |
 
@@ -369,11 +369,12 @@ Each has a call form and a sentence form:
 ```
 import data
 
-r = range[1, 5]                      // [ 1, 2, 3, 4, 5 ]
+r = range[5]                         // [ 0, 1, 2, 3, 4 ]: up to 5, not including it
+r = range[1, 5]                      // [ 1, 2, 3, 4 ]
 r = 1 range 5                        //   the same
-evens = range[0, 10, 2]              // [ 0, 2, 4, 6, 8, 10 ]
-down = 5 range 1                     // [ 5, 4, 3, 2, 1 ]
-[loop][i in 1 range 3]               // 1, 2, 3
+evens = range[0, 10, 2]              // [ 0, 2, 4, 6, 8 ]
+down = range[5, 0, -1]               // [ 5, 4, 3, 2, 1 ]
+[loop][i in 1 range 4]               // 1, 2, 3
     show i .
 [loop][end]
 

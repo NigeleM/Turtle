@@ -1,0 +1,17 @@
+// functional: process, keep and reduce over 300,000 numbers (map,
+// filter and reduce elsewhere), with small functions.
+import time
+import data
+best = 1000000000
+nums = range[1, 300001]
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    doubled = process[nums, n give n * 2]
+    thirds = keep[doubled, n give n % 3 == 0]
+    total = reduce[thirds, 0, [a, b] give a + b]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "result=", total, " ms=", best .

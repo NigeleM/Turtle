@@ -250,3 +250,123 @@ show d .`
 		t.Errorf("own diagnose: %q", got)
 	}
 }
+
+func TestDiagnoseBlock(t *testing.T) {
+	src := `nums = list [4, 7]
+diagnose
+    total = 0
+    [loop][x in nums]
+        total = total + x
+    [loop][end]
+    avg = total / 0
+    show "never" .
+diagnose [end]
+show "after: ", total .
+diagnose
+    [loop][i = 0; i < 2; i++]
+        y = i
+    [loop][end]
+diagnose [end]`
+	got, err := run(t, src, "")
+	if err != nil {
+		t.Fatalf("diagnose stopped the program: %v", err)
+	}
+	for _, want := range []string{
+		"diagnose (lines 3-8)\n  line 3       total = 0",
+		"pass 1: x = 4\n  line 5           total = total + x        total = 4",
+		"pass 2: x = 7",
+		"  ✗ failed: math error: line 7: division by zero\nafter: 11",
+		"pass 2: i = 1",
+		"  finished",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %q in:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "never") || strings.Contains(got, "i++]  i =") {
+		t.Errorf("unexpected output:\n%s", got)
+	}
+	// A long loop: the first lines, then a count.
+	got, _ = run(t, "diagnose\n    [loop][i = 0; i < 500; i++]\n        y = i\n    [loop][end]\ndiagnose [end]", "")
+	if !strings.Contains(got, "more lines\n  finished") || strings.Count(got, "\n") > 70 {
+		t.Errorf("long loop not cut short: %d lines", strings.Count(got, "\n"))
+	}
+	// Without its end.
+	p := parser.New(lexer.New("diagnose\n    x = 1\n"))
+	p.ParseProgram()
+	if errs := p.Errors(); len(errs) == 0 || !strings.Contains(errs[0], "diagnose [end]") {
+		t.Errorf("unclosed: %v", errs)
+	}
+}
+
+// An operator right after a text over several lines belongs to the same
+// expression (it used to be read as the start of a new line).
+func TestOperatorAfterMultilineText(t *testing.T) {
+	got, err := run(t, "name = \"Ann\"\nr = \"Dear\n\" + name + \",\nthanks.\" + \"!\"\nshow r .", "")
+	if err != nil || got != "Dear\nAnn,\nthanks.!\n" {
+		t.Errorf("got %q, %v", got, err)
+	}
+}
+
+// Methods in function form (trim[s]) and as sentences (s trim), besides
+// s at trim; the program's own and library functions keep their names.
+func TestMethodsAsFunctions(t *testing.T) {
+	cases := []struct{ src, want string }{
+		{"s = \"  Hi  \"\nshow trim[s], \"|\", upper[trim[s]] .", "Hi|HI"},
+		{"s = \"  Hi  \"\nt = s trim\nshow t .", "Hi"},
+		{"import math\nshow round[3.14159, 2] .", "3.14"},
+		{"import math\nx = 3.14159\nr = x round 2\nshow r .", "3.14"},
+		{"nums = list [3, 1, 2]\nshow get[nums, 0], len[nums], contains[nums, 2] .", "33true"},
+		{"m = map [\"a\": 1]\nshow getkeys[m] .", `[ "a" ]`},
+		{"def trim[x]\n    return \"mine\"\ndef [end]\nshow trim[\" a \"] .", "mine"},
+		{"show round[2.5] .", ""}, // needs import math, as x at round does
+	}
+	for _, c := range cases {
+		got, err := run(t, c.src, "")
+		if c.want == "" {
+			if err == nil || !strings.Contains(err.Error(), "import math") {
+				t.Errorf("%s: want the import math error, got %v", c.src, err)
+			}
+			continue
+		}
+		if err != nil || strings.TrimSpace(got) != c.want {
+			t.Errorf("%s: got %q, %v; want %q", c.src, got, err, c.want)
+		}
+	}
+}
+
+// The hint on "params of req at get[...]", where get works on req.
+func TestOfGetHint(t *testing.T) {
+	_, err := run(t, "req = map [\"params\": map [\"id\": \"7\"]]\nshow params of req at get[\"id\"] .", "")
+	if err == nil || !strings.Contains(err.Error(), "(hint: in params of req at get[...], the get works on req first; to take part of params of req, name it first: v = params of req, then v at get[...])") {
+		t.Errorf("got %v", err)
+	}
+}
+
+// add ... to a map at a key; the older form still works.
+func TestAddToMapAtKey(t *testing.T) {
+	got, err := run(t, "ages = map [\"Ann\": 30]\nadd 12 to ages at \"Cy\" .\nadd 31 to ages at \"Ann\" .\nages is ages at add[\"Bo\", 7] .\nshow ages .", "")
+	if err != nil || strings.TrimSpace(got) != `{ "Ann": 31, "Cy": 12, "Bo": 7 }` {
+		t.Errorf("got %q, %v", got, err)
+	}
+	_, err = run(t, "nums = list [1]\nadd 2 to nums at 0 .", "")
+	if err == nil || !strings.Contains(err.Error(), "insert ... to nums at ...") {
+		t.Errorf("list: %v", err)
+	}
+}
+
+// && and || stop as soon as the answer is known.
+func TestShortCircuit(t *testing.T) {
+	src := `x = none
+show x != none && x > 5, x == none || x < 5 .
+def boom[]
+    show "ran" .
+    return true
+def [end]
+show false && boom[], true || boom[] .
+show true && boom[] .`
+	got, err := run(t, src, "")
+	if err != nil || got != "falsetrue\nfalsetrue\nran\ntrue\n" {
+		t.Errorf("got %q, %v", got, err)
+	}
+}

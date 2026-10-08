@@ -1,0 +1,23 @@
+// strings: build 200,000 pieces of text, join them, split them back,
+// and add up the lengths.
+import time
+import strings
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    parts = list []
+    [loop][i = 0; i < 200000; i++]
+        add "item{i}" to parts .
+    [loop][end]
+    text = join[parts, ","]
+    back = text at split[","]
+    total = 0
+    [loop][p in back]
+        total = total + length of p
+    [loop][end]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "result=", total, " ms=", best .

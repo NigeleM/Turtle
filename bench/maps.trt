@@ -1,0 +1,19 @@
+// maps: 200,000 keys put in a map, then each looked up.
+import time
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    m = map []
+    [loop][i = 0; i < 200000; i++]
+        m is m at add["k{i}", i] .
+    [loop][end]
+    total = 0
+    [loop][i = 0; i < 200000; i++]
+        total = total + m at get["k{i}"]
+    [loop][end]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "result=", total, " ms=", best .

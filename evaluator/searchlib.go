@@ -27,7 +27,7 @@ func (it *Interpreter) callSearch(name string, args []object.Object) object.Obje
 		items, isMap := entriesOf(name, args[0])
 		test, ok := args[1].(*object.Function)
 		if !ok {
-			fatalf("'%s' needs a function that says yes or no (x give x > 3), got %s", name, args[1].Type())
+			fatalf("'%s' needs a function that says yes or no (x give x > 3), got %s", name, typeName(args[1]))
 		}
 		match := func(e entry) bool {
 			if isMap {
@@ -77,7 +77,7 @@ func (it *Interpreter) callSearch(name string, args []object.Object) object.Obje
 		requireFuncArgs(name, args, 2)
 		m, ok := args[0].(*object.Map)
 		if !ok {
-			fatalf("'find_key' needs a map, got %s", args[0].Type())
+			fatalf("'find_key' needs a map, got %s", typeName(args[0]))
 		}
 		for _, k := range m.Keys {
 			if object.Equal(m.Values[k], args[1]) {

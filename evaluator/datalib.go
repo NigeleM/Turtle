@@ -89,7 +89,7 @@ func dataCopy(args []object.Object) object.Object {
 	switch args[0].(type) {
 	case *object.List, *object.Set, *object.Map, *object.Assembly:
 	default:
-		fatalf("'copy' needs a list, set, map, or assembled value, got %s", args[0].Type())
+		fatalf("'copy' needs a list, set, map, or assembled value, got %s", typeName(args[0]))
 	}
 	if len(args) == 2 {
 		deep, ok := args[1].(*object.Boolean)
@@ -129,11 +129,11 @@ func collectionAndFunction(name string, args []object.Object) (object.Object, *o
 	switch args[0].(type) {
 	case *object.List, *object.Set, *object.Map:
 	default:
-		fatalf("'%s' needs a list, set, or map, got %s", name, args[0].Type())
+		fatalf("'%s' needs a list, set, or map, got %s", name, typeName(args[0]))
 	}
 	fn, ok := args[1].(*object.Function)
 	if !ok {
-		fatalf("'%s' needs a function (e.g. x give x + 1), got %s", name, args[1].Type())
+		fatalf("'%s' needs a function (e.g. x give x + 1), got %s", name, typeName(args[1]))
 	}
 	return args[0], fn
 }
@@ -220,11 +220,12 @@ func collectionOp(op string, left, right object.Object) (object.Object, bool) {
 // mistake (range[1, 10000000000]).
 const maxRange = 10_000_000
 
-// dataRange is range[from, to [, step]]: the whole numbers from from to to,
-// both included, counting down when from is bigger.
+// dataRange is range[end], range[from, to] or range[from, to, step]: the
+// whole numbers from from (0 if left out) up to, not including, to, as in
+// Python; a negative step counts down.
 func dataRange(args []object.Object) object.Object {
-	if len(args) != 2 && len(args) != 3 {
-		fatalf("'range' takes a start and an end, and optionally a step: range[1, 10] or range[0, 10, 2], got %d arguments", len(args))
+	if len(args) < 1 || len(args) > 3 {
+		fatalf("'range' takes an end, or a start and an end, and optionally a step: range[5], range[1, 10], range[10, 0, -2]; got %d arguments", len(args))
 	}
 	num := func(i int, what string) int64 {
 		n, ok := args[i].(*object.Integer)
@@ -233,18 +234,26 @@ func dataRange(args []object.Object) object.Object {
 		}
 		return n.Value
 	}
-	from, to := num(0, "start"), num(1, "end")
-	step := int64(1)
+	// As in Python: the end is left out. range[5] is 0 to 4.
+	from, to, step := int64(0), int64(0), int64(1)
+	if len(args) == 1 {
+		to = num(0, "end")
+	} else {
+		from, to = num(0, "start"), num(1, "end")
+	}
 	if len(args) == 3 {
 		step = num(2, "step")
-		if step <= 0 {
-			fatalKind(kindMath, "'range' step must be 1 or more (it counts down by itself when the start is bigger), got %d", step)
+		if step == 0 {
+			fatalKind(kindMath, "'range' step can't be 0 (use a negative step to count down: range[10, 0, -1])")
 		}
 	}
-	if from > to {
-		step = -step
+	count := int64(0)
+	switch {
+	case step > 0 && to > from:
+		count = (to - from + step - 1) / step
+	case step < 0 && to < from:
+		count = (from - to - step - 1) / -step
 	}
-	count := (to-from)/step + 1
 	if count > maxRange {
 		fatalKind(kindMath, "range[%d, %d] would be %d items; the most is %d", from, to, count, maxRange)
 	}
@@ -285,7 +294,7 @@ func reduceItems(x object.Object) []object.Object {
 		}
 		return vals
 	}
-	fatalf("'reduce' and 'sum' need a list, set or map, got %s", x.Type())
+	fatalf("'reduce' and 'sum' need a list, set or map, got %s", typeName(x))
 	return nil
 }
 

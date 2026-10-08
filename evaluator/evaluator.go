@@ -495,6 +495,9 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 	case *ast.SafeStatement:
 		return it.evalSafe(s, env)
 
+	case *ast.DiagnoseStatement:
+		return it.evalDiagnoseBlock(s, env)
+
 	case *ast.FailStatement:
 		val := it.evalExpression(s.Value, env)
 		fatalKind(kindCustom, "%s", val.Inspect())
@@ -583,11 +586,20 @@ func (it *Interpreter) evalLoop(s *ast.LoopStatement, env *object.Environment) E
 		}
 		env = loopEnv
 	}
-	for {
+	for n := 1; ; n++ {
 		if s.Condition != nil {
 			if !isTruthy(it.evalExpression(s.Condition, env)) {
 				break
 			}
+		}
+		if it.Trace != nil {
+			what := ""
+			if a, ok := s.Init.(*ast.AssignStatement); ok {
+				if v, ok := env.Get(a.Name); ok {
+					what = a.Name + " = " + object.Shown(v)
+				}
+			}
+			it.tracePass(n, what)
 		}
 		res := it.evalBlock(s.Body, env)
 		if res.Signal == SigBreak {
@@ -597,7 +609,10 @@ func (it *Interpreter) evalLoop(s *ast.LoopStatement, env *object.Environment) E
 			return res
 		}
 		if s.Kind == ast.LoopCStyle && s.Post != nil {
+			trace := it.Trace
+			it.Trace = nil // the pass line shows the counter
 			it.evalStatement(s.Post, env)
+			it.Trace = trace
 		}
 	}
 	return noneResult
@@ -630,7 +645,7 @@ func (it *Interpreter) evalEach(s *ast.LoopStatement, env *object.Environment) E
 			seconds = append(seconds, c.Values[k])
 		}
 	default:
-		fatalf("'[loop][... in ...]' needs a list, set, map, or string, got %s", c.Type())
+		fatalf("'[loop][... in ...]' needs a list, set, map, or string, got %s", typeName(c))
 	}
 	if firsts == nil {
 		for i := range seconds {
@@ -646,8 +661,14 @@ func (it *Interpreter) evalEach(s *ast.LoopStatement, env *object.Environment) E
 		if len(s.Vars) == 2 {
 			pass.Define(s.Vars[0], firsts[i])
 			pass.Define(s.Vars[1], seconds[i])
+			if it.Trace != nil {
+				it.tracePass(i+1, s.Vars[0]+" = "+object.Shown(firsts[i])+", "+s.Vars[1]+" = "+object.Shown(seconds[i]))
+			}
 		} else {
 			pass.Define(s.Vars[0], seconds[i])
+			if it.Trace != nil {
+				it.tracePass(i+1, s.Vars[0]+" = "+object.Shown(seconds[i]))
+			}
 		}
 		res := it.evalBlock(s.Body, pass)
 		if res.Signal == SigBreak {

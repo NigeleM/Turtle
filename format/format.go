@@ -181,6 +181,10 @@ func lineDepth(t []token.Token, stack []string) (int, []string, error) {
 		return close("loop")
 	case is(token.SAFE, token.LBRACKET, token.END):
 		return close("safe")
+	case len(t) == 4 && t[0].Type == token.IDENT && t[0].Literal == "diagnose" && is(token.IDENT, token.LBRACKET, token.END):
+		return close("diagnose")
+	case len(t) == 1 && t[0].Type == token.IDENT && t[0].Literal == "diagnose":
+		return open("diagnose")
 	case is(token.GIVES, token.LBRACKET, token.END):
 		return close("give")
 	case is(token.LBRACKET, token.END, token.RBRACKET):

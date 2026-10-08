@@ -1,0 +1,24 @@
+// patterns: 50,000 lines of text searched with a pattern for numbers,
+// which are added up.
+import time
+import strings
+import pattern
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    lines = list []
+    [loop][i = 0; i < 50000; i++]
+        add "id={i} name=item{i} qty={i % 7}" to lines .
+    [loop][end]
+    text = join[lines, "\n"]
+    found = findall[text, `qty=(\d+)`]
+    total = 0
+    [loop][q in found]
+        total = total + change q at slice[4] to integer
+    [loop][end]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "result=", total, " ms=", best .

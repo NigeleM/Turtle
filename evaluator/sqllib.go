@@ -206,7 +206,7 @@ func (it *Interpreter) callSQL(name string, args []object.Object) object.Object 
 		requireFuncArgs(name, args, 1)
 		d, ok := args[0].(*object.Database)
 		if !ok {
-			fatalf("'sql_close' needs a database (from sql_open), got %s", args[0].Type())
+			fatalf("'sql_close' needs a database (from sql_open), got %s", typeName(args[0]))
 		}
 		if !d.Closed {
 			d.Conn.(sqlConn).Close()
@@ -367,7 +367,7 @@ func (it *Interpreter) sqlOpen(target string) object.Object {
 func asDatabaseArg(fn string, obj object.Object) sqlConn {
 	d, ok := obj.(*object.Database)
 	if !ok {
-		fatalf("'%s' needs a database (from sql_open), got %s", fn, obj.Type())
+		fatalf("'%s' needs a database (from sql_open), got %s", fn, typeName(obj))
 	}
 	if d.Closed {
 		fatalKind(kindSQL, "%s: database %s is closed", fn, d.Name)
@@ -385,7 +385,7 @@ func sqlParams(fn string, rest []object.Object) []any {
 	case *object.List:
 		elems = l.Elements
 	default:
-		fatalf("'%s' values for the ? placeholders must be a list, e.g. list [1000], got %s", fn, rest[0].Type())
+		fatalf("'%s' values for the ? placeholders must be a list, e.g. list [1000], got %s", fn, typeName(rest[0]))
 	}
 	out := make([]any, len(elems))
 	for i, e := range elems {
@@ -407,7 +407,7 @@ func sqlParams(fn string, rest []object.Object) []any {
 		case *object.Date:
 			out[i] = sqlDateText(v)
 		default:
-			fatalf("'%s' value %d for a ? placeholder can't be a %s (use integers, floats, text, booleans, none or dates)", fn, i+1, e.Type())
+			fatalf("'%s' value %d for a ? placeholder can't be a %s (use integers, floats, text, booleans, none or dates)", fn, i+1, typeName(e))
 		}
 	}
 	return out

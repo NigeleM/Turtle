@@ -89,7 +89,7 @@ func (it *Interpreter) callTime(name string, args []object.Object) object.Object
 func asDateArg(fn string, obj object.Object) *object.Date {
 	d, ok := obj.(*object.Date)
 	if !ok {
-		fatalf("'%s' needs a date (from today[], make_date or to_date), got %s", fn, obj.Type())
+		fatalf("'%s' needs a date (from today[], make_date or to_date), got %s", fn, typeName(obj))
 	}
 	return d
 }
@@ -97,7 +97,7 @@ func asDateArg(fn string, obj object.Object) *object.Date {
 func asIntArg(fn, what string, obj object.Object) int {
 	n, ok := obj.(*object.Integer)
 	if !ok {
-		fatalf("'%s' %s must be a whole number, got %s", fn, what, obj.Type())
+		fatalf("'%s' %s must be a whole number, got %s", fn, what, typeName(obj))
 	}
 	return int(n.Value)
 }
@@ -338,7 +338,7 @@ func (it *Interpreter) every(args []object.Object) {
 	unit := asUnitArg("every", args[1])
 	fn, ok := args[2].(*object.Function)
 	if !ok {
-		fatalf("'every' needs a function to run (e.g. backup, or [] give ...), got %s", args[2].Type())
+		fatalf("'every' needs a function to run (e.g. backup, or [] give ...), got %s", typeName(args[2]))
 	}
 	if len(fn.Parameters) != 0 {
 		fatalf("'every' runs a function with no parameters, but this one takes %d", len(fn.Parameters))
@@ -361,7 +361,7 @@ func (it *Interpreter) every(args []object.Object) {
 func zoneArg(fn string, obj object.Object) *time.Location {
 	s, ok := obj.(*object.String)
 	if !ok {
-		fatalf("'%s' time zone must be text, like \"America/New_York\", got %s", fn, obj.Type())
+		fatalf("'%s' time zone must be text, like \"America/New_York\", got %s", fn, typeName(obj))
 	}
 	switch strings.ToLower(s.Value) {
 	case "local":

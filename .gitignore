@@ -10,3 +10,7 @@ testdata/sql/export_*.csv
 
 # the interpreter built at the repo root (go build -o turtle ./cmd/turtle)
 /turtle
+
+# the benchmark (bench/run.trt)
+bench/.turtle-bench
+__pycache__/

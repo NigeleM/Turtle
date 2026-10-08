@@ -192,15 +192,17 @@ table[...] shows. Change it like any variable; none shows every row.
     full = copy[rows, true]
 
 ### range[from, to, step]
-  The whole numbers from from to to, both included, as a list; counting
-  down when from is bigger. Sentence form: 1 range 5.
-  from, to   whole numbers
-  step       optional: 2 counts by twos (1 or more; the direction is
-             worked out from from and to)
+  The whole numbers from from up to, not including, to, as a list (as in
+  Python and Go). Sentence form: 1 range 5.
+  from       optional: 0 if left out (range[5] is 0 to 4)
+  to         where it stops, not included
+  step       optional: 2 counts by twos; a negative step counts down
   Example:
-    range[1, 5]          // [ 1, 2, 3, 4, 5 ]
-    range[0, 10, 2]      // [ 0, 2, 4, 6, 8, 10 ]
-    [loop][i in 1 range 3] ... [loop][end]
+    range[5]             // [ 0, 1, 2, 3, 4 ]
+    range[1, 5]          // [ 1, 2, 3, 4 ]
+    range[0, 10, 2]      // [ 0, 2, 4, 6, 8 ]
+    range[5, 0, -1]      // [ 5, 4, 3, 2, 1 ]
+    [loop][i in 1 range 4] ... [loop][end]
 
 ### reduce[collection, start, function]
   Boils a collection down to one value: a running total that starts at

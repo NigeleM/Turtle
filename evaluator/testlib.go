@@ -829,3 +829,6 @@ func typeName(v object.Object) string {
 	}
 	return strings.ToLower(string(v.Type()))
 }
+
+// typeNameOf is typeName, for code with a variable called typeName.
+func typeNameOf(v object.Object) string { return typeName(v) }

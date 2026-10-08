@@ -130,3 +130,11 @@ func TestFormatScroll(t *testing.T) {
 		t.Errorf("got\n%s\nwant\n%s", got, want)
 	}
 }
+
+func TestFormatDiagnoseBlock(t *testing.T) {
+	got, err := Format("diagnose\nx = 1\n[loop][i in list [1]]\nx = x + i\n[loop][end]\ndiagnose [end]\n")
+	want := "diagnose\n    x = 1\n    [loop][i in list [1]]\n        x = x + i\n    [loop][end]\ndiagnose [end]\n"
+	if err != nil || got != want {
+		t.Errorf("got %v\n%s", err, got)
+	}
+}

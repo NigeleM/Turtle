@@ -26,7 +26,7 @@ func callStrings(name string, args []object.Object) object.Object {
 		}
 		text, ok := args[0].(*object.String)
 		if !ok {
-			fatalf("'substring' needs a string, got %s", args[0].Type())
+			fatalf("'substring' needs a string, got %s", typeName(args[0]))
 		}
 		return stringSlice(text, name, args[1:])
 	case "isinstring":
@@ -44,7 +44,7 @@ func callStrings(name string, args []object.Object) object.Object {
 		case *object.Set:
 			elems = c.Elements
 		default:
-			fatalf("'join' needs a list or set, got %s", args[0].Type())
+			fatalf("'join' needs a list or set, got %s", typeName(args[0]))
 		}
 		sep := ""
 		if len(args) == 2 {

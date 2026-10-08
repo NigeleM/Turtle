@@ -62,7 +62,7 @@ func tableShape(fn string, x object.Object) textTable {
 			t.add([]object.Object{&object.String{Value: f}, v.Values[i]})
 		}
 	default:
-		fatalf("'%s' needs a list, set, map, or assembled value, got %s", fn, x.Type())
+		fatalf("'%s' needs a list, set, map, or assembled value, got %s", fn, typeName(x))
 	}
 	return t
 }

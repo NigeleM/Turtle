@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -531,4 +532,87 @@ func (it *Interpreter) diagnoseCall(name string, args []object.Object, call func
 func scrollFail(format string, args ...any) {
 	text := fmt.Sprintf(format, args...)
 	panic(fatalError{msg: place(currentFile, currentLine) + text, text: text, kind: kindScroll, line: currentLine, file: currentFile, scrolled: true})
+}
+
+// ---- the diagnose block -------------------------------------------------
+
+// maxDiagnoseLines is how many lines a diagnose block shows before it
+// only counts the rest (a long loop).
+const maxDiagnoseLines = 60
+
+// evalDiagnoseBlock runs a diagnose block, showing each line as it runs,
+// the value each assignment gave, and each loop pass; an error in it is
+// shown, and the program goes on after diagnose [end].
+func (it *Interpreter) evalDiagnoseBlock(s *ast.DiagnoseStatement, env *object.Environment) (res ExecResult) {
+	fmt.Printf("diagnose (lines %d-%d)\n", s.Line()+1, s.End-1)
+	out := &cappedWriter{max: maxDiagnoseLines}
+	prevTrace, prevOpen := it.Trace, it.traceOpen
+	if it.traceSrc == nil {
+		it.traceSrc = map[string][]string{}
+	}
+	prevSrc, hadSrc := it.traceSrc[currentFile]
+	if !hadSrc {
+		it.traceSrc[currentFile] = s.Lines
+	}
+	it.Trace, it.traceOpen = out, nil
+	file := currentFile
+	defer func() {
+		r := recover()
+		it.traceClose()
+		it.Trace, it.traceOpen = prevTrace, prevOpen
+		if hadSrc {
+			it.traceSrc[file] = prevSrc
+		} else {
+			delete(it.traceSrc, file)
+		}
+		out.flush()
+		if out.dropped > 0 {
+			fmt.Printf("  ... %d more lines\n", out.dropped)
+		}
+		if r != nil {
+			fe, ok := r.(fatalError)
+			if !ok || fe.parse {
+				panic(r)
+			}
+			fmt.Printf("  ✗ failed: %s error: %s\n", fe.kind, fe.msg)
+			res = noneResult
+			return
+		}
+		fmt.Println("  finished")
+	}()
+	return it.evalBlock(s.Body, env)
+}
+
+// cappedWriter writes lines to stdout, two spaces in, up to max of them,
+// then only counts.
+type cappedWriter struct {
+	max, lines, dropped int
+	partial             []byte
+}
+
+func (c *cappedWriter) Write(b []byte) (int, error) {
+	for _, ch := range b {
+		c.partial = append(c.partial, ch)
+		if ch == '\n' {
+			c.emit()
+		}
+	}
+	return len(b), nil
+}
+
+func (c *cappedWriter) emit() {
+	if c.lines < c.max {
+		os.Stdout.Write(append([]byte("  "), c.partial...))
+		c.lines++
+	} else {
+		c.dropped++
+	}
+	c.partial = c.partial[:0]
+}
+
+func (c *cappedWriter) flush() {
+	if len(c.partial) > 0 {
+		c.partial = append(c.partial, '\n')
+		c.emit()
+	}
 }

@@ -52,7 +52,7 @@ func (it *Interpreter) callSystem(name string, args []object.Object) object.Obje
 		if len(args) == 1 {
 			n, ok := args[0].(*object.Integer)
 			if !ok {
-				fatalf("'exit' code must be an integer, got %s", args[0].Type())
+				fatalf("'exit' code must be an integer, got %s", typeName(args[0]))
 			}
 			code = n.Value
 		}
@@ -129,7 +129,7 @@ func (it *Interpreter) callSystem(name string, args []object.Object) object.Obje
 	}
 	path, ok := args[0].(*object.String)
 	if !ok {
-		fatalf("'%s' needs a path string, got %s", name, args[0].Type())
+		fatalf("'%s' needs a path string, got %s", name, typeName(args[0]))
 	}
 	info, err := os.Stat(it.resolvePath(path.Value))
 	found := err == nil

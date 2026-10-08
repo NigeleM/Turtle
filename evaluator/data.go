@@ -26,13 +26,24 @@ func (it *Interpreter) evalDataOp(s *ast.DataOpStatement, env *object.Environmen
 	switch s.Kind {
 	case ast.OpAdd:
 		val := it.evalExpression(s.Value, env)
+		if s.Index != nil {
+			m, ok := target.(*object.Map)
+			if !ok {
+				if _, isList := target.(*object.List); isList {
+					fatalf("'add ... to %s at ...' gives a map a key; to put an item into a list at a position, write insert ... to %s at ... .", s.Target, s.Target)
+				}
+				fatalf("'add ... to %s at ...' needs a map, got %s", s.Target, typeName(target))
+			}
+			m.Put(it.evalExpression(s.Index, env), val)
+			return
+		}
 		switch t := target.(type) {
 		case *object.List:
 			t.Elements = append(t.Elements, val)
 		case *object.Set:
 			t.Add(val)
 		default:
-			fatalf("'add ... to %s' needs a list or set, got %s", s.Target, target.Type())
+			fatalf("'add ... to %s' needs a list or set, got %s", s.Target, typeName(target))
 		}
 	case ast.OpRemove:
 		val := it.evalExpression(s.Value, env)
@@ -43,13 +54,13 @@ func (it *Interpreter) evalDataOp(s *ast.DataOpStatement, env *object.Environmen
 			t.Elements = removeFirst(t.Elements, val)
 			t.Changed()
 		default:
-			fatalf("'remove ... from %s' needs a list or set, got %s", s.Target, target.Type())
+			fatalf("'remove ... from %s' needs a list or set, got %s", s.Target, typeName(target))
 		}
 	case ast.OpDelete:
 		key := it.evalExpression(s.Value, env)
 		m, ok := target.(*object.Map)
 		if !ok {
-			fatalf("'delete ... from %s' needs a map, got %s", s.Target, target.Type())
+			fatalf("'delete ... from %s' needs a map, got %s", s.Target, typeName(target))
 		}
 		if !m.Delete(key) {
 			fatalKind(kindKey, "key %s not found in map %s", showKey(key), s.Target)
@@ -61,7 +72,7 @@ func (it *Interpreter) evalDataOp(s *ast.DataOpStatement, env *object.Environmen
 		case *object.Set:
 			sortElements(t.Elements)
 		default:
-			fatalf("'sort %s' needs a list or set, got %s", s.Target, target.Type())
+			fatalf("'sort %s' needs a list or set, got %s", s.Target, typeName(target))
 		}
 	case ast.OpReverse:
 		switch t := target.(type) {
@@ -70,7 +81,7 @@ func (it *Interpreter) evalDataOp(s *ast.DataOpStatement, env *object.Environmen
 		case *object.Set:
 			reverseElements(t.Elements)
 		default:
-			fatalf("'reverse %s' needs a list or set, got %s", s.Target, target.Type())
+			fatalf("'reverse %s' needs a list or set, got %s", s.Target, typeName(target))
 		}
 	case ast.OpPut:
 		val := it.evalExpression(s.Value, env)
@@ -80,7 +91,7 @@ func (it *Interpreter) evalDataOp(s *ast.DataOpStatement, env *object.Environmen
 		}
 		list, ok := target.(*object.List)
 		if !ok {
-			fatalf("'put ... to %s' needs a list, got %s", s.Target, target.Type())
+			fatalf("'put ... to %s' needs a list, got %s", s.Target, typeName(target))
 		}
 		list.Elements[listIndex("list "+s.Target, int(idxObj.Value), len(list.Elements))] = val
 	case ast.OpInsert:
@@ -91,7 +102,7 @@ func (it *Interpreter) evalDataOp(s *ast.DataOpStatement, env *object.Environmen
 		}
 		list, ok := target.(*object.List)
 		if !ok {
-			fatalf("'insert ... to %s' needs a list, got %s", s.Target, target.Type())
+			fatalf("'insert ... to %s' needs a list, got %s", s.Target, typeName(target))
 		}
 		idx := int(idxObj.Value)
 		if idx < 0 || idx > len(list.Elements) {
@@ -138,7 +149,7 @@ func (it *Interpreter) lengthOf(obj object.Object) int {
 	case *object.String:
 		return len([]rune(v.Value))
 	default:
-		fatalf("'length of' needs a list, set, map, or string, got %s", obj.Type())
+		fatalf("'length of' needs a list, set, map, or string, got %s", typeName(obj))
 		return 0
 	}
 }
@@ -156,7 +167,7 @@ func (it *Interpreter) reduceExtreme(argExpr ast.Expression, env *object.Environ
 			candidates = append(candidates, v.KeyOf(k))
 		}
 	default:
-		fatalf("'min/max of' needs a list, set, or map, got %s", obj.Type())
+		fatalf("'min/max of' needs a list, set, or map, got %s", typeName(obj))
 	}
 	if len(candidates) == 0 {
 		fatalKind(kindIndex, "'min/max of' called on an empty collection")
@@ -188,6 +199,18 @@ func better(a, b object.Object, wantMin bool) bool {
 // ---- method-call form: "result is receiver at method arg, arg ." -------
 
 func (it *Interpreter) evalMethodCall(mc *ast.MethodCallExpression, env *object.Environment) object.Object {
+	if mc.Hint != "" {
+		defer func() {
+			if r := recover(); r != nil {
+				if fe, ok := r.(fatalError); ok && !strings.Contains(fe.text, "(hint:") {
+					fe.text += " (hint: " + mc.Hint + ")"
+					fe.msg = place(fe.file, fe.line) + fe.text
+					panic(fe)
+				}
+				panic(r)
+			}
+		}()
+	}
 	receiver := it.evalExpression(mc.Receiver, env)
 	args := make([]object.Object, len(mc.Arguments))
 	for i, a := range mc.Arguments {
@@ -226,10 +249,10 @@ func (it *Interpreter) applyMethod(mc *ast.MethodCallExpression, receiver object
 			// "tags of book at get[0]": the get goes with book, not tags.
 			fatalf("%s is one assembled value, so it has no %s; to take part of a field, name it first: t = tags of book, then t at %s[...]", r.Shape.Name, mc.Method, mc.Method)
 		}
-		fatalf("method %q needs a list, set, map, string, or number receiver, got %s", mc.Method, receiver.Type())
+		fatalf("method %q needs a list, set, map, string, or number receiver, got %s", mc.Method, typeName(receiver))
 		return nil
 	default:
-		fatalf("method %q needs a list, set, map, string, or number receiver, got %s", mc.Method, receiver.Type())
+		fatalf("method %q needs a list, set, map, string, or number receiver, got %s", mc.Method, typeName(receiver))
 		return nil
 	}
 }
@@ -623,7 +646,7 @@ func stringMethod(s *object.String, method string, args []object.Object) object.
 func asStringArg(method string, obj object.Object) string {
 	s, ok := obj.(*object.String)
 	if !ok {
-		fatalf("%q argument must be a string, got %s", method, obj.Type())
+		fatalf("%q argument must be a string, got %s", method, typeName(obj))
 	}
 	return s.Value
 }
@@ -743,7 +766,7 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		base, baseInt, _ := numeric(receiver)
 		exp, expInt, ok := numeric(args[0])
 		if !ok {
-			fatalf("%q argument must be a number, got %s", method, args[0].Type())
+			fatalf("%q argument must be a number, got %s", method, typeName(args[0]))
 		}
 		r := math.Pow(base, exp)
 		// A whole number to a non-negative whole power is a whole number:
@@ -757,7 +780,7 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		requireArgs(method, args, 0)
 		n, ok := receiver.(*object.Integer)
 		if !ok {
-			fatalf("%q needs an integer receiver (the exclusive upper bound), got %s", method, receiver.Type())
+			fatalf("%q needs an integer receiver (the exclusive upper bound), got %s", method, typeName(receiver))
 		}
 		if n.Value <= 0 {
 			fatalKind(kindMath, "%q needs a positive upper bound, got %d", method, n.Value)
