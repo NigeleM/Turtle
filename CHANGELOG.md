@@ -9,6 +9,49 @@ a breaking change will wait for a major version.
 
 For the full story of each change, see [`PROGRESS.md`](PROGRESS.md).
 
+## 0.9.167 (2026-10-08)
+
+### Breaking
+
+- **Very big and very small floats show in scientific notation**, as
+  Python shows them: `1e+20`, `1e-05` (from 1e16 up and below 0.0001).
+  They used to show every digit (`100000000000000000000.0`).
+  *What to do:* nothing, unless your program compares a float's shown
+  text; files and databases still get every digit.
+- **CSV and TSV cells written in scientific notation (`1e5`) read as
+  numbers**, as pandas reads them; they were text in 0.9.166.
+  *What to do:* to keep such a column as text, give column types:
+  `table_read[path, map ["code": "text"]]`.
+
+### New
+
+- **Scientific notation** in code: `1e-18`, `2.5e6`, `6.02E+23`.
+- **A method's argument without brackets, anywhere**: `2 at pow 10`,
+  `nums at get 0`, `if ] s at contains "a" [`. It's just the value right
+  after the method, so `3 at pow 2 == 9` compares the power; two or more
+  arguments go in brackets (`m at get[0, 1]`). After `of`,
+  `n of rows at get 0` reaches into the list as `get[0]` does.
+- **A method call can be a line of its own**: `nums at add 4`,
+  `m at put[9, 1, 2]`, `m at put 9, 1, 2 .`; and `put 9 to m at 1, 2 .`
+  puts into a matrix.
+- **An assignment may end in a period**, as a call line may:
+  `big = rows keep r give price of r > 10 .`
+- **Library docs, one page per library** (`docs/library/`), grouped by
+  purpose like Python's; a Keywords table in the reference with every
+  word, what it does and an example; import shown by example.
+- Releases of 0.x versions are marked pre-release on GitHub.
+- VS Code extension 0.1.3: colors the new functions, `matrix` and
+  scientific numbers.
+
+### Faster
+
+- Scopes are reused when no function kept them, a fast reader for
+  well-formed JSON, maps stored as one list of entries, names shared and
+  matched by address. Every result is the same. Against 0.9.166: fib
+  44 -> 34 ms, functional 34 -> 20, objects 37 -> 30, strings 39 -> 31,
+  jsondata 58 -> 24, maps 75 -> 68; 200,000 small records use 100 MB
+  instead of 216 MB.
+
 ## 0.9.166 (2026-10-08)
 
 ### Breaking

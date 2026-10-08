@@ -1177,7 +1177,7 @@ objects 78 -> 41 (1.9x), jsondata 66 -> 60 (1.1x), patterns 32 -> 22
 - Tests and the sql examples (10, 12, 13, 14) updated where they expected
   all-text reads.
 
-## 2026-10-08 (later): docs per library, scientific numbers, bare method arguments (not yet released)
+## 2026-10-08 (later): docs per library, scientific numbers, bare method arguments (released v0.9.167)
 
 - release.yml marks 0.x releases as pre-releases.
 - docs/library/: one page per library plus an index grouped by purpose
