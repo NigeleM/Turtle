@@ -132,7 +132,7 @@ show names + list ["CY"] .           // [ "ANA", "BO", "CY" ]
 
 Full rules: [`docs/reference.md`](docs/reference.md) (Functions, Closures,
 Anonymous functions, Sentence-style calls, None, Assembled types, Loops,
-Modules) and [`docs/stdlib.md`](docs/stdlib.md) (Data library, System
+Modules) and [the library docs](docs/library/index.md) (Data library, System
 library).
 
 ## Documentation
@@ -140,7 +140,7 @@ library).
 - [`docs/getting-started.md`](docs/getting-started.md) — build and run your first script
 - [`docs/tour.md`](docs/tour.md) — a guided, example-driven walkthrough of the language
 - [`docs/reference.md`](docs/reference.md) — the complete formal syntax reference
-- [`docs/stdlib.md`](docs/stdlib.md) — data structure methods, file I/O, `sys`, `import`
+- [`docs/library/`](docs/library/index.md) — the library, one page per library (data, linear, sql, server, ...), plus built-in types, files and modules
 - [`docs/editors.md`](docs/editors.md) — VS Code, Neovim, Helix and others, through `turtle lsp`
 - [`docs/repl.md`](docs/repl.md) — the interactive prompt (`turtle` with no file)
 - [`docs/testing.md`](docs/testing.md) — testing Turtle code: `check`, `verify`, `validate`, `turtle test`

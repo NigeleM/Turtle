@@ -3,7 +3,7 @@
 The complete, formal syntax and semantics of Turtle, as implemented by the
 `token`/`lexer`/`ast`/`parser`/`object`/`evaluator` packages. For a gentler,
 example-first introduction see [`tour.md`](tour.md); for the standard
-library see [`stdlib.md`](stdlib.md).
+library see [the library docs](library/index.md).
 
 Notation below: `code` is a literal token; `<angle-brackets>` is a
 non-terminal; `[x]` is optional; `{x}` is zero-or-more; `|` is alternation.
@@ -1032,7 +1032,7 @@ outside variable of that name is untouched, and it's gone after the loop.
 
 ## Data structures
 
-See [`stdlib.md`](stdlib.md) for full method tables. Declaration:
+See [the library docs](library/index.md) for full method tables. Declaration:
 
 ```
 <ident> = list [<expr>, ...]
@@ -1097,7 +1097,7 @@ A bareword that's a single name with no `.` or `/` (`[read] name to
 lines`) uses the variable of that name if one exists, so a path from
 `args[]` or built at runtime works; otherwise it's that literal filename.
 Relative paths resolve from the folder `turtle` was run in (see
-[`stdlib.md`](stdlib.md#system-library)).
+[the `system` docs](library/system.md)).
 `[write]`/`[append]` body lines are one item each: a quoted string is
 written verbatim, a bare identifier is replaced with that variable's
 current value; items are newline-joined.
@@ -1111,7 +1111,7 @@ import <name> [<f>, <g>, ...]  // only the listed names
 
 `<name>` is a builtin module (`math`, `time`, `data`, `strings`, `system`,
 `json`, `http`, `sql`, `sort`, `search`, `random`, `pattern`, `crypt`,
-`schedule`, `config`, `server`, `log`, `test`; see [`stdlib.md`](stdlib.md)) or a file `<name>.trt`,
+`schedule`, `config`, `server`, `log`, `test`; see [the library docs](library/index.md)) or a file `<name>.trt`,
 resolved relative to the current script's directory. A module in a
 subfolder is written with `/`: `import lib/utils` reads `lib/utils.trt`,
 and its qualified name is the last part, `utils half[4]`. Because builtin names
@@ -1154,7 +1154,7 @@ is a fatal error that shows the chain.
 **Builtin modules.**
 
 - `import math` unlocks number methods: `sqrt`, `abs`, `round`, `floor`,
-  `ceil`, `pow`, `random` (see [`stdlib.md`](stdlib.md#number)). Methods
+  `ceil`, `pow`, `random` (see [the `math` docs](library/math.md)). Methods
   are called on a value (`r is 16 at sqrt .`), so they never clash and
   are never qualified; an import list still limits which ones you can use
   (`import math [sqrt]`).
@@ -1165,41 +1165,41 @@ is a fatal error that shows the chain.
 - `import system` provides `args[]` (the command-line arguments after the
   script path), `exists`/`isfile`/`isfolder`, `contents[path]`,
   `exit[code]`, `env[name]` and `scriptfolder[]` (see
-  [`stdlib.md`](stdlib.md#system-library)).
+  [the `system` docs](library/system.md)).
 - `import strings` provides `find`, `substring`, `isinstring` and `join`
-  (see [`stdlib.md`](stdlib.md#strings-library)).
+  (see [the `strings` docs](library/strings.md)).
 - `import sql` provides `sql_open`, `sql_create`, `sql_query`, `sql_run`,
   `sql_tables`, `sql_close`, and moves files in and out of a database
   with `sql_save`, `sql_load`, `sql_update`, `sql_delete`, `sql_upsert`
-  (see [`stdlib.md`](stdlib.md#sql-library)).
+  (see [the `sql` docs](library/sql.md)).
 - `import data` provides `process`, `keep`, and `copy`, which apply a
   function across a list, set, or map, `table`, which lays rows out as a
   text table, and `table_write` / `table_read`, which save and read
   `.csv`, `.tsv`, `.txt` and `.json` table files (see
-  [`stdlib.md`](stdlib.md#data-library)). They're
+  [the `data` docs](library/data.md)). They're
   ordinary functions, usually called sentence-style:
   `nums process x give x + 1 .`, `show table[rows] .` It also has the
   statistics: `mean`, `median`, `mode`, `variance`, `stdev`, `pvariance`,
   `pstdev`, `percentile`, `covariance`, `correlation`, `zscores`,
-  `describe` (see [`stdlib.md`](stdlib.md#statistics)).
+  `describe` (see [the `data` docs](library/data.md#statistics)).
 - `import linear` adds the `matrix` value, written
   `matrix [1, 2; 3, 4]` (rows end at `;` or at the end of a line), its
   operators (`*` of two matrices is the matrix product), and functions
   such as `solve`, `inverse`, `determinant`, `eigen` and `svd` (see
-  [`stdlib.md`](stdlib.md#linear-library)). `matrix` is a word of the
+  [the `linear` docs](library/linear.md)). `matrix` is a word of the
   language only in a file that imports `linear`; elsewhere it's an
   ordinary name, and in such a file it can't name a variable or function.
 - `import random` makes random values of any shape, written as a
   sentence: `random list of 5 integers from 0 to 9`, `random Order [string,
   integer]`; plus `pick`, `shuffle`, `sample`, `chance` and the `seed`
-  variable (see [`stdlib.md`](stdlib.md#random-library)). `random` is a
+  variable (see [the `random` docs](library/random.md)). `random` is a
   sentence word only in a file that imports it.
 - `import sort` provides `min_sort` / `max_sort` (order by a function,
   field, position or several, and take the `"first"` or a count),
   `is_sorted`, `reverse_list`, and the classic sorting algorithms; and
   `import search` provides `find_first`, `find_all`, `find_key`, ... and
   linear, binary and other searches (see
-  [`stdlib.md`](stdlib.md#sort-library)). `import sort` names the
+  [the `sort` docs](library/sort.md)). `import sort` names the
   library; `sort nums .` on its own is still the in-place sort statement.
 
 Using a math method or `now`/`sleep` without the matching import is a fatal
@@ -1227,7 +1227,7 @@ stderr, in the folder turtle was run in (where file paths resolve too).
 
 ## Logging: `log`
 
-In a file with `import log` (settings and examples: [`stdlib.md`](stdlib.md#log-library)):
+In a file with `import log` (settings and examples: [the `log` docs](library/log.md)):
 
 ```
 log [debug | info | warn | error] <expr> {, <expr>} .

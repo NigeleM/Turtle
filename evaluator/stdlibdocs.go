@@ -1156,7 +1156,7 @@ them, like the sort library. Over a map, a function gets the value
   for a million items. Gives the first match's position, or -1.
   Example:
     by_price = min_sort[books, "price"]
-    at = binary_search[by_price, 950, "price"]
+    spot = binary_search[by_price, 950, "price"]
 
 ### jump_search[sorted, value, key]
   binary_search's answer, by jumping ahead in blocks of about the square

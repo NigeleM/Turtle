@@ -437,7 +437,7 @@ can go over several lines; it ends with its period.
 ### The inputs: with ... as
 
 Name each input and its kind, with the words of the random library
-(see [`stdlib.md`](stdlib.md#random-library)):
+(see [the `random` docs](library/random.md)):
 
 ```
 with nums as list of integer

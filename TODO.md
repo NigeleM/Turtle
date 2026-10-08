@@ -16,7 +16,7 @@ Done so far: string methods, `strings` (`find`, `substring`, `isinstring`,
 `sql_close`), `data`'s `table`, `table_read`, `table_write` (`.csv`,
 `.tsv`, `.txt`, `.json`), `sort` (`min_sort`, `max_sort`, the classic
 sorts) and `search` (`find_first`, `find_all`, binary search, ...).
-See `docs/stdlib.md`.
+See `docs/library/`.
 
 Next, roughly in priority order:
 

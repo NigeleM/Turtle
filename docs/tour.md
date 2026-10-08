@@ -2,7 +2,7 @@
 
 This walks through the language by example. For the complete formal syntax
 see [`reference.md`](reference.md); for the standard library (data
-structure methods, files, `sys`) see [`stdlib.md`](stdlib.md).
+structure methods, files, `sys`) see [the library docs](library/index.md).
 
 ## Comments
 
@@ -311,7 +311,7 @@ b = list [10, 20]
 show a at get[0] + b at get[1] .     // 21
 ```
 
-See [`stdlib.md`](stdlib.md) for the full method list per type.
+See [the library docs](library/index.md) for the full method list per type.
 
 ## Your own types: `assemble`
 
@@ -474,4 +474,4 @@ sleep[250, "ms"]        // or be explicit about milliseconds
 `import time [now]` and `import math [sqrt]` work the same way as for
 files. Calling a math method or `now`/`sleep` before the matching `import`
 is a fatal error that names exactly which import is missing. See
-[`stdlib.md`](stdlib.md#number) for the full method/function list.
+[the `math` docs](library/math.md) for the full method/function list.

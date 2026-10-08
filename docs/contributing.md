@@ -43,7 +43,7 @@ case "contains":
 	return &object.Boolean{Value: s.Contains(args[0])}
 ```
 
-That's it. Update the method table in `docs/stdlib.md`, add a line to a
+That's it. Update the method table in `docs/library/builtins.md`, add a line to a
 `testdata/*.trt` script exercising it, done.
 
 ## Worked example: a new builtin library
@@ -62,7 +62,7 @@ parser change is needed, since calls are ordinary `name[args]`.
 4. A new kind of error (like `json`, `date`) needs a `kind...` constant in
    `evaluator.go` and its name in `errorKinds` in `parser/parser.go`, so
    `handle [<kind>] e .` accepts it.
-5. Document it in `docs/stdlib.md` (table, rules, a runnable example),
+5. Document it on its library's page, `docs/library/<name>.md` (table, rules, a runnable example),
    add tests, and a section in `testdata/everything.trt`.
 
 ## Worked example: library functions written in Turtle
@@ -189,7 +189,7 @@ one more case.
   instead of new bracket syntax — it's less parser surface area and one
   fewer thing for users to learn.
 - **Update docs in the same change**: `docs/reference.md` (grammar),
-  `docs/stdlib.md` (if it's a data-structure/file/sys feature),
+  `docs/library/` (builtins.md or files.md for a data-structure/file/sys feature),
   `docs/tour.md` (if it's a headline feature worth teaching), and
   `SPEC.md` at the repo root if it changes or clarifies intended semantics
   versus the legacy interpreter.

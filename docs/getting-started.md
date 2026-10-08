@@ -28,7 +28,7 @@ go run ./cmd/turtle path/to/script.trt
 
 Anything after the script path is passed to the script, which reads it
 with `import system` and `args[]` (see
-[`stdlib.md`](stdlib.md#system-library)):
+[the `system` docs](library/system.md)):
 
 ```sh
 ./turtle report.trt data.txt --verbose
@@ -125,7 +125,7 @@ See [Sharing a program](reference.md#sharing-a-program-turtle-build).
 
 - [`tour.md`](tour.md) — a guided walkthrough of the language, by example
 - [`reference.md`](reference.md) — the complete, formal syntax reference
-- [`stdlib.md`](stdlib.md) — data structure methods, file I/O, `sys`, `import`
+- [`library/`](library/index.md) — the library, one page per library, plus built-in types, files and modules
 - [`testing.md`](testing.md) — tests: `check`, `verify`, `validate`, `turtle test`
 - [`repl.md`](repl.md) — the interactive prompt: colors, keys, commands
 - [`editors.md`](editors.md) — Turtle in VS Code and other editors
