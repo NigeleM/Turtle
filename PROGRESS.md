@@ -1123,7 +1123,7 @@ objects 78 -> 41 (1.9x), jsondata 66 -> 60 (1.1x), patterns 32 -> 22
   paths resolve), not the script's folder; they disagreed when a program
   was run from elsewhere (found by running the built bookshop elsewhere).
 
-## 2026-10-08: statistics in data, the linear library (not yet released)
+## 2026-10-08: statistics in data, the linear library (released v0.9.166)
 
 - data's statistics: mean, median, mode, variance, stdev, pvariance,
   pstdev, percentile, covariance, correlation, zscores, describe. A list,

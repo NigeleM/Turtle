@@ -149,6 +149,7 @@ library).
 - [`docs/stress-test-log.md`](docs/stress-test-log.md) — what the stress tests tried, what broke, and how each finding was handled
 - [`legacy/README.md`](legacy/README.md) — the original 2017 interpreter, kept for reference
 - [`SPEC.md`](SPEC.md) — the language specification this rewrite was built from, including every deliberate deviation from the original interpreter's behavior and why
+- [`CHANGELOG.md`](CHANGELOG.md) — what changed in each release, breaking changes first (Turtle is pre-release, 0.x)
 - [`PROGRESS.md`](PROGRESS.md) — session-by-session log of what's been done and what's left
 - [`TODO.md`](TODO.md) — forward-looking punch list of what's next
 
