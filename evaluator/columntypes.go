@@ -343,5 +343,15 @@ func dateForSQL(v object.Object) object.Object {
 	if t.Hour() == 0 && t.Minute() == 0 && t.Second() == 0 {
 		return &object.String{Value: t.Format(time.DateOnly)}
 	}
-	return &object.String{Value: d.Inspect()}
+	return &object.String{Value: sqlDateText(d)}
+}
+
+// sqlDateText is a date for a database: "2026-10-03 14:05:00", and for a
+// date in another zone its offset too ("2026-12-25 09:00:00+00:00"),
+// which PostgreSQL, MySQL and to_date all read.
+func sqlDateText(d *object.Date) string {
+	if d.Local() {
+		return d.Text()
+	}
+	return d.Time.Format("2006-01-02 15:04:05-07:00")
 }

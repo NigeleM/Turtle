@@ -211,16 +211,17 @@ n is 10 at random .      // some integer in [0, 10)
 
 ### Builtin functions: `time`
 
-`import time` gives the clock, dates, date arithmetic, and waiting:
+`import time` gives the clock, dates, time zones, date arithmetic, and waiting:
 
 | Function | Args | Returns |
 |---|---|---|
 | `now[]` | — | milliseconds since the Unix epoch, as an Integer |
 | `sleep[amount [, unit]]` | amount, optional `"seconds"` (default) or `"ms"` | pauses that long; returns `none` |
-| `today[]` | — | the date and time now, in local time |
-| `today_utc[]` | — | the same moment, shown in UTC |
-| `make_date[y, m, d]` or `[y, m, d, h, mi, s]` | whole numbers | that local date and time; one that doesn't exist (Feb 30) is a `date` error |
-| `to_date[text]` | `"YYYY-MM-DD"`, optionally with ` hh:mm` or ` hh:mm:ss`, or ISO 8601 (`2026-10-03T14:05:00Z`) | the date; other text is a `date` error |
+| `today[]` or `today[zone]` | optional time zone | the date and time now, in local time or in that zone |
+| `today_utc[]` | — | the same moment, shown in UTC (`today["UTC"]`) |
+| `to_zone[date, zone]` | date, time zone | the same moment on that zone's clock |
+| `make_date[y, m, d]` or `[y, m, d, h, mi, s]` | whole numbers, and optionally a time zone last | that date and time, local or in the zone; one that doesn't exist (Feb 30) is a `date` error |
+| `to_date[text [, zone]]` | `"YYYY-MM-DD"`, optionally with ` hh:mm` or ` hh:mm:ss`, or ISO 8601 (`2026-10-03T14:05:00Z`, `...-04:00`); optionally the zone for text that names none | the date; other text is a `date` error |
 | `add_time[date, amount, unit]` | date, whole number, unit | a new date; a negative amount goes back |
 | `time_between[a, b, unit]` | two dates, unit | how many whole units from `a` to `b` (negative if `b` is earlier) |
 | `format_date[date, pattern]` | date, pattern text | the date written with the pattern (below) |
@@ -231,12 +232,33 @@ n is 10 at random .      // some integer in [0, 10)
 `"months"`, `"years"` (or the singular, `"day"`).
 
 **A date** shows as `2026-10-03 14:05:00`, whole seconds, in its own
-clock (local, or UTC for `today_utc[]` and `...Z` text). Read its parts
-with `of`: `year`, `month`, `day`, `hour`, `minute`, `second` (whole
-numbers) and `weekday` (`"Saturday"`). Parts are read-only; make a new date
+clock: local, or another zone's, and then its zone shows too
+(`2026-12-25 09:00:00 GMT`). Read its parts with `of`: `year`, `month`,
+`day`, `hour`, `minute`, `second` (whole numbers), `weekday`
+(`"Saturday"`) and `zone` (`"local"`, `"UTC"`, `"Asia/Tokyo"`, or an
+offset like `"-04:00"` for a date read from text with one). Parts are read-only; make a new date
 with `add_time` or `make_date`. Dates compare with `< > <= >= == !=` (the
 same moment is equal whichever clock shows it), can be map keys and set
-elements, join text with `+` or `{d}`, and are written to JSON as text.
+elements, join text with `+` or `{d}`, and are written to JSON as text:
+a local date as `2026-10-03 14:05:00`, as always, and another zone's
+with its offset (`2026-07-01T09:00:00+09:00`), so `to_date` reads it
+back as the same moment. Files and databases get the same forms.
+
+**Time zones** are names like `"America/New_York"`, `"Europe/London"`,
+`"Asia/Tokyo"`, plus `"UTC"` and `"local"` (the computer's own). The
+list of zones is built into Turtle, so the names work on every system,
+Windows too. An unknown name is a `date` error.
+
+```
+import time
+
+d = make_date[2026, 12, 25, 9, 0, 0, "Europe/London"]
+ny = to_zone[d, "America/New_York"]        // or: d to_zone "America/New_York"
+show ny .                                  // 2026-12-25 04:00:00 EST
+show zone of ny, " ", ny == d .            // America/New_York true
+show format_date[ny, "hh:mm Zone (Offset)"] .   // 04:00 EST (-05:00)
+tokyo = today["Asia/Tokyo"]
+```
 
 ```
 import time
@@ -266,8 +288,8 @@ is exact: noon + 24 hours can be 11:00 or 13:00 on those days.
 
 **`format_date` patterns:** `YYYY` year, `MM`/`M` month (`03`/`3`),
 `DD`/`D` day, `hh` hour 00-23, `mm` minute, `ss` second, `Month`
-(`March`), `Mon` (`Mar`), `Weekday` (`Thursday`), `Wkd` (`Thu`). Anything
-else is copied as is: `format_date[d, "DD/MM/YYYY hh:mm"]` → `05/03/2026 14:07`.
+(`March`), `Mon` (`Mar`), `Weekday` (`Thursday`), `Wkd` (`Thu`), `Zone`
+(`EST`), `Offset` (`-05:00`). Anything else is copied as is: `format_date[d, "DD/MM/YYYY hh:mm"]` → `05/03/2026 14:07`.
 
 **Automation.** `wait_until` and `every` run inside your script, so the
 script has to keep running (in a terminal, or as a service). `every`
@@ -625,6 +647,142 @@ Passwords: store only what `passwordhash` gives, and check with
 `passwordcheck`; a plain `hash` of a password is easy to crack. `md5`
 and `sha1` are broken for security; use them only to match an existing
 system's checksums.
+
+## Server library
+
+`import server` runs a web server. Routes are a map from `"METHOD /path"`
+to what answers them, and handlers are ordinary functions: no new
+keywords.
+
+```
+import server
+
+def home[req]
+    return "<h1>Hello!</h1>"                  // text: a page
+def [end]
+
+def showuser[req]
+    id = id of params of req                  // from /users/:id
+    return map ["id": id, "name": "Ann"]      // a map or list: JSON
+def [end]
+
+def adduser[req]
+    data = json of req                        // the posted JSON
+    return reply[201, map ["made": name of data]]
+def [end]
+
+app = map [
+    "GET /": home,
+    "GET /users/:id": showuser,
+    "POST /users": adduser,
+    "GET /old": redirect["/"],                // a fixed answer
+    "GET /health": "ok",
+    "GET /static/*": "public"                 // the files in the folder public
+]
+serve[app, 8080]                              // or: app serve 8080
+```
+
+```
+serving on http://localhost:8080 (Ctrl+C stops it)
+GET / 200 84µs
+GET /users/7 200 251µs
+```
+
+| Function | Takes | Gives back |
+|---|---|---|
+| `serve[routes [, port]]` | a map of routes, a port (8080 if left out) | answers requests until the program is stopped |
+| `reply[status [, body [, headers]]]` | a status (200, 404, ...), text or a map/list, a map of headers | a `Reply { status, body, headers }` |
+| `redirect[address [, status]]` | where to send the visitor, 302 (or 301, 303, 307, 308) | a `Reply` |
+
+**Routes.** `"GET /users/:id"`: a `:name` part matches any one part and
+lands in `params`. `"GET /files/*"`: the rest of the path lands in
+`params` as `"*"`. A route without a method (`"/ping"`) answers any.
+The most exact route wins: fixed parts before `:names` before `*`, so
+`"GET /users/new"` beats `"GET /users/:id"`. A path no route has is 404;
+one with only other methods is 405. `GET` routes answer `HEAD` too.
+
+**What answers.** A function of one name gets the request; one of none
+is just called. A saved scroll works too, getting the request. Any other
+value is the answer itself, and text on a `/*` route is a folder: its
+files are served (`index.html` for a folder), never anything outside it.
+
+**The request** is a map, read with `of`: `method`, `path`, `params`,
+`query` (text, or a list when a name comes twice), `headers` (lowercase
+names), `body` (text), `json` (the body as JSON when it's sent as JSON,
+else `none`), `form` (a posted form's fields), `ip`.
+
+**What a handler gives back:** text is a page (HTML when it starts with
+`<`, plain text otherwise); a map, list or assembled value is JSON;
+`reply[...]` sets the status and headers; `none` is 204 (no content).
+
+**Errors.** An error in a handler answers `500 server error`, and the
+error shows in the terminal (`GET /broken: line 17: division by zero`);
+the server goes on. `exit[]` in a handler stops the server and the
+program. A port in use, a route that isn't `"METHOD /path"`, or a `/*`
+folder that doesn't exist is an error of kind `server`.
+
+**Settings** (`import server` makes them; change them like any variable):
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `serverlog` | `true` | a line per request: method, path, status, time |
+| `serverhost` | `"localhost"` | only this computer; `"0.0.0.0"` answers others on the network |
+
+**One request at a time.** Turtle code runs one line at a time, so
+requests take turns (the network work around them runs side by side).
+That's fine for tools, dashboards and small sites.
+
+## Config library
+
+`import config` reads and writes settings files. The file's extension
+picks the format: `.toml`, `.json` or `.env`.
+
+```
+import config
+
+settings = config_read["app.toml"]
+port = port of server of settings              // settings at get["server"] at get["port"]
+srv = server of settings
+port of srv = 9090
+config_write["app.toml", settings]
+```
+
+with `app.toml`:
+
+```toml
+# My app
+name = "Shop"
+debug = false
+
+[server]
+port = 8080
+hosts = ["localhost", "0.0.0.0"]
+
+[[users]]
+name = "Ann"
+```
+
+| Function | Takes | Gives back |
+|---|---|---|
+| `config_read[path]` | a `.toml`, `.json` or `.env` file | a map |
+| `config_write[path, settings]` | a file and a map | writes it; `none` |
+
+- **TOML** (TOML 1.0, read and written by Turtle's own code): keys in the
+  file's order; `[section]` and `{ inline }` tables become maps,
+  `[[name]]` a list of maps; integers, floats, booleans, text and lists
+  keep their kinds; dates become dates (one with an offset keeps it), and
+  a time of day alone (`07:32:00`) becomes text. Writing puts the plain
+  keys first, then each map as a `[section]`, and a list of maps as
+  `[[name]]`s. TOML has no `none`: leave such keys out.
+- **JSON** works as `json_read` does; the file must hold an object `{ ... }`.
+- **.env** files read as `loadenv` does (`KEY=value` lines, `#` comments,
+  quotes), but only into the map: nothing is set for `env[...]`. Every
+  value is text. Writing needs single values (quoted when they have
+  spaces).
+- A file that isn't well written, an unknown extension, or a value the
+  format can't hold is an error of kind `config`, naming the line:
+  `config_read app.toml line 3: "Shop" isn't a value: text needs quotes`.
+  A missing file is a `file` error.
 
 ## Schedule library
 

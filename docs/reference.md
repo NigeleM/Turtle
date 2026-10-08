@@ -836,6 +836,8 @@ safe [end]
 | `pattern` | a pattern that isn't valid (`import pattern`) |
 | `crypt`  | text that isn't base64 or hex, a wrong passphrase, an unknown algorithm (`import crypt`) |
 | `schedule` | a bad `schedulelimit` or setting, a command that can't start, `queryall` on SQLite (`import schedule`) |
+| `server` | a port in use, a bad route, status or port (`import server`) |
+| `config` | a settings file that isn't well written, or a value it can't hold (`import config`) |
 | `scroll` | a scroll step that isn't a function or scroll, or a scroll inside itself |
 | `custom` | your own, from `fail`                                    |
 
@@ -1040,7 +1042,7 @@ import <name> [<f>, <g>, ...]  // only the listed names
 
 `<name>` is a builtin module (`math`, `time`, `data`, `strings`, `system`,
 `json`, `http`, `sql`, `sort`, `search`, `random`, `pattern`, `crypt`,
-`schedule`, `log`, `test`; see [`stdlib.md`](stdlib.md)) or a file `<name>.trt`,
+`schedule`, `config`, `server`, `log`, `test`; see [`stdlib.md`](stdlib.md)) or a file `<name>.trt`,
 resolved relative to the current script's directory. A module in a
 subfolder is written with `/`: `import lib/utils` reads `lib/utils.trt`,
 and its qualified name is the last part, `utils half[4]`. Because builtin names

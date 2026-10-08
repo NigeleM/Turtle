@@ -84,8 +84,8 @@ Next, roughly in priority order:
       values in scrolls (later, if needed)
 - [ ] Your own error kinds (`fail Overdrawn[...]`), then words and phrases
 - [ ] A VS Code debugger (Debug Adapter Protocol), built on turtle debug
-- [ ] Later from the 2026-10-06 list: time zones, a web server (`import server`),
-      TOML (or .env + JSON only?)
+- [x] Time zones, `import config` (.toml/.json/.env), `import server`
+      (2026-10-07)
 - [ ] A cookbook doc (asked for 2026-10-06): runnable code examples
       for every stdlib library and function (math, time, data, strings,
       system, json, http, sql, sort, search, random, pattern, log, test),

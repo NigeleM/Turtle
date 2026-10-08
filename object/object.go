@@ -71,8 +71,11 @@ func floatText(v float64) string {
 // Exact is a value's text with floats in full (Float.Exact); anything
 // else as it shows.
 func Exact(o Object) string {
-	if f, ok := o.(*Float); ok {
-		return f.Exact()
+	switch v := o.(type) {
+	case *Float:
+		return v.Exact()
+	case *Date:
+		return v.Text()
 	}
 	return o.Inspect()
 }
@@ -383,14 +386,51 @@ func (e *Error) Field(name string) (Object, bool) {
 }
 
 // Date is a moment in time, from the time library (today[], make_date,
-// to_date, add_time). It shows as "2026-10-03 14:05:00" in its own clock
-// (local, or UTC for today_utc[]), compares with < > ==, and "year of",
-// "month of", "day of", "hour of", "minute of", "second of" and
-// "weekday of" read its parts. Dates are whole seconds.
+// to_date, add_time, to_zone). It shows as "2026-10-03 14:05:00" in its
+// own clock: local, or another zone's, then named ("2026-12-25 09:00:00
+// GMT"). It compares as a moment, whatever the zone, and "year of",
+// "month of", ..., "weekday of" and "zone of" read its parts. Dates are
+// whole seconds.
 type Date struct{ Time time.Time }
 
-func (d *Date) Type() Type      { return DATE }
-func (d *Date) Inspect() string { return d.Time.Format("2006-01-02 15:04:05") }
+func (d *Date) Type() Type { return DATE }
+func (d *Date) Inspect() string {
+	s := d.Time.Format("2006-01-02 15:04:05")
+	if d.Local() {
+		return s
+	}
+	return s + " " + d.Time.Format("MST")
+}
+
+// Local reports whether the date is in the computer's own zone.
+func (d *Date) Local() bool { return d.Time.Location() == time.Local }
+
+// Text is the date as data (JSON, files, databases): "2026-10-03
+// 14:05:00" for a local date, as before; with its offset for another
+// zone's ("2026-12-25T09:00:00Z", "2026-12-25T18:00:00+09:00"), so it
+// reads back as the same moment.
+func (d *Date) Text() string {
+	if d.Local() {
+		return d.Time.Format("2006-01-02 15:04:05")
+	}
+	return d.Time.Format(time.RFC3339)
+}
+
+// Zone is the date's zone's name: "local", "UTC", "Asia/Tokyo", or an
+// offset like "-04:00" for a date read with one.
+func (d *Date) Zone() string {
+	loc := d.Time.Location()
+	switch {
+	case loc == time.Local:
+		return "local"
+	case loc == time.UTC || loc.String() == "UTC":
+		return "UTC"
+	}
+	if name := loc.String(); name != "" && !strings.HasPrefix(name, "+") && !strings.HasPrefix(name, "-") && strings.Contains(name, "/") {
+		return name
+	}
+	return d.Time.Format("-07:00")
+}
 
 // Field returns the date's part called name.
 func (d *Date) Field(name string) (Object, bool) {
@@ -410,12 +450,14 @@ func (d *Date) Field(name string) (Object, bool) {
 		return &Integer{Value: int64(t.Second())}, true
 	case "weekday":
 		return &String{Value: t.Weekday().String()}, true
+	case "zone":
+		return &String{Value: d.Zone()}, true
 	}
 	return nil, false
 }
 
 // DateFields lists the parts Field knows, for error messages.
-const DateFields = "year, month, day, hour, minute, second, weekday"
+const DateFields = "year, month, day, hour, minute, second, weekday, zone"
 
 // Database is an open database connection from the sql library's
 // sql_open. Conn is the driver's connection (the object package doesn't

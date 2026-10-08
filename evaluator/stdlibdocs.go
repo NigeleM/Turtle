@@ -56,10 +56,14 @@ var moduleDocs = map[string]string{
     dice is 6 at random .
 `,
 
-	"time": `The clock, dates, date arithmetic, and waiting.
+	"time": `The clock, dates, time zones, date arithmetic, and waiting.
 Units are "seconds", "minutes", "hours", "days", "weeks", "months",
 "years" (or the singular). A date shows as 2026-10-03 14:05:00 and has
-parts read with "of": year, month, day, hour, minute, second, weekday.
+parts read with "of": year, month, day, hour, minute, second, weekday,
+zone. A date in another zone than the computer's shows its zone:
+2026-12-25 09:00:00 GMT. Zones are names like "America/New_York",
+"Europe/London", "Asia/Tokyo", or "UTC" or "local"; dates compare as
+moments, whatever their zones.
 
 ### now[]
   Milliseconds since 1 January 1970: for measuring how long something takes.
@@ -75,26 +79,40 @@ parts read with "of": year, month, day, hour, minute, second, weekday.
   Example:
     sleep[250, "ms"]
 
-### today[]
-  The date and time now, in local time.
+### today[zone]
+  The date and time now, in local time, or in a time zone.
+  zone     optional: "Asia/Tokyo", "UTC", ...
   Gives back: a date.
   Example:
     show weekday of today[] .
+    tokyo = today["Asia/Tokyo"]
+
+### to_zone[date, zone]
+  The same moment, on another zone's clock.
+  Gives back: a date (== the original: it's the same moment).
+  Example:
+    ny = to_zone[d, "America/New_York"]
+    ny = d to_zone "America/New_York"
+    show zone of ny .
 
 ### today_utc[]
   The date and time now, in UTC.
   Gives back: a date.
 
-### make_date[year, month, day, hour, minute, second]
+### make_date[year, month, day, hour, minute, second, zone]
   A date from its parts. Hour, minute and second are optional (all three,
-  or none). A date that doesn't exist, like February 30, is a date error.
-  Gives back: a date, in local time.
+  or none); a time zone can go last. A date that doesn't exist, like
+  February 30, is a date error.
+  Gives back: a date, in local time or in the zone.
   Example:
     d = make_date[2026, 12, 25]
+    d = make_date[2026, 12, 25, 9, 0, 0, "Europe/London"]
 
-### to_date[text]
+### to_date[text, zone]
   Reads a date from text: "2026-10-03", "2026-10-03 14:05",
-  "2026-10-03 14:05:00", or ISO 8601 ("2026-10-03T14:05:00Z").
+  "2026-10-03 14:05:00", or ISO 8601 ("2026-10-03T14:05:00Z",
+  "2026-10-03T14:05:00-04:00", which keep their offset).
+  zone     optional: the zone for text that names none (local otherwise)
   Gives back: a date. Other text is a date error.
   Example:
     d = to_date["2026-10-03"]
@@ -118,7 +136,8 @@ parts read with "of": year, month, day, hour, minute, second, weekday.
 ### format_date[date, pattern]
   Writes a date with a pattern: YYYY year, MM or M month, DD or D day,
   hh hour (00-23), mm minute, ss second, Month (March), Mon (Mar),
-  Weekday (Thursday), Wkd (Thu). Anything else is copied as is.
+  Weekday (Thursday), Wkd (Thu), Zone (EST), Offset (-05:00). Anything
+  else is copied as is.
   Gives back: text.
   Example:
     show format_date[today[], "DD/MM/YYYY hh:mm"] .
@@ -587,6 +606,68 @@ Settings (set at the top of the file, or inside one test for that test):
     seed = none          a number repeats the same random inputs
 
 A failure is an error of kind test. Full guide: docs/testing.md.
+`,
+
+	"server": `A web server. Routes are a map from "METHOD /path" to what answers
+it: a function (a handler), a fixed value, or, on a /* route, a folder
+whose files it serves. A handler gets the request as a map and gives back
+text (a page), a map or list (JSON), reply[...] or redirect[...]. An
+error in a handler answers 500 and is shown; the server goes on.
+Requests take turns. Ctrl+C stops it.
+
+The request: method, path, params (from :name parts, and * for the rest
+of a /* route), query, headers (lowercase names), body (text), json (the
+body read as JSON, or none), form (a posted form), ip.
+
+Settings ("import server" makes them):
+    serverlog = true            show a line per request: GET /users/7 200 3ms
+    serverhost = "localhost"    "0.0.0.0" to answer other computers too
+
+### serve[routes, port]
+  Starts the server and answers requests until the program is stopped.
+  routes   a map: "GET /": home, "GET /users/:id": showuser,
+           "POST /users": adduser, "GET /health": "ok",
+           "GET /static/*": "public"
+  port     optional: 8080 by default
+  Example:
+    serve[app, 8080]
+    app serve 8080
+
+### reply[status, body, headers]
+  An answer with its own status, and optionally headers.
+  status   200 ok, 201 made, 404 not found, ...
+  body     optional: text, or a map or list (JSON)
+  headers  optional: a map, like map ["Cache-Control": "no-store"]
+  Gives back: a Reply { status, body, headers }.
+  Example:
+    return reply[404, "no such user"]
+
+### redirect[address, status]
+  Sends the visitor to another address (302, or 301, 303, 307, 308).
+  Example:
+    return redirect["/login"]
+`,
+
+	"config": `Settings files, the format chosen by the file's extension: .toml,
+.json or .env. TOML's [sections] become maps inside the map; numbers,
+booleans, dates and lists keep their kinds. A file that isn't well
+written is an error of kind config naming its line.
+
+### config_read[path]
+  Reads a settings file.
+  path      a .toml, .json or .env file
+  Gives back: a map ([sections] and objects as maps inside it; a .env
+  file's values are text).
+  Example:
+    settings = config_read["app.toml"]
+    port = port of server of settings
+    settings = "app.toml" config_read
+
+### config_write[path, settings]
+  Writes a map as a settings file, by the file's extension. TOML has no
+  none, and a .env file holds only single values.
+  Example:
+    config_write["app.toml", settings]
 `,
 
 	"schedule": `Many web requests, shell commands or database queries at once. The

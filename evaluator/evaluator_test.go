@@ -2304,7 +2304,7 @@ show to_date[" 2026-10-03 14:05 "] .
 show to_date["2026-10-03 14:05:09"] .
 show to_date["2026-10-03T14:05:09"] .
 show to_date["2026-10-03T14:05:09Z"] .`,
-			want: "2026-10-03 00:00:00\n2026-10-03 14:05:00\n2026-10-03 14:05:09\n2026-10-03 14:05:09\n2026-10-03 14:05:09\n"},
+			want: "2026-10-03 00:00:00\n2026-10-03 14:05:00\n2026-10-03 14:05:09\n2026-10-03 14:05:09\n2026-10-03 14:05:09 UTC\n"},
 		{name: "compare, equal, map key, set", src: `import time
 a = make_date[2026, 1, 1]
 b = make_date[2026, 1, 2]
@@ -2352,7 +2352,7 @@ d = add_time[today[], 1.5, "days"]`, wantErr: "'add_time' amount must be a whole
 		{name: "needs a date", src: `import time
 d = add_time["2026-01-01", 1, "days"]`, wantErr: "'add_time' needs a date (from today[], make_date or to_date), got STRING"},
 		{name: "unknown part", src: `import time
-show week of today[] .`, wantErr: `a date has no part "week" (its parts: year, month, day, hour, minute, second, weekday)`},
+show week of today[] .`, wantErr: `a date has no part "week" (its parts: year, month, day, hour, minute, second, weekday, zone)`},
 		{name: "parts are read-only", src: `import time
 d = today[]
 day of d = 3`, wantErr: "a date's parts can't be changed"},

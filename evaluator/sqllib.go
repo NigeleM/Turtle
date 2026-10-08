@@ -405,7 +405,7 @@ func sqlParams(fn string, rest []object.Object) []any {
 				out[i] = int64(0)
 			}
 		case *object.Date:
-			out[i] = v.Inspect()
+			out[i] = sqlDateText(v)
 		default:
 			fatalf("'%s' value %d for a ? placeholder can't be a %s (use integers, floats, text, booleans, none or dates)", fn, i+1, e.Type())
 		}
@@ -501,7 +501,7 @@ func fileValueToSQL(fn string, v object.Object) any {
 		}
 		return int64(0)
 	case *object.Date:
-		return x.Inspect()
+		return sqlDateText(x)
 	}
 	return string(toJSON(fn, v, ""))
 }

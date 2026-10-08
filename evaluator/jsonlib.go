@@ -223,7 +223,7 @@ func writeJSON(buf *bytes.Buffer, who string, v object.Object, indent, prefix st
 	case *object.String:
 		writeJSONString(buf, x.Value)
 	case *object.Date:
-		writeJSONString(buf, x.Inspect())
+		writeJSONString(buf, x.Text())
 	case *object.List:
 		writeJSONArray(buf, who, x.Elements, indent, prefix, seen)
 	case *object.Set:

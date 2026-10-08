@@ -2,7 +2,9 @@ package evaluator
 
 import (
 	"strings"
+	"sync"
 	"time"
+	_ "time/tzdata" // the zone list, built in: Windows has none of its own
 
 	"Turtle/object"
 )
@@ -33,16 +35,31 @@ func (it *Interpreter) callTime(name string, args []object.Object) object.Object
 		evalSleep(args)
 		return object.NoneValue
 	case "today":
-		requireFuncArgs(name, args, 0)
-		return &object.Date{Time: time.Now().Truncate(time.Second)}
+		if len(args) > 1 {
+			fatalf("'today' expects nothing, or a time zone (today[\"Asia/Tokyo\"]), got %d arguments", len(args))
+		}
+		now := time.Now().Truncate(time.Second)
+		if len(args) == 1 {
+			now = now.In(zoneArg(name, args[0]))
+		}
+		return &object.Date{Time: now}
+	case "to_zone":
+		requireFuncArgs(name, args, 2)
+		return &object.Date{Time: asDateArg(name, args[0]).Time.In(zoneArg(name, args[1]))}
 	case "today_utc":
 		requireFuncArgs(name, args, 0)
 		return &object.Date{Time: time.Now().UTC().Truncate(time.Second)}
 	case "make_date":
 		return makeDate(args)
 	case "to_date":
-		requireFuncArgs(name, args, 1)
-		return parseDate(asStringArg(name, args[0]))
+		if len(args) != 1 && len(args) != 2 {
+			fatalf("'to_date' expects text, and optionally a time zone, got %d arguments", len(args))
+		}
+		loc := time.Local
+		if len(args) == 2 {
+			loc = zoneArg(name, args[1])
+		}
+		return parseDateIn(asStringArg(name, args[0]), loc)
 	case "add_time":
 		requireFuncArgs(name, args, 3)
 		d := asDateArg(name, args[0])
@@ -103,18 +120,23 @@ func asUnitArg(fn string, obj object.Object) string {
 }
 
 // makeDate is make_date[year, month, day] or [year, month, day, hour,
-// minute, second], in local time. A date that doesn't exist is an error,
-// not quietly moved to the next month.
+// minute, second], in local time, or with a time zone last. A date that
+// doesn't exist is an error, not quietly moved to the next month.
 func makeDate(args []object.Object) object.Object {
+	loc := time.Local
+	if n := len(args); n == 4 || n == 7 {
+		loc = zoneArg("make_date", args[n-1])
+		args = args[:n-1]
+	}
 	if len(args) != 3 && len(args) != 6 {
-		fatalf("'make_date' expects 3 arguments (year, month, day) or 6 (and hour, minute, second), got %d", len(args))
+		fatalf("'make_date' expects 3 arguments (year, month, day) or 6 (and hour, minute, second), and optionally a time zone last, got %d", len(args))
 	}
 	names := []string{"year", "month", "day", "hour", "minute", "second"}
 	v := make([]int, 6)
 	for i, a := range args {
 		v[i] = asIntArg("make_date", names[i], a)
 	}
-	t := time.Date(v[0], time.Month(v[1]), v[2], v[3], v[4], v[5], 0, time.Local)
+	t := time.Date(v[0], time.Month(v[1]), v[2], v[3], v[4], v[5], 0, loc)
 	if t.Year() != v[0] || int(t.Month()) != v[1] || t.Day() != v[2] || t.Hour() != v[3] || t.Minute() != v[4] || t.Second() != v[5] {
 		fatalKind(kindDate, "make_date: %04d-%02d-%02d %02d:%02d:%02d isn't a real date and time", v[0], v[1], v[2], v[3], v[4], v[5])
 	}
@@ -129,10 +151,16 @@ var dateLayouts = []string{
 	"2006-01-02",
 	"2006-01-02T15:04:05",
 	time.RFC3339,
+	"2006-01-02 15:04:05Z07:00",
 }
 
 func parseDate(text string) object.Object {
-	if d, ok := tryParseDate(text); ok {
+	return parseDateIn(text, time.Local)
+}
+
+// parseDateIn is parseDate with a zone for text that names none.
+func parseDateIn(text string, loc *time.Location) object.Object {
+	if d, ok := tryParseDateIn(text, loc); ok {
 		return d
 	}
 	fatalKind(kindDate, "to_date: %q isn't a date; use YYYY-MM-DD, optionally with hh:mm or hh:mm:ss", text)
@@ -141,6 +169,10 @@ func parseDate(text string) object.Object {
 
 // tryParseDate is parseDate without the error: false if text isn't a date.
 func tryParseDate(text string) (object.Object, bool) {
+	return tryParseDateIn(text, time.Local)
+}
+
+func tryParseDateIn(text string, loc *time.Location) (object.Object, bool) {
 	s := strings.TrimSpace(text)
 	for _, layout := range dateLayouts {
 		var t time.Time
@@ -148,7 +180,7 @@ func tryParseDate(text string) (object.Object, bool) {
 		if strings.Contains(layout, "Z07") {
 			t, err = time.Parse(layout, s)
 		} else {
-			t, err = time.ParseInLocation(layout, s, time.Local)
+			t, err = time.ParseInLocation(layout, s, loc)
 		}
 		if err == nil {
 			return &object.Date{Time: t.Truncate(time.Second)}, true
@@ -242,7 +274,8 @@ func timeBetween(a, b time.Time, unit string) int64 {
 
 // formatDate fills a pattern: YYYY year, MM/M month, DD/D day, hh hour
 // (00-23), mm minute, ss second, Month (October), Mon (Oct), Weekday
-// (Saturday), Wkd (Sat). Anything else is copied as is.
+// (Saturday), Wkd (Sat), Zone (EST), Offset (-05:00). Anything else is
+// copied as is.
 func formatDate(t time.Time, pattern string) string {
 	two := func(n int) string {
 		if n < 10 {
@@ -255,6 +288,8 @@ func formatDate(t time.Time, pattern string) string {
 		val func() string
 	}{
 		{"YYYY", func() string { return itoa(t.Year()) }},
+		{"Offset", func() string { return t.Format("-07:00") }},
+		{"Zone", func() string { return t.Format("MST") }},
 		{"Weekday", func() string { return t.Weekday().String() }},
 		{"Month", func() string { return t.Month().String() }},
 		{"Mon", func() string { return t.Month().String()[:3] }},
@@ -319,3 +354,30 @@ func (it *Interpreter) every(args []object.Object) {
 		}
 	}
 }
+
+// zoneArg reads a time zone: a name like "America/New_York" or
+// "Europe/London", "UTC", or "local" (the computer's own). The zone list
+// is built into Turtle, so the names work on every system.
+func zoneArg(fn string, obj object.Object) *time.Location {
+	s, ok := obj.(*object.String)
+	if !ok {
+		fatalf("'%s' time zone must be text, like \"America/New_York\", got %s", fn, obj.Type())
+	}
+	switch strings.ToLower(s.Value) {
+	case "local":
+		return time.Local
+	case "utc", "gmt", "z":
+		return time.UTC
+	}
+	if loc, ok := zoneCache.Load(s.Value); ok {
+		return loc.(*time.Location)
+	}
+	loc, err := time.LoadLocation(s.Value)
+	if err != nil || s.Value == "" {
+		fatalKind(kindDate, "%s: %q isn't a time zone; use a name like \"America/New_York\", \"Europe/London\", \"Asia/Tokyo\", or \"UTC\" or \"local\"", fn, s.Value)
+	}
+	zoneCache.Store(s.Value, loc)
+	return loc
+}
+
+var zoneCache sync.Map

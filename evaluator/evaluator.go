@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net/http"
 	"os"
 	"slices"
+	"sync"
 	"sync/atomic"
 
 	"Turtle/ast"
@@ -38,18 +40,24 @@ var noneResult = ExecResult{Signal: SigNone}
 // of allocating a fresh bufio.Scanner per input prompt).
 type Interpreter struct {
 	scrollStack []*object.Function // saved scrolls running, for one found inside itself
-	Global      *object.Environment
-	Dir         string   // the script's directory: imports resolve relative to it
-	WorkDir     string   // where turtle was run from: file paths resolve relative to it
-	Args        []string // command-line arguments after the script path (system's args[])
-	Script      string   // the main script's file name, for "file of" an error
-	stdin       *bufio.Scanner
-	modules     map[string]*object.Module // loaded .t modules, by resolved path
-	depth       int                       // function calls in progress (see maxCallDepth)
-	loading     []string                  // .t modules mid-import, outermost first
-	dbs         []*object.Database        // databases opened, closed when Run ends
-	rng         *rand.Rand                // the random library's source (see randomlib.go)
-	rngSeed     object.Object             // the seed value rng was started from
+
+	// server is the web server serve[] runs (see serverlib.go); OnServe,
+	// when set, is told its address once it's listening (for tests).
+	server   *http.Server
+	serverMu sync.Mutex
+	OnServe  func(addr string)
+	Global   *object.Environment
+	Dir      string   // the script's directory: imports resolve relative to it
+	WorkDir  string   // where turtle was run from: file paths resolve relative to it
+	Args     []string // command-line arguments after the script path (system's args[])
+	Script   string   // the main script's file name, for "file of" an error
+	stdin    *bufio.Scanner
+	modules  map[string]*object.Module // loaded .t modules, by resolved path
+	depth    int                       // function calls in progress (see maxCallDepth)
+	loading  []string                  // .t modules mid-import, outermost first
+	dbs      []*object.Database        // databases opened, closed when Run ends
+	rng      *rand.Rand                // the random library's source (see randomlib.go)
+	rngSeed  object.Object             // the seed value rng was started from
 	// inBuiltin is true while a builtin library's Turtle code runs:
 	// errors then point at the caller's line, not the library's.
 	inBuiltin bool
@@ -119,7 +127,7 @@ const maxCallDepth = 100000
 // the file-based import.
 var builtinModules = map[string]*object.Module{
 	"math":     {Name: "math", Methods: []string{"sqrt", "abs", "round", "floor", "ceil", "pow", "random"}},
-	"time":     {Name: "time", Funcs: []string{"now", "sleep", "today", "today_utc", "make_date", "to_date", "add_time", "time_between", "format_date", "wait_until", "every"}},
+	"time":     {Name: "time", Funcs: []string{"now", "sleep", "today", "today_utc", "make_date", "to_date", "to_zone", "add_time", "time_between", "format_date", "wait_until", "every"}},
 	"data":     {Name: "data", Funcs: []string{"process", "keep", "copy", "table", "table_read", "table_write", "range", "reduce", "sum"}},
 	"system":   {Name: "system", Aliases: map[string]string{"isFile": "isfile", "isFolder": "isfolder", "scriptFolder": "scriptfolder"}, Funcs: []string{"args", "exists", "isfile", "isfolder", "exit", "env", "scriptfolder", "contents", "erase", "warn", "copyto", "moveto", "makefolder", "walk", "pack", "unpack", "loadenv", "options"}},
 	"strings":  {Name: "strings", Funcs: []string{"find", "substring", "isinstring", "join"}},
@@ -130,6 +138,8 @@ var builtinModules = map[string]*object.Module{
 	"test":     {Name: "test"},
 	"pattern":  {Name: "pattern", Funcs: []string{"matches", "findall", "replaceall", "splitby", "groups"}},
 	"log":      {Name: "log"},
+	"server":   {Name: "server", Funcs: []string{"serve", "reply", "redirect"}},
+	"config":   {Name: "config", Funcs: []string{"config_read", "config_write"}},
 	"crypt":    {Name: "crypt", Funcs: []string{"hash", "filehash", "hmac", "encode", "decode", "uuid", "token", "passwordhash", "passwordcheck", "encrypt", "decrypt"}},
 	"schedule": {Name: "schedule", Funcs: []string{"fetchall", "runall", "queryall"}},
 	"random":   {Name: "random", Funcs: []string{"pick", "shuffle", "sample", "chance"}},
@@ -210,6 +220,8 @@ const (
 	kindPattern  = "pattern"  // a pattern that isn't a valid regular expression
 	kindCrypt    = "crypt"    // text that isn't base64/hex, a wrong passphrase, an unknown algorithm
 	kindSchedule = "schedule" // a bad limit or setting, a command that can't start, queryall on SQLite
+	kindServer   = "server"   // a port in use, a bad route or status (import server)
+	kindConfig   = "config"   // a settings file that isn't well written, or can't hold a value
 	kindScroll   = "scroll"   // a scroll step that isn't a function or scroll, a scroll inside itself
 	kindCustom   = "custom"   // the program's own, from fail "..."
 )

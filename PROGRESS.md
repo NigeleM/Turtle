@@ -1026,3 +1026,26 @@ safe [end]
   or the error as a value; a function shows given, returned, time; an
   error shows its message and steps and gives back itself. turtle trace
   shows each step; turtle fmt and the REPL indent a scroll's steps.
+
+## 2026-10-07: time zones, config, server (released v0.9.162)
+
+- Time zones (in time): today["Asia/Tokyo"], to_zone[date, zone] (and
+  `d to_zone "..."`), make_date[..., zone], to_date[text, zone],
+  `zone of d`, format_date's Zone and Offset. A date in another zone shows
+  it (2026-12-25 09:00:00 GMT; local dates unchanged, the user's choice)
+  and goes to JSON, files and databases with its offset so it reads back
+  as the same moment. Dates compare as moments. The zone list is built in
+  (time/tzdata), for Windows.
+- `import config`: config_read/config_write by extension: .toml (TOML
+  1.0, a reader and writer written from scratch in toml/), .json, .env.
+  Errors of kind config name the line.
+- `import server`: serve[routes, port] with routes in a map ("GET
+  /users/:id": showuser, "GET /static/*": "public"), the request as a
+  map, reply[status, body, headers] (an assembled Reply), redirect[...].
+  A handler's error answers 500 and the server goes on; exit[] stops it.
+  serverlog and serverhost settings. Requests take turns (level B would
+  allow side by side). Errors of kind server.
+- testdata/bookshop: one program using most of Turtle together (a
+  module, config, scrolls, diagnose, closures, loops, errors, time zones,
+  JSON, crypt, patterns, SQLite, files, log, random, runall, and a web
+  API it calls itself); 60 checks, run by TestBookshopScript in CI.
