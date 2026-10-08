@@ -56,6 +56,8 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ github.ref_name }}
+        # 0.x versions are pre-releases: GitHub shows the badge.
+        prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
         files: release/turtle.pkg
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -101,6 +103,8 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ github.ref_name }}
+        # 0.x versions are pre-releases: GitHub shows the badge.
+        prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
         files: release/turtle-linux-amd64.deb
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -133,6 +137,8 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ github.ref_name }}
+        # 0.x versions are pre-releases: GitHub shows the badge.
+        prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
         files: release/turtle-windows-amd64.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
