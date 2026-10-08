@@ -7,9 +7,9 @@ This product includes software developed by Nigele McCoy and the Turtle
 contributors, licensed under the Apache License, Version 2.0 (see
 LICENSE).
 
-"Turtle" as the name of this programming language, and the Turtle logo,
-are trademarks of Nigele McCoy. The Apache License does not grant
-permission to use them; see TRADEMARKS.md.
+The name "Turtle" for this programming language, and the Turtle logo,
+identify the official project. The Apache License does not grant
+permission to use them (section 6); see BRAND.md.
 
 Programs that you write in the Turtle language, including programs made
 with `turtle build`, are yours. Turtle claims no rights in them.

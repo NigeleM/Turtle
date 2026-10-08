@@ -9,6 +9,32 @@ a breaking change will wait for a major version.
 
 For the full story of each change, see [`PROGRESS.md`](PROGRESS.md).
 
+## 0.9.168 (2026-10-08)
+
+### Breaking
+
+- **A new license: the Apache License 2.0.** Earlier versions carried a
+  file titled "MIT License" that also forbade selling Turtle, which isn't
+  MIT. Under Apache 2.0 anyone may use, change, share and build on Turtle,
+  including in their own builds, devices and commercial products, and
+  programs written in Turtle belong to their authors.
+  *What to do:* keep the `LICENSE` and `NOTICE` files with any copy of
+  Turtle you share; a changed version needs its own name (see `BRAND.md`).
+
+### New
+
+- `NOTICE` credits Nigele McCoy as Turtle's creator; every redistribution
+  must keep it.
+- A name and logo policy (`BRAND.md`): what you may do with the name
+  without asking, what needs permission, and how to ask. (In 0.9.168 it
+  was `TRADEMARKS.md` and called the name a trademark; no trademark is
+  registered, so it was reworded after the release.)
+- Contributor terms: contributors keep their copyright and give the
+  project a permanent license; what stays in Turtle is the creator's
+  decision.
+- The VS Code extension's publisher is `turtle-lang`, and it carries the
+  same `LICENSE` and `NOTICE`.
+
 ## 0.9.167 (2026-10-08)
 
 ### Breaking

@@ -167,9 +167,9 @@ counts):
   terms.
 - **Change Turtle and share it**, keeping the [`LICENSE`](LICENSE) and
   [`NOTICE`](NOTICE) files, which credit Turtle's creator.
-- **The name and logo are trademarks.** A changed version needs its own
-  name, and products named after Turtle need permission; see
-  [`TRADEMARKS.md`](TRADEMARKS.md).
+- **The name and logo identify the official Turtle.** The license
+  doesn't grant them: a changed version needs its own name, and products
+  named after Turtle need permission; see [`BRAND.md`](BRAND.md).
 - **Contributions to Turtle itself** (interpreter, standard library,
   tools, docs) stay their authors' but are licensed to the project for
   good, and what stays in Turtle is the creator's call; see

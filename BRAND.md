@@ -1,12 +1,12 @@
-# Turtle trademark policy
+# Turtle name and logo policy
 
 Turtle's code is licensed under the [Apache License 2.0](LICENSE), which
 lets anyone use, change and share it. The **name and logo** are different:
-"Turtle" as the name of this programming language, and the Turtle logo,
-are trademarks of **Nigele McCoy**, Turtle's creator. The Apache License
-does not grant any right to use them (section 6). This policy says how
-you may use them, so that people can always tell the official Turtle
-from other things.
+the name "Turtle" for this programming language, and the Turtle logo,
+identify the official project, created by **Nigele McCoy**. The Apache
+License does not grant any right to use them (section 6). This policy
+says how you may use them, so that people can always tell the official
+Turtle from other things.
 
 ## You may, without asking
 
