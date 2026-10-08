@@ -537,3 +537,53 @@ func TestFastJSONMatchesTheDecoder(t *testing.T) {
 		}
 	}
 }
+
+// TestLogicLikePopularLanguages: && and || after a sentence call work on
+// the call's result, comparisons bind tighter than &&, && tighter than ||,
+// ! applies to the value after it, and && / || stop early, as in Python,
+// JavaScript and Go. Arithmetic still belongs to a sentence's argument.
+func TestLogicLikePopularLanguages(t *testing.T) {
+	src := `import strings
+import data
+def has[text, part]
+    return isinstring[part, text]
+def [end]
+def boom[]
+    fail "evaluated"
+def [end]
+def twice[n]
+    return n * 2
+def [end]
+s = "turtle"
+ok = false
+yes = true
+nums = list [10, 20, 30]
+i = 0
+show s has "urt" && ok .
+show s has "urt" || ok .
+show s has "x" || yes .
+show s has "urt" && s at contains "tle" .
+show s at contains "urt" && ok .
+show nums get i + 1 .
+show nums get i == 10 .
+show nums get i + 1 == 20 .
+show 5 twice + 1 .
+show 5 twice == 10 && yes .
+show 5 twice > 9 || ok .
+show yes || ok && ok, " ", !ok && yes, " ", !yes || yes, " ", 1 < 2 == true .
+show false && boom[], " ", true || boom[] .
+show nums keep n give n > 15 && n < 30 .
+if ] s has "urt" && !ok [
+    show "if works" .
+if [end]
+count = 0
+[loop][count < 3 && yes]
+    count = count + 1
+[loop][end]
+show count .`
+	got, err := run(t, src, "")
+	want := "false\ntrue\ntrue\ntrue\nfalse\n20\ntrue\ntrue\n11\ntrue\ntrue\ntrue true true true\nfalse true\n[ 20 ]\nif works\n3\n"
+	if err != nil || got != want {
+		t.Errorf("got %q, %v\nwant %q", got, err, want)
+	}
+}

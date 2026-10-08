@@ -642,10 +642,23 @@ show nums total .                    // total[nums]
 - The left side is a variable name, a literal (`"lo" isinstring line`,
   `list [1, 2] join ","`), or a call's result
   (`big = copy[nums] process x give x * 10` processes a copy).
-- An argument runs to the end of the expression, so
-  `"abc" find "c" - 1` is `find["abc", "c" - 1]`. To use a sentence's
-  result in arithmetic, store it first: `i = "abc" find "c"`, then
-  `i - 1`.
+- An argument takes in arithmetic, so `"abc" find "c" - 1` is
+  `find["abc", "c" - 1]`, and `nums get i + 1` is `get[nums, i + 1]`. To
+  do arithmetic on a sentence's result, store it first
+  (`i = "abc" find "c"`, then `i - 1`) or use brackets
+  (`find["abc", "c"] - 1`).
+- **A comparison, `&&` or `||` ends the argument** and works on the
+  call's result, as in most languages:
+
+  ```
+  if ] s has "urt" && ok [         // (s has "urt") && ok
+  done = nums total > 100 || late  // (nums total > 100) || late
+  x = a solve b == y               // (a solve b) == y
+  ```
+- A `give` function takes the rest of its line, as a lambda does in other
+  languages: `nums keep n give n > 2 && n < 9` keeps the numbers between
+  them. When more follows a call that has one, use brackets:
+  `count_where[nums, n give n > 2] >= 5`.
 - A negative first argument works when the `-` is attached to it:
   `s substring -5`. A spaced `-` (`a b - 1`) or one attached to the name
   (`a b-1`) means subtraction.

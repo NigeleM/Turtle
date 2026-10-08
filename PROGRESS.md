@@ -1236,3 +1236,18 @@ objects 78 -> 41 (1.9x), jsondata 66 -> 60 (1.1x), patterns 32 -> 22
   ValueList). Same order, keys and results: all tests, the race detector,
   and a test across the small/indexed switch. 200,000 small records: 216
   -> 100 MB and 80 -> 50 ms; maps 76 -> 68 ms, jsondata 30 -> 25.
+
+## 2026-10-08 (evening): && and || after a sentence call (not yet released)
+
+- A sentence call's bare argument now stops before a comparison, && or
+  ||, which work on the call's result, as in Python, JavaScript and Go:
+  s has "urt" && ok is (s has "urt") && ok (it was has[s, "urt" && ok],
+  an error); a solve b == y is (a solve b) == y. Arithmetic still belongs
+  to the argument (nums get i + 1 is get[nums, i + 1]), and a give
+  function still takes the rest of its line.
+- Checked: a fingerprint of every statement in all 66 .trt files in the
+  repo is identical before and after; all 45 runnable programs print the
+  same output on the old and new interpreters; every test passes,
+  including PostgreSQL/MySQL and the race detector. New tests cover
+  precedence, ! and short-circuit; bookshop.trt uses && and || after
+  sentence calls.

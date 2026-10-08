@@ -33,6 +33,13 @@ const (
 	INDEX // "x at m": a method works on the value right before it
 )
 
+// SENTENCEARG is how far a sentence call's argument reaches without
+// brackets: through arithmetic (nums get i + 1 is get[nums, i + 1]), but
+// not past a comparison, && or ||, which work on the call's result, as in
+// most languages: s has "a" && ok is (s has "a") && ok, a solve b == x is
+// (a solve b) == x. A give function still takes the rest of its line.
+const SENTENCEARG = LESSGREATER
+
 var precedences = map[token.Type]int{
 	token.AT:       METHOD,
 	token.OR:       OR,
@@ -1566,11 +1573,11 @@ func (p *Parser) parseIdentifier() ast.Expression {
 	if module != "" && p.peekStartsArgument() {
 		var args []ast.Expression
 		p.nextToken()
-		args = append(args, p.parseExpression(LOWEST))
+		args = append(args, p.parseExpression(SENTENCEARG))
 		for !p.inBrackets && p.peekTokenIs(token.COMMA) {
 			p.nextToken()
 			p.nextToken()
-			args = append(args, p.parseExpression(LOWEST))
+			args = append(args, p.parseExpression(SENTENCEARG))
 		}
 		return &ast.CallExpression{Token: tok, Module: module, Name: name.Literal, Arguments: args}
 	}
@@ -1899,11 +1906,11 @@ func (p *Parser) maybeSentence(subject ast.Expression) ast.Expression {
 		args = p.parseCallArguments()
 	} else if p.peekStartsArgument() {
 		p.nextToken()
-		args = append(args, p.parseExpression(LOWEST))
+		args = append(args, p.parseExpression(SENTENCEARG))
 		for !p.inBrackets && p.peekTokenIs(token.COMMA) {
 			p.nextToken()
 			p.nextToken()
-			args = append(args, p.parseExpression(LOWEST))
+			args = append(args, p.parseExpression(SENTENCEARG))
 		}
 	}
 	return &ast.CallExpression{Token: tok, Subject: subject, Name: name, Arguments: args}

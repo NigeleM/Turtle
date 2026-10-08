@@ -217,6 +217,16 @@ check["percentile", percentile[sales, "copies", 90], 17.7]
 summary = describe[sales, "copies"]
 check["describe", count of summary, 12]
 check["mode", mode[sales, "title"], "Dune"]
+// && and || after a sentence call work on its result, as in other
+// languages: (sales mean "copies") < 20 && ... (A give function takes the
+// rest of its line, so a call with one goes in brackets when more follows.)
+busy = sales mean "copies" < 20 && count_where[sales, r give copies of r > 10] >= 5
+check["sentence calls in a condition", busy, true]
+if ] sales median "copies" > 100 || sales mode "title" == "Dune" [
+    check["|| after a sentence call", true, true]
+else ]
+    check["|| after a sentence call", false, true]
+if [end]
 
 // Into a table that's already there: its types decide each cell.
 db = sql_open["shop.db"]
