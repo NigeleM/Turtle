@@ -1197,3 +1197,12 @@ objects 78 -> 41 (1.9x), jsondata 66 -> 60 (1.1x), patterns 32 -> 22
   is-statement does; only real method names, so "a at give x" stays a
   parse error. put 9 to m at 1, 2 . puts into a matrix. A one-argument
   bare call to a method wanting more explains: use brackets.
+- Speed, with the same results (bench/, best of 3, before -> after):
+  fib 48 -> 44 ms, loop 241 -> 212, lists 97 -> 86, maps 86 -> 72, sieve
+  250 -> 225, objects 41 -> 36, functional 41 -> 34, strings 45 -> 38.
+  Profiled on Linux (macOS's profiler misattributes): a scope holds its
+  first 4 names inline (one allocation per call, not two); shared
+  integers -1024..65535 in one block; names are one shared string per
+  name, matched by address, then first letter; literals make their value
+  once. The bigger step (resolving each name to a slot when parsing, so
+  no lookup by name at all) is a larger change, proposed separately.

@@ -1,6 +1,9 @@
 package object
 
-import "sort"
+import (
+	"sort"
+	"unsafe"
+)
 
 // Environment holds variable bindings for one scope. Scopes form a chain:
 // each function call's scope encloses the scope its function was defined
@@ -20,6 +23,7 @@ type Environment struct {
 	// loop pass) hold a few, which a short list finds fastest; index
 	// takes over once a scope has more than smallScope names.
 	vars      []binding
+	small     [4]binding // vars' first home: most scopes need no more, so no second allocation
 	index     map[string]int
 	outer     *Environment
 	functions map[string]*Function
@@ -52,7 +56,11 @@ func (e *Environment) find(name string) int {
 		return -1
 	}
 	for i := range e.vars {
-		if e.vars[i].name == name {
+		// Names are shared strings (the lexer makes one per name), so the
+		// same name is usually the same address; a different first letter
+		// rules a name out without comparing the rest.
+		n := e.vars[i].name
+		if len(n) == len(name) && (unsafe.StringData(n) == unsafe.StringData(name) || n[0] == name[0] && n == name) {
 			return i
 		}
 	}
@@ -66,7 +74,7 @@ func (e *Environment) put(name string, val Object) {
 		return
 	}
 	if e.vars == nil {
-		e.vars = make([]binding, 0, 4)
+		e.vars = e.small[:0]
 	}
 	e.vars = append(e.vars, binding{name, val})
 	switch {

@@ -306,9 +306,13 @@ type Identifier struct {
 func (i *Identifier) expressionNode()      {}
 func (i *Identifier) TokenLiteral() string { return i.Token.Literal }
 
+// A literal's Cache is the value the evaluator made for it the first time
+// it ran: values never change, so every later run hands out the same one
+// instead of making another (Turtle code runs on one goroutine).
 type IntegerLiteral struct {
 	Token token.Token
 	Value int64
+	Cache any
 }
 
 func (il *IntegerLiteral) expressionNode()      {}
@@ -317,6 +321,7 @@ func (il *IntegerLiteral) TokenLiteral() string { return il.Token.Literal }
 type FloatLiteral struct {
 	Token token.Token
 	Value float64
+	Cache any
 }
 
 func (fl *FloatLiteral) expressionNode()      {}
@@ -325,6 +330,7 @@ func (fl *FloatLiteral) TokenLiteral() string { return fl.Token.Literal }
 type StringLiteral struct {
 	Token token.Token
 	Value string
+	Cache any
 }
 
 func (sl *StringLiteral) expressionNode()      {}

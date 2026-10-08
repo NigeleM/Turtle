@@ -16,6 +16,7 @@ type Lexer struct {
 	inBlockComment bool
 	atLineStart    bool
 	unclosed       bool // the last string read reached the end of the input
+	names          map[string]string
 }
 
 // Source is the text being read.
@@ -271,7 +272,18 @@ func (l *Lexer) readIdentifier() string {
 	for isLetter(l.ch) || isDigit(l.ch) {
 		l.readChar()
 	}
-	return l.input[start:l.pos]
+	// Every use of a name shares one string, so the interpreter, matching
+	// a name against a scope's names, finds it by its first byte's address
+	// instead of comparing letters.
+	name := l.input[start:l.pos]
+	if shared, ok := l.names[name]; ok {
+		return shared
+	}
+	if l.names == nil {
+		l.names = map[string]string{}
+	}
+	l.names[name] = name
+	return name
 }
 
 func (l *Lexer) readNumber() (token.Type, string) {

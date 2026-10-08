@@ -487,26 +487,27 @@ func (d *Database) Inspect() string { return "database " + d.Name }
 // shared: Int and Bool give them out instead of making new ones, which
 // saves most of a program's memory churn.
 var (
-	smallInts  [smallIntMax - smallIntMin + 1]*Integer
+	smallInts  [smallIntMax - smallIntMin + 1]Integer // one block, filled once
 	trueValue  = &Boolean{Value: true}
 	falseValue = &Boolean{Value: false}
 )
 
+// The shared integers cover loop counters, positions and most counts.
 const (
-	smallIntMin = -128
-	smallIntMax = 1023
+	smallIntMin = -1024
+	smallIntMax = 65535
 )
 
 func init() {
 	for i := range smallInts {
-		smallInts[i] = &Integer{Value: int64(i + smallIntMin)}
+		smallInts[i].Value = int64(i + smallIntMin)
 	}
 }
 
 // Int is the integer n, shared when it's small.
 func Int(n int64) *Integer {
 	if n >= smallIntMin && n <= smallIntMax {
-		return smallInts[n-smallIntMin]
+		return &smallInts[n-smallIntMin]
 	}
 	return &Integer{Value: n}
 }

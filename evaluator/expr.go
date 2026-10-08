@@ -17,11 +17,26 @@ import (
 func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environment) object.Object {
 	switch e := expr.(type) {
 	case *ast.IntegerLiteral:
-		return object.Int(e.Value)
+		if v, ok := e.Cache.(*object.Integer); ok {
+			return v
+		}
+		v := object.Int(e.Value)
+		e.Cache = v
+		return v
 	case *ast.FloatLiteral:
-		return &object.Float{Value: e.Value}
+		if v, ok := e.Cache.(*object.Float); ok {
+			return v
+		}
+		v := &object.Float{Value: e.Value}
+		e.Cache = v
+		return v
 	case *ast.StringLiteral:
-		return &object.String{Value: e.Value}
+		if v, ok := e.Cache.(*object.String); ok {
+			return v
+		}
+		v := &object.String{Value: e.Value}
+		e.Cache = v
+		return v
 	case *ast.InterpolatedString:
 		var sb strings.Builder
 		for _, part := range e.Parts {
