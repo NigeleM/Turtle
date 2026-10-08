@@ -98,6 +98,7 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 		return it.evalCall(e, env)
 
 	case *ast.FunctionLiteral:
+		env.Capture() // the function keeps this scope, so it's never reused
 		return &object.Function{Parameters: e.Parameters, Body: e.Body, Env: env}
 
 	case *ast.ScrollExpression:
@@ -716,11 +717,23 @@ func (it *Interpreter) callFunction(fn *object.Function, name string, args []obj
 		it.debug.frames = append(it.debug.frames, debugFrame{name: name, file: prevFile, line: prevLine})
 		defer it.debugLeave()
 	}
-	callEnv := object.NewEnclosedEnvironment(defEnv)
+	// A scope from a finished call nobody kept stands in for a new one:
+	// one allocation less per call.
+	var callEnv *object.Environment
+	if n := len(it.freeScopes); n > 0 {
+		callEnv = it.freeScopes[n-1]
+		it.freeScopes = it.freeScopes[:n-1]
+		callEnv.Reuse(defEnv)
+	} else {
+		callEnv = object.NewEnclosedEnvironment(defEnv)
+	}
 	for i, param := range fn.Parameters {
 		callEnv.Set(param, args[i])
 	}
 	res := it.evalBlock(fn.Body, callEnv)
+	if !callEnv.Captured() && len(it.freeScopes) < maxFreeScopes {
+		it.freeScopes = append(it.freeScopes, callEnv)
+	}
 	if res.Signal == SigReturn {
 		return res.Value
 	}

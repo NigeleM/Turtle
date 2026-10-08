@@ -7,38 +7,38 @@ from start to finish). Every language computes the same answer, checked.
 
 | benchmark | Turtle ms | Python ms | Node ms | Ruby ms | Go ms |
 |---|---|---|---|---|---|
-| fib | 44.0 | 8.6 | 0.9 | 9.3 | 0.4 |
-| loop | 209.0 | 135.3 | 20.4 | 75.6 | 1.2 |
-| strings | 39.0 | 22.1 | 7.9 | 31.4 | 9.7 |
-| lists | 85.0 | 64.9 | 42.5 | 28.8 | 15.1 |
-| maps | 75.0 | 33.6 | 22.4 | 44.0 | 19.8 |
-| sieve | 222.0 | 58.7 | 3.3 | 63.0 | 1.6 |
-| objects | 37.0 | 22.3 | 10.7 | 18.1 | 3.3 |
-| jsondata | 58.0 | 14.7 | 4.6 | 29.4 | 23.1 |
-| patterns | 19.0 | 8.3 | 3.9 | 20.2 | 12.5 |
-| functional | 34.0 | 15.7 | 3.9 | 13.3 | 0.7 |
-| matrix | 11.0 | 265.2 | 14.9 | 385.0 | 7.9 |
-| stats | 42.0 | 87.0 | 11.0 | 45.0 | 8.8 |
-| startup (hello) | 6 | 13 | 22 | 39 |  |
+| fib | 33.0 | 8.6 | 0.8 | 9.4 | 0.4 |
+| loop | 207.0 | 131.9 | 20.7 | 75.6 | 1.2 |
+| strings | 32.0 | 21.2 | 8.1 | 31.1 | 9.6 |
+| lists | 85.0 | 62.3 | 41.8 | 29.6 | 15.1 |
+| maps | 76.0 | 34.8 | 22.5 | 44.5 | 19.3 |
+| sieve | 225.0 | 63.4 | 3.0 | 62.9 | 1.6 |
+| objects | 29.0 | 21.8 | 10.4 | 18.4 | 3.5 |
+| jsondata | 30.0 | 14.5 | 5.3 | 29.8 | 23.2 |
+| patterns | 18.0 | 8.3 | 3.8 | 19.9 | 12.4 |
+| functional | 20.0 | 14.5 | 3.6 | 13.0 | 0.7 |
+| matrix | 11.0 | 258.6 | 15.8 | 386.9 | 7.9 |
+| stats | 43.0 | 86.5 | 11.1 | 45.8 | 9.0 |
+| startup (hello) | 6 | 14 | 23 | 40 |  |
 
 How many times slower Turtle is than each (1.0x is the same speed; under
 1.0x, Turtle is faster):
 
 | benchmark | Turtle ÷ Python | Turtle ÷ Node | Turtle ÷ Ruby | Turtle ÷ Go |
 |---|---|---|---|---|
-| fib | 5.1x | 48.9x | 4.7x | 110.0x |
-| loop | 1.5x | 10.2x | 2.8x | 174.2x |
-| strings | 1.8x | 4.9x | 1.2x | 4.0x |
-| lists | 1.3x | 2.0x | 3.0x | 5.6x |
-| maps | 2.2x | 3.3x | 1.7x | 3.8x |
-| sieve | 3.8x | 67.3x | 3.5x | 138.8x |
-| objects | 1.7x | 3.5x | 2.0x | 11.2x |
-| jsondata | 3.9x | 12.6x | 2.0x | 2.5x |
-| patterns | 2.3x | 4.9x | 0.94x | 1.5x |
-| functional | 2.2x | 8.7x | 2.6x | 48.6x |
-| matrix | 0.04x | 0.74x | 0.03x | 1.4x |
-| stats | 0.48x | 3.8x | 0.93x | 4.8x |
-| startup (hello) | 0.46x | 0.27x | 0.15x |  |
+| fib | 3.8x | 41.2x | 3.5x | 82.5x |
+| loop | 1.6x | 10.0x | 2.7x | 172.5x |
+| strings | 1.5x | 4.0x | 1.0x | 3.3x |
+| lists | 1.4x | 2.0x | 2.9x | 5.6x |
+| maps | 2.2x | 3.4x | 1.7x | 3.9x |
+| sieve | 3.5x | 75.0x | 3.6x | 140.6x |
+| objects | 1.3x | 2.8x | 1.6x | 8.3x |
+| jsondata | 2.1x | 5.7x | 1.0x | 1.3x |
+| patterns | 2.2x | 4.7x | 0.9x | 1.5x |
+| functional | 1.4x | 5.6x | 1.5x | 28.6x |
+| matrix | 0.04x | 0.7x | 0.03x | 1.4x |
+| stats | 0.5x | 3.9x | 0.94x | 4.8x |
+| startup (hello) | 0.43x | 0.26x | 0.15x |  |
 
 What each one does:
 

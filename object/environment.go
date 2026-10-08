@@ -30,6 +30,34 @@ type Environment struct {
 	imports   []*Import
 	loop      bool   // a loop's scope: see NewLoopEnvironment
 	file      string // root only: the module's file as errors show it, "" for the main script
+	// captured is set once a function (a give, a nested def, a saved
+	// scroll, an assembled type) keeps this scope; a scope nobody kept
+	// can be reused for the next loop pass or call (see Reuse).
+	captured bool
+}
+
+// Capture marks e and every scope around it as kept by a function made
+// in it, so none of them is ever reused.
+func (e *Environment) Capture() {
+	for s := e; s != nil && !s.captured; s = s.outer {
+		s.captured = true
+	}
+}
+
+// Captured reports whether a function kept e (see Capture).
+func (e *Environment) Captured() bool { return e.captured }
+
+// Reuse empties a scope nobody kept, to stand for a new loop pass or
+// call inside outer: what a new scope would be, without making one.
+func (e *Environment) Reuse(outer *Environment) {
+	clear(e.vars) // drop the old values, so they can be collected
+	if len(e.vars) <= len(e.small) {
+		e.vars = e.small[:0]
+	} else {
+		e.vars = e.vars[:0]
+	}
+	e.index = nil
+	e.outer = outer
 }
 
 // SetFile records which file a global environment belongs to, as errors

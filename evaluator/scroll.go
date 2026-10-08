@@ -62,6 +62,7 @@ var hereIdent = &ast.Identifier{Token: token.Token{Type: token.IDENT, Literal: h
 // it has no starting value, or else its result.
 func (it *Interpreter) evalScroll(se *ast.ScrollExpression, env *object.Environment) object.Object {
 	if se.Start == nil {
+		env.Capture()
 		return &object.Function{Parameters: []string{"value"}, Scroll: se, Env: env}
 	}
 	start := it.evalExpression(se.Start, env)

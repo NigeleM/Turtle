@@ -2,13 +2,18 @@ package evaluator
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"Turtle/lexer"
+	"Turtle/object"
 	"Turtle/parser"
 )
 
@@ -412,5 +417,123 @@ func TestAssignmentMayEndInAPeriod(t *testing.T) {
 	got, err := run(t, "import data\nnums = list [1, 2, 3]\nbig = nums keep n give n > 1 .\nx = 5 .\nshow big, x .", "")
 	if err != nil || strings.TrimSpace(got) != "[ 2, 3 ]5" {
 		t.Errorf("got %q, %v", got, err)
+	}
+}
+
+// TestReusedScopesKeepClosures: a loop pass's or a call's scope is reused
+// only when no function kept it, so closures still see their own values.
+func TestReusedScopesKeepClosures(t *testing.T) {
+	src := `import data
+fns = list []
+[loop][x in list [1, 2, 3, 4]]
+    if ] x % 2 == 0 [
+        add [] give x * 10 to fns .
+    if [end]
+[loop][end]
+show process[fns, f give f[]] .
+def adder[n]
+    [loop][i in list [1]]
+        f = x give x + n + i
+    [loop][end]
+    return f
+def [end]
+a = adder[10]
+b = adder[20]
+show a[1], " ", b[1] .
+def count[n]
+    if ] n == 0 [
+        return list []
+    if [end]
+    rest = count[n - 1]
+    add [] give n to rest .
+    return rest
+def [end]
+show process[count[3], f give f[]] .
+def plain[n]
+    m = n * 2
+    return m
+def [end]
+total = 0
+[loop][i in range[1, 1000]]
+    total = total + plain[i]
+[loop][end]
+show total, " ", a[0] .`
+	got, err := run(t, src, "")
+	want := "[ 20, 40 ]\n12 22\n[ 1, 2, 3 ]\n999000 11\n"
+	if err != nil || got != want {
+		t.Errorf("got %q, %v; want %q", got, err, want)
+	}
+}
+
+// TestFastJSONMatchesTheDecoder: for every text the fast reader takes,
+// it gives exactly what the token-stream reader gives, keys in the same
+// order; and texts it declines still load (through the decoder).
+func TestFastJSONMatchesTheDecoder(t *testing.T) {
+	slow := func(text string) (object.Object, bool) {
+		dec := json.NewDecoder(strings.NewReader(text))
+		dec.UseNumber()
+		v, err := decodeJSON(dec)
+		if err != nil {
+			return nil, false
+		}
+		if _, extra := dec.Token(); extra != io.EOF {
+			return nil, false
+		}
+		return v, true
+	}
+	cases := []string{
+		`{}`, `[]`, `0`, `-0`, `-12`, `3.25`, `1e5`, `1E+2`, `-2.5e-3`, `12345678901234567890`,
+		`true`, `false`, `null`, `""`, `"plain"`, ` { "b" : 1 , "a" : [ 1 , 2 ] } `,
+		`{"a": 1, "a": 2, "b": 3}`, `[[[]]]`, `{"x": {"y": {"z": null}}}`,
+		`"tab\tin"`, `"esc\n"`, `"é"`, `"é"`, `"bad \u0001"`, `01`, `1.`, `.5`, `+1`, `-`,
+		`[1,]`, `{"a":1,}`, `{"a" 1}`, `[1 2]`, `tru`, `nul`, `"open`, `1 2`, `{"a":1}x`, `1e400`,
+	}
+	r := rand.New(rand.NewSource(7))
+	var gen func(d int) any
+	gen = func(d int) any {
+		switch r.Intn(7) {
+		case 0:
+			return r.Intn(1000) - 500
+		case 1:
+			return r.NormFloat64() * 1e6
+		case 2:
+			return fmt.Sprintf("s%d", r.Intn(100))
+		case 3:
+			return r.Intn(2) == 0
+		case 4:
+			return nil
+		case 5:
+			if d < 4 {
+				n := r.Intn(4)
+				l := make([]any, n)
+				for i := range l {
+					l[i] = gen(d + 1)
+				}
+				return l
+			}
+		case 6:
+			if d < 4 {
+				m := map[string]any{}
+				for i := r.Intn(4); i > 0; i-- {
+					m[fmt.Sprintf("k%d", r.Intn(10))] = gen(d + 1)
+				}
+				return m
+			}
+		}
+		return 1
+	}
+	for i := 0; i < 3000; i++ {
+		b, _ := json.MarshalIndent(gen(0), "", strings.Repeat(" ", i%3))
+		cases = append(cases, string(b))
+	}
+	for _, c := range cases {
+		want, wok := slow(c)
+		got, gok := fastJSON(c)
+		if gok && !wok {
+			t.Errorf("fast reader took %q, which the decoder refuses", c)
+		}
+		if gok && (!object.Equal(got, want) || got.Inspect() != want.Inspect()) {
+			t.Errorf("%q: fast %s, decoder %s", c, got.Inspect(), want.Inspect())
+		}
 	}
 }

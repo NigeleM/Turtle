@@ -1221,3 +1221,14 @@ objects 78 -> 41 (1.9x), jsondata 66 -> 60 (1.1x), patterns 32 -> 22
   text" wording fixed; "x = ... ." may end in a period, as a call line
   may; VS Code extension 0.1.3 (grammar: new functions, matrix, 1e-9).
   bench/RESULTS.md rerun.
+- Speed and memory review (no behavior change), profiled on Linux:
+  scopes nobody kept are reused (the next loop pass, or the next call from
+  a free list; any give, nested def, saved scroll or assemble marks its
+  scope and those around it as kept); for-each makes position numbers
+  only for [loop][i, x in ...]; a strict fast JSON reader, falling back to
+  encoding/json's token stream for anything else (escapes, non-ASCII,
+  bad JSON), so values and messages are unchanged (a differential test
+  over 3,000 random documents). fib 44 -> 33 ms, functional 34 -> 20,
+  objects 37 -> 29, strings 39 -> 32, jsondata 58 -> 30.
+  Proposed, not done: one structure per map entry instead of a key list
+  plus two Go maps (66 uses in 20 files).

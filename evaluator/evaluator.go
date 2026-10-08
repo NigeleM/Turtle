@@ -42,6 +42,10 @@ var noneResult = ExecResult{Signal: SigNone}
 type Interpreter struct {
 	scrollStack []*object.Function // saved scrolls running, for one found inside itself
 
+	// freeScopes are scopes of finished calls that no function kept,
+	// ready to stand in for the next call's (see callFunction).
+	freeScopes []*object.Environment
+
 	// Bundle, when set, holds the files of a program made by turtle build:
 	// its imports are read from it before the disk.
 	Bundle fs.FS
@@ -209,6 +213,9 @@ func (e fatalError) Error() string { return e.msg }
 // The kinds of runtime error, as written in handle [file, math] error .
 // Anything not given a kind by fatalKind is kindType: a value of the
 // wrong type, or the wrong number of arguments.
+// maxFreeScopes caps how many finished calls' scopes wait for reuse.
+const maxFreeScopes = 256
+
 const (
 	kindFile     = "file"     // missing file, can't write, end of input
 	kindNumber   = "number"   // text that isn't a number: change "abc" to integer
@@ -309,6 +316,7 @@ func (it *Interpreter) runFile(stmts []ast.Statement, env *object.Environment) E
 	for _, st := range stmts {
 		if d, ok := st.(*ast.FunctionDefStatement); ok && !defined[d.Name] {
 			defined[d.Name] = true
+			env.Capture()
 			env.DefineFunction(&object.Function{Name: d.Name, Parameters: d.Parameters, Body: d.Body, Env: env})
 		}
 	}
@@ -471,6 +479,7 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		// closure: a local variable holding a function that captures the
 		// enclosing call's scope, so it can be returned or passed along
 		// and still read that call's locals after it has finished.
+		env.Capture()
 		fn := &object.Function{Name: s.Name, Parameters: s.Parameters, Body: s.Body, Env: env}
 		if env.IsTopLevel() {
 			env.DefineFunction(fn)
@@ -484,6 +493,7 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		// top level (so it's exported and importable), or is a local
 		// inside a function body.
 		shape := &object.Shape{Name: s.Name, Fields: s.Fields}
+		env.Capture()
 		fn := &object.Function{Name: s.Name, Parameters: s.Fields, Shape: shape, Env: env}
 		if env.IsTopLevel() {
 			env.DefineFunction(fn)
@@ -657,17 +667,26 @@ func (it *Interpreter) evalEach(s *ast.LoopStatement, env *object.Environment) E
 	default:
 		fatalf("'[loop][... in ...]' needs a list, set, map, or string, got %s", typeName(c))
 	}
-	if firsts == nil {
+	if firsts == nil && len(s.Vars) == 2 { // [loop][i, x in nums]: the positions
+		firsts = make([]object.Object, len(seconds))
 		for i := range seconds {
-			firsts = append(firsts, object.Int(int64(i)))
+			firsts[i] = object.Int(int64(i))
 		}
 	}
 	if len(s.Vars) == 1 && isMap {
 		seconds = firsts // one name over a map: its keys
 	}
 
+	// Each pass has a scope of its own, so a function made in the loop
+	// keeps the names it saw; a pass's scope nobody kept stands in for
+	// the next one.
+	var pass *object.Environment
 	for i := range seconds {
-		pass := object.NewLoopEnvironment(env)
+		if pass == nil || pass.Captured() {
+			pass = object.NewLoopEnvironment(env)
+		} else {
+			pass.Reuse(env)
+		}
 		if len(s.Vars) == 2 {
 			pass.Define(s.Vars[0], firsts[i])
 			pass.Define(s.Vars[1], seconds[i])

@@ -64,6 +64,9 @@ func (it *Interpreter) callJSON(name string, args []object.Object) object.Object
 // parseJSON loads text, reporting bad JSON as "<who>: invalid JSON at
 // line L, column C: ...".
 func parseJSON(who, text string) object.Object {
+	if v, ok := fastJSON(text); ok {
+		return v
+	}
 	dec := json.NewDecoder(strings.NewReader(text))
 	dec.UseNumber()
 	val, err := decodeJSON(dec)
@@ -151,6 +154,9 @@ func jsonNumber(dec *json.Decoder, n json.Number) (object.Object, error) {
 	}
 	f, err := strconv.ParseFloat(s, 64)
 	if err != nil || math.IsInf(f, 0) {
+		if dec == nil { // fastJSON: the token-stream reader reports it
+			return nil, jsonProblem{msg: "number " + s + " is too big"}
+		}
 		return nil, jsonProblem{offset: dec.InputOffset(), msg: "number " + s + " is too big"}
 	}
 	return &object.Float{Value: f}, nil
