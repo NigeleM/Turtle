@@ -397,3 +397,12 @@ func TestMethodStatements(t *testing.T) {
 		}
 	}
 }
+
+// TestFieldOfBareGet: after "of", get with one bare argument reaches into
+// the value, as get[...] does.
+func TestFieldOfBareGet(t *testing.T) {
+	got, err := run(t, "rows = list [map [\"n\": 1], map [\"n\": 2]]\nshow n of rows at get 1, \" \", n of rows at get[0] .", "")
+	if err != nil || strings.TrimSpace(got) != "2 1" {
+		t.Errorf("got %q, %v", got, err)
+	}
+}

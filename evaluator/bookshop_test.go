@@ -13,10 +13,11 @@ import (
 	"Turtle/parser"
 )
 
-// TestBookshopScript runs testdata/bookshop: one program using most of
-// Turtle together (a module, config, scrolls, diagnose, closures, loops,
-// errors, time zones, JSON, crypt, patterns, SQLite, files, log, random,
-// schedule, and a web server it calls itself). It checks its own results
+// TestBookshopScript runs testdata/bookshop: one program using every
+// library together (a module, config, scrolls, diagnose, closures, loops,
+// errors, time zones, JSON, crypt, patterns, SQLite, CSV files,
+// statistics, linear, files, log, random, schedule, and a web server it
+// calls itself). It checks its own results
 // and exits with how many failed.
 func TestBookshopScript(t *testing.T) {
 	if runtime.GOOS == "windows" {
@@ -62,7 +63,12 @@ func TestBookshopScript(t *testing.T) {
 	if ex, ok := err.(ExitRequest); !ok || ex.Code != 0 {
 		t.Fatalf("want exit 0, got %v\n%s", err, out)
 	}
-	for _, want := range []string{"scrolls ok", "time zones ok", "sql ok", "server ok", "0 failed"} {
+	for _, line := range strings.Split(out, "\n") {
+		if strings.HasPrefix(line, "work took") {
+			t.Log(line) // go test -v shows how long the program's own work took
+		}
+	}
+	for _, want := range []string{"scrolls ok", "time zones ok", "sql ok", "sales ok", "server ok", "0 failed"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q in:\n%s", want, out)
 		}

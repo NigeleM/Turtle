@@ -1,5 +1,7 @@
-// bookshop.trt: a small bookshop app that uses most of Turtle at once,
-// and checks its own results. Run it from this folder:
+// bookshop.trt: a small bookshop app that uses every library of Turtle
+// at once, and checks its own results. Each new feature gets a step here,
+// so features are tested together, as they're really used. It shows how
+// long its own work took. Run it from this folder:
 //
 //     turtle bookshop.trt
 //
@@ -23,7 +25,10 @@ import random
 import system
 import log
 import server
+import linear
 import shoplib
+
+started = now[]
 
 failures = list []
 
@@ -182,6 +187,70 @@ check["sql query", process[rows, r give title of r], list ["Neuromancer", "Belov
 sql_close[db]
 show "sql ok" .
 
+// ---------- sales: a CSV file, statistics, a typed load, a trend (linear) ----------
+// Written by hand, as another program would: a quoted number is still a
+// number, and a code with leading zeros stays text.
+[write] sales.csv
+"code,title,month,copies,price"
+"007,Dune,1,10,9.99"
+"007,Dune,2,12,\"9.99\""
+"007,Dune,3,15,9.99"
+"007,Dune,4,15,9.99"
+"007,Dune,5,18,9.99"
+"007,Dune,6,20,9.99"
+"042,Emma,1,5,4.5"
+"042,Emma,2,4,4.5"
+"042,Emma,3,6,4.5"
+"042,Emma,4,5,4.5"
+"042,Emma,5,4,4.5"
+"042,Emma,6,6,4.5"
+[end]
+sales = table_read["sales.csv"]
+check["csv numbers", copies of sales at get 0, 10]
+check["csv quoted number", price of sales at get 1, 9.99]
+check["csv code keeps its zeros", code of sales at get 0, "007"]
+check["mean", mean[sales, "copies"], 10]
+check["median", median[sales, "copies"], 8.0]
+spread = stdev[sales, "copies"] - 5.8153402151707185
+check["stdev", spread at abs < 1e-9, true]
+check["percentile", percentile[sales, "copies", 90], 17.7]
+summary = describe[sales, "copies"]
+check["describe", count of summary, 12]
+check["mode", mode[sales, "title"], "Dune"]
+
+// Into a table that's already there: its types decide each cell.
+db = sql_open["shop.db"]
+sql_run[db, "CREATE TABLE sales (code TEXT, title TEXT, month INTEGER, copies INTEGER, price REAL)"]
+check["typed load", sql_load[db, "sales", "sales.csv"], 12]
+kinds = sql_query[db, "SELECT typeof(code) AS c, typeof(copies) AS n FROM sales LIMIT 1"]
+check["typed load kinds", kinds, list [map ["c": "text", "n": "integer"]]]
+sql_close[db]
+
+// Dune's trend, copies = a + b * month, by least squares, then month 7.
+dune is sales keep r give title of r == "Dune" .
+months = zeros[6, 2]
+copies = list []
+[loop][r in dune]
+    row = month of r - 1
+    put 1 to months at row, 0 .
+    months at put month of r, row, 1 .
+    copies at add copies of r
+[loop][end]
+fit = least_squares[months, copies]
+check["trend start", fit at get 0 - 8.2 at abs < 1e-9, true]
+check["trend slope", fit at get 1 - 68 / 35 at abs < 1e-9, true]
+next_month = dot[list [1, 7], fit]
+check["forecast", next_month at round[1], 21.8]
+check["correlation", correlation[dune, "month", "copies"] - 0.9856107606091623 at abs < 1e-9, true]
+refused = false
+safe
+    grid = change sales to matrix
+handle [type] e .
+    refused = message of e at contains "\"007\""
+safe [end]
+check["text can't go in a matrix", refused, true]
+show "sales ok" .
+
 // ---------- files, log, random, schedule ----------
 [write] report.txt
 "Turtle Books report"
@@ -226,10 +295,12 @@ def finish[req]
     erase["shop.toml"]
     erase["shop.db"]
     erase["report.txt"]
+    erase["sales.csv"]
     show "server ok" .
     show length of failures, " failed" .
     exit[length of failures]
 def [end]
+show "work took ", now[] - started, " ms (before the web API, which waits a second for curl)" .
 app = map ["GET /books": stock, "GET /books/:id": onebook, "GET /finish": finish]
 serverlog = false
 sys (sleep 1; (curl -s localhost:18123/books; echo; curl -s localhost:18123/books/3; echo; curl -s -o /dev/null -w '%{http_code}' localhost:18123/books/9; echo) > api.txt; curl -s localhost:18123/finish > /dev/null) > /dev/null 2>&1 &

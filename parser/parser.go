@@ -274,7 +274,9 @@ func (p *Parser) methodPrecedence() int {
 		return LOWEST // "verify rolls at least 2 ...": the rule, not a method
 	}
 	if p.inFieldObject {
-		if isIndexMethod(p.peekN(2)) && p.peekN(3).Type == token.LBRACKET && p.peekN(3).Line == p.peekToken.Line {
+		// get and slice pick from the value after "of", bracketed or with
+		// one bare argument: title of books at get[0], title of books at get 0.
+		if isIndexMethod(p.peekN(2)) && (p.peekN(3).Type == token.LBRACKET && p.peekN(3).Line == p.peekToken.Line || p.argumentStartsAt(3)) {
 			return INDEX
 		}
 		return METHOD

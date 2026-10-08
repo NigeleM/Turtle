@@ -1206,3 +1206,12 @@ objects 78 -> 41 (1.9x), jsondata 66 -> 60 (1.1x), patterns 32 -> 22
   name, matched by address, then first letter; literals make their value
   once. The bigger step (resolving each name to a slot when parsing, so
   no lookup by name at all) is a larger change, proposed separately.
+- bookshop.trt now uses every library: a sales step writes a CSV by hand
+  (a quoted number, a 007 code), runs the statistics, loads it into a
+  typed table, fits Dune's sales trend with least_squares and forecasts
+  month 7, using 1e-9, bare method arguments, method statements and put's
+  matrix sentence. It shows its work time (~160 ms; TestBookshopScript
+  logs it). Writing it found: "copies of rows at get 0" didn't reach into
+  the list as get[0] does (fixed: a bare get/slice after "of" does now).
+  Noted: "x = rows keep ... ." errors on the period with no hint (only
+  the is-form takes one).
