@@ -1120,7 +1120,7 @@ import <name> [<f>, <g>, ...]  // only the listed names
 
 `<name>` is a builtin module (`math`, `time`, `data`, `strings`, `system`,
 `json`, `http`, `sql`, `sort`, `search`, `random`, `pattern`, `crypt`,
-`schedule`, `config`, `server`, `log`, `test`; see [the library docs](library/index.md)) or a file `<name>.trt`,
+`schedule`, `config`, `server`, `log`, `test`, `linear`; see [the library docs](library/index.md)) or a file `<name>.trt`,
 resolved relative to the current script's directory. A module in a
 subfolder is written with `/`: `import lib/utils` reads `lib/utils.trt`,
 and its qualified name is the last part, `utils half[4]`. Because builtin names
