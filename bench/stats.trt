@@ -1,0 +1,20 @@
+// stats: mean, standard deviation, median and 90th percentile of 300,000 numbers.
+import time
+import data
+import math
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    nums = list []
+    [loop][i = 0; i < 300000; i++]
+        add i * 7919 % 1000 / 10 to nums .
+    [loop][end]
+    total = mean[nums] + stdev[nums] + median[nums] + percentile[nums, 90]
+    scaled = total * 1000000
+    check = scaled at round
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "result=", check, " ms=", best .

@@ -16,9 +16,10 @@ if ] exists[path] [
     erase[path]
 if [end]
 
-// ---------- table_read: without types every value is text ----------
+// ---------- table_read: without types, an unquoted number is a number ----------
 plain = table_read[agents]
-check["plain: text", plain at get[0] at get["missions"], "24"]
+check["plain: a number", plain at get[0] at get["missions"], 24]
+check["plain: 007 stays text", plain at get[0] at get["code"], "007"]
 
 // The map can be written in place or kept in a variable.
 types = map ["code": "text", "missions": "integer", "rating": "float", "active": "boolean", "joined": "date", "primary_key": "code"]
@@ -66,10 +67,10 @@ safe [end]
 check["duplicate keys refused", refused, true]
 check["still 3", sql_query[db, "SELECT count(*) AS n FROM agents"], list [map ["n": 3]]]
 
-// ---------- no map: a new table of text columns ----------
-check["loaded as text", sql_load[db, "agents_text", agents], 3]
-t = sql_query[db, "SELECT missions, typeof(missions) AS t FROM agents_text WHERE code = '007'"]
-check["all text", t, list [map ["missions": "24", "t": "text"]]]
+// ---------- no map: a new table's columns follow the file ----------
+check["loaded without a map", sql_load[db, "agents_plain", agents], 3]
+t = sql_query[db, "SELECT missions, typeof(missions) AS t FROM agents_plain WHERE code = '007'"]
+check["numbers make a number column", t, list [map ["missions": 24, "t": "integer"]]]
 
 // ---------- SQL type words, and an existing table ----------
 sqltypes = map ["code": "VARCHAR(10)", "missions": "SMALLINT", "rating": "NUMERIC(4, 2)"]

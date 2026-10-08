@@ -64,6 +64,12 @@ func exprText(e ast.Expression) string {
 		return x.Field + " of " + exprText(x.Object)
 	case *ast.ListLiteral:
 		return "list [" + exprList(x.Elements) + "]"
+	case *ast.MatrixLiteral:
+		rows := make([]string, len(x.Rows))
+		for i, r := range x.Rows {
+			rows[i] = exprList(r)
+		}
+		return "matrix [" + strings.Join(rows, "; ") + "]"
 	case *ast.SetLiteral:
 		return "set [" + exprList(x.Elements) + "]"
 	case *ast.MapLiteral:

@@ -56,6 +56,156 @@ var moduleDocs = map[string]string{
     dice is 6 at random .
 `,
 
+	"linear": `Matrices and vectors. After import linear, matrix [...] makes a
+matrix; its rows end at ; or at the end of a line:
+    a = matrix [1, 2; 3, 4]
+    b = matrix [
+        1, 2, 3
+        4, 5, 6
+    ]
++ and - work on two matrices of the same size, or a matrix and a number
+(on every element: a + 1), * is the matrix product (a matrix times a list
+gives a list), and * or / by a number scales every element. Vectors are plain lists of numbers. A matrix of whole numbers
+shows and gives back integers; anything that can make a fraction gives
+floats. Methods: m at rows, columns, shape, get[r, c], put[value, r, c],
+row[r], column[c]. change rows to matrix makes one from a list of lists
+(or table_read's rows); change m to list turns it back.
+
+### identity[n]
+  The n x n identity matrix: 1s on the diagonal, 0s elsewhere.
+  Example:
+    i = identity[3]
+
+### zeros[rows, columns]
+  A matrix of 0s; zeros[n] is n x n.
+  Example:
+    z = zeros[2, 3]
+
+### ones[rows, columns]
+  A matrix of 1s; ones[n] is n x n.
+  Example:
+    o = ones[2, 3]
+
+### diagonal[x]
+  From a list: the square matrix with those numbers on its diagonal. From
+  a matrix: the list of the numbers on its diagonal.
+  Example:
+    d = diagonal[list [1, 2, 3]]
+
+### shape[m]
+  The size: list [rows, columns].
+  Example:
+    size = shape[m]                 // [ 2, 3 ]
+
+### row[m, r]
+  Row r (from 0) as a list.
+  Example:
+    first = row[m, 0]
+
+### column[m, c]
+  Column c (from 0) as a list.
+  Example:
+    prices = column[m, 2]
+
+### transpose[m]
+  The matrix with its rows as columns. Sentence form: m transpose.
+  Example:
+    t = transpose[m]
+
+### trace[m]
+  The sum of the diagonal of a square matrix.
+  Example:
+    t = trace[m]
+
+### determinant[m]
+  The determinant of a square matrix: 0 when it has no inverse. An integer
+  for a matrix of whole numbers.
+  Example:
+    d = determinant[matrix [1, 2; 3, 4]]     // -2
+
+### inverse[m]
+  The matrix that multiplies m to the identity. A singular matrix (its
+  determinant is 0) is a linear error.
+  Example:
+    inv = inverse[m]
+
+### rank[m]
+  How many rows (or columns) are independent: none of them a mix of the
+  others.
+  Example:
+    r = rank[matrix [1, 2; 2, 4]]            // 1
+
+### power[m, k]
+  m multiplied by itself k times; power[m, 0] is the identity, and a
+  negative k is a power of the inverse.
+  Example:
+    later = power[steps, 10]
+
+### multiply_each[a, b]
+  Element by element: each number times the one in the same place.
+  Example:
+    c = multiply_each[a, b]
+
+### solve[a, b]
+  The x with a * x == b, for a square a. b is a list (x is a list) or a
+  matrix (one answer per column). Sentence form: a solve b.
+  Example:
+    x = solve[matrix [2, 1; 1, 3], list [3, 5]]
+
+### least_squares[a, b]
+  The x that brings a * x closest to b, for more equations (rows) than
+  unknowns (columns): the line or curve of best fit.
+  Example:
+    fit = least_squares[points, ys]
+
+### dot[u, v]
+  The dot product of two lists of the same length.
+  Example:
+    d = dot[list [1, 2, 3], list [4, 5, 6]]  // 32
+
+### cross[u, v]
+  The cross product of two 3-D vectors (lists of 3 numbers).
+  Example:
+    n = cross[list [1, 0, 0], list [0, 1, 0]]
+
+### norm[x]
+  A list's length (the square root of its squares added up); for a
+  matrix, every number counts (the Frobenius norm).
+  Example:
+    n = norm[list [3, 4]]                    // 5.0
+
+### unit[v]
+  The list scaled to length 1, the same direction.
+  Example:
+    u = unit[list [3, 4]]                    // [ 0.6, 0.8 ]
+
+### lu[m]
+  The LU decomposition of a square matrix: a map with "l" (lower, 1s on
+  the diagonal), "u" (upper) and "p" (row order), where p * m == l * u.
+  Example:
+    parts = lu[m]
+
+### qr[m]
+  The QR decomposition: a map with "q" (orthonormal columns) and "r"
+  (upper triangular), where q * r == m. Needs at least as many rows as
+  columns.
+  Example:
+    parts = qr[m]
+
+### eigen[m]
+  The eigenvalues and eigenvectors of a symmetric matrix: a map with
+  "values" (a list, largest first) and "vectors" (a matrix, one vector
+  per column, each of length 1).
+  Example:
+    e = eigen[covariances]
+
+### svd[m]
+  The singular value decomposition, any shape: a map with "u", "s" (a
+  list, largest first) and "v", where m == u * diagonal[s] * transpose[v].
+  Example:
+    parts = svd[m]
+`,
+
 	"time": `The clock, dates, time zones, date arithmetic, and waiting.
 Units are "seconds", "minutes", "hours", "days", "weeks", "months",
 "years" (or the singular). A date shows as 2026-10-03 14:05:00 and has
@@ -219,6 +369,92 @@ table[...] shows. Change it like any variable; none shows every row.
   Example:
     total = sum[prices]
 
+Statistics: each takes a list, a set or a map (its values), or a list of
+rows (maps or assembled values, as sql_query and table_read give) and a
+column name. none is skipped, as a missing value; anything else that
+isn't a number is an error. Sentence form: prices mean.
+
+### mean[numbers, column]
+  The average: the numbers added up, divided by how many there are.
+  column   optional: with a list of rows, the column to use
+  Gives back: a float.
+  Example:
+    avg = mean[prices]
+    avg = mean[books, "price"]
+
+### median[numbers, column]
+  The middle number once sorted; with an even count, the average of the
+  two in the middle.
+  Gives back: the middle number itself (an integer stays one), or a float.
+  Example:
+    mid = median[list [3, 1, 2]]          // 2
+
+### mode[values, column]
+  The value that appears most often; a tie goes to the one seen first.
+  Works on any values, not only numbers.
+  Example:
+    top = mode[list ["tea", "coffee", "tea"]]   // "tea"
+
+### variance[numbers, column]
+  The sample variance: the average squared distance from the mean,
+  dividing by n - 1 (as Python and spreadsheets do). Needs 2 numbers.
+  Example:
+    v = variance[prices]
+
+### stdev[numbers, column]
+  The sample standard deviation: the square root of variance. Needs 2
+  numbers.
+  Example:
+    spread = stdev[prices]
+
+### pvariance[numbers, column]
+  The population variance: like variance, dividing by n. Use it when the
+  numbers are the whole population, not a sample of it.
+  Example:
+    v = pvariance[scores]
+
+### pstdev[numbers, column]
+  The population standard deviation: the square root of pvariance.
+  Example:
+    spread = pstdev[scores]
+
+### percentile[numbers, column, percent]
+  The number below which that percent of the numbers fall, between the
+  two nearest when it lands between them (as numpy and a spreadsheet's
+  PERCENTILE give). percentile[x, 50] is the median.
+  percent   0 to 100
+  Example:
+    p90 = percentile[times, 90]
+    p90 = percentile[rows, "ms", 90]
+
+### covariance[xs, ys]
+  How two lists of numbers move together, the sample form (n - 1):
+  positive when they rise together. Also covariance[rows, "a", "b"]. A
+  pair with none on either side is skipped.
+  Example:
+    c = covariance[heights, weights]
+
+### correlation[xs, ys]
+  Pearson's correlation, from -1 (one falls as the other rises) through 0
+  (no straight-line link) to 1 (they rise together). Also
+  correlation[rows, "a", "b"].
+  Example:
+    r = correlation[ads, sales]
+
+### zscores[numbers, column]
+  Each number's distance from the mean, counted in (sample) standard
+  deviations.
+  Gives back: a new list of floats, in the same order.
+  Example:
+    z = zscores[list [1, 2, 3]]          // [ -1.0, 0.0, 1.0 ]
+
+### describe[numbers, column]
+  A summary: count, mean, stdev (none with one number), min, 25%, median,
+  75%, max.
+  Gives back: a map; show table[describe[x]] . lays it out.
+  Example:
+    show table[describe[books, "price"]] .
+
 ### table[rows, limit]
   Lays rows out as a text table, one row per line, columns lined up.
   rows    a list of maps (what sql_query gives), a list of assembled
@@ -232,30 +468,38 @@ table[...] shows. Change it like any variable; none shows every row.
   Example:
     show table[sql_query[db, "SELECT * FROM books"]] .
 
-### table_write[path, rows]
+### table_write[path, rows, options]
   Saves rows to a file, in the layout table[...] shows. The file's
   ending picks the format: .csv (comma-separated, also any other ending),
   .tsv (tab-separated), .txt (the aligned table, every row), or .json
   (a list of objects, one per row, keeping numbers and true/false).
-  path   where to save; an existing file is replaced
-  rows   anything table[...] takes
+  path     where to save; an existing file is replaced
+  rows     anything table[...] takes
+  options  optional: map ["quote": "text"] quotes every text value of a
+           .csv or .tsv file ("007", not 007). The default, "needed",
+           quotes text only where it must (it holds a comma, a quote or
+           a line break).
+  Numbers are never quoted, so they read back as numbers.
   Gives back: how many rows were written.
   Example:
     table_write["orders.csv", orders]
+    table_write["codes.csv", codes, map ["quote": "text"]]
 
 ### table_read[path [, types]]
   Reads a .csv, .tsv or .json file. A .csv or .tsv file's first line
   names the columns; a .json file is a list of objects, one per row.
   path   the file
-  types  optional: a map of column name to type, so "007" stays text
-         and "24" becomes 24. Types: string, text, integer, float,
-         boolean, date, or a SQL type (VARCHAR(10), NUMERIC(10, 2), ...).
-         Columns left out are text. "primary_key": "column" checks
-         every row has a different one.
+  types  optional: a map of column name to type, to say what a
+         column is: "code": "text", "qty": "integer". Types: string,
+         text, integer, float, boolean, date, or a SQL type
+         (VARCHAR(10), NUMERIC(10, 2), ...). Columns left out keep what
+         the file has. "primary_key": "column" checks every row has a
+         different one.
   Gives back: a list of maps, one per row, keyed by the column names
-  (the same shape sql_query gives). Without types, from .csv and .tsv
-  every value is text ("950") and an empty cell is none. From .json,
-  values keep their kind (950 stays a number).
+  (the same shape sql_query gives). From .csv and .tsv, what a cell holds
+  decides, quoted or not (as in pandas): a plain number (950, "950",
+  -2.5) is a number; 007, 1e5 and other text is text; an empty cell is
+  none. From .json, values keep their kind.
   A badly formed file is a csv error (json for a .json file); a cell
   that isn't its type is a number, date or type error.
   Example:
@@ -1015,12 +1259,15 @@ statement, or a change the database refuses, is an sql error.
   path    the file; its first line names the table's columns
   types   optional: a map of column name to type, as table_read takes
           (string, text, integer, float, boolean, date, or a SQL type).
-          Columns left out are text. A new table gets these types, and
-          "primary_key": "column" becomes its PRIMARY KEY.
+          A new table gets these types (a column left out: integer,
+          float or text, from its values), and "primary_key": "column"
+          becomes its PRIMARY KEY.
   Gives back: how many records were added.
+  A table that's already there decides the types: each cell becomes its
+  column's type (950 in a TEXT column is "950"), or the load stops
+  at the row and column that can't (a number, date or type error).
   All or nothing: if one line is refused (say, a duplicate key), no line
-  is added, and a table it made is dropped again. Text in a number
-  column becomes a number; an empty cell is NULL.
+  is added, and a table it made is dropped again. An empty cell is NULL.
   Example:
     sql_load[db, "books", "new_books.csv"]
     sql_load[db, "agents", "agents.csv", map ["code": "text", "missions": "integer", "primary_key": "code"]]

@@ -152,7 +152,11 @@ func (s *Session) show(v object.Object) {
 	if _, isNone := v.(*object.None); isNone {
 		return
 	}
-	fmt.Fprintln(s.out, s.paint(resultColor, object.Shown(v)))
+	text := object.Shown(v)
+	if m, ok := v.(*object.Matrix); ok {
+		text = m.Inspect() // a matrix on its own shows as a grid, as show prints it
+	}
+	fmt.Fprintln(s.out, s.paint(resultColor, text))
 }
 
 // report writes an error, if there is one, and reports whether the entry

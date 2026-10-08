@@ -280,6 +280,8 @@ func (it *Interpreter) applyMethod(mc *ast.MethodCallExpression, receiver object
 		return stringMethod(r, mc.Method, args)
 	case *object.Integer, *object.Float:
 		return it.numberMethod(r, mc.Method, args, env)
+	case *object.Matrix:
+		return matrixMethod(r, mc.Method, args)
 	case *object.Assembly:
 		if mc.Method == "get" || mc.Method == "slice" {
 			// "tags of book at get[0]": the get goes with book, not tags.

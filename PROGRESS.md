@@ -1122,3 +1122,57 @@ objects 78 -> 41 (1.9x), jsondata 66 -> 60 (1.1x), patterns 32 -> 22
 - Changed: sys and runall run in the folder turtle was run in (where file
   paths resolve), not the script's folder; they disagreed when a program
   was run from elsewhere (found by running the built bookshop elsewhere).
+
+## 2026-10-08: statistics in data, the linear library (not yet released)
+
+- data's statistics: mean, median, mode, variance, stdev, pvariance,
+  pstdev, percentile, covariance, correlation, zscores, describe. A list,
+  set or map, or rows and a column name; none skipped; sample forms by
+  default (the user's choice), compensated summation. Checked against
+  Python's statistics module.
+- import linear: a matrix value (object.Matrix: one block of floats, Ints
+  while every number is whole). `matrix` is a word only after the import
+  (the only new keyword, the user's condition): matrix [1, 2; 3, 4], rows
+  ending at ; or a line end. Operators as in mathematics (* is the
+  product); methods rows/columns/shape/get/put/row/column; change to and
+  from matrix; table[m]; copy. Functions: identity, zeros, ones,
+  diagonal, shape, row, column, transpose, trace, determinant, inverse,
+  rank, power, multiply_each, solve, least_squares, dot, cross, norm,
+  unit, lu, qr, eigen (symmetric: tred2/tql2), svd (one-sided Jacobi).
+  Error kind linear.
+- show: columns lined up; past 20 rows or 10 columns, "..." and the size
+  (the user's choice). Float leftovers below 1e-13 of the largest number
+  show as 0.0 and compare equal.
+- Nothing existing changed: old error texts kept, matrix stays an
+  ordinary name without the import (TestMatrixNeedsImport).
+- REPL continues an open matrix [ and shows a matrix as a grid; turtle fmt
+  indents its rows; the VS Code grammar and turtle doc know the new words.
+- testdata/linear: test_linear_edges.trt (14 tests of edge cases, under
+  turtle test) and housing.trt (a program checking its answers against
+  exact ones), both run by TestLinearExamples.
+- Found by the edge cases and benchmark, fixed: the mean of 1000 0.1s was
+  0.09999999999999859 (now compensated); put re-scanned the whole matrix
+  (888 -> 18 ms to build 200 x 200); eigen 7.2 s -> 0.23 s at 400 x 400
+  (Jacobi -> tridiagonal QL); big products use every core (800 x 800:
+  114 -> 28 ms); inverse row by row (456 -> 182 ms at 800).
+- bench: matrix and stats added to run.trt (Turtle 13 ms vs Python 260,
+  Node 17, Ruby 389, Go 9 for matrix); bench/linear.trt shows the scaling.
+  numpy (BLAS) is 10-70x faster at 400-800; svd is the weak spot (0.7 s
+  at 400, 6.5 s at 800).
+- Follow-up the same day (the user's decisions): a matrix and a number
+  add or subtract on every element (a + 1, 10 - a), as numpy/MATLAB.
+- CSV/TSV: numbers come back as numbers (behavior change), decided by
+  what a cell holds, quoted or not, as pandas and spreadsheets do (the
+  user's choice, after trying "quotes decide"). A plain number
+  (-?(0|[1-9]digits)(.digits)?) is a number; 007, 1e5, +5, 1,000 and
+  whole numbers past int64 stay text (unlike pandas, zeros kept). A
+  hand-written RFC 4180 reader: 200,000 rows in ~155 ms (was 134 ms, all
+  text). table_write quotes only where it must, or every text value with
+  map ["quote": "text"]. Columns a types map leaves out keep the file's
+  values; a new table's unnamed columns are typed from the values.
+- sql_load / sql_update / sql_upsert into an existing table convert each
+  cell to the table's declared column types (PRAGMA table_info, or
+  information_schema on PostgreSQL/MySQL), or stop at the row and column
+  that can't. Checked on all three (TestLoadTypesOnServers).
+- Tests and the sql examples (10, 12, 13, 14) updated where they expected
+  all-text reads.

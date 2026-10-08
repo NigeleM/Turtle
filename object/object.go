@@ -95,8 +95,11 @@ type String struct{ Value string }
 // list [1, "1"] shows as [ 1, "1" ]. A string shown on its own (show "hi")
 // isn't quoted.
 func Shown(o Object) string {
-	if s, ok := o.(*String); ok {
-		return strconv.Quote(s.Value)
+	switch v := o.(type) {
+	case *String:
+		return strconv.Quote(v.Value)
+	case *Matrix:
+		return v.Line()
 	}
 	return o.Inspect()
 }

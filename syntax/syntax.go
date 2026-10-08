@@ -43,6 +43,7 @@ var LibraryWords = map[string][]string{
 	"random": {"random"},
 	"test":   {"check", "verify", "validate", "each", "any", "not", "exactly", "least", "most", "pair", "that", "with", "as", "matches", "fails", "close", "within"},
 	"log":    {"log", "debug", "info", "error"},
+	"linear": {"matrix"},
 }
 
 // Highlight finds the colored spans of src.
@@ -154,6 +155,7 @@ var Methods = []string{
 	"pop", "pow", "put", "random", "remove", "replace", "reverse", "round",
 	"slice", "sort", "split", "sqrt", "subset", "superset", "tostring", "trim",
 	"union", "upper", "fixed", "commas", "padleft", "padright",
+	"rows", "columns", "shape", "row", "column",
 }
 
 // ShapeWords are the kinds of value that can follow random (and "as" in

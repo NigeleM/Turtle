@@ -92,7 +92,7 @@ func openBlocks(src string) int {
 // validate sentence or a scroll (which can run over several lines) still
 // waiting for its period.
 func needsMore(src string) bool {
-	if openBlocks(src) > 0 || scrollOpen(src) {
+	if openBlocks(src) > 0 || scrollOpen(src) || matrixOpen(src) {
 		return true
 	}
 	l := lexer.New(src)
@@ -111,10 +111,28 @@ func needsMore(src string) bool {
 // four spaces per open block, and four more for a scroll's steps.
 func indentFor(src string) int {
 	n := openBlocks(src)
-	if scrollOpen(src) {
+	if scrollOpen(src) || matrixOpen(src) {
 		n++
 	}
 	return 4 * n
+}
+
+// matrixOpen reports whether src has a matrix [ ... still waiting for its
+// closing bracket: its rows go on the lines that follow.
+func matrixOpen(src string) bool {
+	l := lexer.New(src)
+	depth := 0
+	prev := token.Token{}
+	for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
+		switch {
+		case tok.Type == token.LBRACKET && (depth > 0 || prev.Type == token.IDENT && prev.Literal == "matrix"):
+			depth++
+		case tok.Type == token.RBRACKET && depth > 0:
+			depth--
+		}
+		prev = tok
+	}
+	return depth > 0
 }
 
 // scrollOpen reports whether src's last line is a scroll still waiting

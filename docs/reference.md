@@ -207,9 +207,9 @@ change <ident> to <type> .            // mutates <ident> in place
 ```
 
 `<type>` is one of `integer`, `float`, `string`, `ascii`, `char`, `hex`,
-`list`, `set`, `keys`, `values`. All but `list` and `set` are ordinary
-identifiers, not reserved words — they only mean anything right after
-`change ... to`.
+`list`, `set`, `keys`, `values`, and, in a file that imports `linear`,
+`matrix`. All but `list` and `set` are ordinary identifiers, not reserved
+words — they only mean anything right after `change ... to`.
 
 The statement form requires the source to be a plain identifier (like the
 target of `add ... to <ident> .`) and rewrites that variable's value
@@ -244,6 +244,8 @@ target name covers both directions of a pair:
 | `values` | map | a new list of its values, in order |
 | `list` / `set` | map | its keys (like `keys`) |
 | `list` / `set` | string | its characters: `change "abc" to list` is `[ "a", "b", "c" ]` |
+| `matrix` | a list of lists (rows), or of maps (what `table_read` gives) | a new matrix (`import linear`) |
+| `list` | matrix | a list of its rows, each a list |
 
 Any other combination is a fatal error naming the source and target types.
 
@@ -904,6 +906,7 @@ safe [end]
 | `server` | a port in use, a bad route, status or port (`import server`) |
 | `config` | a settings file that isn't well written, or a value it can't hold (`import config`) |
 | `scroll` | a scroll step that isn't a function or scroll, or a scroll inside itself |
+| `linear` | matrices of the wrong size for each other, a singular matrix, a non-symmetric matrix for `eigen` (`import linear`) |
 | `custom` | your own, from `fail`                                    |
 
 An error of a kind that isn't listed isn't handled: it goes on to an
@@ -1175,7 +1178,17 @@ is a fatal error that shows the chain.
   `.csv`, `.tsv`, `.txt` and `.json` table files (see
   [`stdlib.md`](stdlib.md#data-library)). They're
   ordinary functions, usually called sentence-style:
-  `nums process x give x + 1 .`, `show table[rows] .`
+  `nums process x give x + 1 .`, `show table[rows] .` It also has the
+  statistics: `mean`, `median`, `mode`, `variance`, `stdev`, `pvariance`,
+  `pstdev`, `percentile`, `covariance`, `correlation`, `zscores`,
+  `describe` (see [`stdlib.md`](stdlib.md#statistics)).
+- `import linear` adds the `matrix` value, written
+  `matrix [1, 2; 3, 4]` (rows end at `;` or at the end of a line), its
+  operators (`*` of two matrices is the matrix product), and functions
+  such as `solve`, `inverse`, `determinant`, `eigen` and `svd` (see
+  [`stdlib.md`](stdlib.md#linear-library)). `matrix` is a word of the
+  language only in a file that imports `linear`; elsewhere it's an
+  ordinary name, and in such a file it can't name a variable or function.
 - `import random` makes random values of any shape, written as a
   sentence: `random list of 5 integers from 0 to 9`, `random Order [string,
   integer]`; plus `pick`, `shuffle`, `sample`, `chance` and the `seed`

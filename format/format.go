@@ -28,7 +28,7 @@ func Format(src string) (string, error) {
 		// Perhaps a library's own code, using its words without importing
 		// itself.
 		lib := parser.New(lexer.New(src))
-		for _, name := range []string{"random", "test", "log"} {
+		for _, name := range []string{"random", "test", "log", "linear"} {
 			lib.Enable(name)
 		}
 		lib.ParseProgram()
@@ -110,6 +110,20 @@ func Format(src string) (string, error) {
 	return result, nil
 }
 
+// bracketBalance is how many more [ than ] the tokens have.
+func bracketBalance(t []token.Token) int {
+	n := 0
+	for _, tok := range t {
+		switch tok.Type {
+		case token.LBRACKET:
+			n++
+		case token.RBRACKET:
+			n--
+		}
+	}
+	return n
+}
+
 // lineDepth is how deep a line goes, from its tokens and the blocks open
 // before it, and the blocks open after it.
 func lineDepth(t []token.Token, stack []string) (int, []string, error) {
@@ -158,6 +172,26 @@ func lineDepth(t []token.Token, stack []string) (int, []string, error) {
 			return len(stack), stack[:len(stack)-1], nil
 		}
 		return len(stack), stack, nil
+	}
+	// A matrix over several lines: its rows one step in, its closing ]
+	// back at the depth of the line that opened it.
+	//     m = matrix [
+	//         1, 2
+	//         3, 4
+	//     ]
+	if len(stack) > 0 && stack[len(stack)-1] == "matrix" {
+		if bracketBalance(t) < 0 {
+			if t[0].Type == token.RBRACKET {
+				return len(stack) - 1, stack[:len(stack)-1], nil
+			}
+			return len(stack), stack[:len(stack)-1], nil
+		}
+		return len(stack), stack, nil
+	}
+	for i := 0; i+1 < len(t); i++ {
+		if t[i].Type == token.IDENT && t[i].Literal == "matrix" && t[i+1].Type == token.LBRACKET && bracketBalance(t[i+1:]) > 0 {
+			return len(stack), append(append([]string{}, stack...), "matrix"), nil
+		}
 	}
 	if last.Type != token.PERIOD && last.Type != token.GIVES {
 		for _, tok := range t {

@@ -90,7 +90,7 @@ def exercise[db, kind]
     // ---------- files out ----------
     out = "{here}/export_{kind}.csv"
     check["{kind}: saved", sql_save[db, "SELECT sku, title, price FROM turtle_books ORDER BY sku", out], 5]
-    check["{kind}: saved file", table_read[out] at get[0], map ["sku": "B1", "title": "Dune", "price": "1050"]]
+    check["{kind}: saved file", table_read[out] at get[0], map ["sku": "B1", "title": "Dune", "price": 1050]]
     erase[out]
 
     // ---------- column types: sql_load makes the table ----------

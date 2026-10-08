@@ -138,3 +138,15 @@ func TestFormatDiagnoseBlock(t *testing.T) {
 		t.Errorf("got %v\n%s", err, got)
 	}
 }
+
+func TestFormatMatrix(t *testing.T) {
+	src := "import linear\ndef f[]\nm = matrix [\n1, 2\n      3, 4\n]\nn = matrix [\n1, 2\n3, 4]\nreturn m\ndef [end]\n"
+	want := "import linear\ndef f[]\n    m = matrix [\n        1, 2\n        3, 4\n    ]\n    n = matrix [\n        1, 2\n        3, 4]\n    return m\ndef [end]\n"
+	got, err := Format(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != want {
+		t.Errorf("got\n%s\nwant\n%s", got, want)
+	}
+}

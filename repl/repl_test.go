@@ -56,6 +56,11 @@ func TestNeedsMore(t *testing.T) {
 		"diagnose":                                             true,
 		"diagnose\n  x = 1\ndiagnose [end]":                    false,
 		"x = diagnose[s, 3]":                                   false,
+		"m = matrix [":                                         true,
+		"m = matrix [\n  1, 2\n  3, 4":                         true,
+		"m = matrix [\n  1, 2\n  3, 4\n]":                      false,
+		"m = matrix [1, 2; 3, 4]":                              false,
+		"x = list [":                                           false,
 	}
 	for src, want := range cases {
 		if got := needsMore(src); got != want {

@@ -56,6 +56,10 @@ Next, roughly in priority order:
 - [x] Log library (2026-10-06)
 - [x] REPL with colors (2026-10-06); editor: see the next option below
 - [x] `turtle lsp` and a VS Code extension (2026-10-06)
+- [x] Statistics in `data`, and the `linear` library (matrices) (2026-10-08)
+- [ ] `linear`: a faster `svd` (Golub-Kahan) if big ones are needed
+- [ ] `machine` library (k-means, regression, kNN, naive Bayes, SVM): held
+      by the user until speed and other work settle
 - [ ] `sql` leftovers: writing WITHOUT ROWID tables, UTF-16 and
       auto-vacuum files; virtual tables (fts5)
 - [x] Sort by a function, and search: `import sort`, `import search`

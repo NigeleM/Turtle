@@ -15,7 +15,7 @@ show table[orders] .
 file = "{here}/export_orders.csv"
 check["written", table_write[file, orders], 3]
 back = table_read[file]
-check["read back as maps of text", back at get[1], map ["item": "mug", "qty": "2", "price": "8.0"]]
+check["read back as maps, numbers as numbers", back at get[1], map ["item": "mug", "qty": 2, "price": 8.0]]
 
 // The values are text: change them to numbers to compute.
 total = 0.0
@@ -66,11 +66,11 @@ check["text contains", "turtle" at contains["tle"], true]
 
 // ---------- other shapes ----------
 table_write[file, map ["Ann": 30, "Bo": 25]]
-check["a map: key and value", table_read[file], list [map ["key": "Ann", "value": "30"], map ["key": "Bo", "value": "25"]]]
+check["a map: key and value", table_read[file], list [map ["key": "Ann", "value": 30], map ["key": "Bo", "value": 25]]]
 table_write[file, list ["x", "y"]]
-check["a plain list: # and value", table_read[file] at get[1], map ["#": "1", "value": "y"]]
+check["a plain list: # and value", table_read[file] at get[1], map ["#": 1, "value": "y"]]
 table_write[file, list [list [1, "a"], list [2, "b"]]]
-check["lists: columns 0, 1", table_read[file] at get[0], map ["0": "1", "1": "a"]]
+check["lists: columns 0, 1", table_read[file] at get[0], map ["0": 1, "1": "a"]]
 
 // ---------- how many rows table shows ----------
 many = list []

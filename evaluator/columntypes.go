@@ -44,8 +44,9 @@ var columnKindNames = map[columnKind]string{
 // it with when it was written as SQL ("" for a Turtle word, which each
 // database spells its own way).
 type columnType struct {
-	kind columnKind
-	sql  string
+	kind  columnKind
+	sql   string
+	given bool // false: no type named, so the cells stay as the file has them
 }
 
 type columnTypes struct {
@@ -167,7 +168,9 @@ func (ct *columnTypes) perColumn(fn, path string, header []string) []columnType 
 		if i < 0 {
 			missing(name)
 		}
-		out[i] = ct.cols[name]
+		t := ct.cols[name]
+		t.given = true
+		out[i] = t
 	}
 	if ct.key != "" && headerIndex(header, ct.key) < 0 {
 		missing(ct.key)
@@ -175,16 +178,58 @@ func (ct *columnTypes) perColumn(fn, path string, header []string) []columnType 
 	return out
 }
 
-// applyColumnTypes turns each cell into its column's kind of value, in
-// place. A cell that can't be one is an error naming the row and column.
+// applyColumnTypes turns each cell of a column the map names into that
+// kind of value, in place; the other columns keep what the file has (an
+// unquoted number, text, ...). A cell that can't be its kind is an error
+// naming the row and column.
 func applyColumnTypes(fn, path string, header []string, rows [][]object.Object, ct *columnTypes) []columnType {
 	types := ct.perColumn(fn, path, header)
+	convertRows(fn, path, header, rows, types)
+	return types
+}
+
+func convertRows(fn, path string, header []string, rows [][]object.Object, types []columnType) {
 	for r, row := range rows {
 		for i := range row {
-			row[i] = convertCell(fn, path, r+1, header[i], types[i].kind, row[i])
+			if types[i].given {
+				row[i] = convertCell(fn, path, r+1, header[i], types[i].kind, row[i])
+			}
 		}
 	}
-	return types
+}
+
+// inferKind is a column's kind from its values, for a new table's column
+// no type was given for: integer if every value is one, a float if every
+// one is a number, true/false if every one is, else text.
+func inferKind(rows [][]object.Object, i int) columnKind {
+	kind, seen := colInteger, false
+	for _, row := range rows {
+		switch row[i].(type) {
+		case *object.None:
+			continue
+		case *object.Integer:
+			if kind == colBoolean {
+				return colText
+			}
+		case *object.Float:
+			if kind == colBoolean {
+				return colText
+			}
+			kind = colFloat
+		case *object.Boolean:
+			if seen && kind != colBoolean {
+				return colText
+			}
+			kind = colBoolean
+		default:
+			return colText
+		}
+		seen = true
+	}
+	if !seen {
+		return colText
+	}
+	return kind
 }
 
 func convertCell(fn, path string, row int, col string, kind columnKind, v object.Object) object.Object {

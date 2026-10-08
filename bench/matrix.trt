@@ -1,0 +1,36 @@
+// matrix: a 200 x 200 matrix product and a 200 x 200 linear system.
+import time
+import linear
+import math
+import data
+n = 200
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    a = zeros[n]
+    b = zeros[n]
+    rhs = list []
+    [loop][i = 0; i < n; i++]
+        [loop][j = 0; j < n; j++]
+            v = i * 7 + j * 13
+            a = a at put[v % 10, i, j]
+            b = b at put[v % 7, i, j]
+        [loop][end]
+        a = a at put[n * 10 + i % 10, i, i]
+        add i % 7 + 1 to rhs .
+    [loop][end]
+    c = a * b
+    total = 0
+    [loop][i = 0; i < n; i++]
+        total = total + sum[c at row[i]]
+    [loop][end]
+    x = solve[a, rhs]
+    xs = sum[x] * 1000000
+    rounded = xs at round
+    check = total + rounded
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "result=", check, " ms=", best .

@@ -56,6 +56,14 @@ func tableShape(fn string, x object.Object) textTable {
 		for _, k := range v.Keys {
 			t.add([]object.Object{v.KeyOf(k), v.Values[k]})
 		}
+	case *object.Matrix:
+		t = textTable{empty: v.Rows == 0}
+		for c := range v.Cols {
+			t.header = append(t.header, itoa(c))
+		}
+		for r := range v.Rows {
+			t.add(matrixRowList(v, r).Elements)
+		}
 	case *object.Assembly:
 		t = textTable{header: []string{"field", "value"}}
 		for i, f := range v.Shape.Fields {

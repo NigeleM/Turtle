@@ -145,7 +145,14 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 		return it.reduceExtreme(e.Arg, env, false)
 	case *ast.LengthExpression:
 		return object.Int(int64(it.lengthOf(it.evalExpression(e.Arg, env))))
+	case *ast.MatrixLiteral:
+		return it.evalMatrixLiteral(e, env)
 	case *ast.ChangeExpression:
+		if e.TypeName == "matrix" {
+			if _, ok := env.FindImport("linear"); !ok {
+				fatalKind(kindName, "change ... to matrix needs \"import linear\" first")
+			}
+		}
 		return evalChange(e.TypeName, it.evalExpression(e.Source, env))
 
 	case *ast.RandomExpression:
@@ -171,6 +178,8 @@ func evalPrefix(op string, right object.Object) object.Object {
 			return object.Int(-v.Value)
 		case *object.Float:
 			return &object.Float{Value: -v.Value}
+		case *object.Matrix:
+			return scaleMatrix(v, object.Int(-1), "*")
 		}
 		fatalf("unary '-' needs a number, got %s", typeName(right))
 	case "!":
@@ -228,6 +237,9 @@ func evalInfix(op string, left, right object.Object) object.Object {
 				}
 			}
 		}
+	}
+	if res, ok := matrixInfix(op, left, right); ok {
+		return res
 	}
 	if op == "+" || op == "-" {
 		if res, ok := collectionOp(op, left, right); ok {
@@ -426,6 +438,8 @@ func changeItems(val object.Object) ([]object.Object, bool) {
 			chars = append(chars, &object.String{Value: string(r)})
 		}
 		return chars, true
+	case *object.Matrix:
+		return matrixRows(v).Elements, true
 	}
 	return nil, false
 }
@@ -516,6 +530,8 @@ func evalChange(typeName string, val object.Object) object.Object {
 			}
 		}
 		return out
+	case "matrix":
+		return toMatrix(val)
 	case "set":
 		// Duplicates are dropped; the first of each keeps its place.
 		if items, ok := changeItems(val); ok {
@@ -785,6 +801,8 @@ func (it *Interpreter) callBuiltin(module, name string, args []object.Object, en
 			return it.dataReduce(args)
 		case "sum":
 			return dataSum(args)
+		default:
+			return callStats(name, args)
 		}
 	case "system":
 		return it.callSystem(name, args)
@@ -808,6 +826,8 @@ func (it *Interpreter) callBuiltin(module, name string, args []object.Object, en
 		return it.callServer(name, args, env)
 	case "sql":
 		return it.callSQL(name, args)
+	case "linear":
+		return callLinear(name, args)
 	case "sort":
 		return it.callSort(name, args)
 	case "search":

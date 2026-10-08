@@ -133,7 +133,7 @@ const maxCallDepth = 100000
 var builtinModules = map[string]*object.Module{
 	"math":     {Name: "math", Methods: []string{"sqrt", "abs", "round", "floor", "ceil", "pow", "random"}},
 	"time":     {Name: "time", Funcs: []string{"now", "sleep", "today", "today_utc", "make_date", "to_date", "to_zone", "add_time", "time_between", "format_date", "wait_until", "every"}},
-	"data":     {Name: "data", Funcs: []string{"process", "keep", "copy", "table", "table_read", "table_write", "range", "reduce", "sum"}},
+	"data":     {Name: "data", Funcs: append([]string{"process", "keep", "copy", "table", "table_read", "table_write", "range", "reduce", "sum"}, statsFuncs...)},
 	"system":   {Name: "system", Aliases: map[string]string{"isFile": "isfile", "isFolder": "isfolder", "scriptFolder": "scriptfolder"}, Funcs: []string{"args", "exists", "isfile", "isfolder", "exit", "env", "scriptfolder", "contents", "erase", "warn", "copyto", "moveto", "makefolder", "walk", "pack", "unpack", "loadenv", "options"}},
 	"strings":  {Name: "strings", Funcs: []string{"find", "substring", "isinstring", "join"}},
 	"json":     {Name: "json", Funcs: []string{"load", "json_text", "json_read", "json_write", "json_get"}},
@@ -148,6 +148,7 @@ var builtinModules = map[string]*object.Module{
 	"crypt":    {Name: "crypt", Funcs: []string{"hash", "filehash", "hmac", "encode", "decode", "uuid", "token", "passwordhash", "passwordcheck", "encrypt", "decrypt"}},
 	"schedule": {Name: "schedule", Funcs: []string{"fetchall", "runall", "queryall"}},
 	"random":   {Name: "random", Funcs: []string{"pick", "shuffle", "sample", "chance"}},
+	"linear":   {Name: "linear", Funcs: linearFuncs},
 	"sql":      {Name: "sql", Funcs: []string{"sql_open", "sql_create", "sql_query", "sql_run", "sql_tables", "sql_load", "sql_save", "sql_update", "sql_delete", "sql_upsert", "sql_close"}},
 }
 
@@ -228,6 +229,7 @@ const (
 	kindServer   = "server"   // a port in use, a bad route or status (import server)
 	kindConfig   = "config"   // a settings file that isn't well written, or can't hold a value
 	kindScroll   = "scroll"   // a scroll step that isn't a function or scroll, a scroll inside itself
+	kindLinear   = "linear"   // matrices of the wrong size for each other, a singular matrix (import linear)
 	kindCustom   = "custom"   // the program's own, from fail "..."
 )
 

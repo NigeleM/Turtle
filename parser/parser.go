@@ -99,6 +99,10 @@ type Parser struct {
 	// begin statements from then on (see testlib.go).
 	testImported bool
 
+	// linearImported is set by "import linear": matrix [...] makes a
+	// matrix from then on (see linear.go).
+	linearImported bool
+
 	// stopWords end the value being parsed (see pushStops), and
 	// inVerifyValue keeps "at least" / "at most" from being read as a
 	// method call on the values being verified.
@@ -188,6 +192,8 @@ func (p *Parser) Enable(name string) {
 		p.testImported = true
 	case "log":
 		p.logImported = true
+	case "linear":
+		p.linearImported = true
 	}
 }
 
@@ -353,6 +359,11 @@ func (p *Parser) parseStatement() ast.Statement {
 	// One clear error instead of a cascade from parsing it as a keyword.
 	if p.isReservedWord(p.curToken) && (p.peekTokenIs(token.ASSIGN) || p.peekTokenIs(token.IS)) && p.peekToken.Line == p.curToken.Line {
 		p.reservedNameError(p.curToken, "a variable")
+		p.skipLine()
+		return nil
+	}
+	if p.startsMatrix() && (p.peekTokenIs(token.ASSIGN) || p.peekTokenIs(token.IS)) && p.peekToken.Line == p.curToken.Line {
+		p.matrixNameError(p.curToken, "a variable")
 		p.skipLine()
 		return nil
 	}
@@ -637,7 +648,7 @@ func (p *Parser) parseReturnStatement() ast.Statement {
 
 // errorKinds are the names a handle statement can list; they match the
 // kinds the evaluator gives its runtime errors.
-var errorKinds = []string{"file", "number", "math", "index", "key", "name", "type", "json", "date", "http", "sql", "csv", "test", "pattern", "crypt", "schedule", "config", "server", "scroll", "custom"}
+var errorKinds = []string{"file", "number", "math", "index", "key", "name", "type", "json", "date", "http", "sql", "csv", "test", "pattern", "crypt", "schedule", "config", "server", "scroll", "linear", "custom"}
 
 // parseSafeStatement parses
 //
@@ -735,6 +746,9 @@ func (p *Parser) parseImportStatement() ast.Statement {
 	}
 	if path == "log" {
 		p.logImported = true
+	}
+	if path == "linear" {
+		p.linearImported = true
 	}
 	// import lib/utils: a module in a subfolder, path segments joined by '/'.
 	for p.peekTokenIs(token.SLASH) && p.peekToken.Line == tok.Line {
@@ -953,6 +967,9 @@ func (p *Parser) parseFunctionDef() ast.Statement {
 		return nil
 	}
 	name := p.curToken.Literal
+	if p.linearImported && name == "matrix" {
+		p.matrixNameError(p.curToken, "a function")
+	}
 	if p.testImported && testWords[name] {
 		p.errorf("%s is a test word in a file that imports test, so it can't name a function here; rename it (a function called %s from another file can be used as module %s[...])", name, name, name)
 	}
@@ -1454,6 +1471,9 @@ func (p *Parser) parseIdentifier() ast.Expression {
 	tok := p.curToken
 	if p.startsRandom() {
 		return p.parseRandomExpression()
+	}
+	if p.startsMatrix() {
+		return p.parseMatrixLiteral()
 	}
 	// The keyword was "gives" before v0.9.150.
 	if p.peekTokenIs(token.IDENT) && p.peekToken.Literal == "gives" && p.peekToken.Line == tok.Line {

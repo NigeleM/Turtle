@@ -34,7 +34,7 @@ report = "{here}/export_authors.csv"
 sql_save[db, q, report]
 back = table_read[report]
 check["read back: same rows", length of back, 5]
-check["values come back as text", back at get[0] at get["revenue"], "7600"]
+check["numbers come back as numbers", back at get[0] at get["revenue"], 7600]
 check["none is an empty cell, and comes back as none", back at get[4] at get["revenue"], none]
 text = "{here}/export_authors.txt"
 sql_save[db, q, text]

@@ -408,6 +408,16 @@ type ListLiteral struct {
 func (ll *ListLiteral) expressionNode()      {}
 func (ll *ListLiteral) TokenLiteral() string { return ll.Token.Literal }
 
+// MatrixLiteral is linear's matrix [1, 2; 3, 4]: rows of numbers, a row
+// ending at ; or at the end of a line.
+type MatrixLiteral struct {
+	Token token.Token
+	Rows  [][]Expression
+}
+
+func (ml *MatrixLiteral) expressionNode()      {}
+func (ml *MatrixLiteral) TokenLiteral() string { return ml.Token.Literal }
+
 type SetLiteral struct {
 	Token    token.Token
 	Elements []Expression

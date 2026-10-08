@@ -330,8 +330,9 @@ Plain `<result> is <receiver> .` (no `at`) is just assignment/aliasing —
 ## Data library
 
 `import data` (or `import data [process, keep, copy, range, reduce, sum,
-table, table_read, table_write]`) provides nine functions. `table`,
-`table_read` and `table_write` are described [below](#tables).
+table, table_read, table_write]`) provides nine functions, and the
+[statistics](#statistics) below. `table`, `table_read` and `table_write`
+are described [below](#tables).
 
 **`process` and `keep`: alone or as a value.** Written as a sentence on
 its own, they change the collection **in place**. Used as a value
@@ -422,6 +423,49 @@ These are ordinary functions, so you can write your own in a `.trt` library
 and call them the same sentence style. See
 [`reference.md`](reference.md#sentence-style-calls).
 
+### Statistics
+
+`import data` also has the everyday statistics. Each takes a list, a set
+or a map (its values), or a list of rows (maps or assembled values, what
+`sql_query` and `table_read` give) and a column name.
+
+| Function | Gives |
+|---|---|
+| `mean[x]` | the average, a float |
+| `median[x]` | the middle number once sorted (the number itself, so an integer stays one); with an even count, the average of the two middle ones |
+| `mode[x]` | the value that appears most often, on a tie the one seen first; works on any values, not only numbers |
+| `variance[x]`, `stdev[x]` | the **sample** variance and standard deviation, dividing by n − 1, as Python's `statistics` and spreadsheets do; need 2 numbers |
+| `pvariance[x]`, `pstdev[x]` | the **population** forms, dividing by n: for when the numbers are the whole population |
+| `percentile[x, p]` | `p` from 0 to 100: the number that much of the data is below, between the two nearest when it falls between (numpy's default, a spreadsheet's `PERCENTILE`); `percentile[x, 50]` is the median |
+| `covariance[xs, ys]` | how two lists move together, the sample form |
+| `correlation[xs, ys]` | Pearson's correlation, from −1 through 0 to 1 |
+| `zscores[x]` | a new list: each number's distance from the mean, in (sample) standard deviations |
+| `describe[x]` | a map: `count`, `mean`, `stdev`, `min`, `25%`, `median`, `75%`, `max` |
+
+```
+import data
+
+prices = list [950, 3000, 1225, 800]
+show mean[prices] .               // 1493.75
+show prices median .              // 1087.5: sentence form works too
+show percentile[prices, 90] .     // 2467.5
+show table[describe[prices]] .
+
+books = sql_query[shelf, "SELECT * FROM books"]
+show mean[books, "price"] .                  // one column of the rows
+show correlation[books, "price", "rating"] .  // two columns
+```
+
+- **`none` is skipped**, as a missing value: a book without a rating
+  doesn't stop its column's average. With nothing left, it's an error
+  (kind `index`), as is `stdev` of a single number.
+- Anything else that isn't a number is an error (kind `type`). Numbers
+  read from a CSV file are text until the file is read with
+  [column types](#column-types): `table_read["sales.csv", map ["price":
+  "float"]]`.
+- Floats are added the careful way (compensated summation), so the mean
+  of a thousand `0.1`s is `0.1`.
+
 ### Tables
 
 `show` prints a value on one line. `table[x]` returns the same value laid
@@ -433,6 +477,7 @@ read. It works on:
 | list of maps (what `sql_query` returns) | one per map | one per key |
 | list of assembled values | one per value | one per field |
 | list of lists | one per inner list | `0`, `1`, `2`, ... |
+| a matrix (`import linear`) | one per row | `0`, `1`, `2`, ... |
 | any other list or set | one per element | `#` (counting from 0) and `value` |
 | one map | one per entry | `key` and `value` |
 | one assembled value | one per field | `field` and `value` |
@@ -500,7 +545,7 @@ assemble Order [item, qty, price]
 orders = list [Order["pen", 3, 1.5], Order["mug", 2, 8.0]]
 table_write["orders.csv", orders]       // item,qty,price / pen,3,1.5 / mug,2,8.0
 rows = table_read["orders.csv"]
-show rows at get[0] .                   // { "item": "pen", "qty": "3", "price": "1.5" }
+show rows at get[0] .                   // { "item": "pen", "qty": 3, "price": 1.5 }
 ```
 
 - `table_write` returns how many rows it wrote and replaces the file if
@@ -511,15 +556,37 @@ show rows at get[0] .                   // { "item": "pen", "qty": "3", "price":
   list or map. Dates are written as text. A row missing a name has
   `none` there; the columns are every name any row has, in the order
   they first appear.
-- From `.csv` and `.tsv`, values read back are text, as in the file
-  (`"3"`), unless you give [column types](#column-types). An empty cell
-  is `none`, and `none` is written as an empty cell, so files round-trip.
-- A value with the separator, a quote or a line break is put in quotes,
-  with quotes doubled (`"say ""hi"""`), the standard rule (RFC 4180).
-  Blank lines are skipped, and a byte order mark at the start (Excel
-  writes one) is ignored.
+- **From `.csv` and `.tsv`, what a cell holds decides its kind**, as in
+  pandas and spreadsheets. Quotes don't change it; they only let a value
+  hold a comma, a quote or a line break:
+
+  | Cell | Reads as |
+  |---|---|
+  | `7`, `"7"`, `-3`, `2.5` | a number (`7` an integer, `2.5` a float) |
+  | `007`, `"007"`, `+5`, `.5`, `1e5`, `1,000`, `$5` | text: as likely a code or an id as a quantity, so `007` keeps its zeros (pandas would make it `7`) |
+  | a whole number too big for an integer (`123456789012345678901234`) | text: an id, not a quantity |
+  | `Dune`, `true` | text |
+  | an empty cell, or `""` | `none` |
+
+  To keep a number-like column as text (a code column of `7`, `8`, ...),
+  or read `true`/`yes` as booleans, give [column types](#column-types):
+  `table_read["codes.csv", map ["code": "text"]]`.
+- **Writing**, numbers are never quoted, and text only where it must be:
+  when it holds the separator, a quote or a line break, or starts or
+  ends with a space. To quote every text value instead (`"007"` rather
+  than `007`), as some programs want, pass `map ["quote": "text"]`:
+
+  ```
+  table_write["codes.csv", rows]                             // 007,7
+  table_write["codes.csv", rows, map ["quote": "text"]]      // "007",7
+  ```
+- Quotes inside a value are doubled (`"say ""hi"""`), the standard rule
+  (RFC 4180). Blank lines are skipped, and a byte order mark at the
+  start (Excel writes one) is ignored. `none` is written as an empty
+  cell, so it reads back as `none`.
 - A line with fewer values than the header gets `none` for the rest; one
-  with more, or broken quotes, is an error of kind `csv`. A missing file
+  with more, or broken quotes (a `"` inside an unquoted value, text after
+  a closing quote, a quote never closed), is an error of kind `csv`. A missing file
   is kind `file`.
 
 ### Column types
@@ -550,8 +617,10 @@ show rows at get[0] .
 | a SQL type: `VARCHAR(10)`, `BIGINT`, `DOUBLE PRECISION`, `NUMERIC(10, 2)`, ... | sorted by its words, as SQLite does: `INT` an integer; `CHAR`, `TEXT`, `CLOB`, `BLOB` text; `REAL`, `FLOA`, `DOUB` a float; `BOOL` a boolean; `DATE`, `TIME` a date; `NUMERIC`, `DECIMAL`, `NUMBER` an integer when whole, else a float | |
 
 - Type words are in any case (`"INTEGER"`, `"Text"`).
-- **Columns the map leaves out are text.** A column the map names that
-  the file doesn't have is an error of kind `name` (usually a typo).
+- **Columns the map leaves out keep what the file has**: an unquoted
+  number a number, anything else text (see [table files](#table-files)).
+  A column the map names that the file doesn't have is an error of kind
+  `name` (usually a typo).
 - **`"primary_key": "column"`** names the key. `table_read` checks that
   every row has one and no two are the same (after converting, so `1`
   and `01` are the same integer), an error of kind `key` otherwise.
@@ -563,6 +632,143 @@ show rows at get[0] .
   object in a `text` column becomes its JSON text.
 
 For `sql_load`, see [Files: CSV in and out](#files-csv-in-and-out).
+
+## Linear library
+
+`import linear` adds a value for matrices and the arithmetic of linear
+algebra. The work is done in Go, on one block of numbers per matrix, so
+it's fast: a 200 × 200 product takes a few milliseconds (see
+[the benchmark](../bench/RESULTS.md)).
+
+### Writing a matrix
+
+```
+import linear
+
+a = matrix [1, 2; 3, 4]           // rows end at ;
+b = matrix [
+    1, 2, 3
+    4, 5, 6
+]                                  // ... or at the end of a line
+c = matrix [
+    1, 2, 3, 4,
+    5, 6, 7, 8
+]                                  // a comma at the end carries a long row on
+show b .
+```
+```
+[ 1  2  3 ]
+[ 4  5  6 ]
+```
+
+- `matrix` is a word only in a file that imports `linear`. Elsewhere
+  it's an ordinary name; in such a file it can't name a variable or a
+  function.
+- Every row needs the same count of numbers. Any expression can be a
+  number: `matrix [x * 2, f[x]; 0, 1]`. A row can start with a minus sign:
+  on a new line, `-3, 4` is a row, not a subtraction.
+- A matrix of whole numbers shows and gives back integers. Anything that
+  can make a fraction (`/`, `inverse`, `solve`, a float in it) gives a
+  float matrix, which shows `2.0`, as a float does.
+- `show` lines the columns up. A big matrix shows its first 20 rows and
+  10 columns, `...` for the rest, and its size: `(25 x 14 matrix)`.
+- Inside a list or map a matrix shows on one line, the way it's written:
+  `[ matrix [1, 2; 3, 4] ]`.
+- A number smaller than a ten-trillionth of the matrix's largest is float
+  arithmetic's leftover (`inverse[a] * a` gives `1e-16` where a `0`
+  belongs): it shows as `0.0` and compares equal to `0`, as `0.1 + 0.2`
+  shows `0.3`. `get` still gives it exactly.
+- Like a list, a matrix is shared, not copied: after `b = a`, a `put` on
+  `b` changes `a` too. `copy[a]` (`import data`) makes a separate one.
+  Operators always make a new matrix.
+
+From other values, and back, with `change`:
+
+```
+rows = list [list [1, 2], list [3, 4]]
+m = change rows to matrix                    // a list of lists: each a row
+m = change table_read["points.csv", types] to matrix   // rows of a table file
+back = change m to list                      // [ [ 1, 2 ], [ 3, 4 ] ]
+```
+
+### Operators
+
+As in mathematics:
+
+| Expression | Gives |
+|---|---|
+| `a + b`, `a - b` | element by element; the sizes must match |
+| `a + 1`, `a - 1`, `10 - a` | the number on every element |
+| `a * b` | the matrix product: `a` needs as many columns as `b` has rows |
+| `a * v`, `v * a` (`v` a list) | a matrix times a vector (or a vector times a matrix): a list |
+| `a * 2`, `2 * a`, `a / 2` | every number scaled |
+| `-a` | every number negated |
+| `a == b`, `a != b` | the same size and the same numbers |
+
+A number added to or taken from a matrix goes on every element, as in
+numpy and MATLAB: `a + 1`, `10 - a`. (That isn't `a + identity[n]`,
+which adds to the diagonal only.) For element-by-element multiplication
+of two matrices, use `multiply_each[a, b]`.
+
+### Methods
+
+| Method | Gives |
+|---|---|
+| `m at rows`, `m at columns` | the counts |
+| `m at shape` | `list [rows, columns]` |
+| `m at get[r, c]` | the number at row `r`, column `c`, from 0 |
+| `m at put[value, r, c]` | puts a number there (value first, as a list's `put`); gives the matrix |
+| `m at row[r]`, `m at column[c]` | that row or column, as a list |
+| `m at isempty`, `m at tostring` | as for lists |
+
+### Functions
+
+| Function | Gives |
+|---|---|
+| `identity[n]` | the n × n identity |
+| `zeros[r, c]`, `ones[r, c]` | a matrix of 0s or 1s; with one size, square |
+| `diagonal[list]` / `diagonal[m]` | the square matrix with those numbers on its diagonal / the list of a matrix's diagonal |
+| `shape[m]`, `row[m, r]`, `column[m, c]` | as the methods |
+| `transpose[m]` | rows as columns |
+| `trace[m]` | the sum of the diagonal |
+| `determinant[m]` | an integer for a matrix of whole numbers |
+| `inverse[m]` | the inverse; a singular matrix is an error |
+| `rank[m]` | how many rows are independent |
+| `power[m, k]` | `m` times itself `k` times; `0` gives the identity, a negative `k` the inverse's power |
+| `multiply_each[a, b]` | element by element |
+| `solve[a, b]` | the `x` with `a * x == b`, for a square `a`: `b` a list (a list back) or a matrix (one answer per column) |
+| `least_squares[a, b]` | the `x` that brings `a * x` closest to `b`, for more equations than unknowns: a line of best fit |
+| `dot[u, v]`, `cross[u, v]` | of two lists (cross: of 3 numbers each) |
+| `norm[v]` | a list's length; a matrix's Frobenius norm |
+| `unit[v]` | the list scaled to length 1 |
+| `lu[m]` | a map: `"l"`, `"u"`, `"p"`, where `p * m == l * u` |
+| `qr[m]` | a map: `"q"`, `"r"`, where `q * r == m` (at least as many rows as columns) |
+| `eigen[m]` | for a symmetric matrix: a map, `"values"` (largest first) and `"vectors"` (one per column) |
+| `svd[m]` | any shape: a map, `"u"`, `"s"` (a list, largest first), `"v"`, where `m == u * diagonal[s] * transpose[v]` |
+
+```
+import linear
+
+a = matrix [2, 1; 1, 3]
+x = solve[a, list [3, 5]]          // [ 0.8, 1.4 ]
+x = a solve list [3, 5]            //   the same, as a sentence
+show a * x .                       // [ 3.0, 5.0 ]
+
+// A line through three points: y = b0 + b1 * x.
+points = matrix [1, 1; 1, 2; 1, 3]
+fit = least_squares[points, list [1, 2, 2]]   // [ 0.666666666666667, 0.5 ]
+```
+
+- Errors are of kind `linear`: sizes that don't fit (the message names
+  both: "can't multiply a 2 x 3 matrix by a 2 x 3 matrix"), a singular
+  matrix for `inverse` or `solve`, a non-symmetric one for `eigen`.
+- A matrix counts as singular when it is, next to the size of its
+  numbers: `matrix [0.000000000000000001, 0; 0, 0.000000000000000001]`
+  has an inverse.
+- `solve` and `least_squares` refine their answer once, which wins back
+  the last digits rounding loses.
+- Big products use every core of the computer.
+- A worked example that uses most of it: `testdata/linear/housing.trt`.
 
 ## Pattern library
 
@@ -1419,19 +1625,29 @@ B1,Dune,950
 B5,"I, Robot",650
 ```
 
-- Values from the file are text; columns declared `INTEGER` or `REAL`
-  store them as numbers (`"950"` → `950`), as SQLite does. An empty cell
-  is `NULL`, so it sets the column to `NULL` in `sql_update`.
+- **A table that's already there decides the types.** `sql_load`,
+  `sql_update` and `sql_upsert` convert each cell to its column's
+  declared type (`INTEGER`, `TEXT`, `REAL`, `DATE`, ... as in the
+  [column types](#column-types) table), so `950` goes into an `INTEGER`
+  column as `950`, a `7` into a `TEXT` one as `"7"`, and `yes` into a
+  `BOOLEAN` one as `true`. A cell that can't be its column's type stops the file before
+  anything is written, with the row and column (kind `number`, `date` or
+  `type`). A types map, if given, wins over the table's types; a column
+  declared without a type (SQLite allows it) takes what the file has.
+  This works the same on SQLite, PostgreSQL and MySQL.
+- An empty cell is `NULL`, so it sets the column to `NULL` in
+  `sql_update`.
 - **Column types.** `sql_load` takes the same map of
   [column types](#column-types) as `table_read`, in place or in a
   variable. The file's values are converted first, so a bad one stops
   the load before anything is written.
 - **A missing table is made** from the file's header, in the file's
   column order. With a map, each column gets its type and
-  `"primary_key"` becomes the table's `PRIMARY KEY`; without one, every
-  column is text. If the file is then refused, the new table is dropped
-  again. When the table is already there, the map only converts values
-  (its own column types and key stay).
+  `"primary_key"` becomes the table's `PRIMARY KEY`. A column the map
+  doesn't name gets its type from the file: integer if every value is
+  a whole number, a float if every one is a number, else text. If the
+  file is then refused, the new table is dropped again. When the table
+  is already there, its own column types and key stay (see above).
 
 ```
 types = map ["code": "text", "missions": "integer", "joined": "date", "primary_key": "code"]

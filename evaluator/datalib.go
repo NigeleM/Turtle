@@ -87,7 +87,7 @@ func dataCopy(args []object.Object) object.Object {
 		fatalf("'copy' expects 1 or 2 arguments (a list, set, map, or assembled value, and true to copy what's inside too), got %d", len(args))
 	}
 	switch args[0].(type) {
-	case *object.List, *object.Set, *object.Map, *object.Assembly:
+	case *object.List, *object.Set, *object.Map, *object.Assembly, *object.Matrix:
 	default:
 		fatalf("'copy' needs a list, set, map, or assembled value, got %s", typeName(args[0]))
 	}
@@ -118,6 +118,8 @@ func shallowCopy(x object.Object) object.Object {
 		return m
 	case *object.Assembly:
 		return &object.Assembly{Shape: c.Shape, Values: append([]object.Object{}, c.Values...)}
+	case *object.Matrix:
+		return c.Copy()
 	}
 	return x
 }

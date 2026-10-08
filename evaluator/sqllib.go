@@ -124,19 +124,23 @@ func (it *Interpreter) callSQL(name string, args []object.Object) object.Object 
 		if len(header) == 0 {
 			return object.Int(0)
 		}
-		types := applyColumnTypes(name, path, header, rows, ct)
-		for _, row := range rows {
-			for i, t := range types {
-				if t.kind == colDate {
-					row[i] = dateForSQL(row[i])
-				}
-			}
-		}
 		marks := strings.TrimSuffix(strings.Repeat("?, ", len(header)), ", ")
 		stmt := "INSERT INTO " + conn.Quote(table) + " (" + quoteSQLNames(conn, header) + ") VALUES (" + marks + ")"
 		if sqlHasTable(name, conn, table) {
+			// The table's own column types decide: each cell becomes one,
+			// or the load stops with the row and column that can't.
+			types := typesForTable(name, path, conn, table, header, ct)
+			convertRows(name, path, header, rows, types)
+			datesForSQL(rows, types)
 			return it.sqlFileRows(name, conn, stmt, rows, nil)
 		}
+		types := applyColumnTypes(name, path, header, rows, ct)
+		for i := range types {
+			if !types[i].given {
+				types[i].kind = inferKind(rows, i)
+			}
+		}
+		datesForSQL(rows, types)
 		key := ""
 		if ct != nil {
 			key = ct.key
@@ -185,6 +189,9 @@ func (it *Interpreter) callSQL(name string, args []object.Object) object.Object 
 		if ki < 0 {
 			fatalKind(kindSQL, "%s %s: the file has no %q column (its columns: %s)", name, path, key, strings.Join(header, ", "))
 		}
+		types := typesForTable(name, path, conn, table, header, nil)
+		convertRows(name, path, header, rows, types)
+		datesForSQL(rows, types)
 		t, k := conn.Quote(table), conn.Quote(key)
 		switch name {
 		case "sql_delete":
@@ -216,6 +223,72 @@ func (it *Interpreter) callSQL(name string, args []object.Object) object.Object 
 	}
 	fatalKind(kindName, "no sql function %q", name)
 	return nil
+}
+
+// datesForSQL writes the dates of date columns the way DATE columns take
+// them.
+func datesForSQL(rows [][]object.Object, types []columnType) {
+	for _, row := range rows {
+		for i, t := range types {
+			if t.kind == colDate && t.given {
+				row[i] = dateForSQL(row[i])
+			}
+		}
+	}
+}
+
+// typesForTable is each file column's type, going into a table that's
+// already there: the types map's where it names one, else the table's
+// own (a column whose type says nothing, as SQLite allows, takes what
+// the file has).
+func typesForTable(fn, path string, conn sqlConn, table string, header []string, ct *columnTypes) []columnType {
+	types := ct.perColumn(fn, path, header)
+	declared := tableColumnTypes(fn, conn, table)
+	for i, h := range header {
+		if types[i].given {
+			continue
+		}
+		if word, ok := declared[strings.ToLower(h)]; ok {
+			if kind, known := sqlTypeKind(word); known {
+				types[i] = columnType{kind: kind, given: true}
+			}
+		}
+	}
+	return types
+}
+
+// tableColumnTypes is a table's columns' declared types, by name in
+// lower case.
+func tableColumnTypes(fn string, conn sqlConn, table string) map[string]string {
+	lit := "'" + strings.ReplaceAll(table, "'", "''") + "'"
+	var q string
+	switch conn.(type) {
+	case postgresConn:
+		q = "SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = current_schema() AND lower(table_name) = lower(" + lit + ")"
+	case mysqlConn:
+		q = "SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = DATABASE() AND lower(table_name) = lower(" + lit + ")"
+	default:
+		q = "PRAGMA table_info(" + quoteSQLName(table) + ")"
+	}
+	cols, rows, err := conn.Query(q, nil)
+	if err != nil {
+		fatalKind(kindSQL, "%s: reading the columns of %s: %v", fn, table, err)
+	}
+	name, typ := 0, 1
+	for i, c := range cols {
+		switch strings.ToLower(c) {
+		case "name", "column_name":
+			name = i
+		case "type", "data_type":
+			typ = i
+		}
+	}
+	out := map[string]string{}
+	for _, r := range rows {
+		n, t := fromSQL(r[name]), fromSQL(r[typ])
+		out[strings.ToLower(n.Inspect())] = t.Inspect()
+	}
+	return out
 }
 
 // sqlHasTable reports whether the database has the table, by name in

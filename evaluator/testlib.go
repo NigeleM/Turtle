@@ -655,6 +655,8 @@ func deepCopy(v object.Object) object.Object {
 			vals[i] = deepCopy(e)
 		}
 		return &object.Assembly{Shape: x.Shape, Values: vals}
+	case *object.Matrix:
+		return x.Copy()
 	}
 	return v
 }
@@ -826,6 +828,8 @@ func typeName(v object.Object) string {
 		return "error"
 	case *object.Database:
 		return "database"
+	case *object.Matrix:
+		return "matrix"
 	}
 	return strings.ToLower(string(v.Type()))
 }

@@ -69,6 +69,9 @@ func Equal(a, b Object) bool {
 		return ok && av.Time.Equal(bv.Time)
 	case *Database:
 		return a == b
+	case *Matrix:
+		bv, ok := b.(*Matrix)
+		return ok && EqualMatrix(av, bv)
 	case *Assembly:
 		bv, ok := b.(*Assembly)
 		if !ok || av.Shape != bv.Shape {
@@ -132,6 +135,12 @@ func Key(obj Object) string {
 		return v.Shape.Name + "{" + strings.Join(parts, ",") + "}"
 	case *Function:
 		return fmt.Sprintf("function %p", v)
+	case *Matrix:
+		parts := make([]string, len(v.Data))
+		for i, x := range v.Data {
+			parts[i] = Key(&Float{Value: x})
+		}
+		return "matrix" + strconv.Itoa(v.Cols) + "[" + strings.Join(parts, ",") + "]"
 	}
 	return obj.Inspect()
 }

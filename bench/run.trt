@@ -26,7 +26,9 @@ benchmarks = map [
     "objects": "200,000 records (assembled values) made and read",
     "jsondata": "20,000 records to JSON text and back",
     "patterns": "a pattern (regex) over 50,000 lines",
-    "functional": "process, keep, reduce over 300,000 numbers"
+    "functional": "process, keep, reduce over 300,000 numbers",
+    "matrix": "a 200 x 200 matrix built, multiplied, and a 200 x 200 system solved (Turtle: import linear)",
+    "stats": "mean, stdev, median, 90th percentile of 300,000 numbers (Turtle: import data; Python: statistics)"
 ]
 
 def has[cmd]
@@ -136,7 +138,11 @@ ratios = list ["| benchmark | Turtle รท " + join[names at slice[1], " | Turtle ร
             other = row at get[n]
             if ] typeof[other] != "string" && other > 0 [
                 q = tt / other
-                add "{q at round[1]}x" to cells .
+                places = 1
+                if ] q < 1 [
+                    places = 2 // faster than the other: 0.05x, not 0.0x
+                if [end]
+                add "{q at round[places]}x" to cells .
             else ]
                 add "" to cells .
             if [end]
@@ -170,7 +176,8 @@ from start to finish). Every language computes the same answer, checked.
 
 " + table_text + "
 
-How many times slower Turtle is than each (1.0x is the same speed):
+How many times slower Turtle is than each (1.0x is the same speed; under
+1.0x, Turtle is faster):
 
 " + ratio_text + "
 

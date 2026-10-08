@@ -2824,17 +2824,38 @@ func TestTableFiles(t *testing.T) {
 	write("bad.csv", "a,b\n\"open,2\n")
 	write("twice.csv", "a,a\n1,2\n")
 	write("empty.csv", "")
+	write("kinds.csv", "n,q,z,qz,f,e,big,t,s,none\n7,\"7\",007,\"007\",-2.5,1e5,123456789012345678901234,true,\"\",\n")
+	write("after.csv", "a,b\n\"x\"y,2\n")
 	cases := []struct{ name, src, want, wantErr string }{
-		{name: "read rows as maps of text", src: `import data
+		{name: "read rows as maps, unquoted numbers as numbers", src: `import data
 rows = table_read["books.csv"]
 show length of rows .
 show rows at get[0] .
 show rows at get[1] .
-show rows at get[2] at get["title"] .`, want: "3\n{ \"sku\": \"B1\", \"title\": \"Dune\", \"price\": \"950\" }\n{ \"sku\": \"B2\", \"title\": \"Gone, Girl\", \"price\": none }\nSay \"hi\"\nthere\n"},
+show rows at get[2] at get["title"] .`, want: "3\n{ \"sku\": \"B1\", \"title\": \"Dune\", \"price\": 950 }\n{ \"sku\": \"B2\", \"title\": \"Gone, Girl\", \"price\": none }\nSay \"hi\"\nthere\n"},
 		{name: "tsv", src: `import data
 show table_read["books.tsv"] .`, want: "[ { \"sku\": \"B1\", \"title\": \"Dune, again\" } ]\n"},
 		{name: "short rows get none", src: `import data
-show table_read["short.csv"] .`, want: "[ { \"a\": \"1\", \"b\": \"2\", \"c\": none } ]\n"},
+show table_read["short.csv"] .`, want: "[ { \"a\": 1, \"b\": 2, \"c\": none } ]\n"},
+		{name: "what a cell holds decides, not its quotes", src: `import data
+r = table_read["kinds.csv"] at get[0]
+show r .`, want: "{ \"n\": 7, \"q\": 7, \"z\": \"007\", \"qz\": \"007\", \"f\": -2.5, \"e\": \"1e5\", \"big\": \"123456789012345678901234\", \"t\": \"true\", \"s\": none, \"none\": none }\n"},
+		{name: "a types map keeps a number-like column text", src: `import data
+r = table_read["kinds.csv", map ["q": "text"]] at get[0]
+show r at get["q"] .`, want: "7\n"},
+		{name: "written only as quoted as needed", src: `import data
+rows = list [map ["code": "7", "n": 7, "z": "007", "c": "a, b", "x": none]]
+table_write["rt.csv", rows]
+[read] rt.csv to lines [end]
+show lines .`, want: "[ \"code,n,z,c,x\", \"7,7,007,\\\"a, b\\\",\" ]\n"},
+		{name: "quote every text value", src: `import data
+table_write["q.csv", list [map ["code": "007", "n": 7]], map ["quote": "text"]]
+[read] q.csv to lines [end]
+show lines .`, want: "[ \"code,n\", \"\\\"007\\\",7\" ]\n"},
+		{name: "a bad quote option", src: `import data
+table_write["q.csv", list [1], map ["quote": "always"]]`, wantErr: "option \"quote\" is \"needed\""},
+		{name: "text after a closing quote", src: `import data
+r = table_read["after.csv"]`, wantErr: "after.csv: line 2: text after a quoted value"},
 		{name: "empty file", src: `import data
 show table_read["empty.csv"] .`, want: "[  ]\n"},
 		{name: "round trip csv and tsv", src: `import data
@@ -2912,7 +2933,7 @@ func TestColumnTypes(t *testing.T) {
 		{name: "each kind", src: `import data
 rows = table_read["a.csv", map ["n": "integer", "f": "float", "ok": "bool", "d": "date", "num": "NUMERIC"]]
 show rows at get[0] .
-show rows at get[1] .`, want: "{ \"id\": \"007\", \"n\": 42, \"f\": 1.5, \"ok\": true, \"d\": 2026-10-06 00:00:00, \"num\": 3 }\n{ \"id\": \"8\", \"n\": 3, \"f\": 2.0, \"ok\": false, \"d\": 2026-10-06 09:30:00, \"num\": 2.5 }\n"},
+show rows at get[1] .`, want: "{ \"id\": \"007\", \"n\": 42, \"f\": 1.5, \"ok\": true, \"d\": 2026-10-06 00:00:00, \"num\": 3 }\n{ \"id\": 8, \"n\": 3, \"f\": 2.0, \"ok\": false, \"d\": 2026-10-06 09:30:00, \"num\": 2.5 }\n"},
 		{name: "a map from a variable, words in any case", src: `import data
 types = map ["N": "INTEGER", "id": "String"]
 show table_read["a.csv", types] at get[0] at get["n"] .`, want: "42\n"},
@@ -2923,11 +2944,11 @@ show table_read["a.json", map ["id": "text", "n": "integer", "tags": "text"]] .`
 		{name: "key compared after converting", src: `import data
 r = table_read["dup.csv", map ["id": "integer", "primary_key": "id"]]`, wantErr: "rows 1 and 2 have the same \"id\", 1 (the primary key)"},
 		{name: "text keys keep zeros", src: `import data
-r = table_read["dup.csv", map ["primary_key": "id"]]`, wantErr: "rows 1 and 3 have the same \"id\", \"1\""},
+r = table_read["dup.csv", map ["primary_key": "id"]]`, wantErr: "rows 1 and 3 have the same \"id\", 1"},
 		{name: "key must be there", src: `import data
 r = table_read["nokey.csv", map ["primary_key": "id"]]`, wantErr: "row 2 has no \"id\", the primary key"},
 		{name: "a float isn't an integer", src: `import data
-r = table_read["a.csv", map ["f": "integer"]]`, wantErr: "row 1, column \"f\": \"1.5\" isn't an integer"},
+r = table_read["a.csv", map ["f": "integer"]]`, wantErr: "row 1, column \"f\": 1.5 isn't an integer"},
 		{name: "not a date", src: `import data
 r = table_read["a.csv", map ["n": "date"]]`, wantErr: "isn't a date"},
 		{name: "not a map", src: `import data
@@ -2966,14 +2987,17 @@ sql_run[db, "CREATE TABLE books (sku TEXT PRIMARY KEY, title TEXT NOT NULL, pric
 sql_load[db, "books", "books.csv"]
 `
 	files := map[string]string{
-		"books.csv":   "sku,title,price\nB1,Dune,950\nB2,\"Gone, Girl\",1225\nB3,Emma,700\n",
-		"prices.csv":  "sku,price\nB1,999\nB9,5\n",
-		"gone.csv":    "sku,why\nB2,old\n",
-		"restock.csv": "sku,title,stock\nB1,Dune,4\nB4,Beloved,2\n",
-		"bad.csv":     "sku,price\nB1,10\nB3,0\n",
-		"nokey.csv":   "title\nX\n",
-		"dup.csv":     "sku,title,price\nB7,New,5\nB1,Dup,5\n",
-		"more.tsv":    "sku\ttitle\tprice\nB5\tTabbed, yes\t10\n",
+		"books.csv":    "sku,title,price\nB1,Dune,950\nB2,\"Gone, Girl\",1225\nB3,Emma,700\n",
+		"prices.csv":   "sku,price\nB1,999\nB9,5\n",
+		"gone.csv":     "sku,why\nB2,old\n",
+		"restock.csv":  "sku,title,stock\nB1,Dune,4\nB4,Beloved,2\n",
+		"bad.csv":      "sku,price\nB1,10\nB3,0\n",
+		"nokey.csv":    "title\nX\n",
+		"dup.csv":      "sku,title,price\nB7,New,5\nB1,Dup,5\n",
+		"more.tsv":     "sku\ttitle\tprice\nB5\tTabbed, yes\t10\n",
+		"codes.csv":    "code,n,f\n7,\"42\",2\n",
+		"badcodes.csv": "code,n,f\n7,lots,2\n",
+		"quoted.csv":   "sku,price\nB1,\"999\"\n",
 	}
 	cases := []struct{ name, src, want, wantErr string }{
 		{name: "load and save", src: setup + `show sql_save[db, "SELECT sku, title, price, typeof(price) AS t FROM books ORDER BY sku", "out.csv"] .
@@ -3007,8 +3031,20 @@ safe [end]
 show sql_query[db, "SELECT count(*) AS n FROM books"] .`, want: "sql_load: UNIQUE constraint failed: books.sku\n[ { \"n\": 3 } ]\n"},
 		{name: "delete from a tsv file", src: setup + `show sql_delete[db, "books", "sku", "more.tsv"] .`, want: "0\n"},
 		{name: "key column must be in the file", src: setup + `sql_update[db, "books", "sku", "nokey.csv"]`, wantErr: "sql_update nokey.csv: the file has no \"sku\" column (its columns: title)"},
-		{name: "a missing table is made, all text", src: setup + `show sql_load[db, "fresh", "books.csv"] .
-show sql_query[db, "SELECT sql FROM sqlite_schema WHERE name = 'fresh'"] at get[0] at get["sql"] .`, want: "3\nCREATE TABLE \"fresh\" (\"sku\" TEXT, \"title\" TEXT, \"price\" TEXT)\n"},
+		{name: "a missing table is made, its columns following the file", src: setup + `show sql_load[db, "fresh", "books.csv"] .
+show sql_query[db, "SELECT sql FROM sqlite_schema WHERE name = 'fresh'"] at get[0] at get["sql"] .`, want: "3\nCREATE TABLE \"fresh\" (\"sku\" TEXT, \"title\" TEXT, \"price\" INTEGER)\n"},
+		{name: "an existing table's types decide", src: setup + `sql_run[db, "CREATE TABLE codes (code TEXT, n INTEGER, f REAL)"]
+show sql_load[db, "codes", "codes.csv"] .
+show sql_query[db, "SELECT code, typeof(code) AS tc, n, typeof(n) AS tn, f, typeof(f) AS tf FROM codes"] .`, want: "1\n[ { \"code\": \"7\", \"tc\": \"text\", \"n\": 42, \"tn\": \"integer\", \"f\": 2.0, \"tf\": \"real\" } ]\n"},
+		{name: "a cell the table's type can't take stops the load", src: setup + `sql_run[db, "CREATE TABLE codes (code TEXT, n INTEGER, f REAL)"]
+safe
+    sql_load[db, "codes", "badcodes.csv"]
+handle [number] e .
+    show message of e .
+safe [end]
+show sql_query[db, "SELECT count(*) AS n FROM codes"] .`, want: "sql_load badcodes.csv: row 1, column \"n\": \"lots\" isn't an integer\n[ { \"n\": 0 } ]\n"},
+		{name: "update converts to the table's types", src: setup + `show sql_update[db, "books", "sku", "quoted.csv"] .
+show sql_query[db, "SELECT price, typeof(price) AS t FROM books WHERE sku = 'B1'"] .`, want: "1\n[ { \"price\": 999, \"t\": \"integer\" } ]\n"},
 		{name: "a column the table lacks", src: setup + `sql_load[db, "books", "nokey.csv", map ["sku": "text"]]`, wantErr: "sql_load nokey.csv: the file has no column \"sku\""},
 	}
 	for _, c := range cases {
@@ -3326,6 +3362,7 @@ func TestSyntaxMethodsExist(t *testing.T) {
 	it := New(t.TempDir())
 	receivers := []object.Object{
 		&object.List{}, &object.Set{}, object.NewMap(), &object.String{Value: "a"}, &object.Integer{Value: 4},
+		object.NewMatrix(1, 1),
 	}
 	for _, m := range syntax.Methods {
 		exists := false

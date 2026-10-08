@@ -1,0 +1,297 @@
+// test_linear_edges.trt: the corners of matrices and statistics, where
+// mistakes hide. Run with: turtle test test_linear_edges.trt
+import test
+import linear
+import data
+import math
+
+// ---------- writing a matrix ----------
+def test_literal_forms[]
+    one = matrix [1, 2; 3, 4]
+    lines = matrix [
+        1, 2
+        3, 4
+    ]
+    check one == lines .
+    // A comma at the end of a line carries the row on.
+    wrapped = matrix [
+        1, 2,
+        3, 4
+    ]
+    check wrapped at shape == list [1, 4] .
+    // A trailing ; is fine.
+    check matrix [1, 2; 3, 4;] == one .
+    // A row can start with a minus: it's a new row, not a subtraction.
+    signs = matrix [
+        1, 2
+        -3, -4
+    ]
+    check signs at row[1] == list [-3, -4] .
+    // Any expression can be a number, calls included.
+    x = 3
+    check matrix [x * 2, x at pow[2]; sum[list [1, 2]], 0] == matrix [6, 9; 3, 0] .
+def [end]
+
+def test_sizes[]
+    check matrix [7] at shape == list [1, 1] .
+    check matrix [1, 2, 3] at shape == list [1, 3] .
+    check matrix [1; 2; 3] at shape == list [3, 1] .
+    empty = matrix []
+    check empty at isempty .
+    check empty at shape == list [0, 0] .
+    check transpose[empty] == empty .
+    check determinant[empty] == 1 .
+    check rank[empty] == 0 .
+    check transpose[matrix [1, 2, 3]] == matrix [1; 2; 3] .
+    check zeros[0, 3] at shape == list [0, 3] .
+def [end]
+
+// ---------- whole numbers stay whole ----------
+def test_integers_and_floats[]
+    a = matrix [1, 2; 3, 4]
+    check a at get[0, 0] is integer .
+    // (A method works on the value right before it, so name the result first.)
+    doubled = a * 2
+    halved = a * 0.5
+    divided = a / 1
+    check doubled at get[1, 1] is integer .
+    check halved at get[0, 0] is float .
+    check divided at get[0, 0] is float .
+    check inverse[a] at get[0, 0] is float .
+    check determinant[a] is integer .
+    check determinant[a * 0.5] is float .
+    check trace[a] == 5 .
+    check dot[list [1, 2], list [3, 4]] is integer .
+    check dot[list [1.5, 2], list [2, 2]] == 7.0 .
+    // Past 2^53 a float can't hold every whole number: the matrix turns
+    // into floats rather than lose digits quietly.
+    big = power[matrix [2], 60]
+    check big at get[0, 0] is float .
+    check power[matrix [2], 52] at get[0, 0] is integer .
+    // A 1.0 put in makes floats; a 1 keeps integers.
+    m = zeros[2]
+    m = m at put[1, 0, 0]
+    check m at get[0, 0] is integer .
+    m = m at put[1.0, 1, 1]
+    check m at get[0, 0] is float .
+def [end]
+
+// ---------- equality ----------
+// ---------- a number on every element ----------
+def test_number_on_every_element[]
+    a = matrix [1, 2; 3, 4]
+    check a + 1 == matrix [2, 3; 4, 5] .
+    check 1 + a == a + 1 .
+    check a - 1 == matrix [0, 1; 2, 3] .
+    check 10 - a == matrix [9, 8; 7, 6] .
+    plus_one = a + 1
+    check plus_one at get[0, 0] is integer .
+    half = a + 0.5
+    check half at get[0, 0] is float .
+    // Not the same as adding the identity, which is the diagonal only.
+    check a + identity[2] == matrix [2, 2; 3, 5] .
+def [end]
+
+def test_equality[]
+    a = matrix [4, 7; 2, 6]
+    // Float leftovers (1e-16 where a 0 belongs) still compare equal ...
+    check a * inverse[a] == identity[2] .
+    check inverse[inverse[a]] == a .
+    // ... but real differences don't.
+    check a != matrix [4, 7; 2, 6.001] .
+    check matrix [1, 2] != matrix [1; 2] .
+    check matrix [1, 2] != list [1, 2] .
+    check matrix [1] == matrix [1.0] .
+    // Matrices are values: they dedupe in a set and work as map keys.
+    s = set [matrix [1, 2], matrix [1, 2], matrix [2, 1]]
+    check s at length == 2 .
+    seen = map [matrix [1, 0; 0, 1]: "identity"]
+    check seen at get[identity[2]] == "identity" .
+def [end]
+
+// ---------- a matrix is shared, like a list ----------
+def test_sharing_and_copy[]
+    a = matrix [1, 2]
+    b = a
+    b = b at put[9, 0, 0]
+    check a at get[0, 0] == 9 .
+    c = copy[a]
+    c = c at put[5, 0, 1]
+    check a at get[0, 1] == 2 .
+    // Inside a list, copy[x, true] copies the matrix too.
+    holder = list [a]
+    deep = copy[holder, true]
+    inner = deep at get[0]
+    inner = inner at put[0, 0, 0]
+    check a at get[0, 0] == 9 .
+    // Operators always make a new matrix.
+    d = a + zeros[1, 2]
+    d = d at put[100, 0, 0]
+    check a at get[0, 0] == 9 .
+def [end]
+
+// ---------- indexes ----------
+def test_indexes[]
+    m = matrix [1, 2, 3; 4, 5, 6]
+    check m at get[1, 2] == 6 .
+    check m at row[0] == list [1, 2, 3] .
+    check m at column[2] == list [3, 6] .
+    check row[m, 1] == list [4, 5, 6] .
+    check column[m, 0] == list [1, 4] .
+    check m at get[2, 0] fails [index] .
+    check m at get[0, -1] fails [index] .
+    check m at row[2] fails [index] .
+    check m at column[3] fails [index] .
+    check m at get[0.5, 0] fails [type] .
+def [end]
+
+// ---------- sizes that don't fit ----------
+def test_mismatches[]
+    a = matrix [1, 2; 3, 4]
+    check a + matrix [1, 2] fails [linear] .
+    check a * matrix [1, 2, 3] fails [linear] .
+    check matrix [1, 2, 3] * a fails [linear] .
+    check a * list [1, 2, 3] fails [linear] .
+    check a - list [1] fails [linear] .
+    check a / a fails [linear] .
+    check a < a fails [linear] .
+    check a / 0 fails [math] .
+    check multiply_each[a, matrix [1]] fails [linear] .
+    check inverse[matrix [1, 2, 3]] fails [linear] .
+    check solve[a, list [1]] fails [linear] .
+    check solve[a, matrix [1, 2, 3]] fails [linear] .
+def [end]
+
+// ---------- singular and nearly singular ----------
+def test_singular[]
+    flat = matrix [1, 2; 2, 4]
+    check determinant[flat] == 0 .
+    check inverse[flat] fails [linear] .
+    check solve[flat, list [1, 2]] fails [linear] .
+    check lu[flat] fails [linear] .
+    check rank[flat] == 1 .
+    check rank[zeros[3]] == 0 .
+    // Small numbers aren't singular: what counts is size next to the
+    // matrix's largest number.
+    tiny = matrix [0.000000000000000001, 0; 0, 0.000000000000000002]
+    check inverse[tiny] * tiny == identity[2] .
+    check rank[tiny] == 2 .
+    // A row that's a mix of the others, in a bigger matrix.
+    mixed = matrix [1, 2, 3; 4, 5, 6; 5, 7, 9]
+    check rank[mixed] == 2 .
+    check inverse[mixed] fails [linear] .
+def [end]
+
+// ---------- hard matrices: still close ----------
+def test_ill_conditioned[]
+    // The 6 x 6 Hilbert matrix, a classic hard case: 1 / (i + j + 1).
+    h = zeros[6]
+    [loop][i in range[6]]
+        [loop][j in range[6]]
+            h = h at put[1 / (i + j + 1), i, j]
+        [loop][end]
+    [loop][end]
+    leftover = norm[h * inverse[h] - identity[6]]
+    check leftover < 0.000001 .
+    x = solve[h, h * list [1, 1, 1, 1, 1, 1]]
+    verify x each v give v - 1 at abs < 0.00001 .
+def [end]
+
+// ---------- every decomposition rebuilds its matrix ----------
+def test_decompositions[]
+    ms = list [
+        matrix [2, -1, 0; -1, 2, -1; 0, -1, 2],
+        matrix [4, 3; 6, 3],
+        matrix [0, 1; 1, 0],
+        matrix [1.5, 2.25, -3; 0.5, 7, 1; 2, 0, 4]
+    ]
+    verify ms each m give lu[m] at get["p"] * m == lu[m] at get["l"] * lu[m] at get["u"] .
+    verify ms each m give qr[m] at get["q"] * qr[m] at get["r"] == m .
+    verify ms each m give transpose[transpose[m]] == m .
+    verify ms each m give rebuilt[svd[m]] == m .
+    tall = matrix [1, 2; 3, 4; 5, 6; 7, 8]
+    check rebuilt[svd[tall]] == tall .
+    wide = transpose[tall]
+    check rebuilt[svd[wide]] == wide .
+    check svd[tall] at get["s"] at length == 2 .
+def [end]
+
+def rebuilt[parts]
+    return parts at get["u"] * diagonal[parts at get["s"]] * transpose[parts at get["v"]]
+def [end]
+
+def test_eigen[]
+    // Repeated eigenvalues: the identity's vectors are any basis.
+    e = eigen[identity[3]]
+    check e at get["values"] == list [1, 1, 1] .
+    m = matrix [2, 0, 0; 0, 3, 4; 0, 4, 9]
+    e = eigen[m]
+    check e at get["values"] == list [11, 2, 1] .
+    v = e at get["vectors"]
+    check m * v == v * diagonal[e at get["values"]] .
+    check transpose[v] * v == identity[3] .
+    check eigen[matrix [1, 2; 3, 4]] fails [linear] .
+def [end]
+
+// ---------- sentence forms read as English ----------
+def test_sentences[]
+    a = matrix [2, 1; 1, 3]
+    // A sentence's argument runs to the end, so name the result first.
+    t = a transpose
+    x = a solve list [3, 5]
+    squared = a power 2
+    size = a shape
+    size_of_v = list [3, 4] norm
+    check t == a .
+    check x == list [0.8, 1.4] .
+    check squared == a * a .
+    check size == list [2, 2] .
+    check size_of_v == 5 .
+    check linear identity[2] == identity[2] .
+def [end]
+
+// ---------- matrices with the rest of Turtle ----------
+def test_with_tables_and_lists[]
+    rows = list [list [1, 2], list [3, 4]]
+    m = change rows to matrix
+    check change m to list == rows .
+    check change list [map ["x": 1, "y": 2], map ["x": 3, "y": 4]] to matrix == m .
+    check change list [list [1], list [2, 3]] to matrix fails [linear] .
+    check table[m] at contains["3"] .
+    check typeof[m] == "matrix" .
+    grids = map ["a": matrix [1], "b": matrix [2]]
+    total = grids at get["a"] + grids at get["b"]
+    check total == matrix [3] .
+    many = list [identity[2], identity[2] * 2]
+    traces = many process x give trace[x]
+    check traces == list [2, 4] .
+def [end]
+
+// ---------- statistics ----------
+def test_statistics_edges[]
+    check mean[list [1]] == 1.0 .
+    check median[list [5, 1, 3, 2]] == 2.5 .
+    check median[list [1, 3, 2]] is integer .
+    check mode[list [1, "1", "1"]] == "1" .
+    check mode[list [true, false, false]] == false .
+    check mean[list [none, 2, none, 4]] == 3 .
+    check mean[list [none]] fails [index] .
+    check variance[list [5]] fails [index] .
+    check pvariance[list [5]] == 0 .
+    check percentile[list [10, 20], 50] == 15 .
+    check percentile[list [10, 20], 25] == 12.5 .
+    check percentile[list [42], 99] == 42 .
+    check correlation[list [1, 2, 3], list [2, 2, 2]] fails [math] .
+    check describe[list [7]] at get["stdev"] == none .
+    // Floats added the careful way: the mean of a thousand 0.1s.
+    tenths = list []
+    [loop][i in range[1000]]
+        add 0.1 to tenths .
+    [loop][end]
+    check mean[tenths] == 0.1 .
+    // Rows: a missing value in a column is skipped, not zero.
+    people = list [map ["age": 30, "h": 1.8], map ["age": none, "h": 1.6], map ["age": 50, "h": 1.7]]
+    check mean[people, "age"] == 40 .
+    check covariance[people, "age", "h"] == -1.0 .
+    check mean[people, "weight"] fails [key] .
+def [end]
