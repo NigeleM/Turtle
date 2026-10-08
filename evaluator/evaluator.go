@@ -660,9 +660,9 @@ func (it *Interpreter) evalEach(s *ast.LoopStatement, env *object.Environment) E
 		}
 	case *object.Map:
 		isMap = true
-		for _, k := range c.Keys {
-			firsts = append(firsts, c.KeyOf(k))
-			seconds = append(seconds, c.Values[k])
+		for _, me := range c.Entries() {
+			firsts = append(firsts, me.Key)
+			seconds = append(seconds, me.Val)
 		}
 	default:
 		fatalf("'[loop][... in ...]' needs a list, set, map, or string, got %s", typeName(c))
@@ -725,7 +725,7 @@ func isTruthy(obj object.Object) bool {
 	case *object.Set:
 		return len(v.Elements) > 0
 	case *object.Map:
-		return len(v.Keys) > 0
+		return v.Len() > 0
 	case *object.None:
 		return false
 	default:

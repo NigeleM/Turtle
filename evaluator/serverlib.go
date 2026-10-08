@@ -126,10 +126,10 @@ type route struct {
 
 func (it *Interpreter) parseRoutes(m *object.Map) []route {
 	var rs []route
-	for _, k := range m.Keys {
-		ks, ok := m.KeyOf(k).(*object.String)
+	for _, me := range m.Entries() {
+		ks, ok := me.Key.(*object.String)
 		if !ok {
-			fatalKind(kindServer, "serve: a route is text like \"GET /users/:id\", got %s", object.Shown(m.KeyOf(k)))
+			fatalKind(kindServer, "serve: a route is text like \"GET /users/:id\", got %s", object.Shown(me.Key))
 		}
 		method, path := "", strings.TrimSpace(ks.Value)
 		if f := strings.Fields(path); len(f) == 2 {
@@ -138,7 +138,7 @@ func (it *Interpreter) parseRoutes(m *object.Map) []route {
 		if !strings.HasPrefix(path, "/") {
 			fatalKind(kindServer, "serve: route %q: write it as \"METHOD /path\", like \"GET /\" or \"POST /users\"", ks.Value)
 		}
-		r := route{method: method, key: ks.Value, answer: m.Values[k]}
+		r := route{method: method, key: ks.Value, answer: me.Val}
 		for _, p := range strings.Split(strings.Trim(path, "/"), "/") {
 			if p != "" {
 				r.parts = append(r.parts, p)
@@ -453,8 +453,8 @@ func (it *Interpreter) writeResult(w http.ResponseWriter, r *http.Request, v obj
 	if a, ok := v.(*object.Assembly); ok && a.Shape == replyShape {
 		status = int(a.Values[0].(*object.Integer).Value)
 		if h, ok := a.Values[2].(*object.Map); ok {
-			for _, k := range h.Keys {
-				w.Header().Set(h.KeyOf(k).Inspect(), headerText(h.Values[k]))
+			for _, me := range h.Entries() {
+				w.Header().Set(me.Key.Inspect(), headerText(me.Val))
 			}
 		}
 		v = a.Values[1]

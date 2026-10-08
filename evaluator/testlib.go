@@ -374,14 +374,14 @@ func ruleItems(coll object.Object, fn *object.Function, pair bool) []ruleItem {
 			fatalf("each pair works on a list, set or string, in order; a map has no neighbors")
 		}
 		var out []ruleItem
-		for _, k := range c.Keys {
-			key := c.KeyOf(k)
+		for _, e := range c.Entries() {
+			key := e.Key
 			label := "at key " + object.Shown(key)
 			switch n {
 			case 1:
-				out = append(out, ruleItem{label, []object.Object{c.Values[k]}})
+				out = append(out, ruleItem{label, []object.Object{e.Val}})
 			case 2:
-				out = append(out, ruleItem{label, []object.Object{key, c.Values[k]}})
+				out = append(out, ruleItem{label, []object.Object{key, e.Val}})
 			default:
 				fatalf("a rule for a map takes one name (the value) or two ([key, value] give ...), got %d", n)
 			}
@@ -645,8 +645,8 @@ func deepCopy(v object.Object) object.Object {
 		return out
 	case *object.Map:
 		out := object.NewMap()
-		for _, k := range x.Keys {
-			out.Put(deepCopy(x.KeyOf(k)), deepCopy(x.Values[k]))
+		for _, e := range x.Entries() {
+			out.Put(deepCopy(e.Key), deepCopy(e.Val))
 		}
 		return out
 	case *object.Assembly:
@@ -749,9 +749,9 @@ func shapeOf(v object.Object) *ast.Shape {
 		}
 	case *object.Map:
 		var keys, vals []object.Object
-		for _, k := range x.Keys {
-			keys = append(keys, x.KeyOf(k))
-			vals = append(vals, x.Values[k])
+		for _, e := range x.Entries() {
+			keys = append(keys, e.Key)
+			vals = append(vals, e.Val)
 		}
 		key, val := commonShape(keys), commonShape(vals)
 		if key != nil && val != nil {

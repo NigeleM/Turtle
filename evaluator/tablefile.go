@@ -180,8 +180,8 @@ func readJSONTable(fn, path, text string) ([]string, [][]object.Object) {
 		if !ok {
 			fatalKind(kindJSON, "%s %s: row %d is %s, not an object { ... }", fn, path, i+1, jsonKindName(e))
 		}
-		for _, k := range m.Keys {
-			name := m.KeyOf(k).(*object.String).Value
+		for _, me := range m.Entries() {
+			name := me.Key.(*object.String).Value
 			if _, seen := index[name]; !seen {
 				index[name] = len(header)
 				header = append(header, name)
@@ -195,8 +195,8 @@ func readJSONTable(fn, path, text string) ([]string, [][]object.Object) {
 		for i := range row {
 			row[i] = object.NoneValue
 		}
-		for _, k := range m.Keys {
-			row[index[m.KeyOf(k).(*object.String).Value]] = m.Values[k]
+		for _, me := range m.Entries() {
+			row[index[me.Key.(*object.String).Value]] = me.Val
 		}
 		rows[r] = row
 	}
@@ -265,8 +265,8 @@ func (it *Interpreter) tableWrite(args []object.Object) object.Object {
 		if !ok {
 			fatalf("'table_write' options must be a map, e.g. map [\"quote\": \"text\"], got %s", typeName(args[2]))
 		}
-		for _, k := range opts.Keys {
-			name, v := opts.KeyOf(k).Inspect(), opts.Values[k]
+		for _, me := range opts.Entries() {
+			name, v := me.Key.Inspect(), me.Val
 			if name != "quote" {
 				fatalf("'table_write' has no option %q (it has \"quote\")", name)
 			}

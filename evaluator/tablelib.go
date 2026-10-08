@@ -53,8 +53,8 @@ func tableShape(fn string, x object.Object) textTable {
 		t = elementsTable(v.Elements)
 	case *object.Map:
 		t = textTable{header: []string{"key", "value"}}
-		for _, k := range v.Keys {
-			t.add([]object.Object{v.KeyOf(k), v.Values[k]})
+		for _, e := range v.Entries() {
+			t.add([]object.Object{e.Key, e.Val})
 		}
 	case *object.Matrix:
 		t = textTable{empty: v.Rows == 0}
@@ -189,11 +189,11 @@ func recordRows(elems []object.Object) ([]string, [][]object.Object) {
 func recordFields(o object.Object) ([]string, []object.Object) {
 	switch r := o.(type) {
 	case *object.Map:
-		names := make([]string, len(r.Keys))
-		vals := make([]object.Object, len(r.Keys))
-		for i, k := range r.Keys {
-			names[i] = r.KeyOf(k).Inspect()
-			vals[i] = r.Values[k]
+		names := make([]string, r.Len())
+		vals := make([]object.Object, r.Len())
+		for i, e := range r.Entries() {
+			names[i] = e.Key.Inspect()
+			vals[i] = e.Val
 		}
 		return names, vals
 	case *object.Assembly:

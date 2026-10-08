@@ -72,8 +72,8 @@ func (it *Interpreter) evalLog(s *ast.LogStatement, env *object.Environment) {
 	for _, x := range s.Expressions {
 		v := it.evalExpression(x, env)
 		if m, ok := v.(*object.Map); ok {
-			for _, k := range m.Keys {
-				e.fields.Put(m.KeyOf(k), m.Values[k])
+			for _, f := range m.Entries() {
+				e.fields.Put(f.Key, f.Val)
 			}
 			continue
 		}
@@ -167,8 +167,8 @@ func (it *Interpreter) formatLogLine(e logEntry, setting func(string) object.Obj
 		obj.Put(&object.String{Value: "message"}, &object.String{Value: e.message})
 		obj.Put(&object.String{Value: "file"}, &object.String{Value: e.file})
 		obj.Put(&object.String{Value: "line"}, object.Int(int64(e.line)))
-		for _, k := range e.fields.Keys {
-			obj.Put(&object.String{Value: e.fields.KeyOf(k).Inspect()}, e.fields.Values[k])
+		for _, f := range e.fields.Entries() {
+			obj.Put(&object.String{Value: f.Key.Inspect()}, f.Val)
 		}
 		return string(toJSON("log", obj, ""))
 	case "text":
@@ -197,8 +197,8 @@ func (it *Interpreter) formatLogLine(e logEntry, setting func(string) object.Obj
 			out = append(out, fmt.Sprintf("%-5s", strings.ToUpper(e.level)))
 		case "message":
 			msg := e.message
-			for _, k := range e.fields.Keys {
-				msg += " " + e.fields.KeyOf(k).Inspect() + "=" + fieldText(e.fields.Values[k])
+			for _, f := range e.fields.Entries() {
+				msg += " " + f.Key.Inspect() + "=" + fieldText(f.Val)
 			}
 			out = append(out, strings.TrimSpace(msg))
 		case "file":

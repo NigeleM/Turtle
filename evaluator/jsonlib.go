@@ -235,12 +235,11 @@ func writeJSON(buf *bytes.Buffer, who string, v object.Object, indent, prefix st
 	case *object.Set:
 		writeJSONArray(buf, who, x.Elements, indent, prefix, seen)
 	case *object.Map:
-		keys := make([]string, len(x.Keys))
-		vals := make([]object.Object, len(x.Keys))
-		for i, k := range x.Keys {
-			keys[i] = jsonKey(who, x.KeyOf(k))
-			vals[i] = x.Values[k]
+		keys := make([]string, x.Len())
+		for i, e := range x.Entries() {
+			keys[i] = jsonKey(who, e.Key)
 		}
+		vals := x.ValueList()
 		writeJSONObject(buf, who, keys, vals, indent, prefix, seen)
 	case *object.Assembly:
 		writeJSONObject(buf, who, x.Shape.Fields, x.Values, indent, prefix, seen)

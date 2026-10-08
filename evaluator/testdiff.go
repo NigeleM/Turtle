@@ -141,27 +141,27 @@ func describeDiff(path string, got, want object.Object, out *[]string) {
 		}
 	case *object.Map:
 		w := want.(*object.Map)
-		for _, k := range w.Keys {
-			key := w.KeyOf(k)
+		for _, we := range w.Entries() {
+			key := we.Key
 			gv, ok := g.Get(key)
 			sub := path + "key " + object.Shown(key)
 			if path != "" {
 				sub = path + ", key " + object.Shown(key)
 			}
 			if !ok {
-				*out = append(*out, fmt.Sprintf("%smissing (want %s)", at(sub), object.Shown(w.Values[k])))
+				*out = append(*out, fmt.Sprintf("%smissing (want %s)", at(sub), object.Shown(we.Val)))
 				continue
 			}
-			describeDiff(sub, gv, w.Values[k], out)
+			describeDiff(sub, gv, we.Val, out)
 		}
-		for _, k := range g.Keys {
-			key := g.KeyOf(k)
+		for _, ge := range g.Entries() {
+			key := ge.Key
 			if _, ok := w.Get(key); !ok {
 				sub := "key " + object.Shown(key)
 				if path != "" {
 					sub = path + ", " + sub
 				}
-				*out = append(*out, fmt.Sprintf("%snot wanted (got %s)", at(sub), object.Shown(g.Values[k])))
+				*out = append(*out, fmt.Sprintf("%snot wanted (got %s)", at(sub), object.Shown(ge.Val)))
 			}
 		}
 	case *object.Assembly:
@@ -262,7 +262,7 @@ func lengthOf(v object.Object) (int, bool) {
 	case *object.Set:
 		return len(x.Elements), true
 	case *object.Map:
-		return len(x.Keys), true
+		return x.Len(), true
 	}
 	return 0, false
 }

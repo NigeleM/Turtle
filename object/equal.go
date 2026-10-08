@@ -52,12 +52,12 @@ func Equal(a, b Object) bool {
 		return true
 	case *Map:
 		bv, ok := b.(*Map)
-		if !ok || len(av.Keys) != len(bv.Keys) {
+		if !ok || av.Len() != bv.Len() {
 			return false
 		}
-		for _, k := range av.Keys {
-			v, ok := bv.Values[k]
-			if !ok || !Equal(av.Values[k], v) {
+		for _, e := range av.entries {
+			v, ok := bv.GetK(e.K)
+			if !ok || !Equal(e.Val, v) {
 				return false
 			}
 		}
@@ -121,9 +121,9 @@ func Key(obj Object) string {
 		}
 		return "[" + strings.Join(parts, ",") + "]"
 	case *Map:
-		parts := make([]string, len(v.Keys))
-		for i, k := range v.Keys {
-			parts[i] = k + ":" + Key(v.Values[k])
+		parts := make([]string, len(v.entries))
+		for i, e := range v.entries {
+			parts[i] = e.K + ":" + Key(e.Val)
 		}
 		sort.Strings(parts)
 		return "map{" + strings.Join(parts, ",") + "}"

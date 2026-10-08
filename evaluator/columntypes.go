@@ -101,14 +101,14 @@ func parseColumnTypes(fn string, v object.Object) *columnTypes {
 		fatalf("'%s' column types must be a map of column name to type, e.g. map [\"qty\": \"integer\"], got %s", fn, typeName(v))
 	}
 	ct := &columnTypes{cols: map[string]columnType{}}
-	for _, k := range m.Keys {
-		name, ok := m.KeyOf(k).(*object.String)
+	for _, me := range m.Entries() {
+		name, ok := me.Key.(*object.String)
 		if !ok {
-			fatalf("'%s' column types: a column name must be text, got %s", fn, typeName(m.KeyOf(k)))
+			fatalf("'%s' column types: a column name must be text, got %s", fn, typeName(me.Key))
 		}
-		val, ok := m.Values[k].(*object.String)
+		val, ok := me.Val.(*object.String)
 		if !ok {
-			fatalf("'%s' column types: the type of %q must be text, like \"integer\", got %s", fn, name.Value, typeName(m.Values[k]))
+			fatalf("'%s' column types: the type of %q must be text, like \"integer\", got %s", fn, name.Value, typeName(me.Val))
 		}
 		word := strings.Join(strings.Fields(val.Value), " ")
 		if name.Value == primaryKeyEntry {

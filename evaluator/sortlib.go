@@ -118,15 +118,16 @@ func compareValues(fn string, a, b object.Object) int {
 		return cmpInt(len(x.Values), len(y.Values))
 	case *object.Map:
 		y := b.(*object.Map)
-		for i := 0; i < len(x.Keys) && i < len(y.Keys); i++ {
-			if c := compareValues(fn, x.KeyOf(x.Keys[i]), y.KeyOf(y.Keys[i])); c != 0 {
+		xe, ye := x.Entries(), y.Entries()
+		for i := 0; i < len(xe) && i < len(ye); i++ {
+			if c := compareValues(fn, xe[i].Key, ye[i].Key); c != 0 {
 				return c
 			}
-			if c := compareValues(fn, x.Values[x.Keys[i]], y.Values[y.Keys[i]]); c != 0 {
+			if c := compareValues(fn, xe[i].Val, ye[i].Val); c != 0 {
 				return c
 			}
 		}
-		return cmpInt(len(x.Keys), len(y.Keys))
+		return cmpInt(x.Len(), y.Len())
 	}
 	fa, _, _ := numeric(a)
 	fb, _, _ := numeric(b)
@@ -201,9 +202,9 @@ func entriesOf(fn string, x object.Object) ([]entry, bool) {
 	case *object.Set:
 		items = c.Elements
 	case *object.Map:
-		out := make([]entry, len(c.Keys))
-		for i, k := range c.Keys {
-			out[i] = entry{item: c.KeyOf(k), val: c.Values[k], isMap: true}
+		out := make([]entry, c.Len())
+		for i, e := range c.Entries() {
+			out[i] = entry{item: e.Key, val: e.Val, isMap: true}
 		}
 		return out, true
 	case *object.String:

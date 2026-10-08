@@ -190,49 +190,122 @@ func (s *Set) Changed() { s.index = nil }
 // Map is Turtle's `map [...]` — insertion-ordered (fixes the legacy
 // interpreter's randomized Go-map iteration order). Keys can be any value
 // and keep their type: map [1: "a"] has the integer key 1, distinct from
-// the string "1". Internally each key is stored under its Key string
-// (Keys, Values), with the original key value in KeyObjs.
+// the string "1". Each entry holds its Key string (how keys are compared),
+// the original key value, and the value, in one list in order; a map of
+// more than smallMap entries also keeps an index from Key string to
+// position. (Most maps are small records, which a short scan finds
+// fastest, without a hash table each.)
 type Map struct {
-	Keys    []string
-	Values  map[string]Object
-	KeyObjs map[string]Object
+	entries []MapEntry
+	index   map[string]int
 }
 
-func NewMap() *Map {
-	return &Map{Values: map[string]Object{}, KeyObjs: map[string]Object{}}
+// MapEntry is one key and its value. K is the key's Key string.
+type MapEntry struct {
+	K   string
+	Key Object
+	Val Object
 }
+
+const smallMap = 8
+
+func NewMap() *Map { return &Map{} }
 
 func (m *Map) Type() Type { return MAP }
 func (m *Map) Inspect() string {
-	parts := make([]string, len(m.Keys))
-	for i, k := range m.Keys {
-		parts[i] = fmt.Sprintf("%s: %s", Shown(m.KeyOf(k)), Shown(m.Values[k]))
+	parts := make([]string, len(m.entries))
+	for i, e := range m.entries {
+		parts[i] = Shown(e.Key) + ": " + Shown(e.Val)
 	}
 	return "{ " + strings.Join(parts, ", ") + " }"
+}
+
+// Len is how many entries the map has.
+func (m *Map) Len() int { return len(m.entries) }
+
+// Entries are the map's entries in order. Read them; change a value with
+// SetAt, and keys only with Put and Delete.
+func (m *Map) Entries() []MapEntry { return m.entries }
+
+// find is where Key string k is, or -1.
+func (m *Map) find(k string) int {
+	if m.index != nil {
+		if i, ok := m.index[k]; ok {
+			return i
+		}
+		return -1
+	}
+	for i := range m.entries {
+		if m.entries[i].K == k {
+			return i
+		}
+	}
+	return -1
 }
 
 // Put sets key to val, adding key at the end if it's new.
 func (m *Map) Put(key, val Object) {
 	k := Key(key)
-	if _, exists := m.Values[k]; !exists {
-		m.Keys = append(m.Keys, k)
-		m.KeyObjs[k] = key
+	if i := m.find(k); i >= 0 {
+		m.entries[i].Val = val
+		return
 	}
-	m.Values[k] = val
+	m.entries = append(m.entries, MapEntry{K: k, Key: key, Val: val})
+	switch {
+	case m.index != nil:
+		m.index[k] = len(m.entries) - 1
+	case len(m.entries) > smallMap:
+		m.reindex()
+	}
 }
+
+func (m *Map) reindex() {
+	m.index = make(map[string]int, len(m.entries)*2)
+	for i, e := range m.entries {
+		m.index[e.K] = i
+	}
+}
+
+// SetAt changes the value of the i-th entry.
+func (m *Map) SetAt(i int, val Object) { m.entries[i].Val = val }
 
 // Get returns the value stored for key.
 func (m *Map) Get(key Object) (Object, bool) {
-	v, ok := m.Values[Key(key)]
-	return v, ok
+	return m.GetK(Key(key))
+}
+
+// GetK returns the value stored under Key string k.
+func (m *Map) GetK(k string) (Object, bool) {
+	if i := m.find(k); i >= 0 {
+		return m.entries[i].Val, true
+	}
+	return nil, false
 }
 
 // KeyOf returns the original key value for an internal key string.
 func (m *Map) KeyOf(k string) Object {
-	if obj, ok := m.KeyObjs[k]; ok {
-		return obj
+	if i := m.find(k); i >= 0 {
+		return m.entries[i].Key
 	}
 	return &String{Value: k}
+}
+
+// KeyList is the keys in order, as a new list of values.
+func (m *Map) KeyList() []Object {
+	out := make([]Object, len(m.entries))
+	for i, e := range m.entries {
+		out[i] = e.Key
+	}
+	return out
+}
+
+// ValueList is the values in order, as a new list.
+func (m *Map) ValueList() []Object {
+	out := make([]Object, len(m.entries))
+	for i, e := range m.entries {
+		out[i] = e.Val
+	}
+	return out
 }
 
 // Delete removes key, reporting whether it was there.
@@ -242,15 +315,17 @@ func (m *Map) Delete(key Object) bool {
 
 // DeleteKey removes the entry stored under internal key string key.
 func (m *Map) DeleteKey(key string) bool {
-	if _, exists := m.Values[key]; !exists {
+	i := m.find(key)
+	if i < 0 {
 		return false
 	}
-	delete(m.Values, key)
-	delete(m.KeyObjs, key)
-	for i, k := range m.Keys {
-		if k == key {
-			m.Keys = append(m.Keys[:i], m.Keys[i+1:]...)
-			break
+	m.entries = append(m.entries[:i], m.entries[i+1:]...)
+	m.entries[len(m.entries):cap(m.entries)][0] = MapEntry{} // let the removed one go
+	if m.index != nil {
+		if len(m.entries) > smallMap {
+			m.reindex()
+		} else {
+			m.index = nil
 		}
 	}
 	return true

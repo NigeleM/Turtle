@@ -312,7 +312,7 @@ func briefValue(v object.Object) string {
 	case *object.Set:
 		return fmt.Sprintf("set of %d", len(x.Elements))
 	case *object.Map:
-		return fmt.Sprintf("map of %d", len(x.Keys))
+		return fmt.Sprintf("map of %d", x.Len())
 	}
 	s := v.Inspect()
 	if r := []rune(s); len(r) > 50 {

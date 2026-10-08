@@ -1230,5 +1230,9 @@ objects 78 -> 41 (1.9x), jsondata 66 -> 60 (1.1x), patterns 32 -> 22
   bad JSON), so values and messages are unchanged (a differential test
   over 3,000 random documents). fib 44 -> 33 ms, functional 34 -> 20,
   objects 37 -> 29, strings 39 -> 32, jsondata 58 -> 30.
-  Proposed, not done: one structure per map entry instead of a key list
-  plus two Go maps (66 uses in 20 files).
+- Maps: one ordered list of entries (key text, key value, value) plus an
+  index only past 8 entries, instead of a key list and two Go maps; every
+  use goes through methods (Len, Entries, GetK, SetAt, KeyList,
+  ValueList). Same order, keys and results: all tests, the race detector,
+  and a test across the small/indexed switch. 200,000 small records: 216
+  -> 100 MB and 80 -> 50 ms; maps 76 -> 68 ms, jsondata 30 -> 25.

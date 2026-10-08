@@ -1,6 +1,10 @@
 package evaluator
 
-import "Turtle/object"
+import (
+	"slices"
+
+	"Turtle/object"
+)
 
 // The "data" builtin module: ordinary functions (no special syntax) that
 // apply a function across a collection. With the sentence-style call form
@@ -38,8 +42,8 @@ func (it *Interpreter) dataProcess(args []object.Object) object.Object {
 		c.Elements = out.Elements
 		c.Changed()
 	case *object.Map:
-		for _, k := range c.Keys {
-			c.Values[k] = it.callFunction(fn, "process", mapFunctionArgs("process", fn, c.KeyOf(k), c.Values[k]))
+		for i, e := range c.Entries() {
+			c.SetAt(i, it.callFunction(fn, "process", mapFunctionArgs("process", fn, e.Key, e.Val)))
 		}
 	}
 	return coll
@@ -60,9 +64,9 @@ func (it *Interpreter) dataKeep(args []object.Object) object.Object {
 		c.Elements = it.keepElements(fn, c.Elements)
 		c.Changed()
 	case *object.Map:
-		for _, k := range append([]string{}, c.Keys...) {
-			if !isTruthy(it.callFunction(fn, "keep", mapFunctionArgs("keep", fn, c.KeyOf(k), c.Values[k]))) {
-				c.DeleteKey(k)
+		for _, e := range slices.Clone(c.Entries()) {
+			if !isTruthy(it.callFunction(fn, "keep", mapFunctionArgs("keep", fn, e.Key, e.Val))) {
+				c.DeleteKey(e.K)
 			}
 		}
 	}
@@ -112,8 +116,8 @@ func shallowCopy(x object.Object) object.Object {
 		return &object.Set{Elements: append([]object.Object{}, c.Elements...)}
 	case *object.Map:
 		m := object.NewMap()
-		for _, k := range c.Keys {
-			m.Put(c.KeyOf(k), c.Values[k])
+		for _, e := range c.Entries() {
+			m.Put(e.Key, e.Val)
 		}
 		return m
 	case *object.Assembly:
@@ -201,15 +205,15 @@ func collectionOp(op string, left, right object.Object) (object.Object, bool) {
 			return nil, false
 		}
 		out := object.NewMap()
-		for _, k := range l.Keys {
-			if _, inRight := r.Values[k]; op == "+" || !inRight {
-				out.Put(l.KeyOf(k), l.Values[k])
+		for _, e := range l.Entries() {
+			if _, inRight := r.GetK(e.K); op == "+" || !inRight {
+				out.Put(e.Key, e.Val)
 			}
 		}
 		if op == "+" {
-			for _, k := range r.Keys {
-				if _, inLeft := l.Values[k]; !inLeft {
-					out.Put(r.KeyOf(k), r.Values[k])
+			for _, e := range r.Entries() {
+				if _, inLeft := l.GetK(e.K); !inLeft {
+					out.Put(e.Key, e.Val)
 				}
 			}
 		}
@@ -290,11 +294,7 @@ func reduceItems(x object.Object) []object.Object {
 	case *object.Set:
 		return c.Elements
 	case *object.Map:
-		vals := make([]object.Object, len(c.Keys))
-		for i, k := range c.Keys {
-			vals[i] = c.Values[k]
-		}
-		return vals
+		return c.ValueList()
 	}
 	fatalf("'reduce' and 'sum' need a list, set or map, got %s", typeName(x))
 	return nil

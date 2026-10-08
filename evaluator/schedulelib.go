@@ -76,9 +76,9 @@ func scheduleSettings(fn string, env *object.Environment, args []object.Object, 
 	if !ok {
 		fatalf("%s: the settings must be a map, e.g. map [\"limit\": 10, \"skip_errors\": true], got %s", fn, typeName(args[at]))
 	}
-	for _, k := range m.Keys {
-		v := m.Values[k]
-		switch key := m.KeyOf(k).Inspect(); key {
+	for _, me := range m.Entries() {
+		v := me.Val
+		switch key := me.Key.Inspect(); key {
 		case "limit":
 			o.limit = scheduleLimit(v, fn+"'s limit")
 		case "skip_errors":

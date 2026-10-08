@@ -191,7 +191,7 @@ func (it *Interpreter) lengthOf(obj object.Object) int {
 	case *object.Set:
 		return len(v.Elements)
 	case *object.Map:
-		return len(v.Keys)
+		return v.Len()
 	case *object.String:
 		return len([]rune(v.Value))
 	default:
@@ -209,9 +209,7 @@ func (it *Interpreter) reduceExtreme(argExpr ast.Expression, env *object.Environ
 	case *object.Set:
 		candidates = v.Elements
 	case *object.Map:
-		for _, k := range v.Keys {
-			candidates = append(candidates, v.KeyOf(k))
-		}
+		candidates = v.KeyList()
 	default:
 		fatalf("'min/max of' needs a list, set, or map, got %s", typeName(obj))
 	}
@@ -598,7 +596,7 @@ func mapMethod(m *object.Map, method string, args []object.Object) object.Object
 	switch method {
 	case "len", "length":
 		requireArgs(method, args, 0)
-		return object.Int(int64(len(m.Keys)))
+		return object.Int(int64(m.Len()))
 	case "contains":
 		// Whether the map has this key.
 		requireArgs(method, args, 1)
@@ -606,7 +604,7 @@ func mapMethod(m *object.Map, method string, args []object.Object) object.Object
 		return object.Bool(ok)
 	case "isempty":
 		requireArgs(method, args, 0)
-		return object.Bool(len(m.Keys) == 0)
+		return object.Bool(m.Len() == 0)
 	case "get":
 		requireArgs(method, args, 1)
 		v, ok := m.Get(args[0])
@@ -616,15 +614,11 @@ func mapMethod(m *object.Map, method string, args []object.Object) object.Object
 		return v
 	case "getvalues":
 		list := &object.List{}
-		for _, k := range m.Keys {
-			list.Elements = append(list.Elements, m.Values[k])
-		}
+		list.Elements = m.ValueList()
 		return list
 	case "getkeys":
 		list := &object.List{}
-		for _, k := range m.Keys {
-			list.Elements = append(list.Elements, m.KeyOf(k))
-		}
+		list.Elements = m.KeyList()
 		return list
 	case "add":
 		requireArgs(method, args, 2)
@@ -638,8 +632,8 @@ func mapMethod(m *object.Map, method string, args []object.Object) object.Object
 		return m
 	case "invert":
 		result := object.NewMap()
-		for _, k := range m.Keys {
-			result.Put(m.Values[k], m.KeyOf(k))
+		for _, e := range m.Entries() {
+			result.Put(e.Val, e.Key)
 		}
 		return result
 	case "tostring":

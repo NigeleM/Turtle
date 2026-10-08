@@ -583,14 +583,14 @@ func (it *Interpreter) options(args []object.Object) object.Object {
 	out := object.NewMap()
 	defaults := map[string]object.Object{} // option name: default
 	var names []string
-	for _, k := range spec.Keys {
-		key, isText := spec.KeyObjs[k].(*object.String)
+	for _, me := range spec.Entries() {
+		key, isText := me.Key.(*object.String)
 		if !isText || !strings.HasPrefix(key.Value, "-") || key.Value == "-" || key.Value == "--" {
-			fatalKind(kindType, "options: %s isn't an option name; they're text starting with - or --, as in \"-v\" or \"--out\"", spec.KeyObjs[k].Inspect())
+			fatalKind(kindType, "options: %s isn't an option name; they're text starting with - or --, as in \"-v\" or \"--out\"", me.Key.Inspect())
 		}
-		defaults[key.Value] = spec.Values[k]
+		defaults[key.Value] = me.Val
 		names = append(names, key.Value)
-		out.Put(key, spec.Values[k])
+		out.Put(key, me.Val)
 	}
 	_, ownHelp := defaults["--help"]
 	_, ownH := defaults["-h"]

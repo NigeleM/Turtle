@@ -109,9 +109,9 @@ func doHTTP(who, method, address string, body object.Object, headers *object.Map
 		req.Header.Set("Content-Type", contentType)
 	}
 	if headers != nil {
-		for _, k := range headers.Keys {
-			v := headers.Values[k]
-			req.Header.Set(headers.KeyOf(k).Inspect(), v.Inspect())
+		for _, me := range headers.Entries() {
+			v := me.Val
+			req.Header.Set(me.Key.Inspect(), v.Inspect())
 		}
 	}
 	resp, err := httpClient.Do(req)

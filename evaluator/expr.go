@@ -443,11 +443,7 @@ func changeItems(val object.Object) ([]object.Object, bool) {
 	case *object.Set:
 		return append([]object.Object{}, v.Elements...), true
 	case *object.Map:
-		keys := make([]object.Object, len(v.Keys))
-		for i, k := range v.Keys {
-			keys[i] = v.KeyOf(k)
-		}
-		return keys, true
+		return v.KeyList(), true
 	case *object.String:
 		var chars []object.Object
 		for _, r := range v.Value {
@@ -537,15 +533,10 @@ func evalChange(typeName string, val object.Object) object.Object {
 		if !ok {
 			fatalf("change ... to %s: needs a map, got %s (for a list or set, change it to list)", typeName, typeNameOf(val))
 		}
-		out := &object.List{Elements: make([]object.Object, len(m.Keys))}
-		for i, k := range m.Keys {
-			if typeName == "keys" {
-				out.Elements[i] = m.KeyOf(k)
-			} else {
-				out.Elements[i] = m.Values[k]
-			}
+		if typeName == "keys" {
+			return &object.List{Elements: m.KeyList()}
 		}
-		return out
+		return &object.List{Elements: m.ValueList()}
 	case "matrix":
 		return toMatrix(val)
 	case "set":

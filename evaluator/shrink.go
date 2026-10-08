@@ -187,18 +187,18 @@ func (it *Interpreter) simpler(s *ast.Shape, v object.Object, env *object.Enviro
 		if s.Count != nil {
 			min = int(it.shapeInteger(s, "count", s.Count, env))
 		}
-		keys := m.Keys
+		keys := m.Entries()
 		build := func(skip int, at int, val object.Object) *object.Map {
 			out := object.NewMap()
-			for i, k := range keys {
+			for i, e := range keys {
 				if i == skip {
 					continue
 				}
-				x := m.Values[k]
+				x := e.Val
 				if i == at {
 					x = val
 				}
-				out.Put(m.KeyOf(k), x)
+				out.Put(e.Key, x)
 			}
 			return out
 		}
@@ -208,7 +208,7 @@ func (it *Interpreter) simpler(s *ast.Shape, v object.Object, env *object.Enviro
 			}
 		}
 		for i := 0; i < len(keys) && i < 30; i++ {
-			for j, c := range it.simpler(s.Item, m.Values[keys[i]], env) {
+			for j, c := range it.simpler(s.Item, keys[i].Val, env) {
 				if j == 16 {
 					break
 				}

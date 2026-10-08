@@ -79,9 +79,9 @@ func (it *Interpreter) callSearch(name string, args []object.Object) object.Obje
 		if !ok {
 			fatalf("'find_key' needs a map, got %s", typeName(args[0]))
 		}
-		for _, k := range m.Keys {
-			if object.Equal(m.Values[k], args[1]) {
-				return m.KeyOf(k)
+		for _, me := range m.Entries() {
+			if object.Equal(me.Val, args[1]) {
+				return me.Key
 			}
 		}
 		return object.NoneValue

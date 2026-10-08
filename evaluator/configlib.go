@@ -166,14 +166,14 @@ func writeConfig(path, format string, m *object.Map) string {
 		return string(toJSON("config_write", m, "  ")) + "\n"
 	}
 	var b strings.Builder
-	for _, k := range m.Keys {
-		key := m.KeyOf(k)
+	for _, me := range m.Entries() {
+		key := me.Key
 		ks, ok := key.(*object.String)
 		if !ok || ks.Value == "" || strings.ContainsAny(ks.Value, " \t=\n#") {
 			fatalKind(kindConfig, "config_write %s: %s can't be a .env name (one word, no spaces or =)", path, object.Shown(key))
 		}
 		var text string
-		switch v := m.Values[k].(type) {
+		switch v := me.Val.(type) {
 		case *object.Map, *object.List, *object.Set, *object.Assembly:
 			fatalKind(kindConfig, "config_write %s: %s is %s; a .env file holds only single values (use .toml or .json for more)", path, ks.Value, aValue(v))
 		case *object.None:
@@ -197,13 +197,13 @@ func toTOML(v object.Object, path []string) (any, error) {
 	switch x := v.(type) {
 	case *object.Map:
 		t := toml.NewTable()
-		for _, k := range x.Keys {
-			key := x.KeyOf(k)
+		for _, me := range x.Entries() {
+			key := me.Key
 			name := key.Inspect()
 			if s, ok := key.(*object.String); ok {
 				name = s.Value
 			}
-			val, err := toTOML(x.Values[k], append(path, name))
+			val, err := toTOML(me.Val, append(path, name))
 			if err != nil {
 				return nil, err
 			}

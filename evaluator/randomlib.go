@@ -210,7 +210,7 @@ func (it *Interpreter) randomValue(s *ast.Shape, env *object.Environment, rng *r
 			}
 			out.Put(k, it.randomValue(s.Item, env, rng))
 			return true
-		}, func() int { return len(out.Keys) })
+		}, func() int { return out.Len() })
 		return out
 	case "assembled":
 		shape := assembledShape(env, s.TypeName)
