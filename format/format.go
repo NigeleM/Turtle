@@ -69,7 +69,7 @@ func Format(src string) (string, error) {
 		}
 	}
 
-	var stack []string // the blocks open: def, if, nestedif, loop, safe, give, block
+	var stack []string // the blocks open: def, if, nestedif, loop, safe, give, block, scroll
 	var out []string
 	blank := 0
 	for i, line := range lines {
@@ -148,6 +148,24 @@ func lineDepth(t []token.Token, stack []string) (int, []string, error) {
 		return len(stack), stack, nil
 	}
 	last := t[len(t)-1]
+	// A scroll over several lines: its steps one step in, until the
+	// line ending with its period.
+	//     names is scroll raw into
+	//         splitby ",",
+	//         join[" - "] .
+	if len(stack) > 0 && stack[len(stack)-1] == "scroll" {
+		if last.Type == token.PERIOD {
+			return len(stack), stack[:len(stack)-1], nil
+		}
+		return len(stack), stack, nil
+	}
+	if last.Type != token.PERIOD && last.Type != token.GIVES {
+		for _, tok := range t {
+			if tok.Type == token.SCROLL {
+				return len(stack), append(append([]string{}, stack...), "scroll"), nil
+			}
+		}
+	}
 	// validate's rule goes on its own line, one step in:
 	//     validate evens[nums] with nums as list of integer
 	//         that result each x give x % 2 == 0 .

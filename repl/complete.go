@@ -80,10 +80,10 @@ func openBlocks(src string) int {
 }
 
 // needsMore reports whether src is unfinished: a block still open, or a
-// validate sentence (which can run over several lines) still waiting for
-// its period.
+// validate sentence or a scroll (which can run over several lines) still
+// waiting for its period.
 func needsMore(src string) bool {
-	if openBlocks(src) > 0 {
+	if openBlocks(src) > 0 || scrollOpen(src) {
 		return true
 	}
 	l := lexer.New(src)
@@ -99,7 +99,27 @@ func needsMore(src string) bool {
 }
 
 // indentFor is how far to indent the next line of an unfinished entry:
-// four spaces per open block.
+// four spaces per open block, and four more for a scroll's steps.
 func indentFor(src string) int {
-	return 4 * openBlocks(src)
+	n := openBlocks(src)
+	if scrollOpen(src) {
+		n++
+	}
+	return 4 * n
+}
+
+// scrollOpen reports whether src's last line is a scroll still waiting
+// for its period.
+func scrollOpen(src string) bool {
+	l := lexer.New(src)
+	open := false
+	for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
+		switch tok.Type {
+		case token.SCROLL:
+			open = true
+		case token.PERIOD:
+			open = false
+		}
+	}
+	return open
 }

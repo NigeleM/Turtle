@@ -271,12 +271,26 @@ type Function struct {
 	Body       *ast.BlockStatement
 	Env        *Environment
 	Shape      *Shape
+	// Scroll is set for a saved scroll ("s = scroll a, b ."): called on
+	// one value, it runs the steps in order.
+	Scroll *ast.ScrollExpression
 }
 
 func (f *Function) Type() Type { return FUNCTION }
 func (f *Function) Inspect() string {
 	if f.Shape != nil {
 		return "assemble " + f.Name
+	}
+	if f.Scroll != nil {
+		n := len(f.Scroll.Steps)
+		s := "s"
+		if n == 1 {
+			s = ""
+		}
+		if f.Name == "" {
+			return fmt.Sprintf("scroll (%d step%s)", n, s)
+		}
+		return fmt.Sprintf("scroll %s (%d step%s)", f.Name, n, s)
 	}
 	if f.Name == "" {
 		return "gives function"
@@ -328,6 +342,10 @@ type Error struct {
 	InModule bool   // File is an imported module, so the message names it
 	Line     int
 	Message  string // without the place: "division by zero"
+	// Steps is what each step of the scroll it happened in did, nil for
+	// an error outside a scroll. Not a part of the error: only diagnose[e]
+	// shows it and gives it back.
+	Steps *List
 }
 
 func (e *Error) Type() Type { return ERROR }

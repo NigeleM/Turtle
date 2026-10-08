@@ -36,6 +36,7 @@ for reference; they still build and run.
 | Parse errors: the first one, with a `^` under the spot and how to fix it | Done |
 | Standard library: strings (`find`, `substring`, `isinstring`, `join`) | Done |
 | Assembled types (`assemble Order [item, qty]`, `qty of o`) | Done |
+| Scrolls (`x is scroll 3 into add1, double .`), `here`, `diagnose` | Done |
 | Data structures (list/set/map) | Done |
 | Type conversion (`change`) | Done |
 | Standard library: math (`import math`) | Done |

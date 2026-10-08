@@ -112,6 +112,10 @@ type Parser struct {
 	// where a name followed by "rounded" isn't a sentence-style call.
 	inShape bool
 
+	// hereUses counts "here" in the scroll step being parsed (see
+	// scroll.go): a step naming here gets the value there, not first.
+	hereUses int
+
 	prefixParseFns map[token.Type]prefixParseFn
 	infixParseFns  map[token.Type]infixParseFn
 }
@@ -142,6 +146,7 @@ func New(l *lexer.Lexer) *Parser {
 		token.LENGTH:   p.parseMinMaxLength,
 		token.CHANGE:   p.parseChangeExpression,
 		token.LBRACKET: p.parseBracketFunctionLiteral,
+		token.SCROLL:   p.parseScrollExpression,
 	}
 	p.infixParseFns = map[token.Type]infixParseFn{
 		token.PLUS:     p.parseInfixExpression,
@@ -411,6 +416,14 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseBracketStatement()
 	case token.IDENT:
 		return p.parseIdentifierLeadStatement()
+	case token.SCROLL:
+		// "scroll rows into table_write["a.csv", here] .": run for its effect.
+		tok := p.curToken
+		expr := p.parseExpression(LOWEST)
+		if !p.requirePeriod() {
+			return nil
+		}
+		return &ast.ExpressionStatement{Token: tok, Expression: expr}
 	default:
 		p.statementStartError()
 		p.nextToken()
@@ -504,6 +517,7 @@ func (p *Parser) parseAssignOrInputStatement() ast.Statement {
 	p.nextToken() // '=' -> first token of value
 	val := p.parseExpression(LOWEST)
 	p.nextToken()
+	p.endScroll(val)
 	return &ast.AssignStatement{Token: tok, Name: name, Value: val}
 }
 
@@ -606,6 +620,7 @@ func (p *Parser) parseReturnStatement() ast.Statement {
 	p.nextToken()
 	val := p.parseExpression(LOWEST)
 	p.nextToken()
+	p.endScroll(val)
 	return &ast.ReturnStatement{Token: tok, Value: val}
 }
 
@@ -613,7 +628,7 @@ func (p *Parser) parseReturnStatement() ast.Statement {
 
 // errorKinds are the names a handle statement can list; they match the
 // kinds the evaluator gives its runtime errors.
-var errorKinds = []string{"file", "number", "math", "index", "key", "name", "type", "json", "date", "http", "sql", "csv", "test", "pattern", "crypt", "schedule", "custom"}
+var errorKinds = []string{"file", "number", "math", "index", "key", "name", "type", "json", "date", "http", "sql", "csv", "test", "pattern", "crypt", "schedule", "scroll", "custom"}
 
 // parseSafeStatement parses
 //
@@ -1434,6 +1449,9 @@ func (p *Parser) parseIdentifier() ast.Expression {
 	if p.peekTokenIs(token.GIVES) && p.peekToken.Line == tok.Line {
 		p.nextToken()
 		return p.parseFunctionBody(tok, []string{tok.Literal})
+	}
+	if tok.Literal == "here" {
+		p.hereUses++
 	}
 	module := ""
 	if p.isQualifiedName() {

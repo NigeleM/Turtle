@@ -71,6 +71,9 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 	case *ast.FunctionLiteral:
 		return &object.Function{Parameters: e.Parameters, Body: e.Body, Env: env}
 
+	case *ast.ScrollExpression:
+		return it.evalScroll(e, env)
+
 	case *ast.FieldExpression:
 		obj := it.evalExpression(e.Object, env)
 		if d, ok := obj.(*object.Date); ok {
@@ -501,6 +504,9 @@ func evalChange(typeName string, val object.Object) object.Object {
 // imported module, or the sentence-style call name[a, args...] when a is a
 // variable.
 func (it *Interpreter) evalCall(ce *ast.CallExpression, env *object.Environment) object.Object {
+	if ce.Name == "diagnose" && ce.Module == "" && ce.Subject == nil && !userFunction(env, "diagnose") {
+		return it.evalDiagnose(ce, env)
+	}
 	args := make([]object.Object, len(ce.Arguments))
 	for i, a := range ce.Arguments {
 		args[i] = it.evalExpression(a, env)
@@ -564,6 +570,9 @@ func (it *Interpreter) callByName(name string, args []object.Object, env *object
 	if im := resolveImported(env, name); im != nil {
 		return it.callImported(im, name, args, env)
 	}
+	if name == "diagnose" { // core: "s diagnose 3"
+		return it.diagnoseValues(args)
+	}
 	if name == "typeof" { // core: no import
 		requireFuncArgs(name, args, 1)
 		return &object.String{Value: typeName(args[0])}
@@ -596,6 +605,12 @@ func (it *Interpreter) callFunction(fn *object.Function, name string, args []obj
 				name, len(fn.Shape.Fields), strings.Join(fn.Shape.Fields, ", "), len(args))
 		}
 		return &object.Assembly{Shape: fn.Shape, Values: append([]object.Object{}, args...)}
+	}
+	if fn.Scroll != nil {
+		if len(args) != 1 {
+			fatalf("scroll %s runs on one value, got %d", scrollName(fn), len(args))
+		}
+		return it.runSavedScroll(fn, args[0])
 	}
 	if len(args) != len(fn.Parameters) {
 		fatalf("function %q expects %d argument(s), got %d", name, len(fn.Parameters), len(args))
@@ -833,4 +848,18 @@ func overflow(op string, a, b int64) {
 	}
 	fatalKind(kindMath, "integer overflow: %s is past the integer limits (%d to %d); use a float (e.g. 1.0) for bigger numbers",
 		expr, int64(math.MinInt64), int64(math.MaxInt64))
+}
+
+// userFunction reports whether name is the program's own function (a
+// variable holding one, a def, or an import), which wins over a core one.
+func userFunction(env *object.Environment, name string) bool {
+	if v, ok := env.Get(name); ok {
+		if _, fn := v.(*object.Function); fn {
+			return true
+		}
+	}
+	if _, ok := env.GetFunction(name); ok {
+		return true
+	}
+	return resolveImported(env, name) != nil
 }

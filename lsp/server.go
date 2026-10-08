@@ -420,7 +420,8 @@ var keywordHelp = map[string]string{
 	"append": "`[append] notes.txt` ... `[end]`", "directory": "`[directory] path to names [end]`", "break": "leaves a loop",
 	"continue": "goes on to the loop's next pass", "give": "makes a function: `x give x + 1`, `[a, b] give a + b`",
 	"in": "`[loop][x in nums]`", "assemble": "names a kind of value with fields: `assemble Order [item, qty]`",
-	"safe": "`safe` ... `handle [kinds] e .` ... `safe [end]`: catches errors", "handle": "the part of a safe block that runs on an error",
+	"scroll": "steps a value goes through in order: `x is scroll 3 into add1, double .`; `s = scroll add1, double .` saves one",
+	"safe":   "`safe` ... `handle [kinds] e .` ... `safe [end]`: catches errors", "handle": "the part of a safe block that runs on an error",
 	"fail": "raises your own error: `fail \"message\"`", "div": "whole-number division: `7 div 2` is 3",
 	"true": "the boolean true", "false": "the boolean false", "none": "no value",
 }

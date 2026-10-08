@@ -793,6 +793,9 @@ func commonShape(vals []object.Object) *ast.Shape {
 
 // typeName is typeof's answer: "integer", "list", "Order" ...
 func typeName(v object.Object) string {
+	if fn, ok := v.(*object.Function); ok && fn.Scroll != nil {
+		return "scroll"
+	}
 	switch x := v.(type) {
 	case *object.Integer:
 		return "integer"

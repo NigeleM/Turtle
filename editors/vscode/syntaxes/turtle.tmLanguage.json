@@ -150,7 +150,7 @@
         },
         {
           "name": "keyword.other.turtle",
-          "match": "\\b(add|append|assemble|at|change|def|delete|directory|div|from|give|in|insert|is|length|list|map|max|min|of|read|remove|reverse|set|show|sort|sys|to|warn|write)\\b"
+          "match": "\\b(add|append|assemble|at|change|def|delete|directory|div|from|give|in|insert|is|length|list|map|max|min|of|read|remove|reverse|scroll|set|show|sort|sys|to|warn|write)\\b"
         }
       ]
     },

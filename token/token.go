@@ -110,6 +110,7 @@ const (
 	HANDLE   Type = "HANDLE"
 	FAIL     Type = "FAIL"
 	WARN     Type = "WARN"
+	SCROLL   Type = "SCROLL"
 )
 
 // LiteralBrace stands in a STRING token's Literal for an escaped \{, so
@@ -162,6 +163,7 @@ var keywords = map[string]Type{
 	"fail":      FAIL,
 	"warn":      WARN,
 	"div":       DIV,
+	"scroll":    SCROLL,
 }
 
 // LookupIdent returns the keyword Type for literal, or IDENT if it isn't

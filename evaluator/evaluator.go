@@ -37,18 +37,19 @@ var noneResult = ExecResult{Signal: SigNone}
 // scope and a single stdin reader (fixing the legacy interpreter's habit
 // of allocating a fresh bufio.Scanner per input prompt).
 type Interpreter struct {
-	Global  *object.Environment
-	Dir     string   // the script's directory: imports resolve relative to it
-	WorkDir string   // where turtle was run from: file paths resolve relative to it
-	Args    []string // command-line arguments after the script path (system's args[])
-	Script  string   // the main script's file name, for "file of" an error
-	stdin   *bufio.Scanner
-	modules map[string]*object.Module // loaded .t modules, by resolved path
-	depth   int                       // function calls in progress (see maxCallDepth)
-	loading []string                  // .t modules mid-import, outermost first
-	dbs     []*object.Database        // databases opened, closed when Run ends
-	rng     *rand.Rand                // the random library's source (see randomlib.go)
-	rngSeed object.Object             // the seed value rng was started from
+	scrollStack []*object.Function // saved scrolls running, for one found inside itself
+	Global      *object.Environment
+	Dir         string   // the script's directory: imports resolve relative to it
+	WorkDir     string   // where turtle was run from: file paths resolve relative to it
+	Args        []string // command-line arguments after the script path (system's args[])
+	Script      string   // the main script's file name, for "file of" an error
+	stdin       *bufio.Scanner
+	modules     map[string]*object.Module // loaded .t modules, by resolved path
+	depth       int                       // function calls in progress (see maxCallDepth)
+	loading     []string                  // .t modules mid-import, outermost first
+	dbs         []*object.Database        // databases opened, closed when Run ends
+	rng         *rand.Rand                // the random library's source (see randomlib.go)
+	rngSeed     object.Object             // the seed value rng was started from
 	// inBuiltin is true while a builtin library's Turtle code runs:
 	// errors then point at the caller's line, not the library's.
 	inBuiltin bool
@@ -181,6 +182,10 @@ type fatalError struct {
 	// parse is set for a parse error in an imported module: like one in
 	// the main script, no safe block handles it.
 	parse bool
+	// steps is what each step did, for an error inside a scroll (for
+	// diagnose[e]); scrolled is set once the message names the step.
+	steps    *object.List
+	scrolled bool
 }
 
 func (e fatalError) Error() string { return e.msg }
@@ -205,6 +210,7 @@ const (
 	kindPattern  = "pattern"  // a pattern that isn't a valid regular expression
 	kindCrypt    = "crypt"    // text that isn't base64/hex, a wrong passphrase, an unknown algorithm
 	kindSchedule = "schedule" // a bad limit or setting, a command that can't start, queryall on SQLite
+	kindScroll   = "scroll"   // a scroll step that isn't a function or scroll, a scroll inside itself
 	kindCustom   = "custom"   // the program's own, from fail "..."
 )
 
@@ -302,14 +308,19 @@ func (it *Interpreter) evalSafe(s *ast.SafeStatement, env *object.Environment) E
 		env.Set(s.Name, object.NoneValue)
 		return res
 	}
+	env.Set(s.Name, it.errorValue(fe))
+	// Outside evalProtected, so an error in the handle code isn't handled
+	// by its own safe block.
+	return it.evalBlock(s.Handler, env)
+}
+
+// errorValue is the value a handle line (or diagnose) gives an error.
+func (it *Interpreter) errorValue(fe fatalError) *object.Error {
 	file := fe.file
 	if file == "" {
 		file = it.Script
 	}
-	env.Set(s.Name, &object.Error{Kind: fe.kind, File: file, InModule: fe.file != "", Line: fe.line, Message: fe.text})
-	// Outside evalProtected, so an error in the handle code isn't handled
-	// by its own safe block.
-	return it.evalBlock(s.Handler, env)
+	return &object.Error{Kind: fe.kind, File: file, InModule: fe.file != "", Line: fe.line, Message: fe.text, Steps: fe.steps}
 }
 
 // evalProtected runs a safe block's body, recovering an error of a kind
@@ -364,6 +375,9 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 	switch s := stmt.(type) {
 	case *ast.AssignStatement:
 		v := it.evalExpression(s.Value, env)
+		if fn, ok := v.(*object.Function); ok && fn.Scroll != nil && fn.Name == "" {
+			fn.Name = s.Name // a saved scroll is named after its variable
+		}
 		env.Set(s.Name, v)
 		if trace != nil {
 			it.traceAssign(trace, s.Name, v.Inspect())

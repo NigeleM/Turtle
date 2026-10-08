@@ -664,3 +664,43 @@ type TypeCheckExpression struct {
 
 func (t *TypeCheckExpression) expressionNode()      {}
 func (t *TypeCheckExpression) TokenLiteral() string { return t.Token.Literal }
+
+// ScrollExpression is a scroll: steps a value goes through in order,
+// each one's result feeding the next.
+//
+//	x is scroll 3 into add1, double, half .     // Start is 3: runs now
+//	s = scroll add1, double, half .             // no Start: a saved scroll
+type ScrollExpression struct {
+	Token token.Token
+	Start Expression // nil for a saved scroll
+	Steps []*ScrollStep
+}
+
+func (se *ScrollExpression) expressionNode()      {}
+func (se *ScrollExpression) TokenLiteral() string { return se.Token.Literal }
+
+// ScrollStepKind is how a step uses the value reaching it.
+type ScrollStepKind int
+
+const (
+	// StepCall is a function by name, the value going first:
+	// "double" is double[value], "splitby ","" is splitby[value, ","],
+	// "join[" - "]" is join[value, " - "].
+	StepCall ScrollStepKind = iota
+	// StepHere is an expression naming here, which is the value:
+	// "add_time[here, 30, "days"]", "here * 2", "at trim".
+	StepHere
+	// StepValue is an expression giving a function or scroll to call on
+	// the value: "n give n * 5".
+	StepValue
+)
+
+// ScrollStep is one step of a scroll. Label is its source text, for
+// errors, diagnose and trace.
+type ScrollStep struct {
+	Token token.Token
+	Label string
+	Kind  ScrollStepKind
+	Call  *CallExpression // StepCall: the extra values, without the value
+	Expr  Expression      // StepHere and StepValue
+}

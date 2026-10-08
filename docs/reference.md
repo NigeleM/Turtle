@@ -32,7 +32,7 @@ non-terminal; `[x]` is optional; `{x}` is zero-or-more; `|` is alternation.
 - **Reserved words** (cannot be used as identifiers): `true false none show if
   else def end loop return list set map import sys to from at of is add
   change remove delete sort reverse insert min max length read write append
-  directory break continue give in assemble safe handle fail warn div`. Type names used after `change ... to` —
+  directory break continue give in assemble safe handle fail warn div scroll`. Type names used after `change ... to` —
   `integer`, `float`, `string`, `ascii`, `char`, `hex` — are **not** reserved;
   like method names (`get`, `union`, ...) they're plain identifiers whose
   meaning is only special right after `to`.
@@ -628,6 +628,136 @@ map date none function empty` and assembled type names. A kind that
 doesn't exist (`n type intger`) is an error. `type` is only special
 between a value and a kind, so it still works as a variable name.
 
+## Scrolls
+
+A scroll is a value going through steps in order, each step's result
+feeding the next. It reads top to bottom, instead of inside-out like
+`half[double[add1[3]]]`, and needs no names for the values in between.
+It always ends with a period, like a sentence.
+
+```
+x is scroll 3 into add1, double, half .     // 3 -> 4 -> 8 -> 4.0
+x = scroll 3 into add1, double, half .      // the period ends it here too
+s = scroll add1, double, half .             // no starting value: a saved scroll
+y is scroll 10 into s .                     // 11.0
+```
+
+**Steps.** Outside `[ ]`, a comma starts the next step; inside, commas
+separate a call's arguments. Count only the values you type yourself:
+
+| Besides the value, the function needs | Write | Means |
+|---|---|---|
+| nothing | `double` | `double[value]` |
+| one value | `splitby ","` | `splitby[value, ","]` |
+| two or more | `add_time[here, 30, "days"]` | that call, with the value at `here` |
+
+- **`here`** is the value reaching the step. Without it, the value goes
+  first (`join[" - "]` is `join[value, " - "]`); with it, it goes where
+  `here` is: first, last, in the middle, or inside a list
+  (`sql_query[db, "... ?", list [here]]`). A step can also be any
+  expression with `here`: `here * 2`, `here at get[0]`.
+- **Methods** start with `at`: `at trim`, `at upper`, `at round[2]`.
+- **A function** works too: `n give n * 5`.
+- **A saved scroll** used as a step runs its steps right there, in order:
+  with `first = scroll a, b, c .` and `second = scroll d, e .`,
+  `scroll 1 into first, second, f .` is `scroll 1 into a, b, c, d, e, f .`
+- **Lists:** each step gets the whole list (as `sum`, `join`, `keep` and
+  `table_write` want). For each item, use `process`:
+  `process s give s at trim`. Saving such a step makes it reusable:
+  `trimall = scroll process s give s at trim .`
+
+```
+written is scroll "https://api.example.com/users" into
+    http_get,
+    load,
+    keep u give age of u >= 18,
+    table_write["adults.csv", here] .
+```
+
+- A scroll over several lines ends at its period; inside `[ ]` the period
+  goes before the `]`: `typeof[scroll 1 into add1 .]`.
+- A line can be just a scroll, run for what it does:
+  `scroll rows into table_write["out.csv", here] .`
+- A saved scroll is a value of type `scroll`: call it on one value
+  (`s[3]`), give it to `process` or `keep`, keep scrolls in lists and maps.
+- `here` means the value of the scroll it's written in. Outside any
+  scroll it's an ordinary name, so `here = scriptfolder[]` still works.
+
+**none and errors.** `none` is a value like any other: a step that gives
+back `none` passes it to the next step, since some functions answer
+`none` on purpose (`find_first` when nothing matches). An error ends the
+scroll at its step, because the steps after it depend on it. It keeps
+its own kind (`handle [http]` still catches a failed `http_get`), and
+its message says which step: `scroll step 1 of 4 (http_get): ...: 404 Not Found`.
+
+### Looking inside: `diagnose`
+
+`diagnose` traces a scroll or a function: each step's actual value,
+every `none`, and the error where one happened. It shows that on the
+screen, then gives back what it ended with, and it doesn't stop the
+program, so it can be added to a line to find a problem and taken off
+again. It needs no import.
+
+| Given | It shows | It gives back |
+|---|---|---|
+| a saved scroll and a value: `diagnose[s, 3]` or `s diagnose 3` | each step and what it returned | the result, or the error |
+| a scroll written in it: `diagnose[scroll 3 into add1, double .]` | the same | the result, or the error |
+| a function and its values: `diagnose[double, 21]`, `diagnose[load, text]` | what it was given, what it returned, how long it took | the result, or the error |
+| an error from `handle`: `diagnose[e]` | its kind and message, and for a scroll each step | the error |
+
+```
+s = scroll add1, double .
+x is diagnose[s, 3] .
+```
+
+```
+diagnose s (line 2)
+  start      3
+  1 add1   → returned 4
+  2 double → returned 8
+  result     8
+```
+
+**Each line** is a step's number (`2`, or `2.1` for a step inside a
+saved scroll used as step 2), the step as written, and what it did:
+- `→ returned` and the value, shortened (`list of 3`, `"text"... (82 characters)`);
+- `→ returned nothing (none)   is none expected!?`: a `none` went on to the next step.
+  Was it meant? If not, that step is where to look (a forgotten
+  `return`, nothing found);
+- `✗ failed:` and the error: the scroll ended here. When the step was
+  given `none`, a line under it says where that came from:
+  `(it was given none, from step 2)`, or `from the start`;
+- `not reached`: the steps after a failure.
+
+```
+x is diagnose[scroll 3 into add1, shownumber, double .] .
+show kind of x .
+```
+
+```
+number 4
+diagnose scroll (line 1)
+  start          3
+  1 add1       → returned 4
+  2 shownumber → returned nothing (none)   is none expected!?
+  3 double     ✗ failed: operator "*" needs two numbers, got NONE and INTEGER
+                 (it was given none, from step 2)
+type
+```
+
+Here `diagnose` captures both the `none` (step 2, "is none expected!?") and the error it
+led to (step 3, `✗`, pointing back at step 2), and `x` holds the error
+(a value like the one `handle` gives: `kind of x`, `message of x`), so
+the program goes on. Without `diagnose`, the same error stops the
+program, or goes to a `safe` block, as usual.
+
+- A scroll that ends with `none` gives back `none`, marked "is none expected!?".
+- In a `handle` block, `diagnose[e]` shows the error and, for a scroll,
+  what each step did, and gives back `e`.
+- Only Turtle's errors are traced: `exit[]` and Ctrl-C still stop the program.
+- A program's own function called `diagnose` wins over this one.
+- `turtle trace` also shows each scroll step's result as the program runs.
+
 ## None
 
 `none` is Turtle's "no value". It's what a function returns when it has no
@@ -706,6 +836,7 @@ safe [end]
 | `pattern` | a pattern that isn't valid (`import pattern`) |
 | `crypt`  | text that isn't base64 or hex, a wrong passphrase, an unknown algorithm (`import crypt`) |
 | `schedule` | a bad `schedulelimit` or setting, a command that can't start, `queryall` on SQLite (`import schedule`) |
+| `scroll` | a scroll step that isn't a function or scroll, or a scroll inside itself |
 | `custom` | your own, from `fail`                                    |
 
 An error of a kind that isn't listed isn't handled: it goes on to an
@@ -717,7 +848,8 @@ exist (`handle [maths] e .`) is a parse error.
 `line 2: division by zero`), and has three parts: `kind of e` (`"math"`),
 `line of e` (`2`), `file of e` (`"report.trt"`, or `"lib/utils.trt"` for an
 error inside an imported module) and `message of e` (`"division by
-zero"`). It's truthy, and still set after `safe [end]`.
+zero"`). For an error inside a scroll, `diagnose[e]` shows what each step
+did (see [Scrolls](#scrolls)). It's truthy, and still set after `safe [end]`.
 
 **Where.** An error inside an imported module names its file:
 `lib/utils.trt line 2: division by zero`. One in the main script just says

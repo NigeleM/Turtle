@@ -1000,3 +1000,29 @@ safe [end]
   results become Turtle values on the main goroutine. Tests run with
   -race and check the limit is never exceeded.
 - Level B (your own functions side by side): later, the user's decision.
+
+## 2026-10-07: scrolls and diagnose (released v0.9.161)
+
+- `scroll` (a new keyword; the user's name for pipelines): `x is scroll 3
+  into add1, double, half .` runs now; `s = scroll add1, double .` saves
+  one. Always ends with a period, also on = lines, over several lines and
+  inside [ ] (before the ]).
+- Steps (all settled with the user): a name (`double`), a name and one
+  value (`splitby ","`), brackets for more with `here` where the value
+  goes (`add_time[here, 30, "days"]`); without here the value goes
+  first. `at trim` for methods, `n give ...` for functions, any
+  expression with here. A saved scroll as a step runs its steps in place
+  (numbered 3.1, 3.2). Steps get the whole list; `process` for items (no
+  `each` for now). `here` is the nearest scroll's value and an ordinary
+  name outside scrolls.
+- none is a value like any other and goes on to the next step (the user
+  changed this from "none is an error": some functions answer none on
+  purpose). An error ends the scroll at its step, keeping its kind, the
+  message naming the step. `steps of e` was dropped: diagnose is the one
+  word for looking inside.
+- `diagnose` (core, no import) traces errors, none values and actual
+  values without stopping the program: a scroll shows every step (none
+  marked "is none expected!?", the failed step, steps not reached) and gives back the result
+  or the error as a value; a function shows given, returned, time; an
+  error shows its message and steps and gives back itself. turtle trace
+  shows each step; turtle fmt and the REPL indent a scroll's steps.

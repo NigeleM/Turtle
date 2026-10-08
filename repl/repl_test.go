@@ -49,6 +49,10 @@ func TestNeedsMore(t *testing.T) {
 		"validate f[x] with x as integer":                      true,
 		"validate f[x] with x as integer\n  that result > 0 .": false,
 		"def f[]\n  [loop][true]\n    break\n  [loop][end]":    true,
+		"x is scroll 3 into":                                   true,
+		"x is scroll 3 into\n  add1,":                          true,
+		"x is scroll 3 into\n  add1, double .":                 false,
+		"s = scroll add1, double .":                            false,
 	}
 	for src, want := range cases {
 		if got := needsMore(src); got != want {

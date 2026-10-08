@@ -118,3 +118,15 @@ func TestFormatEveryFile(t *testing.T) {
 		}
 	}
 }
+
+func TestFormatScroll(t *testing.T) {
+	src := "def f[raw]\nnames is scroll raw into\nkeep s give s != \"\",\n      join[\", \"] .\nreturn names\ndef [end]\nx is scroll 3 into here + 1 .\n"
+	want := "def f[raw]\n    names is scroll raw into\n        keep s give s != \"\",\n        join[\", \"] .\n    return names\ndef [end]\nx is scroll 3 into here + 1 .\n"
+	got, err := Format(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != want {
+		t.Errorf("got\n%s\nwant\n%s", got, want)
+	}
+}
