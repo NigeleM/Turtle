@@ -2,6 +2,17 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## Unreleased
+
+### New
+
+- `help`: `help[m]` says what a value is and what it can do;
+  `help["linear"]` a library; `help["reshape"]` a function; `help["if"]`
+  a keyword; `help["keywords"]` all of them. In the REPL: `help m`,
+  `help linear`, `help if`.
+- `stdlib[]`: every library and its functions, as a map.
+- `version`: the version of Turtle running.
+
 ## 0.9.170 (2026-10-09)
 
 ### Breaking

@@ -70,6 +70,7 @@ func command(name string) bool {
 const gcPercent = 400
 
 func main() {
+	evaluator.Version = version
 	if os.Getenv("GOGC") == "" {
 		debug.SetGCPercent(gcPercent)
 	}

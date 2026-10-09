@@ -83,15 +83,20 @@ that name) is a command:
 | Command | Does |
 |---|---|
 | `help` | the commands and keys |
+| `help linear` | a library: what it's for, and each function in a line |
+| `help reshape` | one function or method in full, with an example |
+| `help m` | what your variable `m` is, and its methods and libraries |
+| `help list` | a kind of value's methods (`list`, `set`, `map`, `string`, `integer`, `float`, `matrix`) |
+| `help if` | a keyword; `help keywords` lists them all |
 | `quit` (or `exit`, or Ctrl-D) | leave |
 | `clear` | clear the screen |
 | `names` | list your variables and functions |
 | `load file.turtle` | run a file into this session: its functions and values are then yours to use |
 | `save file.turtle` | write the entries you've run (the ones without errors) to a file |
 
-`exit[code]` from `import system` leaves too. For the standard library's
-documentation, `turtle doc` in another terminal (or `turtle doc
-sql_load`).
+`exit[code]` from `import system` leaves too. The same help works in a
+program as `help["linear"]` or `help[m]`; see
+[Finding things out](reference.md#finding-things-out-help-stdlib-version).
 
 ## Not a terminal
 

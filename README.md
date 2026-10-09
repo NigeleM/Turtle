@@ -16,7 +16,6 @@ programs on Mac, Windows and Linux.
 
 - Macros: define your own words and phrases
 - More of the standard library written in Turtle
-- Better help in the REPL and in programs
 - A Windows installer
 - 1.0
 

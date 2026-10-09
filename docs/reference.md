@@ -757,6 +757,39 @@ map date none function empty` and assembled type names. A kind that
 doesn't exist (`n type intger`) is an error. `type` is only special
 between a value and a kind, so it still works as a variable name.
 
+## Finding things out: `help`, `stdlib`, `version`
+
+Three names that need no import. `help` knows every library, function,
+method and keyword (its keyword text is the [Keywords](#keywords) tables
+here). A variable or function of your own with
+the same name comes first.
+
+```
+import linear
+m = matrix [1, 2, 3; 4, 5, 6]
+
+help[m]                 // This is a matrix, 2 x 3.
+                        // A matrix's methods, as x at rows:
+                        //   rows, columns, shape, get[r, c], ...
+                        // Libraries for it: help["linear"]
+help["linear"]          // the library, and each function in a line
+help["reshape"]         // one function in full, with an example
+help["list"]            // a kind of value's methods
+help["if"]              // a keyword, from the table above
+help["keywords"]        // every keyword in a line
+help["typeof"]          // a function every program has
+help[]                  // every library, and how to ask
+
+libs = stdlib[]         // map: library name -> its function names
+show libs at get["linear"] at contains["flatten"] .   // true
+
+show version .          // 0.9.171
+```
+
+`help` shows its text and gives `none`. Text names what to look up, so
+`help["resahpe"]` says `did you mean reshape?`. In the REPL the same
+works without brackets: `help m`, `help linear`.
+
 ## Scrolls
 
 A scroll is a value going through steps in order, each step's result

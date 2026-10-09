@@ -68,6 +68,9 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 		if im := resolveImported(env, e.Value); im != nil {
 			return importedFunctionValue(im, e.Value)
 		}
+		if e.Value == "version" { // core: show version .
+			return &object.String{Value: versionText()}
+		}
 		fatalKind(kindName, "undefined variable %q", e.Value)
 		return nil
 
@@ -643,6 +646,16 @@ func (it *Interpreter) callByName(name string, args []object.Object, env *object
 	if name == "typeof" { // core: no import
 		requireFuncArgs(name, args, 1)
 		return &object.String{Value: typeName(args[0])}
+	}
+	switch name { // core: no import (help.go)
+	case "help":
+		return it.callHelp(args, env)
+	case "stdlib":
+		requireFuncArgs(name, args, 0)
+		return stdlibMap()
+	case "version":
+		requireFuncArgs(name, args, 0)
+		return &object.String{Value: versionText()}
 	}
 	for _, mod := range builtinModules {
 		if mod.ExportsFunction(name) {

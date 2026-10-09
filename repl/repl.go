@@ -219,6 +219,10 @@ shows its value; a block (def, if, [loop], safe ...) waits for its end.
 
 Commands (a line with just the word):
   help              this
+  help linear       a library: what it's for and its functions
+  help reshape      one function or method, with an example
+  help m            what your variable m is and what you can do with it
+  help if           a keyword; help keywords lists them all
   quit              leave (or Ctrl-D)
   clear             clear the screen (or Ctrl-L)
   names             your variables and functions
@@ -229,7 +233,7 @@ Keys: arrows move and go through history, Home/End (Ctrl-A/Ctrl-E),
 Ctrl-K/Ctrl-U cut to the end/start, Ctrl-W cuts a word, Tab indents,
 Ctrl-C cancels the line or stops running code.
 
-Library help: turtle doc, or turtle doc <library | function>.`
+In a program: help["linear"], help[m], stdlib[], version.`
 
 // command runs a REPL command, if the entry is one. A word that's also
 // one of your variables or functions is yours, not a command.
@@ -245,12 +249,22 @@ func (s *Session) command(line string) bool {
 	switch {
 	case (word == "help" || word == "quit" || word == "exit" || word == "clear" || word == "names") && arg == "":
 	case (word == "load" || word == "save") && arg != "" && !strings.ContainsAny(arg, "[]=\""):
+	case word == "help" && arg != "" && !strings.ContainsAny(arg, "[]=\" "):
 	default:
 		return false
 	}
 	switch word {
 	case "help":
-		fmt.Fprintln(s.out, helpText)
+		if arg == "" {
+			fmt.Fprintln(s.out, helpText)
+			return true
+		}
+		text, err := s.it.HelpText(arg)
+		if err != nil {
+			fmt.Fprintln(s.out, s.paint(errorColor, err.Error()))
+			return true
+		}
+		fmt.Fprintln(s.out, text)
 	case "quit", "exit":
 		s.quit = true
 	case "clear":

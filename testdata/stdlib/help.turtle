@@ -1,0 +1,55 @@
+// help.turtle: help, stdlib and version, the three ways to find things out
+// from inside a program, with no import.
+import linear
+import lib/verify [check, finish]
+
+// ---------- version ----------
+v = version
+check["version is text", typeof[v], "string"]
+check["version[] is the same", version[], v]
+check["no v in front", v at slice[0, 1] != "v", true]
+
+// ---------- stdlib: every library and its functions ----------
+libs = stdlib[]
+check["a map", typeof[libs], "map"]
+names = libs at getkeys
+check["libraries in order", names, names at sort]
+check["linear is one", names at contains["linear"], true]
+check["sql is one", names at contains["sql"], true]
+linear_names = libs at get["linear"]
+check["flatten is in linear", linear_names at contains["flatten"], true]
+check["reshape is in linear", linear_names at contains["reshape"], true]
+check["math's are methods", libs at get["math"] at contains["sqrt"], true]
+
+// Every library has functions, and no name is listed twice in one.
+total = 0
+empty = list []
+twice = list []
+[loop][name in names]
+    fs = libs at get[name]
+    if ] length of fs == 0 && name != "log" && name != "test" [
+        add name to empty .
+    if [end]
+    if ] length of change fs to set != length of fs [
+        add name to twice .
+    if [end]
+    total = total + length of fs
+[loop][end]
+check["no empty library", empty, list []]
+check["no name twice", twice, list []]
+check["well over a hundred functions", total > 150, true]
+
+// Changing the map you're given leaves the next one whole.
+libs at delete["sql"]
+check["a fresh map each time", stdlib[] at contains["sql"], true]
+
+// ---------- help ----------
+m = matrix [1, 2; 3, 4]
+check["help gives none", help[m], none]
+check["on a library", help["linear"], none]
+check["on a function", help["reshape"], none]
+check["on a kind of value", help["list"], none]
+check["on nothing", help[], none]
+check["on a misspelling", help["resahpe"], none]
+
+finish[]

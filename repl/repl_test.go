@@ -348,3 +348,30 @@ func TestProcessInTheREPL(t *testing.T) {
 		t.Errorf("got %q", out.String())
 	}
 }
+
+func TestHelpCommands(t *testing.T) {
+	s, out := session(t)
+	s.Eval("import linear")
+	s.Eval("m = matrix [1, 2, 3; 4, 5, 6]")
+	cases := []struct{ entry, want string }{
+		{"help m", "m is a matrix, 2 x 3.\nA matrix's methods, as m at rows:"},
+		{"help linear", "import linear"},
+		{"help reshape", "reshape[m, rows, columns]        (import linear)"},
+		{"help list", "A list's methods, as x at add[value]:"},
+		{"help resahpe", "did you mean reshape?"},
+	}
+	for _, c := range cases {
+		out.Reset()
+		s.Eval(c.entry)
+		if !strings.Contains(out.String(), c.want) {
+			t.Errorf("%s: got %q, want %q", c.entry, out.String(), c.want)
+		}
+	}
+	// A variable called help is yours: help m is then not a command.
+	out.Reset()
+	s.Eval("help = 5")
+	s.Eval("help")
+	if !strings.Contains(out.String(), "5") || strings.Contains(out.String(), "Commands") {
+		t.Errorf("a variable called help: %q", out.String())
+	}
+}

@@ -68,7 +68,7 @@ matrix; its rows end at ; or at the end of a line:
 gives a list), and * or / by a number scales every element. Vectors are plain lists of numbers. A matrix of whole numbers
 shows and gives back integers; anything that can make a fraction gives
 floats. Methods: m at rows, columns, shape, get[r, c], put[value, r, c],
-row[r], column[c]. change rows to matrix makes one from a list of lists
+row[r], column[c], flatten, reshape[r, c]. change rows to matrix makes one from a list of lists
 (or table_read's rows); change m to list turns it back.
 
 ### identity[n]
