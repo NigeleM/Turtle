@@ -178,8 +178,7 @@ func (l *Lexer) nextToken() token.Token {
 	default:
 		if isLetter(l.ch) {
 			tok.Literal = l.readIdentifier()
-			// `sys` is only ever a leading statement keyword (see
-			// SPEC.md): when it starts a line, the rest of that line is
+			// `sys` is only ever a leading statement keyword: when it starts a line, the rest of that line is
 			// captured raw as an arbitrary shell command rather than
 			// tokenized, since shell syntax isn't valid Turtle syntax.
 			if tok.Literal == "sys" && startOfLine {

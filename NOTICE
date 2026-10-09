@@ -1,15 +1,9 @@
 Turtle
 Copyright 2017-2026 Nigele McCoy
 
-Turtle was created by Nigele McCoy (https://github.com/NigeleM/Turtle).
+Turtle was created by Nigele McCoy (https://github.com/NigeleM/Turtle)
+and is licensed under the Apache License, Version 2.0 (see LICENSE).
+The Turtle name and logo are not licensed (section 6).
 
-This product includes software developed by Nigele McCoy and the Turtle
-contributors, licensed under the Apache License, Version 2.0 (see
-LICENSE).
-
-The name "Turtle" for this programming language, and the Turtle logo,
-identify the official project. The Apache License does not grant
-permission to use them (section 6); see BRAND.md.
-
-Programs that you write in the Turtle language, including programs made
-with `turtle build`, are yours. Turtle claims no rights in them.
+Programs that you write in Turtle, including programs made with
+`turtle build`, are yours.

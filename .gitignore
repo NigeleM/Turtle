@@ -15,3 +15,4 @@ testdata/sql/export_*.csv
 # the benchmark (bench/run.turtle)
 bench/.turtle-bench
 __pycache__/
+/bench/RESULTS.md

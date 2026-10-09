@@ -7,64 +7,18 @@ Philosophy of Turtle coming soon.
 
 ## Status
 
-The interpreter has been rewritten in Go as a proper lexer → parser → AST
-→ tree-walking evaluator (`token/`, `lexer/`, `ast/`, `parser/`,
-`object/`, `evaluator/`, `cmd/turtle/`), replacing the original
-`Turtle_interpreter.go`, which parsed source by re-scanning raw strings.
-Surface syntax is unchanged and verified against real historical example
-scripts (see `SPEC.md` and `docs/architecture.md` for exactly what changed
-under the hood and why). The original interpreter, its `Files/` package
-and the old `test.trt` example live in [`legacy/`](legacy/README.md), kept
-for reference; they still build and run.
+Turtle 0.9 is usable today: the full language, a standard library (data,
+linear algebra, SQL, HTTP, servers, JSON, files and more), a REPL, a
+formatter, a debugger, editor support, and `turtle build` for single-file
+programs on Mac, Windows and Linux.
 
-| Feature | Status |
-|---|---|
-| Variables | Done |
-| Conditional statements | Done |
-| Loops | Done |
-| Functions (can read globals; local assignment never writes through) | Done |
-| First-class functions + closures (lexical scope, read-only capture) | Done |
-| `none` value/type | Done |
-| Anonymous functions (`x give x + 1`) + sentence-style calls (`nums process f`) | Done |
-| For-each loops (`[loop][x in nums]`) | Done |
-| `+`/`-` on lists, sets, maps | Done |
-| Standard library: data (`process`, `keep`, `copy`, `range`, `reduce`, `sum`, `table`, `table_read`, `table_write`; `.csv`, `.tsv`, `.txt`, `.json` table files; statistics: `mean`, `median`, `stdev`, `percentile`, `correlation`, `describe`, ...) | Done |
-| Standard library: linear (`matrix [1, 2; 3, 4]`, `*` as the matrix product, `solve`, `inverse`, `determinant`, `least_squares`, `lu`, `qr`, `eigen`, `svd`) | Done |
-| Standard library: system (`args`, `options`, `exit`, `env`, `loadenv`, `scriptfolder`, `contents`, `walk`, `exists`/`isfile`/`isfolder`, `copyto`, `moveto`, `makefolder`, `erase`, `pack`/`unpack` for .zip/.tar/.tar.gz) | Done |
-| `turtle trace`: each line as it runs, with the values it sets | Done |
-| `turtle debug`: step, breakpoints, look at and change values | Done |
-| `turtle fmt` (and Format Document in editors) | Done |
-| `turtle build`: one program file that runs without Turtle (Mac, Windows, Linux) | Done |
-| Benchmark against Python, Node, Ruby and Go (`bench/`) | Done — see `bench/RESULTS.md` |
-| Parse errors: the first one, with a `^` under the spot and how to fix it | Done |
-| Standard library: strings (`find`, `substring`, `isinstring`, `join`) | Done |
-| Assembled types (`assemble Order [item, qty]`, `qty of o`) | Done |
-| Scrolls (`x is scroll 3 into add1, double .`), `here`, `diagnose` | Done |
-| Data structures (list/set/map) | Done |
-| Type conversion (`change`) | Done |
-| Standard library: math (`import math`) | Done |
-| Standard library: time (`import time`) | Done |
-| Standard library: sort (`min_sort`, `max_sort`, the classic sorts) and search (`find_first`, `find_all`, binary search, ...) | Done |
-| Standard library: random (`random list of 5 integers from 0 to 9`, any shape, `pick`, `shuffle`, `sample`, `chance`, `seed`) | Done |
-| Standard library: log (`log warn "disk at ", pct, "%" .`, levels, files, rotation, JSON lines, a copy of the console) | Done |
-| Standard library: crypt (`hash`, `hmac`, `encode`/`decode`, `uuid`, `token`, `passwordhash`/`passwordcheck`, `encrypt`/`decrypt`) | Done |
-| Standard library: server (`serve[app, 8080]`: routes in a map, handlers as functions, `reply`, `redirect`, static files) | Done |
-| Standard library: config (`config_read`/`config_write`: .toml, .json, .env) and time zones (`today["Asia/Tokyo"]`, `to_zone`) | Done |
-| Standard library: schedule (`fetchall`, `runall`, `queryall`: many at once, `schedulelimit` at a time) | Done |
-| Standard library: pattern (`matches`, `findall`, `replaceall`, `splitby`, `groups`; backtick strings) | Done |
-| Number and text formatting (`fixed`, `commas`, `padleft`, `padright`), `typeof[x]`, `x type integer`, scientific notation (`1e-9`) | Done |
-| Standard library: JSON (`import json`) | Done |
-| Standard library: HTTP (`import http`) | Done |
-| Standard library: SQL — SQLite read and write, joins, groups, window functions, JSON, triggers, transactions, CSV in and out; PostgreSQL and MySQL through the same functions (`import sql`) | Done |
-| Imports (per-module scope, `import m [a, b]`, `m name[...]` on clash) | Done |
-| File management (read/write/append/directory) | Done |
-| Testing in Turtle: `check`, `verify`, `validate` (random inputs, shrinking), `turtle test` with suites and benchmarks | Done — see `docs/testing.md` |
-| REPL: `turtle` with no file, colored as you type, history, multi-line blocks | Done — see `docs/repl.md` |
-| Editors: `turtle lsp` language server (errors, colors, completion, hover, go to definition) and a VS Code extension | Done — see `docs/editors.md` |
-| Automated tests (`go test ./...`) | Done |
-| CI (build/vet/test on every push) + tag-triggered releases | Done |
-| Documentation | Done — see `docs/` |
-| `.turtle` file extension for programs, libraries, imports and tests (`.trt`, the earlier one, still works) | Done |
+## Roadmap
+
+- Macros: define your own words and phrases
+- More of the standard library written in Turtle
+- Better help in the REPL and in programs
+- A Windows installer
+- 1.0
 
 ## Quick start
 
@@ -145,50 +99,32 @@ library).
 
 ## Documentation
 
-- [`docs/getting-started.md`](docs/getting-started.md) — build and run your first script
-- [`docs/tour.md`](docs/tour.md) — a guided, example-driven walkthrough of the language
-- [`docs/reference.md`](docs/reference.md) — the complete formal syntax reference, with every keyword in one [table](docs/reference.md#keywords)
-- [`docs/library/`](docs/library/index.md) — the library, one page per library (data, linear, sql, server, ...), plus built-in types, files and modules
-- [`docs/editors.md`](docs/editors.md) — VS Code, Neovim, Helix and others, through `turtle lsp`
-- [`docs/repl.md`](docs/repl.md) — the interactive prompt (`turtle` with no file)
-- [`docs/testing.md`](docs/testing.md) — testing Turtle code: `check`, `verify`, `validate`, `turtle test`
-- [`docs/architecture.md`](docs/architecture.md) — how the interpreter itself is built, for contributors
-- [`docs/contributing.md`](docs/contributing.md) — how to add new syntax or standard-library functions
-- [`docs/stress-test-log.md`](docs/stress-test-log.md) — what the stress tests tried, what broke, and how each finding was handled
-- [`legacy/README.md`](legacy/README.md) — the original 2017 interpreter, kept for reference
-- [`SPEC.md`](SPEC.md) — the language specification this rewrite was built from, including every deliberate deviation from the original interpreter's behavior and why
-- [`CHANGELOG.md`](CHANGELOG.md) — what changed in each release, breaking changes first (Turtle is pre-release, 0.x)
-- [`PROGRESS.md`](PROGRESS.md) — session-by-session log of what's been done and what's left
-- [`TODO.md`](TODO.md) — forward-looking punch list of what's next
+- [Getting started](docs/getting-started.md): build and run your first program
+- [Tour](docs/tour.md): the language, by example
+- [Reference](docs/reference.md): the complete syntax, with every [keyword](docs/reference.md#keywords)
+- [Library](docs/library/index.md): one page per library (data, linear, sql, server, ...)
+- [REPL](docs/repl.md): the interactive prompt (`turtle` with no file)
+- [Testing](docs/testing.md): `check`, `verify`, `validate`, `turtle test`
+- [Editors](docs/editors.md): VS Code, Neovim, Helix and others
+- [Contributing](docs/contributing.md) and [architecture](docs/architecture.md): for working on Turtle itself
+- [Changelog](CHANGELOG.md)
 
 ## License
 
-Turtle is created by **Nigele McCoy** and licensed under the
-[Apache License 2.0](LICENSE). In plain words (the license is what
-counts):
+Turtle was created by **Nigele McCoy**, who holds its copyright. It is
+licensed under the [Apache License 2.0](LICENSE); the license is what
+counts, but in short:
 
-- **Use Turtle for anything**, including at work and in commercial
-  projects, and include it in your own builds, devices and products.
-- **Your programs are yours.** What you write in Turtle, including
-  programs made with `turtle build`, you own, and may sell under any
-  terms.
-- **Change Turtle and share it**, keeping the [`LICENSE`](LICENSE) and
-  [`NOTICE`](NOTICE) files, which credit Turtle's creator.
-- **The name and logo identify the official Turtle.** The license
-  doesn't grant them: a changed version needs its own name, and products
-  named after Turtle need permission; see [`BRAND.md`](BRAND.md).
-- **Contributions to Turtle itself** (interpreter, standard library,
-  tools, docs) stay their authors' but are licensed to the project for
-  good, and what stays in Turtle is the creator's call; see
-  [`docs/contributing.md`](docs/contributing.md#contributor-terms-who-owns-a-contribution).
-
-Versions before 0.9.168 carried an earlier license file.
-
-### Permissions and licensing
-
-For a use of the Turtle name or logo that needs permission, or anything
-else the license doesn't cover, open an issue at
-https://github.com/NigeleM/Turtle and say what you'd like to do.
+- **Use it for anything**, including commercial work.
+- **Change it and share it**, keeping the [`LICENSE`](LICENSE) and
+  [`NOTICE`](NOTICE) files.
+- **Programs you write in Turtle are yours.**
+- **No warranty.** Turtle is provided as is; its authors aren't liable for
+  any damage or loss from using it (sections 7 and 8 of the license).
+- **The Turtle name and logo aren't licensed** (section 6): a changed
+  version needs its own name.
+- **Contributions** are made under the same license, and what goes into
+  official Turtle is the creator's decision.
 
 ## Credits
 

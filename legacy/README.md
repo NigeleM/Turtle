@@ -25,5 +25,4 @@ cd legacy && ../turtle-legacy test.trt
 CI builds, vets and tests `legacy/Files/` but leaves out the cgo package,
 whose C-compiler warnings GitHub reports as failures.
 
-Surface syntax is the same in both interpreters; `SPEC.md` lists every
-place the rewrite deliberately behaves differently.
+Surface syntax is the same in both interpreters.

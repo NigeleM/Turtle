@@ -2,9 +2,7 @@
 
 Internals documentation for anyone maintaining or extending the
 interpreter. If you just want to write Turtle programs, see
-[`tour.md`](tour.md) and [`reference.md`](reference.md) instead. For the
-concrete list of legacy behaviors this replaced and why, see `SPEC.md` at
-the repo root.
+[`tour.md`](tour.md) and [`reference.md`](reference.md) instead.
 
 ## Pipeline
 
