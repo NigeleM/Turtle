@@ -463,6 +463,9 @@ top-level variables; it never sees the *caller's* locals. A parameter/local
 of the same name shadows the outer one. Assignment always writes to the
 call's own local scope, never an outer one, so `x = ...` inside a function
 can't clobber a global `x` — it just shadows it for the rest of that call.
+Reading the outer one to assign it, as in `count = count + 1` with no local
+`count` yet, is an error that says what to do instead: give the function
+the value and return the new one, or keep it in a list or map.
 Mutating an outer `list`/`set`/`map` via a data-structure statement or
 method call *does* affect it, since that mutates the same underlying value
 rather than rebinding a name. The body can call any other top-level
@@ -567,7 +570,7 @@ show add5[1] .              // 6
 
 Captured variables are **read-only** by assignment, following the same rule
 as globals: `n = ...` inside `adder` creates a local `n` instead of
-changing the captured one. To keep mutable state in a closure, capture a
+changing the captured one (and `n = n + 1` is an error). To keep mutable state in a closure, capture a
 list/set/map and mutate it in place:
 
 ```

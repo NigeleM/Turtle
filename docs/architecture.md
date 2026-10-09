@@ -153,7 +153,8 @@ scope (`object.Function.Env`), never the caller's — so a top-level
 function reads globals, and a nested `def` (a closure) also reads the
 locals of the call it was defined in. `Set` only ever writes to the
 current scope, so assignment never writes through to a global or a
-captured variable; it shadows it.
+captured variable; it shadows it. An assignment that would shadow one
+while reading it (`count = count + 1`) is an error (`outerassign.go`).
 
 Top-level function definitions live in a separate table on the global
 environment (`GetFunction`/`DefineFunction`), callable by name from any

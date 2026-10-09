@@ -345,6 +345,7 @@ def circleArea[r]
 def [end]
 
 def bump[]
+    count = 5
     count = count + 1
     return count
 def [end]
@@ -359,13 +360,47 @@ show bump[] .
 show count .
 addToNums[99]
 show nums .`
-	want := "12.56636\n1\n1\n0\n[ 1, 2, 3, 99 ]\n"
+	want := "12.56636\n6\n6\n0\n[ 1, 2, 3, 99 ]\n"
 	out, err := run(t, src, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if out != want {
 		t.Errorf("got %q, want %q", out, want)
+	}
+}
+
+// Reading an outer variable to assign it in a function would only change
+// a new local, so it's an error that says what to do instead.
+func TestAssigningAnOuterVariable(t *testing.T) {
+	bad := []struct{ src, want string }{
+		{"count = 0\ndef bump[]\n    count = count + 1\ndef [end]\nbump[]",
+			"line 3: count is a global, and a function can't change a global by assigning to it. Give bump the value and return the new one (count = bump[count])"},
+		{"total = 0\ndef add_all[xs]\n    [loop][x in xs]\n        total = total + x\n    [loop][end]\ndef [end]\nadd_all[list [1]]",
+			"total is a global"},
+		{"s = \"a\"\ndef f[]\n    s = s at upper\ndef [end]\nf[]", "s is a global"},
+		{"def outer[]\n    n = 0\n    def inner[]\n        n = n + 1\n    def [end]\n    inner[]\ndef [end]\nouter[]",
+			"n belongs to the function around inner, which inner can read but not assign to"},
+	}
+	for _, c := range bad {
+		_, err := run(t, c.src, "")
+		if err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s:\n got  %v\n want %q", c.src, err, c.want)
+		}
+	}
+	good := []struct{ src, want string }{
+		{"count = 0\ndef bump[n]\n    return n + 1\ndef [end]\ncount = bump[count]\nshow count .", "1"},
+		{"count = 9\ndef f[]\n    count = 1\n    count = count + 1\n    return count\ndef [end]\nshow f[], count .", "29"},
+		{"count = 9\ndef f[count]\n    count = count + 1\n    return count\ndef [end]\nshow f[1], count .", "29"},
+		{"stats = map [\"n\": 0]\ndef tally[]\n    n of stats = n of stats + 1\ndef [end]\ntally[]\nshow n of stats .", "1"},
+		{"x = 1\ndef f[]\n    y = x + 1\n    return y\ndef [end]\nshow f[] .", "2"},
+		{"total = 0\n[loop][x in list [1, 2]]\n    total = total + x\n[loop][end]\nshow total .", "3"},
+	}
+	for _, c := range good {
+		out, err := run(t, c.src, "")
+		if err != nil || strings.TrimSpace(out) != c.want {
+			t.Errorf("%s: got %q, %v; want %q", c.src, out, err, c.want)
+		}
 	}
 }
 

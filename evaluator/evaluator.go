@@ -40,6 +40,7 @@ var noneResult = ExecResult{Signal: SigNone}
 // scope and a single stdin reader.
 type Interpreter struct {
 	scrollStack []*object.Function // saved scrolls running, for one found inside itself
+	funcName    string             // the function running, for messages ("" at the top level)
 
 	// freeScopes are scopes of finished calls that no function kept,
 	// ready to stand in for the next call's (see callFunction).
@@ -406,6 +407,9 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		}
 		if s.Name == seedName {
 			it.rng = nil // seed = 7 again starts the same values again
+		}
+		if shadows, global := env.Shadows(s.Name); shadows && mentionsName(s.Value, s.Name) {
+			outerAssignError(s.Name, it.funcName, global)
 		}
 		env.Set(s.Name, v)
 		if trace != nil {

@@ -711,11 +711,14 @@ func (it *Interpreter) callFunction(fn *object.Function, name string, args []obj
 	}
 	// The body's errors name the file it was written in, and once it
 	// returns, errors name the caller's line again, not the body's last.
-	prevFile, prevLine, prevBuiltin := currentFile, currentLine, it.inBuiltin
+	prevFile, prevLine, prevBuiltin, prevFunc := currentFile, currentLine, it.inBuiltin, it.funcName
 	if it.inBuiltin = isBuiltinEnv(defEnv); !it.inBuiltin {
 		currentFile = defEnv.File()
 	}
-	defer func() { currentFile, currentLine, it.inBuiltin = prevFile, prevLine, prevBuiltin }()
+	it.funcName = name
+	defer func() {
+		currentFile, currentLine, it.inBuiltin, it.funcName = prevFile, prevLine, prevBuiltin, prevFunc
+	}()
 	if it.debug != nil && !it.inBuiltin {
 		it.debug.frames = append(it.debug.frames, debugFrame{name: name, file: prevFile, line: prevLine})
 		defer it.debugLeave()

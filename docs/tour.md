@@ -220,21 +220,28 @@ def [end]
 show circleArea[2] .    // 12.56636
 ```
 
-Assigning inside a function never writes back to the global, though — it
-always creates or updates a local of that name for the rest of the call,
-leaving the global untouched:
+A function can't change a global by assigning to it, though. Trying
+it is an error that says what to do:
 
 ```
 count = 0
 
 def bump[]
-    count = count + 1    // shadows the global; doesn't change it
-    return count
+    count = count + 1    // error: count is a global, and a function can't change it ...
+def [end]
+```
+
+Give the function the value, and assign what it returns:
+
+```
+count = 0
+
+def bump[n]
+    return n + 1
 def [end]
 
-show bump[] .    // 1
-show bump[] .    // 1 again — global count is still 0
-show count .     // 0
+count = bump[count]
+show count .     // 1
 ```
 
 If you want a function to actually mutate shared state, use a data

@@ -205,6 +205,27 @@ func (e *Environment) Set(name string, val Object) {
 	e.put(name, val)
 }
 
+// Shadows reports whether a plain assignment to name here would make a
+// new local that hides a variable of an enclosing scope, and whether that
+// variable is a global (else it's an enclosing function's).
+func (e *Environment) Shadows(name string) (shadows, global bool) {
+	for e.loop {
+		if e.find(name) >= 0 {
+			return false, false
+		}
+		e = e.outer
+	}
+	if e.outer == nil || e.find(name) >= 0 {
+		return false, false
+	}
+	for s := e.outer; s != nil; s = s.outer {
+		if s.find(name) >= 0 {
+			return true, s.outer == nil
+		}
+	}
+	return false, false
+}
+
 func (e *Environment) Delete(name string) {
 	i := e.find(name)
 	if i < 0 {

@@ -2,6 +2,13 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## Unreleased
+
+### Breaking
+
+- `count = count + 1` in a function, where `count` is a global, is an
+  error. It only ever changed a local copy; the message says what to do.
+
 ## 0.9.173 (2026-10-09)
 
 - Windows: a double-clicked `.turtle` file's window closes when it ends.
