@@ -2,7 +2,7 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
-## Unreleased
+## 0.9.176 (2026-10-09)
 
 - Input without a prompt, `a = ?`, and a closing period: `a = ? "n: " .`
 
