@@ -2,6 +2,11 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## 0.9.172 (2026-10-09)
+
+- The `linear` docs show every function with an example and its output.
+- Releases keep the newest 5 downloads.
+
 ## 0.9.171 (2026-10-09)
 
 ### New
