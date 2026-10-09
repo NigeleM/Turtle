@@ -20,6 +20,9 @@ func unixSQLite3(t *testing.T) string {
 	}
 	bin, err := exec.LookPath("sqlite3")
 	if err != nil {
+		if os.Getenv("TURTLE_REQUIRE_SQLITE3") != "" {
+			t.Fatal("sqlite3 isn't installed, and TURTLE_REQUIRE_SQLITE3 is set")
+		}
 		t.Skip("sqlite3 isn't installed")
 	}
 	return bin
@@ -101,6 +104,9 @@ func TestCrashDuringCommit(t *testing.T) {
 func TestSQLiteRecoversOurJournal(t *testing.T) {
 	bin, err := exec.LookPath("sqlite3")
 	if err != nil {
+		if os.Getenv("TURTLE_REQUIRE_SQLITE3") != "" {
+			t.Fatal("sqlite3 isn't installed, and TURTLE_REQUIRE_SQLITE3 is set")
+		}
 		t.Skip("sqlite3 isn't installed")
 	}
 	db, path := createTest(t, 1024)
@@ -231,6 +237,9 @@ func TestLocksWithSQLite(t *testing.T) {
 func TestSeesOtherProgramsChanges(t *testing.T) {
 	bin, err := exec.LookPath("sqlite3")
 	if err != nil {
+		if os.Getenv("TURTLE_REQUIRE_SQLITE3") != "" {
+			t.Fatal("sqlite3 isn't installed, and TURTLE_REQUIRE_SQLITE3 is set")
+		}
 		t.Skip("sqlite3 isn't installed")
 	}
 	db, path := createTest(t, 4096)

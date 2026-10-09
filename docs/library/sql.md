@@ -10,6 +10,17 @@ MariaDB) servers, through the same functions; the address given to
 `sql_open` picks which. Every driver is written from scratch for Turtle
 (no third-party code).
 
+> **About your data.** Turtle reads and writes SQLite files with its own
+> engine, written for Turtle. The files are ordinary SQLite files: the
+> official `sqlite3` tool and any SQLite program open them, and Turtle's
+> tests check the files it writes with `sqlite3`'s `PRAGMA
+> integrity_check`, including after simulated crashes. Still, as with any
+> young software, keep backups of data that matters (copying the `.db`
+> file while no program has it open is a full backup), and if a file
+> ever seems wrong, `sqlite3 shop.db "PRAGMA integrity_check"` tells you
+> whether it's sound. PostgreSQL and MySQL store data in their own
+> servers; Turtle only talks to them.
+
 For SQLite, that's the file format, B-trees, the journal that makes
 changes crash-safe, file locking, and the SQL engine. The files are
 ordinary SQLite files: the `sqlite3` tool, DB Browser, Python and every

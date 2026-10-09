@@ -1251,3 +1251,24 @@ objects 78 -> 41 (1.9x), jsondata 66 -> 60 (1.1x), patterns 32 -> 22
   including PostgreSQL/MySQL and the race detector. New tests cover
   precedence, ! and short-circuit; bookshop.trt uses && and || after
   sentence calls.
+
+## 2026-10-08 (night): data safety, server safety, .trt (not yet released)
+
+- SQLite: TestTurtleDatabasesPassSQLite3 writes a database from a Turtle
+  program through every kind of change and has the official sqlite3
+  check it (integrity_check) and read the same totals. CI installs
+  sqlite3 and sets TURTLE_REQUIRE_SQLITE3, so those checks fail instead
+  of quietly skipping (Linux, macOS). docs/library/sql.md: about your
+  data, and backups.
+- CI and releases now also test syntax, format, lsp and repl (they never
+  ran there before).
+- Server: a slow client held Turtle's one-at-a-time turn while its body
+  arrived, freezing every other request; now the request is read before
+  the turn, files are served outside it, and a handler's answer is sent
+  after it; ReadTimeout 1 min, IdleTimeout 2 min. Static folders never
+  serve hidden names (.env, .git) or links leading out of the folder.
+  TestServerSafety covers each. docs/library/server.md: Safety.
+- .trt: shared by a few unrelated programs (AvaSoft spectrometer data,
+  TensorRT engines by convention); kept. The local installer plan now adds
+  Turtle to "Open with" and becomes the default only where no other
+  program is; .t dropped.

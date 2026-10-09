@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -230,14 +231,16 @@ func (it *Interpreter) serve(routes []route, port int64, env *object.Environment
 
 	var turn sync.Mutex // Turtle code runs one request at a time
 	var stopWith any    // exit[] from a handler: stops the server, then the program
-	srv := &http.Server{ReadHeaderTimeout: 30 * time.Second}
+	// A request must arrive within a minute, body and all, and an idle
+	// connection closes after two: a slow or silent client can't hold the
+	// server.
+	srv := &http.Server{ReadHeaderTimeout: 30 * time.Second, ReadTimeout: time.Minute, IdleTimeout: 2 * time.Minute}
 	file, line := currentFile, currentLine
 	srv.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		turn.Lock()
-		defer turn.Unlock()
-		currentFile, currentLine = file, line
-		status := it.answer(w, r, routes, func(p any) {
+		status := it.answerRequest(w, r, routes, &turn, func() {
+			currentFile, currentLine = file, line
+		}, func(p any) {
 			stopWith = p
 			go srv.Close()
 		})
@@ -272,15 +275,94 @@ func (it *Interpreter) StopServer() {
 	}
 }
 
-// answer finds the route for a request, runs it, and writes the
-// response, giving back its status.
-func (it *Interpreter) answer(w http.ResponseWriter, r *http.Request, routes []route, stop func(any)) (status int) {
+// answerRequest answers one request. Only running Turtle code takes the
+// turn (Turtle runs one request at a time): the request is read whole
+// before it, a file is served without it, and a handler's answer is
+// written to the client after it, so a slow client holds up only itself.
+func (it *Interpreter) answerRequest(w http.ResponseWriter, r *http.Request, routes []route, turn *sync.Mutex, enter func(), stop func(any)) int {
+	body, err := io.ReadAll(io.LimitReader(r.Body, maxRequestBody+1))
+	if err != nil {
+		return writeText(w, http.StatusBadRequest, "couldn't read the request: "+err.Error())
+	}
+	r.Body = io.NopCloser(bytes.NewReader(body))
+	if rt, params, ok := findRoute(r, routes); ok {
+		if s, isText := rt.answer.(*object.String); isText && rt.wildcard {
+			return it.serveFile(w, r, s.Value, params["*"])
+		}
+	}
+	buf := newHeldResponse()
+	turn.Lock()
+	enter()
+	status := it.answer(buf, r, routes, stop)
+	turn.Unlock()
+	buf.sendTo(w)
+	return status
+}
+
+// findRoute is the route a request goes to, if any.
+func findRoute(r *http.Request, routes []route) (route, map[string]string, bool) {
+	path := requestPath(r)
+	for _, rt := range routes {
+		params, ok := rt.match(path)
+		if !ok {
+			continue
+		}
+		if rt.method != "" && rt.method != r.Method && !(rt.method == "GET" && r.Method == "HEAD") {
+			continue
+		}
+		return rt, params, true
+	}
+	return route{}, nil, false
+}
+
+func requestPath(r *http.Request) []string {
 	var path []string
 	for _, p := range strings.Split(strings.Trim(r.URL.Path, "/"), "/") {
 		if p != "" {
 			path = append(path, p)
 		}
 	}
+	return path
+}
+
+// heldResponse keeps a handler's answer in memory until Turtle's turn is
+// over, then sends it.
+type heldResponse struct {
+	header http.Header
+	status int
+	body   bytes.Buffer
+}
+
+func newHeldResponse() *heldResponse { return &heldResponse{header: http.Header{}} }
+
+func (h *heldResponse) Header() http.Header { return h.header }
+func (h *heldResponse) WriteHeader(code int) {
+	if h.status == 0 {
+		h.status = code
+	}
+}
+func (h *heldResponse) Write(b []byte) (int, error) {
+	if h.status == 0 {
+		h.status = http.StatusOK
+	}
+	return h.body.Write(b)
+}
+
+func (h *heldResponse) sendTo(w http.ResponseWriter) {
+	for k, v := range h.header {
+		w.Header()[k] = v
+	}
+	if h.status == 0 {
+		h.status = http.StatusOK
+	}
+	w.WriteHeader(h.status)
+	w.Write(h.body.Bytes())
+}
+
+// answer finds the route for a request, runs it, and writes the
+// response, giving back its status.
+func (it *Interpreter) answer(w http.ResponseWriter, r *http.Request, routes []route, stop func(any)) (status int) {
+	path := requestPath(r)
 	allowed := false
 	for _, rt := range routes {
 		params, ok := rt.match(path)
@@ -302,14 +384,21 @@ func (it *Interpreter) answer(w http.ResponseWriter, r *http.Request, routes []r
 	return writeText(w, http.StatusNotFound, "not found")
 }
 
-// serveFile answers with a file from folder, never outside it.
+// serveFile answers with a file from folder, never outside it, and never
+// a hidden one (a name starting with ".": .env, .git, ...), nor through
+// a link that leads out of the folder.
 func (it *Interpreter) serveFile(w http.ResponseWriter, r *http.Request, folder, rest string) int {
 	root, err := filepath.Abs(it.resolvePath(folder))
 	if err != nil {
 		return writeText(w, http.StatusInternalServerError, "server error")
 	}
+	for _, part := range strings.Split(rest, "/") {
+		if strings.HasPrefix(part, ".") {
+			return writeText(w, http.StatusNotFound, "not found")
+		}
+	}
 	full := filepath.Join(root, filepath.FromSlash(rest))
-	if rel, err := filepath.Rel(root, full); err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+	if !within(root, full) {
 		return writeText(w, http.StatusNotFound, "not found")
 	}
 	info, err := os.Stat(full)
@@ -320,9 +409,20 @@ func (it *Interpreter) serveFile(w http.ResponseWriter, r *http.Request, folder,
 	if err != nil || info.IsDir() {
 		return writeText(w, http.StatusNotFound, "not found")
 	}
+	realRoot, err1 := filepath.EvalSymlinks(root)
+	realFull, err2 := filepath.EvalSymlinks(full)
+	if err1 != nil || err2 != nil || !within(realRoot, realFull) {
+		return writeText(w, http.StatusNotFound, "not found")
+	}
 	sw := &statusWriter{ResponseWriter: w, status: http.StatusOK}
 	http.ServeFile(sw, r, full)
 	return sw.status
+}
+
+// within reports whether path is root or something under it, by name.
+func within(root, path string) bool {
+	rel, err := filepath.Rel(root, path)
+	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 }
 
 type statusWriter struct {

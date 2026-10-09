@@ -1,7 +1,9 @@
 package evaluator
 
 import (
+	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -209,5 +211,61 @@ func TestServerMisuse(t *testing.T) {
 	got, _ := run(t, "import server\nr = reply[404, \"gone\"]\nshow r, \"|\", status of r, \"|\", typeof[r], \"|\", serverlog, \"|\", serverhost .", "")
 	if want := `Reply { status: 404, body: "gone", headers: {  } }|404|Reply|true|localhost`; strings.TrimSpace(got) != want {
 		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+// TestServerSafety: hidden files and links out of a static folder aren't
+// served, and a client sending its request slowly holds up only itself.
+func TestServerSafety(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "public", ".git"), 0o755)
+	os.WriteFile(filepath.Join(dir, "public", "page.txt"), []byte("hello"), 0o644)
+	os.WriteFile(filepath.Join(dir, "public", ".env"), []byte("SECRET=1"), 0o644)
+	os.WriteFile(filepath.Join(dir, "public", ".git", "config"), []byte("x"), 0o644)
+	os.WriteFile(filepath.Join(dir, "secret.txt"), []byte("outside"), 0o644)
+	linked := os.Symlink(filepath.Join(dir, "secret.txt"), filepath.Join(dir, "public", "link.txt")) == nil
+	addr := startServer(t, dir, `import server
+def echo[req]
+    return body of req
+def [end]
+app = map ["GET /files/*": "public", "POST /echo": echo, "GET /health": "ok"]
+serverlog = false
+serve[app, 0]`)
+	for path, want := range map[string]int{
+		"/files/page.txt": 200, "/files/.env": 404, "/files/.git/config": 404,
+		"/files/../secret.txt": 404, "/files/%2e%2e/secret.txt": 404,
+	} {
+		if code, _, _ := get(t, "GET", addr+path, "", ""); code != want {
+			t.Errorf("GET %s: %d, want %d", path, code, want)
+		}
+	}
+	if linked {
+		if code, _, body := get(t, "GET", addr+"/files/link.txt", "", ""); code != 404 {
+			t.Errorf("a link out of the folder was served: %d %q", code, body)
+		}
+	}
+	// A client that sends half a request and stops.
+	conn, err := net.Dial("tcp", strings.TrimPrefix(addr, "http://"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	fmt.Fprintf(conn, "POST /echo HTTP/1.1\r\nHost: x\r\nContent-Length: 100\r\n\r\nonly part")
+	time.Sleep(100 * time.Millisecond)
+	done := make(chan int, 1)
+	go func() {
+		code, _, _ := get(t, "GET", addr+"/health", "", "")
+		done <- code
+	}()
+	select {
+	case code := <-done:
+		if code != 200 {
+			t.Errorf("health: %d", code)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("a slow client held up another request")
+	}
+	if code, _, body := get(t, "POST", addr+"/echo", "full body", "text/plain"); code != 200 || body != "full body" {
+		t.Errorf("echo: %d %q", code, body)
 	}
 }

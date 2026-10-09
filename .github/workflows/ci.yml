@@ -48,9 +48,15 @@ jobs:
     env:
       TURTLE_PG_URL: postgres://turtle:turtlepw@localhost:55432/turtle
       TURTLE_MYSQL_URL: mysql://turtle:turtlepw@127.0.0.1:53306/turtle
+      # The official sqlite3 checks every database file Turtle writes;
+      # without the tool those checks fail rather than quietly skip.
+      TURTLE_REQUIRE_SQLITE3: "1"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Install sqlite3 (to check the files Turtle writes)
+        run: sudo apt-get install -y sqlite3
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -58,13 +64,13 @@ jobs:
           go-version: '1.24'
 
       - name: Build
-        run: go build ./legacy/Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/...
+        run: go build ./legacy/Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/...
 
       - name: Vet
-        run: go vet ./legacy/Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/...
+        run: go vet ./legacy/Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/...
 
       - name: Test
-        run: go test ./legacy/Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... -v
+        run: go test ./legacy/Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/... -v
 
   # The same tests on macOS and Windows, so a problem on either shows up
   # on the push that causes it, not only when a release is tagged (file
@@ -76,6 +82,9 @@ jobs:
       matrix:
         os: [macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      # macOS has sqlite3, so its checks must run; Windows has none.
+      TURTLE_REQUIRE_SQLITE3: ${{ matrix.os == 'macos-latest' && '1' || '' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -86,7 +95,7 @@ jobs:
           go-version: '1.24'
 
       - name: Vet
-        run: go vet ./legacy/Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/...
+        run: go vet ./legacy/Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/...
 
       - name: Test
-        run: go test ./legacy/Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/...
+        run: go test ./legacy/Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/...

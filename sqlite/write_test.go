@@ -88,6 +88,9 @@ func sqlite3Check(t *testing.T, path string) {
 	t.Helper()
 	bin, err := exec.LookPath("sqlite3")
 	if err != nil {
+		if os.Getenv("TURTLE_REQUIRE_SQLITE3") != "" {
+			t.Fatal("sqlite3 isn't installed, and TURTLE_REQUIRE_SQLITE3 is set")
+		}
 		return
 	}
 	out, err := exec.Command(bin, path, "PRAGMA integrity_check").CombinedOutput()

@@ -8,6 +8,7 @@ import (
 	"io"
 	"math/rand"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -585,5 +586,53 @@ show count .`
 	want := "false\ntrue\ntrue\ntrue\nfalse\n20\ntrue\ntrue\n11\ntrue\ntrue\ntrue true true true\nfalse true\n[ 20 ]\nif works\n3\n"
 	if err != nil || got != want {
 		t.Errorf("got %q, %v\nwant %q", got, err, want)
+	}
+}
+
+// TestTurtleDatabasesPassSQLite3: a database written by a Turtle program,
+// through every kind of change, is one the official sqlite3 tool accepts
+// (PRAGMA integrity_check) and reads the same data from. CI sets
+// TURTLE_REQUIRE_SQLITE3 so a missing tool fails instead of skipping.
+func TestTurtleDatabasesPassSQLite3(t *testing.T) {
+	bin, err := exec.LookPath("sqlite3")
+	if err != nil {
+		if os.Getenv("TURTLE_REQUIRE_SQLITE3") != "" {
+			t.Fatal("sqlite3 isn't installed, and TURTLE_REQUIRE_SQLITE3 is set")
+		}
+		t.Skip("sqlite3 isn't installed")
+	}
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "more.csv"), []byte("id,name,qty\n90001,loaded,5\n90002,\"comma, name\",7\n"), 0o644)
+	src := `import sql
+db = sql_create["shop.db"]
+sql_run[db, "CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT, qty INTEGER)"]
+sql_run[db, "CREATE INDEX by_name ON items (name)"]
+sql_run[db, "CREATE TABLE log (what TEXT)"]
+sql_run[db, "CREATE TRIGGER logged AFTER DELETE ON items BEGIN INSERT INTO log VALUES (old.name); END"]
+sql_run[db, "BEGIN"]
+[loop][i = 1; i <= 5000; i++]
+    sql_run[db, "INSERT INTO items VALUES (?, ?, ?)", list [i, "item " + i, i % 97]]
+[loop][end]
+sql_run[db, "COMMIT"]
+sql_run[db, "UPDATE items SET qty = qty + 1 WHERE id % 3 = 0"]
+sql_run[db, "DELETE FROM items WHERE id % 5 = 0"]
+sql_run[db, "ALTER TABLE items ADD COLUMN note TEXT"]
+sql_run[db, "UPDATE items SET note = 'long note ' || id || ' ' || hex(randomblob(40)) WHERE id < 200"]
+sql_run[db, "CREATE VIEW low AS SELECT id FROM items WHERE qty < 5"]
+sql_load[db, "items", "more.csv"]
+r = sql_query[db, "SELECT count(*) AS n, sum(qty) AS q, (SELECT count(*) FROM log) AS l FROM items"]
+show n of r at get 0, " ", q of r at get 0, " ", l of r at get 0 .
+sql_close[db]`
+	got, err := runIn(t, dir, src, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := exec.Command(bin, filepath.Join(dir, "shop.db"), "PRAGMA integrity_check").CombinedOutput()
+	if err != nil || strings.TrimSpace(string(out)) != "ok" {
+		t.Fatalf("sqlite3 integrity_check: %v\n%s", err, out)
+	}
+	out, err = exec.Command(bin, filepath.Join(dir, "shop.db"), "SELECT count(*) || ' ' || sum(qty) || ' ' || (SELECT count(*) FROM log) FROM items").CombinedOutput()
+	if err != nil || strings.TrimSpace(string(out)) != strings.TrimSpace(got) {
+		t.Fatalf("sqlite3 reads %q, Turtle %q (%v)", strings.TrimSpace(string(out)), strings.TrimSpace(got), err)
 	}
 }

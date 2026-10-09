@@ -86,3 +86,22 @@ folder that doesn't exist is an error of kind `server`.
 **One request at a time.** Turtle code runs one line at a time, so
 requests take turns (the network work around them runs side by side).
 That's fine for tools, dashboards and small sites.
+
+## Safety
+
+- **Only this computer, unless you say otherwise.** By default the server
+  answers only on `localhost`. `serverhost = "0.0.0.0"` opens it to the
+  network; do that only on purpose.
+- **Hidden files are never served.** A static folder route won't serve
+  a name starting with `.` (`.env`, `.git`, ...), anything outside the
+  folder (`../`), or a link inside it that leads outside.
+- **Slow clients wait alone.** A request must arrive within a minute,
+  body and all, and only the Turtle handler itself takes a turn; reading
+  a request, sending a file and sending an answer happen side by side,
+  so one slow connection doesn't hold up the others. Bodies are limited
+  to 10 MB.
+- **Errors stay private.** A handler that fails answers `500 server
+  error`; the details go to the terminal, not to the visitor.
+- **On the internet, put a web server in front.** Turtle speaks plain
+  HTTP. For a public site, run it behind one that handles HTTPS
+  certificates (Caddy, nginx), with `serverhost` left as `localhost`.
