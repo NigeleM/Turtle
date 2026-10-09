@@ -470,21 +470,21 @@ Numbers can be written the scientific way too: `1e-9`, `6.02e23`.
 
 ## Modules
 
-`import` brings in a library that comes with Turtle, or a `.trt` file of
+`import` brings in a library that comes with Turtle, or a `.turtle` file of
 your own:
 
 ```
 import data                    // a library that comes with Turtle
 import time [now, sleep]       // only some of its names
-import shop                    // shop.trt, next to your program
-import lib/money               // lib/money.trt; its name is "money"
+import shop                    // shop.turtle, next to your program
+import lib/money               // lib/money.turtle; its name is "money"
 ```
 
 A file you import runs once, in its own scope. Its top-level functions
 become yours to call; its variables stay private to it:
 
 ```
-// shop.trt
+// shop.turtle
 taxrate = 0.08
 def withtax[amount]
     return amount + amount * taxrate

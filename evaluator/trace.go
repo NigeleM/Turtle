@@ -14,7 +14,7 @@ import (
 //	line 2  [loop][x in nums]
 //	line 3      total = total + x         total = 5
 //
-// A line from an imported file is named with its file (utils.trt:4).
+// A line from an imported file is named with its file (utils.turtle:4).
 // Function defs are left out: they're defined before the file runs.
 
 // TraceSource gives the tracer the text of a file ("" for the main one),

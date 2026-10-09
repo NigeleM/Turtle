@@ -1,0 +1,378 @@
+// everything.turtle: one script that uses every Turtle feature and checks
+// its own results. Run from this folder:
+//
+//     turtle everything.turtle first "second arg"
+//
+// It feeds one line of input to the "?" prompt, so pipe a number in:
+//
+//     echo 5 | turtle everything.turtle first "second arg"
+//
+// Prints one line per section, then the failure count, and exits with
+// code 1 if any check failed.
+
+import math
+import time [now, sleep, make_date, add_time, time_between, format_date, today]
+import data
+import strings
+import system
+import json
+import sql
+import everything_lib [scaled, total, Point, now]
+
+failures = list []
+
+// check compares got with want. failures is a list, so the function can
+// add to it (functions can read globals but not reassign them).
+def check[label, got, want]
+    if ] got != want [
+        add label to failures .
+        show "  FAIL ", label, ": got ", got, ", want ", want .
+    if [end]
+def [end]
+
+// ---------- comments, literals, operators ----------
+//* a block comment
+    spanning lines *//
+check["int math", 1 + 2 * 3 - 4 / 2, 5]
+check["modulo", 10 % 3, 1]
+check["float", 7.0 / 2, 3.5]
+check["/ is exact", 7 / 2, 3.5]
+check["div keeps the whole part", 7 div 2, 3]
+check["concat", "a" + 1 + 2, "a12"]
+check["sum first", 1 + 2 + "a", "3a"]
+check["compare strings", "apple" < "banana", true]
+check["logic", !true || true && !false, true]
+check["escapes", length of "a\tb", 3]
+check["unicode", length of "héllo", 5]
+show "operators ok" .
+
+// ---------- input and conversion ----------
+raw = ? ""
+ok is raw at isnumber .
+check["input is number", ok, true]
+n = change raw to integer
+check["change integer", n + 1, 6]
+check["change float", change "2.5" to float, 2.5]
+check["change string", change 42 to string, "42"]
+check["change ascii", change "A" to ascii, 65]
+check["change char", change 66 to char, "B"]
+check["change hex", change 255 to hex, "ff"]
+show "input ok" .
+
+// ---------- conditionals ----------
+grade = 72
+if ] grade >= 90 [
+    letter = "A"
+else if ] grade >= 70 [
+    letter = "C"
+else ]
+    letter = "F"
+if [end]
+check["else if", letter, "C"]
+if ] none [
+    check["none is falsy", true, false]
+if [end]
+show "conditionals ok" .
+
+// ---------- loops ----------
+s = 0
+[loop][i = 0 ; i < 5 ; i++]
+    if ] i == 1 [
+        continue
+    if [end]
+    if ] i == 4 [
+        break
+    if [end]
+    s = s + i
+[loop][end]
+check["c-style loop", s, 5]
+k = 3
+[loop][k > 0]
+    k = k - 1
+[loop][end]
+check["while loop", k, 0]
+seen = ""
+[loop][c in "abc"]
+    seen = seen + c
+[loop][end]
+check["for-each string", seen, "abc"]
+pairs = ""
+[loop][i, w in list ["x", "y"]]
+    pairs = pairs + i + w
+[loop][end]
+check["for-each index", pairs, "0x1y"]
+show "loops ok" .
+
+// ---------- functions, closures, give ----------
+def fib[n]
+    if ] n < 2 [
+        return n
+    if [end]
+    return fib[n - 1] + fib[n - 2]
+def [end]
+check["recursion", fib[15], 610]
+
+def make_counter[]
+    box = list [0]
+    def inc[]
+        v is box at pop .
+        add v + 1 to box .
+        return v + 1
+    def [end]
+    return inc
+def [end]
+tick = make_counter[]
+tick[]
+check["closure state", tick[], 2]
+
+def nothing[]
+    x = 1
+def [end]
+check["no return give none", nothing[], none]
+
+double = x give x * 2
+plus = [a, b] give a + b
+check["give", double[plus[1, 2]], 6]
+def apply[f, v]
+    return f[v]
+def [end]
+check["function as value", apply[double, 5], 10]
+check["give inline arg", apply[x give x + 1, 1], 2]
+pick = [x] give
+    if ] x > 0 [
+        return "pos"
+    if [end]
+    return "not"
+give [end]
+check["give block", pick[-1], "not"]
+show "functions ok" .
+
+// ---------- lists, sets, maps ----------
+nums = list [5, 3, 8]
+add 1 to nums .
+insert 9 to nums at 0 .
+sort nums .
+check["sort", nums, list [1, 3, 5, 8, 9]]
+reverse nums .
+remove 8 from nums .
+check["reverse remove", nums, list [9, 5, 3, 1]]
+first is nums at get 0 .
+part is nums at slice 1, 3 .
+check["get slice", first + length of part, 11]
+check["min max length", min of nums + max of nums + length of nums, 14]
+check["list +", list [1] + list [2], list [1, 2]]
+check["list -", list [1, 2, 1] - list [1], list [2]]
+
+a = set [1, 2, 3]
+b = set [3, 4]
+u is a at union b .
+both is a at intersection b .
+check["set union", u, set [1, 2, 3, 4]]
+check["set intersection", both, set [3]]
+check["set order ignored", set [1, 2] == set [2, 1], true]
+ab = a + b
+check["set + -", ab - set [4], a]
+
+ages = map ["Ana": 30, "Bo": 25]
+ages is ages at add "Cy", 35 .
+check["map get", ages at get["Bo"], 25]
+keys is ages at getkeys .
+check["map keys", keys, list ["Ana", "Bo", "Cy"]]
+delete "Bo" from ages .
+check["map + keeps left", map ["a": 1] + map ["a": 2, "b": 3], map ["a": 1, "b": 3]]
+check["map - by key", ages - map ["Ana": 0], map ["Cy": 35]]
+total_age = 0
+[loop][name, age in ages]
+    total_age = total_age + age
+[loop][end]
+check["for-each map", total_age, 65]
+show "collections ok" .
+
+// ---------- strings ----------
+// Inside another call's [...], a sentence-style call takes one argument,
+// so the outer commas stay the outer call's; use the bracket form for
+// more (substring[t, 0, 5]).
+line = "  Hello, World  "
+t is line at trim .
+check["trim upper", t at upper, "HELLO, WORLD"]
+check["find", t find "World", 7]
+check["substring", substring[t, 0, 5], "Hello"]
+check["negative substring", t substring -5, "World"]
+check["isinstring", "World" isinstring t, true]
+words is "a,b,c" at split "," .
+check["split join", words join "-", "a-b-c"]
+check["replace", t at replace["World", "Turtle"], "Hello, Turtle"]
+show "strings ok" .
+
+// ---------- data library ----------
+vals = list [1, 2, 3, 4, 5, 6]
+vals keep x give x % 2 == 0 .
+vals process x give x * 10 .
+check["keep process", vals, list [20, 40, 60]]
+orig = list [1, 2]
+dup = copy[orig]
+dup process x give x + 1 .
+check["copy", orig, list [1, 2]]
+prices = map ["pen": 1, "pad": 4]
+prices process [item, p] give item + "=" + p .
+check["process map", prices at get["pad"], "pad=4"]
+show "data ok" .
+
+// ---------- math and time ----------
+r is 16 at sqrt .
+check["sqrt", r, 4]
+p is 2 at pow 10 .
+check["pow", p, 1024]
+start = time now[]          // "now" clashes with everything_lib now
+sleep[10, "ms"]
+check["time", time now[] - start >= 10, true]
+show "math time ok" .
+
+// ---------- modules ----------
+check["imported function", scaled[2], 20]
+check["sentence call imported", list [1, 2, 3] + list [] == list [1, 2, 3], true]
+lst = list [1, 2, 3]
+check["sentence call", lst total, 6]
+check["qualified on clash", everything_lib now[], "lib now"]
+show "modules ok" .
+
+// ---------- assembled types ----------
+assemble Order [item, qty, price]
+orders = list [Order["pen", 3, 1.5], Order["mug", 2, 8.0]]
+sum = 0
+[loop][o in orders]
+    sum = sum + qty of o * price of o
+[loop][end]
+check["assemble fields", sum, 20.5]
+o is orders at get 0 .
+qty of o = 10
+check["change field", qty of o, 10]
+first_order is orders at get 0 .
+check["shared reference", qty of first_order, 10]
+check["assemble equality", Order["a", 1, 2] == Order["a", 1, 2], true]
+pt = Point[3, 4]
+check["imported assemble", x of pt + y of pt, 7]
+assemble Line [start, finish]
+ln = Line[Point[0, 0], pt]
+x of finish of ln = 9
+check["nested field", x of pt, 9]
+show "assemble ok" .
+
+// ---------- errors ----------
+safe
+    z = 10 / 0
+    check["safe stops at the error", true, false]
+handle [math] err .
+    check["handled kind", kind of err, "math"]
+    check["handled message", message of err, "division by zero"]
+safe [end]
+check["error kept after safe [end]", line of err > 0, true]
+safe
+    z = 1
+handle [] err .
+    check["handle code skipped without an error", true, false]
+safe [end]
+check["no error is none", err, none]
+def careful[n]
+    if ] n < 0 [
+        fail "negative: " + n
+    if [end]
+    return n
+def [end]
+safe
+    careful[-3]
+handle [custom] err .
+    check["fail", message of err, "negative: -3"]
+safe [end]
+show "errors ok" .
+
+// ---------- strings in strings ----------
+who = "Ann"
+check["interpolation", "Hi {who}, {2 * 3}", "Hi Ann, 6"]
+check["escaped brace", "\{who\}", "\{" + "who}"]
+show "interpolation ok" .
+
+// ---------- list <-> set ----------
+dupes = list [3, 1, 3, 2, 1]
+check["list to set", change dupes to set, set [3, 1, 2]]
+check["set to list", change set [3, 1, 2] to list, list [3, 1, 2]]
+show "change list set ok" .
+
+// ---------- json ----------
+doc = load['{"name": "Ann", "tags": ["a", "b"], "n": null, "inner": {}}']
+check["json load", json_get[doc, "tags", 1], "b"]
+check["json null", json_get[doc, "n"], none]
+check["json missing", json_get[doc, "nope", 0], none]
+check["json text", json_text[doc], '{"name":"Ann","tags":["a","b"],"n":null,"inner":{}}']
+json_write["everything_out.json", doc]
+check["json round trip", json_read["everything_out.json"], doc]
+safe
+    bad = load["[1, 2"]
+handle [json] err .
+safe [end]
+check["json error kind", kind of err, "json"]
+show "json ok" .
+
+// ---------- dates ----------
+start_day = make_date[2026, 1, 31]
+due_day = add_time[start_day, 30, "days"]
+check["add days", due_day, make_date[2026, 3, 2]]
+check["add a month clamps", add_time[start_day, 1, "months"], make_date[2026, 2, 28]]
+check["days between", time_between[start_day, due_day, "days"], 30]
+check["date part", weekday of start_day, "Saturday"]
+check["format", format_date[due_day, "DD/MM/YYYY"], "02/03/2026"]
+check["compare dates", today[] > start_day, true]
+show "dates ok" .
+
+// ---------- sql ----------
+shelf = sql_open[scriptfolder[] + "/books.db"]
+cheap = sql_query[shelf, "SELECT title FROM books WHERE price < ? ORDER BY price", list [1000]]
+check["sql rows", length of cheap, 3]
+check["sql first row", json_get[cheap, 0, "title"], "Café 🐢"]
+counts = sql_query[shelf, "SELECT count(*) AS n FROM orders"]
+check["sql count", json_get[counts, 0, "n"], 5]
+check["sql tables", sql_tables[shelf], list ["books", "orders"]]
+safe
+    bad = sql_query[shelf, "SELECT nope FROM books"]
+handle [sql] err .
+safe [end]
+check["sql error kind", kind of err, "sql"]
+shown = table[sql_query[shelf, "SELECT id, title FROM books ORDER BY id"], 2]
+check["sql table", shown at split["\n"], list ["id  title", "--  -----------", " 1  Dune", " 2  The Go Book", "... 3 more rows"]]
+check["tablerows default", tablerows, 20]
+check["sql save", sql_save[shelf, "SELECT title FROM books WHERE price < ? ORDER BY price", "everything_out.csv", list [1000]], 3]
+[read] everything_out.csv to csvlines [end]
+check["sql save text", csvlines at get[1], "Café 🐢"]
+check["table read", table_read["everything_out.csv"], cheap]
+check["table write", table_write["everything_out.tsv", cheap], 3]
+check["table round trip", table_read["everything_out.tsv"], cheap]
+erase["everything_out.csv"]
+erase["everything_out.tsv"]
+sql_close[shelf]
+show "sql ok" .
+
+// ---------- files and system ----------
+out = "everything_out.txt"
+[write] out
+"first"
+[end]
+[append] out
+"second"
+[end]
+[read] out to lines [end]
+check["file round trip", lines, list ["first", "second"]]
+check["exists", out exists, true]
+check["isfile", isfile[out], true]
+check["contents", contents[] at find["everything.turtle"], true]
+check["args", args[], list ["first", "second arg"]]
+erase[out]
+erase["everything_out.json"]
+check["erase", exists[out] || exists["everything_out.json"], false]
+check["env missing", env["TURTLE_SURELY_UNSET_123"], none]
+show "files system ok" .
+
+// ---------- done ----------
+show "failures: ", length of failures .
+if ] length of failures > 0 [
+    exit[1]
+if [end]

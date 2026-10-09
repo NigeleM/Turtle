@@ -369,8 +369,8 @@ def [end]
 			want: []string{"ok: 1 passed"}, not: []string{"test_two"}},
 		{name: "a file not named test_", files: map[string]string{"lists.trt": tests}, args: []string{"lists.trt"}, code: 1,
 			want: []string{"a test file's name starts with test_"}},
-		{name: "no test files", files: map[string]string{"main.trt": "show 1 ."}, code: 1, want: []string{"no test files (test_*.trt)"}},
-		{name: "old .t test files aren't tests", files: map[string]string{"test_old.t": "import test\ndef test_x[]\n    check true .\ndef [end]\n"}, code: 1, want: []string{"no test files (test_*.trt)"}},
+		{name: "no test files", files: map[string]string{"main.trt": "show 1 ."}, code: 1, want: []string{"no test files (test_*.turtle)"}},
+		{name: "old .t test files aren't tests", files: map[string]string{"test_old.t": "import test\ndef test_x[]\n    check true .\ndef [end]\n"}, code: 1, want: []string{"no test files (test_*.turtle)"}},
 		{name: "missing import", files: map[string]string{"test_a.trt": "def test_x[]\n    show 1 .\ndef [end]\n"}, code: 1,
 			want: []string{"add import test at the top", "1 file couldn't run"}},
 		{name: "parse error", files: map[string]string{"test_a.trt": "import test\ncheck .\n"}, code: 1, want: []string{"test_a.trt, line 2: a value is missing before '.'"}},
@@ -435,11 +435,11 @@ func TestTestExamples(t *testing.T) {
 	}
 }
 
-// TestSpeedFile runs testdata/speed/test_speed.trt once, with benchmarking
+// TestSpeedFile runs testdata/speed/test_speed.turtle once, with benchmarking
 // off, so the speed test keeps working (its timings are for reading, not
 // checking).
 func TestSpeedFile(t *testing.T) {
-	src, err := os.ReadFile("../testdata/speed/test_speed.trt")
+	src, err := os.ReadFile("../testdata/speed/test_speed.turtle")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -447,7 +447,7 @@ func TestSpeedFile(t *testing.T) {
 	orig := strings.ReplaceAll(string(src), "\r\n", "\n")
 	text := strings.Replace(orig, "\nbenchmark = true\n", "\nbenchmark = false\n", 1)
 	if text == orig {
-		t.Fatal("test_speed.trt no longer sets benchmark = true at the top")
+		t.Fatal("test_speed.turtle no longer sets benchmark = true at the top")
 	}
 	out, code := testRun(t, map[string]string{"test_speed.trt": text})
 	if code != 0 || strings.Contains(out, " runs ") {

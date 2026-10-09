@@ -75,7 +75,7 @@ import <name>
 import <name> [<f>, <g>]
 ```
 
-Reads `<name>.trt` (relative to the script's own folder, wherever `turtle`
+Reads `<name>.turtle` (relative to the script's own folder, wherever `turtle`
 was run from) and runs it
 once, in its own scope. Its top-level functions become available to your
 program: all of them, or only the ones listed in `[...]`. Its top-level

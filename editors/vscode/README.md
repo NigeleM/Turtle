@@ -1,6 +1,6 @@
 # Turtle for VS Code
 
-Colors for `.trt` files, and through `turtle lsp`: errors as you type,
+Colors for `.turtle` (and `.trt`) files, and through `turtle lsp`: errors as you type,
 completion, hover help (your functions' `//` comments and the standard
 library's docs), go to definition (F12), the outline, and Format Document (Shift-Alt-F, the
 same as `turtle fmt`). No npm packages:

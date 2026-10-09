@@ -189,7 +189,7 @@ Checked the current file — it has real problems beyond just being stale:
 `.trt` for everything: programs, imported libraries (`import utils` finds
 `utils.trt`), test files (`test_*.trt`), the built-in Turtle libraries,
 and `turtle` with no file (the newest `.trt`). `.t` is no longer read.
-A file named on the command line (`turtle report.trt`) runs whatever its
+A file named on the command line (`turtle report.turtle`) runs whatever its
 extension. The legacy interpreter in `legacy/` is unchanged.
 
 ## 4. Extensibility: let `import`ed libraries define their own `at` methods

@@ -137,4 +137,4 @@ fit = least_squares[points, list [1, 2, 2]]   // [ 0.666666666666667, 0.5 ]
 - `solve` and `least_squares` refine their answer once, which wins back
   the last digits rounding loses.
 - Big products use every core of the computer.
-- A worked example that uses most of it: `testdata/linear/housing.trt`.
+- A worked example that uses most of it: `testdata/linear/housing.turtle`.

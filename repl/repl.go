@@ -222,8 +222,8 @@ Commands (a line with just the word):
   quit              leave (or Ctrl-D)
   clear             clear the screen (or Ctrl-L)
   names             your variables and functions
-  load file.trt     run a file into this session
-  save file.trt     write what you've run in this session to a file
+  load file.turtle     run a file into this session
+  save file.turtle     write what you've run in this session to a file
 
 Keys: arrows move and go through history, Home/End (Ctrl-A/Ctrl-E),
 Ctrl-K/Ctrl-U cut to the end/start, Ctrl-W cuts a word, Tab indents,

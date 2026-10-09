@@ -3,6 +3,7 @@
   "name": "Turtle",
   "scopeName": "source.turtle",
   "fileTypes": [
+    "turtle",
     "trt"
   ],
   "patterns": [

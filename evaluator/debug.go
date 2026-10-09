@@ -30,7 +30,7 @@ const debugHelp = `Commands:
   n            next: run this line and any functions it calls
   o            out: run to the end of this function
   c            continue to the next breakpoint (or the end)
-  b 12         stop at line 12 (b utils.trt:4 in an imported file); b alone lists them
+  b 12         stop at line 12 (b utils.turtle:4 in an imported file); b alone lists them
   d 12         remove that breakpoint
   p <value>    show a value: p total, p nums at len
   v            the variables here, then the globals
@@ -197,7 +197,7 @@ func (d *Debugger) breakpoint(arg string, add bool) {
 	}
 	n, err := strconv.Atoi(num)
 	if err != nil || n < 1 {
-		fmt.Fprintf(d.out, "%q isn't a line: b 12, or b utils.trt:4\n", arg)
+		fmt.Fprintf(d.out, "%q isn't a line: b 12, or b utils.turtle:4\n", arg)
 		return
 	}
 	key := fmt.Sprintf("%s:%d", file, n)

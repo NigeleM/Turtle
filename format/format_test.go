@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"Turtle/syntax"
 )
 
 func TestFormat(t *testing.T) {
@@ -87,18 +89,18 @@ func TestFormat(t *testing.T) {
 	}
 }
 
-// Every .trt file in the repository formats, and formatting it again
+// Every Turtle file in the repository formats, and formatting it again
 // changes nothing.
 func TestFormatEveryFile(t *testing.T) {
 	var files []string
 	filepath.WalkDir("..", func(p string, d os.DirEntry, err error) error {
-		if err == nil && !d.IsDir() && strings.HasSuffix(p, ".trt") {
+		if err == nil && !d.IsDir() && syntax.IsTurtleFile(p) {
 			files = append(files, p)
 		}
 		return nil
 	})
 	if len(files) < 10 {
-		t.Fatalf("found only %d .trt files", len(files))
+		t.Fatalf("found only %d Turtle files", len(files))
 	}
 	for _, f := range files {
 		data, err := os.ReadFile(f)

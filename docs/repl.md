@@ -86,8 +86,8 @@ that name) is a command:
 | `quit` (or `exit`, or Ctrl-D) | leave |
 | `clear` | clear the screen |
 | `names` | list your variables and functions |
-| `load file.trt` | run a file into this session: its functions and values are then yours to use |
-| `save file.trt` | write the entries you've run (the ones without errors) to a file |
+| `load file.turtle` | run a file into this session: its functions and values are then yours to use |
+| `save file.turtle` | write the entries you've run (the ones without errors) to a file |
 
 `exit[code]` from `import system` leaves too. For the standard library's
 documentation, `turtle doc` in another terminal (or `turtle doc

@@ -266,7 +266,7 @@ sql_load[db, "agents", "agents.csv", types]
   | `date` | `DATE` (stored as text, `1953-04-13`) | `DATE` | `DATE` |
 - A line whose key isn't in the table changes nothing in `sql_update`
   and `sql_delete`; compare the count with the file's lines, or look the
-  keys up (see `testdata/sql/11_csv_import.trt`).
+  keys up (see `testdata/sql/11_csv_import.turtle`).
 - Each file runs as one statement, saved in one write, so a file of
   thousands of lines is fast.
 - Table and column names go into the SQL quoted, so any name works and
@@ -342,7 +342,7 @@ sql_close[db]
   `CREATE DATABASE` (or its own tools), then `sql_open` it.
 - `sql_tables` lists the tables of the database (PostgreSQL: of the
   current schema).
-- `testdata/sql/13_servers.trt` runs the same program against both
+- `testdata/sql/13_servers.turtle` runs the same program against both
   servers (set `TURTLE_PG_URL` and `TURTLE_MYSQL_URL`).
 
 **Errors** are kind `sql` (`sql_query: no such table: shelves`); a missing

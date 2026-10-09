@@ -11,7 +11,7 @@ import (
 // Parse errors that say what's wrong in plain words, where, and, for the
 // common mistakes, how to fix it:
 //
-//	report.trt, line 2: this line needs a '.' at the end
+//	report.turtle, line 2: this line needs a '.' at the end
 //	  2 | show x
 //	    |       ^
 //

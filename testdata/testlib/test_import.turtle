@@ -1,0 +1,39 @@
+// test_import.turtle: testing your own library. Import it as any program does
+// (paths are from this file's folder), then test its functions.
+import test
+import lib/geometry
+
+def test_area_and_perimeter[]
+    r = Rect[3, 4]
+    check area[r] == 12 .
+    check perimeter[r] == 14 .
+    check r is Rect .                       // its assembled type too
+def [end]
+
+def test_qualified_names[]
+    check geometry area[Rect[2, 5]] == 10 .  // name the library when you like
+def [end]
+
+def test_decimals[]
+    check circle_area[1] is close to 3.14159 .
+    check circle_area[2] is float .
+def [end]
+
+def test_grow_leaves_the_original[]
+    r = Rect[1, 1]
+    bigger = grow[r, 2]
+    check bigger == Rect[3, 3] .
+    check r == Rect[1, 1] .
+def [end]
+
+def test_every_item[]
+    rects = list [Rect[1, 2], Rect[3, 4]]
+    verify scale_all[rects, 2] each s give width of s % 2 == 0 .
+def [end]
+
+def test_random_shapes[]
+    validate area[r] with r as Rect [integer from 0 to 50, integer from 0 to 50]
+        that result >= 0 && result == area[Rect[height of r, width of r]] .
+    validate grow[r, n] to g with r as Rect [integer from 1 to 9, integer from 1 to 9], n as integer from 0 to 5
+        that area[g] >= area[r] .
+def [end]

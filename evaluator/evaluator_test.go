@@ -1461,18 +1461,18 @@ if [end]`, "missing\n"},
 	}
 }
 
-// testdata/everything.trt checks its own results and exits 1 on any failure.
+// testdata/everything.turtle checks its own results and exits 1 on any failure.
 func TestEverythingScript(t *testing.T) {
 	dir, err := filepath.Abs("../testdata")
 	if err != nil {
 		t.Fatal(err)
 	}
-	src, err := os.ReadFile(filepath.Join(dir, "everything.trt"))
+	src, err := os.ReadFile(filepath.Join(dir, "everything.turtle"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	work := t.TempDir()
-	if err := os.WriteFile(filepath.Join(work, "everything.trt"), src, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(work, "everything.turtle"), src, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	p := parser.New(lexer.New(string(src)))
@@ -1495,7 +1495,7 @@ func TestEverythingScript(t *testing.T) {
 		out.WriteString(sc.Text() + "\n")
 	}
 	if runErr != nil || !strings.Contains(out.String(), "failures: 0") {
-		t.Fatalf("everything.trt failed (err %v):\n%s", runErr, out.String())
+		t.Fatalf("everything.turtle failed (err %v):\n%s", runErr, out.String())
 	}
 }
 
@@ -1880,7 +1880,7 @@ safe [end]`, want: "line 2: undefined variable \"nope\"\nmain.trt\n"},
 x = 1
 show half[2] / 0 .`, wantErr: "line 3: division by zero"},
 		{name: "parse error in a module", src: `import lib/bad`, wantErr: "lib/bad.trt line 2: this line needs a '.' at the end"},
-		{name: "missing module", src: `import lib/nothing`, wantErr: "line 1: import lib/nothing: lib/nothing.trt: no such file or folder"},
+		{name: "missing module", src: `import lib/nothing`, wantErr: "line 1: import lib/nothing: lib/nothing.turtle: no such file or folder"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -2246,13 +2246,13 @@ func TestShopProgram(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	script, err := os.ReadFile(filepath.Join(work, "shop.trt"))
+	script, err := os.ReadFile(filepath.Join(work, "shop.turtle"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	out, err := runFull(t, work, string(script), "Sam\n", []string{"--verbose"})
 	if err != nil || !strings.Contains(out, "failures: 0") {
-		t.Fatalf("shop.trt failed (err %v):\n%s", err, out)
+		t.Fatalf("shop.turtle failed (err %v):\n%s", err, out)
 	}
 	for _, f := range []string{"shop_report.json", "shop_log.txt"} {
 		if _, err := os.Stat(filepath.Join(work, f)); err == nil {
@@ -2559,7 +2559,7 @@ handle [file] e .
     show e .
 safe [end]`, want: "line 3: sql_open nope.db: no such file (sql_create makes a new database)\n"},
 		{name: "not a database", src: `import sql
-db = sql_open["everything.trt"]`, wantErr: "sql_open everything.trt: everything.trt isn't a SQLite database"},
+db = sql_open["everything.turtle"]`, wantErr: "sql_open everything.turtle: everything.turtle isn't a SQLite database"},
 		{name: "no postgres server", src: `import sql
 db = sql_open["postgres://ann:secret@127.0.0.1:1/shop?connect_timeout=2"]`, wantErr: "is the server running"},
 		{name: "no mysql server", src: `import sql
@@ -2764,7 +2764,7 @@ func TestSQLExamples(t *testing.T) {
 	if err := os.CopyFS(work, os.DirFS(src)); err != nil {
 		t.Fatal(err)
 	}
-	programs, _ := filepath.Glob(filepath.Join(work, "*.trt"))
+	programs, _ := filepath.Glob(filepath.Join(work, "*.turtle"))
 	if len(programs) < 11 {
 		t.Fatalf("found %d programs in testdata/sql", len(programs))
 	}
@@ -3341,7 +3341,8 @@ put 2 to m at 0 .`, wantErr: "'put ... to m' needs a list, got map"},
 	}
 }
 
-// TestImportsUseTrt: import finds name.trt, not the old name.t.
+// TestImportsUseTrt: import finds name.trt (and name.turtle), not the
+// old name.t.
 func TestImportsUseTrt(t *testing.T) {
 	dir := t.TempDir()
 	os.WriteFile(filepath.Join(dir, "old.t"), []byte("def f[]\n    return 1\ndef [end]\n"), 0o644)
@@ -3351,7 +3352,7 @@ func TestImportsUseTrt(t *testing.T) {
 		t.Fatalf("import new: got %q, %v", out, err)
 	}
 	_, err = runIn(t, dir, "import old", "")
-	if err == nil || !strings.Contains(err.Error(), "import old: old.trt: no such file") {
+	if err == nil || !strings.Contains(err.Error(), "import old: old.turtle: no such file") {
 		t.Fatalf("import old: got %v", err)
 	}
 }

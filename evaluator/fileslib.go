@@ -260,7 +260,7 @@ func archiveKind(name, path string) string {
 }
 
 // pack puts a file, or a folder and everything in it, into an archive.
-// A folder's files go in under its name (src/main.trt), so unpacking
+// A folder's files go in under its name (src/main.turtle), so unpacking
 // gives the folder back.
 func (it *Interpreter) pack(from, to string, replace bool) {
 	kind := archiveKind("pack", to)
@@ -668,7 +668,7 @@ func optionValue(name, value string, def object.Object) object.Object {
 // optionsHelp is what --help shows.
 func optionsHelp(script string, names []string, defaults map[string]object.Object) string {
 	if script == "" {
-		script = "script.trt"
+		script = "script.turtle"
 	}
 	var b strings.Builder
 	fmt.Fprintf(&b, "usage: turtle %s [options]\n\noptions:\n", script)

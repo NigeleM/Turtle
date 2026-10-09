@@ -10,8 +10,12 @@ non-terminal; `[x]` is optional; `{x}` is zero-or-more; `|` is alternation.
 
 ## Lexical grammar
 
-- **Files**: Turtle programs, libraries and tests end in `.trt`
-  (`report.trt`, `lib/utils.trt`, `test_orders.trt`).
+- **Files**: Turtle programs, libraries and tests end in `.turtle`
+  (`report.turtle`, `lib/utils.turtle`, `test_orders.turtle`). The older
+  ending `.trt` is accepted too, everywhere `.turtle` is: `import utils`
+  finds `utils.turtle` or `utils.trt` (both at once is an error, so an
+  import never quietly picks one), and `turtle test` runs `test_*.trt`
+  files as well.
 - **Comments**: `// ...` runs to end of line. `//* ... *//` is a block
   comment that may span multiple lines. Both are stripped by the lexer.
 - **Identifiers**: `<letter|_> {letter|digit|_}`. Turtle's own names are
@@ -937,7 +941,7 @@ with the line and a `^` under the spot, and says how to fix the usual
 ones:
 
 ```
-turtle: report.trt, line 2: this line needs a '.' at the end
+turtle: report.turtle, line 2: this line needs a '.' at the end
   2 | show x
     |       ^
 ```
@@ -950,7 +954,7 @@ Turtle runs them as written and shows a note first (editors underline
 them):
 
 ```
-turtle: note: report.trt, line 4: at round works on b only, not on the whole / expression; to round the whole value, store it first: v = ... / b, then v at round
+turtle: note: report.turtle, line 4: at round works on b only, not on the whole / expression; to round the whole value, store it first: v = ... / b, then v at round
 ```
 
 A method works on the value right before it, so `a / b at round[1]`
@@ -1025,13 +1029,13 @@ exist (`handle [maths] e .`) is a parse error.
 
 **The error value** shows as its full message (`show e .` prints
 `line 2: division by zero`), and has three parts: `kind of e` (`"math"`),
-`line of e` (`2`), `file of e` (`"report.trt"`, or `"lib/utils.trt"` for an
+`line of e` (`2`), `file of e` (`"report.turtle"`, or `"lib/utils.turtle"` for an
 error inside an imported module) and `message of e` (`"division by
 zero"`). For an error inside a scroll, `diagnose[e]` shows what each step
 did (see [Scrolls](#scrolls)). It's truthy, and still set after `safe [end]`.
 
 **Where.** An error inside an imported module names its file:
-`lib/utils.trt line 2: division by zero`. One in the main script just says
+`lib/utils.turtle line 2: division by zero`. One in the main script just says
 `line 2: ...`. This holds whether the program stops on it or a `handle`
 shows it, and for parse errors in a module too.
 
@@ -1220,14 +1224,14 @@ import <name> [<f>, <g>, ...]  // only the listed names
 
 `<name>` is a builtin module (`math`, `time`, `data`, `strings`, `system`,
 `json`, `http`, `sql`, `sort`, `search`, `random`, `pattern`, `crypt`,
-`schedule`, `config`, `server`, `log`, `test`, `linear`; see [the library docs](library/index.md)) or a file `<name>.trt`,
+`schedule`, `config`, `server`, `log`, `test`, `linear`; see [the library docs](library/index.md)) or a file `<name>.turtle`,
 resolved relative to the current script's directory. A module in a
-subfolder is written with `/`: `import lib/utils` reads `lib/utils.trt`,
+subfolder is written with `/`: `import lib/utils` reads `lib/utils.turtle`,
 and its qualified name is the last part, `utils half[4]`. Because builtin names
-win, don't name your own module file after one (`math.trt`, `json.trt`, ...);
+win, don't name your own module file after one (`math.turtle`, `json.turtle`, ...);
 `import lib/json` is an error for the same reason.
 
-**What a module exports.** A `.trt` module exports its top-level functions,
+**What a module exports.** A `.turtle` module exports its top-level functions,
 and only those. It runs once, in its own global scope, the first time any
 file imports it; later imports reuse it. Its top-level variables stay
 private to it, although its own functions can read them. A function you
@@ -1263,7 +1267,7 @@ is a fatal error that shows the chain.
 **Examples**, with what each shows:
 
 ```
-// shop.trt, next to the program
+// shop.turtle, next to the program
 taxrate = 0.08                  // private to shop
 def withtax[amount]
     return amount + amount * taxrate
@@ -1277,8 +1281,8 @@ def [end]
 import math                     // a built-in library
 import time [now]               // only now
 import data
-import shop                     // shop.trt
-import lib/money                // lib/money.trt, named money
+import shop                     // shop.turtle
+import lib/money                // lib/money.turtle, named money
 
 show withtax[100] .             // 108.0: the plain name
 show shop withtax[50] .         // 54.0: named with its module
@@ -1417,13 +1421,13 @@ validate <call> [to <name>] [with <name> as <kind>, ...] matches <call> .
 - `import test` also makes the variables `suite`, `benchmark`, `runs`,
   `benchtime`, `cases` and `seed`.
 
-`turtle test [file.trt | folder ...]` runs every top-level `test_` function
-(no arguments) in every `test_*.trt` file, after the file's own top-level
+`turtle test [file.turtle | folder ...]` runs every top-level `test_` function
+(no arguments) in every `test_*.turtle` file, after the file's own top-level
 code, and exits with 1 if any failed.
 
 ## Watching it run: `turtle trace`
 
-`turtle trace script.trt [args]` runs the program as usual and, on
+`turtle trace script.turtle [args]` runs the program as usual and, on
 standard error, shows each line as it runs. A line that sets a variable
 shows the value it got:
 
@@ -1440,13 +1444,13 @@ line 6   ...                              d = 24
 
 When a line calls a function, the function's lines come next, and the
 value follows on a `...` line. Lines of an imported file are named with
-the file (`utils.trt:4`). `def` lines are left out: functions are defined
+the file (`utils.turtle:4`). `def` lines are left out: functions are defined
 before the file runs. The program's own output stays on standard output,
-so `turtle trace report.trt 2> trace.txt` keeps the two apart.
+so `turtle trace report.turtle 2> trace.txt` keeps the two apart.
 
 ## Stepping through it: `turtle debug`
 
-`turtle debug script.trt [args]` runs the program a line at a time. It
+`turtle debug script.turtle [args]` runs the program a line at a time. It
 stops before the first line, shows the line it's on, and waits:
 
 ```
@@ -1467,7 +1471,7 @@ globals:
 | `n` | next: run this line and any functions it calls |
 | `o` | out: run to the end of this function |
 | `c` | continue to the next breakpoint, or the end |
-| `b 12` | stop at line 12 (`b utils.trt:4` in an imported file); `b` alone lists them |
+| `b 12` | stop at line 12 (`b utils.turtle:4` in an imported file); `b` alone lists them |
 | `d 12` | remove that breakpoint |
 | `p <value>` | show a value: `p total`, `p nums at len` |
 | `v` | the variables here, then the globals |
@@ -1484,15 +1488,15 @@ writes to standard error and reads standard input, like the program's
 
 ## Layout: `turtle fmt`
 
-`turtle fmt` lays `.trt` files out the standard way: each block's lines
+`turtle fmt` lays `.turtle` files out the standard way: each block's lines
 four spaces in from the line that opens it (`def`, `if ] ... [`,
 `[loop][...]`, `safe`, `give`, `[write]`), `else` and `handle` lined up
 with their block, `that` one step in under its `validate`, no spaces at
 line ends, at most two blank lines in a row, and one newline at the end.
 
 ```sh
-turtle fmt                    # every .trt file here and in the folders below
-turtle fmt report.trt lib     # these files and folders
+turtle fmt                    # every .turtle file here and in the folders below
+turtle fmt report.turtle lib     # these files and folders
 turtle fmt --check            # change nothing; list what needs it (exit 1 if any)
 ```
 
@@ -1505,12 +1509,12 @@ Document (Shift-Alt-F) does the same.
 ## Sharing a program: `turtle build`
 
 ```
-turtle build report.trt            // makes report (report.exe on Windows)
-turtle build report.trt -o tool    // makes tool
+turtle build report.turtle            // makes report (report.exe on Windows)
+turtle build report.turtle -o tool    // makes tool
 ```
 
 `turtle build` makes one program file that runs without Turtle installed:
-a copy of turtle with the script and every `.trt` file it imports (however
+a copy of turtle with the script and every `.turtle` file it imports (however
 deep) packed into it. Run it like any program; every argument goes to the
 script (`args[]`):
 
@@ -1525,7 +1529,7 @@ script (`args[]`):
   as with turtle: file paths from the folder the program is run in.
   `scriptfolder[]` is the program's own folder.
 - **Libraries are built in.** `import json`, `import sql` and the rest
-  are part of every program; only your own `.trt` files are packed.
+  are part of every program; only your own `.turtle` files are packed.
 - **Size.** A program is about the size of turtle (10 to 15 MB): turtle
   is inside it.
 - **Mistakes are found first.** A script that doesn't parse, or imports a
@@ -1542,7 +1546,7 @@ script (`args[]`):
 turtle doc                 # every library and its functions
 turtle doc sql             # one library, every function in full
 turtle doc sql_update   # one function
-turtle doc lib/shop.trt      # the functions of your own file
+turtle doc lib/shop.turtle      # the functions of your own file
 ```
 
 Document your own functions with comments **directly above** the `def`
@@ -1552,7 +1556,7 @@ lines at the very top of a file describe the file. Say what each
 parameter is and what the function gives back:
 
 ```
-// shop.trt: helpers for the bookshop database.
+// shop.turtle: helpers for the bookshop database.
 
 // add_tax adds rate percent to an amount, rounded to the cent.
 // cents is a whole number of cents; rate is a percent, like 8.
@@ -1562,7 +1566,7 @@ def add_tax[cents, rate]
 def [end]
 ```
 
-`turtle doc shop.trt` then lists `add_tax[cents, rate]` with those lines.
+`turtle doc shop.turtle` then lists `add_tax[cents, rate]` with those lines.
 A function without them is listed as having no description. The same
 comment can go inside, as the first thing in the body:
 

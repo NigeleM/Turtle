@@ -60,7 +60,7 @@ func TestBuild(t *testing.T) {
 		args []string
 		want string
 	}{
-		{[]string{"build"}, "usage: turtle build script.trt"},
+		{[]string{"build"}, "usage: turtle build script.turtle"},
 		{[]string{"build", "nope.trt"}, "nope.trt"},
 	} {
 		out, _ := exec.Command(turtle, c.args...).CombinedOutput()

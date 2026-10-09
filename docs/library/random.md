@@ -63,7 +63,7 @@ orders = random list of 20 Order [string, integer, float]
   before.
 
 **Choosing from your own values** (`pick` and `chance` are written in
-Turtle, in `evaluator/lib/random.trt`, on the `random` sentence; `shuffle`
+Turtle, in `evaluator/lib/random.turtle`, on the `random` sentence; `shuffle`
 and `sample`, which go through every item, are in Go for speed):
 
 | Function | Gives |

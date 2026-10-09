@@ -243,7 +243,7 @@ func TestStatisticsMisuse(t *testing.T) {
 }
 
 // TestLinearExamples runs testdata/linear: the edge cases with turtle
-// test, and housing.trt, a program that checks its own answers.
+// test, and housing.turtle, a program that checks its own answers.
 func TestLinearExamples(t *testing.T) {
 	dir, err := filepath.Abs("../testdata/linear")
 	if err != nil {
@@ -254,17 +254,17 @@ func TestLinearExamples(t *testing.T) {
 		t.Fatalf("turtle test: exit %d:\n%s", code, out.String())
 	}
 	work := t.TempDir()
-	src, err := os.ReadFile(filepath.Join(dir, "housing.trt"))
+	src, err := os.ReadFile(filepath.Join(dir, "housing.turtle"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	got, err := runIn(t, work, string(src), "")
 	var exit ExitRequest
 	if err != nil && (!errors.As(err, &exit) || exit.Code != 0) {
-		t.Fatalf("housing.trt: %v\n%s", err, got)
+		t.Fatalf("housing.turtle: %v\n%s", err, got)
 	}
 	if !strings.Contains(got, "housing: all checks passed") {
-		t.Errorf("housing.trt:\n%s", got)
+		t.Errorf("housing.turtle:\n%s", got)
 	}
 }
 
@@ -634,5 +634,39 @@ sql_close[db]`
 	out, err = exec.Command(bin, filepath.Join(dir, "shop.db"), "SELECT count(*) || ' ' || sum(qty) || ' ' || (SELECT count(*) FROM log) FROM items").CombinedOutput()
 	if err != nil || strings.TrimSpace(string(out)) != strings.TrimSpace(got) {
 		t.Fatalf("sqlite3 reads %q, Turtle %q (%v)", strings.TrimSpace(string(out)), strings.TrimSpace(got), err)
+	}
+}
+
+// TestBothFileEndings: .turtle is Turtle's ending and .trt still works,
+// for imports, turtle test and turtle doc; a module with both is an error
+// rather than a quiet pick.
+func TestBothFileEndings(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, src string) {
+		os.MkdirAll(filepath.Dir(filepath.Join(dir, name)), 0o755)
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(src), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("newer.turtle", "// adds one\ndef addone[x]\n    return x + 1\ndef [end]\n")
+	write("lib/older.trt", "def double[x]\n    return x * 2\ndef [end]\n")
+	got, err := runIn(t, dir, "import newer\nimport lib/older\nshow addone[1], double[4] .", "")
+	if err != nil || strings.TrimSpace(got) != "28" {
+		t.Errorf("imports: %q %v", got, err)
+	}
+	write("twice.turtle", "def a[]\n    return 1\ndef [end]\n")
+	write("twice.trt", "def a[]\n    return 2\ndef [end]\n")
+	if _, err := runIn(t, dir, "import twice", ""); err == nil || !strings.Contains(err.Error(), "both twice.turtle and twice.trt are there; keep one") {
+		t.Errorf("both endings: %v", err)
+	}
+	write("tests/test_new.turtle", "import test\ndef test_a[]\n    check 1 == 1 .\ndef [end]\n")
+	write("tests/test_old.trt", "import test\ndef test_b[]\n    check 2 == 2 .\ndef [end]\n")
+	var out bytes.Buffer
+	if code := TestCommand(nil, filepath.Join(dir, "tests"), &out); code != 0 || !strings.Contains(out.String(), "2 passed") {
+		t.Errorf("turtle test over both endings: %d\n%s", code, out.String())
+	}
+	doc, err := Doc("lib/older", dir)
+	if err != nil || !strings.Contains(doc, "double") {
+		t.Errorf("turtle doc of a .trt file: %q %v", doc, err)
 	}
 }

@@ -28,6 +28,7 @@
           "turtle"
         ],
         "extensions": [
+          ".turtle",
           ".trt"
         ],
         "configuration": "./language-configuration.json"

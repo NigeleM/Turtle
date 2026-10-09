@@ -339,7 +339,7 @@ func (s *Server) completion(d *document, offset int) any {
 	return items
 }
 
-// localModules are the .trt files next to path (and in folders below),
+// localModules are the Turtle files next to path (and in folders below),
 // as import names: utils, lib/shop.
 func localModules(dir string) []string {
 	var out []string
@@ -350,9 +350,9 @@ func localModules(dir string) []string {
 		if e.IsDir() && p != dir && (strings.HasPrefix(e.Name(), ".") || strings.Count(strings.TrimPrefix(p, dir), string(filepath.Separator)) > 3) {
 			return filepath.SkipDir
 		}
-		if !e.IsDir() && strings.HasSuffix(e.Name(), ".trt") {
+		if !e.IsDir() && syntax.IsTurtleFile(e.Name()) {
 			rel, _ := filepath.Rel(dir, p)
-			out = append(out, strings.TrimSuffix(filepath.ToSlash(rel), ".trt"))
+			out = append(out, syntax.TrimExtension(filepath.ToSlash(rel)))
 		}
 		return nil
 	})
@@ -528,7 +528,7 @@ func (s *Server) semanticTokens(d *document) any {
 
 // ---- URIs ----
 
-// uriPath turns file:///Users/ann/a.trt (or file:///C:/x/a.trt) into a
+// uriPath turns file:///Users/ann/a.turtle (or file:///C:/x/a.turtle) into a
 // path.
 func uriPath(uri string) string {
 	u, err := url.Parse(uri)

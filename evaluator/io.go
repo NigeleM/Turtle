@@ -14,12 +14,13 @@ import (
 	"Turtle/lexer"
 	"Turtle/object"
 	"Turtle/parser"
+	"Turtle/syntax"
 )
 
 // resolvePath resolves a file path used by [read]/[write]/[append]/
 // [directory] and system's exists/isfile/isfolder: relative to the folder
 // turtle was run from, like any command-line tool — so
-// "turtle ~/tools/count.trt notes.txt" finds ./notes.txt. Scripts that want
+// "turtle ~/tools/count.turtle notes.txt" finds ./notes.txt. Scripts that want
 // files next to themselves can build the path from system's
 // scriptfolder[].
 func (it *Interpreter) resolvePath(p string) string {
@@ -140,8 +141,8 @@ func (it *Interpreter) evalDirectory(s *ast.DirectoryStatement, env *object.Envi
 // evalImport makes a module's functions available to the importing file:
 // all of them for "import m", or just the listed ones for "import m [a,
 // b]". Recognized builtin module names ("math", "time" — see
-// builtinModules) are handled natively; anything else is <name>.trt. Each
-// .t module runs once, in its own global scope, no matter how many files
+// builtinModules) are handled natively; anything else is <name>.turtle
+// (or <name>.trt). Each module runs once, in its own global scope, no matter how many files
 // import it — its top-level variables stay private to it, and its
 // functions keep reading those, not the importer's. Two imports exporting
 // the same function name is fine; only calling that name unqualified is
@@ -187,7 +188,16 @@ func (it *Interpreter) loadModule(name string) *object.Module {
 	if _, ok := builtinModules[pathpkg.Base(name)]; ok {
 		fatalKind(kindName, "import %s: %q is the name of a builtin module — rename the file", name, pathpkg.Base(name))
 	}
-	path := it.resolveImportPath(filepath.FromSlash(name) + ".trt")
+	ext, err := syntax.FindModule(name, func(ext string) bool {
+		return it.moduleExists(name+ext, it.resolveImportPath(filepath.FromSlash(name)+ext))
+	})
+	if err != nil {
+		fatalKind(kindFile, "import %s: %v", name, err)
+	}
+	if ext == "" {
+		ext = syntax.Extensions[0] // not there: the message names the official ending
+	}
+	path := it.resolveImportPath(filepath.FromSlash(name) + ext)
 	if mod, ok := it.modules[path]; ok {
 		return mod
 	}
@@ -195,12 +205,12 @@ func (it *Interpreter) loadModule(name string) *object.Module {
 		if p == path {
 			chain := append(append([]string{}, it.loading[i:]...), path)
 			for j := range chain {
-				chain[j] = strings.TrimSuffix(filepath.Base(chain[j]), ".trt")
+				chain[j] = syntax.TrimExtension(filepath.Base(chain[j]))
 			}
 			fatalKind(kindName, "import %s: circular import (%s)", name, strings.Join(chain, " -> "))
 		}
 	}
-	file := name + ".trt"
+	file := name + ext
 	if rel, err := filepath.Rel(it.Dir, path); err == nil {
 		file = filepath.ToSlash(rel)
 	}
@@ -251,6 +261,18 @@ func (it *Interpreter) evalSys(s *ast.SysStatement) {
 	cmd.Stderr = os.Stderr
 	cmd.Dir = it.WorkDir // where turtle was run, as file paths resolve
 	_ = cmd.Run()
+}
+
+// moduleExists reports whether an imported file is there: in the
+// program's bundle (as file) or on disk (at path).
+func (it *Interpreter) moduleExists(file, path string) bool {
+	if it.Bundle != nil {
+		if _, err := fs.Stat(it.Bundle, filepath.ToSlash(file)); err == nil {
+			return true
+		}
+	}
+	_, err := os.Stat(path)
+	return err == nil
 }
 
 // readModule reads an imported file: from the program's own bundle first

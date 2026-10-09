@@ -86,15 +86,24 @@ func analyze(uri, path, src string, t *text) *analysis {
 				a.libs[s.Path] = true
 				continue
 			}
-			file := filepath.Join(dir, filepath.FromSlash(s.Path)+".trt")
-			data, err := os.ReadFile(file)
-			if err != nil {
+			base := filepath.Join(dir, filepath.FromSlash(s.Path))
+			ext, ferr := syntax.FindModule(s.Path, func(ext string) bool {
+				_, err := os.Stat(base + ext)
+				return err == nil
+			})
+			if ferr != nil {
 				a.diags = append(a.diags, diagnostic{Range: lineRange(t, line), Severity: severityWarning, Source: "turtle",
-					Message: fmt.Sprintf("import %s: there's no library called %s, and no file %s.trt", s.Path, s.Path, s.Path)})
+					Message: fmt.Sprintf("import %s: %v", s.Path, ferr)})
+				continue
+			}
+			data, err := os.ReadFile(base + ext)
+			if ext == "" || err != nil {
+				a.diags = append(a.diags, diagnostic{Range: lineRange(t, line), Severity: severityWarning, Source: "turtle",
+					Message: fmt.Sprintf("import %s: there's no library called %s, and no file %s.turtle (or .trt)", s.Path, s.Path, s.Path)})
 				continue
 			}
 			ftext := newText(string(data), t.utf8)
-			a.symbols = append(a.symbols, definitions(fileURI(file), string(data), ftext, false)...)
+			a.symbols = append(a.symbols, definitions(fileURI(base+ext), string(data), ftext, false)...)
 		}
 	}
 	a.symbols = append(definitions(uri, src, t, true), a.symbols...)

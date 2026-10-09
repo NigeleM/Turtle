@@ -14,7 +14,7 @@ Protocol get Turtle support from it.
 | Format Document | `turtle fmt`'s layout |
 
 It's built into `turtle` (no extra install) and uses only Go's standard
-library. Files must end in `.trt`.
+library. Files end in `.turtle` (or `.trt`, the earlier ending).
 
 ## VS Code
 
@@ -26,7 +26,7 @@ indenting, and starts `turtle lsp`.
 ## Neovim (0.11 and later)
 
 ```lua
-vim.filetype.add({ extension = { trt = "turtle" } })
+vim.filetype.add({ extension = { turtle = "turtle", trt = "turtle" } })
 vim.lsp.config("turtle", { cmd = { "turtle", "lsp" }, filetypes = { "turtle" }, root_markers = { ".git" } })
 vim.lsp.enable("turtle")
 ```
@@ -43,7 +43,7 @@ args = ["lsp"]
 [[language]]
 name = "turtle"
 scope = "source.turtle"
-file-types = ["trt"]
+file-types = ["turtle", "trt"]
 comment-token = "//"
 language-servers = ["turtle"]
 ```
@@ -74,13 +74,13 @@ With eglot (built in since Emacs 29):
 
 ```elisp
 (define-derived-mode turtle-mode prog-mode "Turtle")
-(add-to-list 'auto-mode-alist '("\\.trt\\'" . turtle-mode))
+(add-to-list 'auto-mode-alist '("\\.turtle\\'" . turtle-mode))
 (add-to-list 'eglot-server-programs '(turtle-mode "turtle" "lsp"))
 ```
 
 ## Others
 
 Any editor with an LSP client works: run `turtle lsp` for files ending in
-`.trt`. It talks on stdin and stdout, sends whole-file sync, and answers
+`.turtle`. It talks on stdin and stdout, sends whole-file sync, and answers
 initialize, didOpen / didChange / didClose, completion, hover, definition,
 documentSymbol and semanticTokens/full.

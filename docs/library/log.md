@@ -40,7 +40,7 @@ function, for that function. An imported library that logs uses its own.
 | Variable | Default | Means |
 |---|---|---|
 | `loglevel` | `"info"` | the lowest level shown: `"debug"`, `"info"`, `"warn"`, `"error"`, or `"off"` for nothing |
-| `logconsole` | `true` | print log lines to the console. They go to stderr, so a program's own output (`show`) stays clean, and `turtle report.trt > out.txt` captures only that |
+| `logconsole` | `true` | print log lines to the console. They go to stderr, so a program's own output (`show`) stays clean, and `turtle report.turtle > out.txt` captures only that |
 | `logfile` | `none` | a file to add each line to. It's added to across runs, never replaced, and not held open, so it can be read, moved or deleted while the program runs |
 | `logtime` | `"YYYY-MM-DD hh:mm:ss"` | the time, in `format_date`'s patterns (`"hh:mm"`, `"DD Mon hh:mm"` ...); `none` leaves it out |
 | `logparts` | `list ["time", "level", "message"]` | what a line shows, in order: `time`, `level`, `message`, `file`, `line`, `where` (`file:line`) |
@@ -52,7 +52,7 @@ function, for that function. An imported library that logs uses its own.
 ```
 logfile = "app.log"
 logparts = list ["time", "level", "where", "message"]
-log warn "retrying" .                  // 2026-10-06 19:48:04 WARN  main.trt:14 retrying
+log warn "retrying" .                  // 2026-10-06 19:48:04 WARN  main.turtle:14 retrying
 
 logmaxsize = 1000000                   // about 1 MB per file
 logkeep = 5
@@ -61,7 +61,7 @@ outputfile = "run.txt"                 // show still prints; run.txt keeps a cop
 ```
 
 - **When a program stops with an error** and has a `logfile`, the error
-  is written there too: `ERROR main.trt:18 stopped: division by zero`.
+  is written there too: `ERROR main.turtle:18 stopped: division by zero`.
 - `log` begins a statement only in a file with `import log`; elsewhere it's
   an ordinary name, and `log = 5` still assigns.
 - A log file or `outputfile` that can't be written is an error of kind

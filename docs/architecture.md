@@ -47,7 +47,7 @@ evaluator, so each stage can be reasoned about independently.
 | `lsp` | `turtle lsp`, the language server: errors, completion, hover, definitions, the outline, colors, formatting |
 | `repl` | The interactive prompt: line editing, history, colors, raw terminal mode per OS |
 | `cmd/turtle` | Entry point: runs a script, or the commands (`test`, `doc`, `fmt`, `trace`, `debug`, `build`, `lsp`, the REPL); a program made by `turtle build` (`bundle.go`) runs its packed script |
-| `bench` | The benchmark: the same programs in Turtle, Python, Node, Ruby and Go, run and compared by `bench/run.trt` (not part of the build) |
+| `bench` | The benchmark: the same programs in Turtle, Python, Node, Ruby and Go, run and compared by `bench/run.turtle` (not part of the build) |
 
 ## Parser conventions
 
@@ -89,7 +89,7 @@ stream is still only produced once.
 ### If/else nesting via bracket depth
 
 Real Turtle syntax is `if ] cond [ ... else if ] cond [ ... else ] ... if
-[end]` (reversed brackets — confirmed against real historical `.trt`
+[end]` (reversed brackets — confirmed against real historical `.turtle`
 scripts, not invented). A nested if/else chain is written by prefixing
 every keyword with one extra leading `[`, and has **no closing marker of
 its own** — it implicitly ends the moment a clause at the same-or-
@@ -179,7 +179,7 @@ holding the `*object.Function`. Identifier evaluation falls back to the
 function table, which is how `f = add` turns a top-level function into a
 value.
 
-The main program and every imported `.trt` module each have their own
+The main program and every imported `.turtle` module each have their own
 root environment (`object.NewGlobalEnvironment`), and each root records its
 own imports (`AddImport`/`Imports`/`FindImport`, holding `object.Import`
 and `object.Module`). `Interpreter.loadModule` caches modules by resolved
@@ -205,7 +205,7 @@ This is a deliberate fix: the legacy interpreter stored one mutable
 variable map *per function definition*, shared by every call to that
 function, which broke recursion (a recursive call would stomp the outer
 call's locals mid-execution). Fresh-per-call environments make recursion
-work correctly (see `testdata/recursion.trt`).
+work correctly (see `testdata/recursion.turtle`).
 
 Loops get scopes of their own that hold only the loop's names
 (`object.NewLoopEnvironment`): each for-each pass has one with its names,
@@ -213,7 +213,7 @@ and a C-style loop one with its counter. Every other assignment in the
 body passes through to the enclosing scope, as if the loop had none. So
 two nested loops can both use `i`, an outside variable called `i` is
 untouched, and a closure made in a pass keeps that pass's values
-(`testdata/loop.trt`).
+(`testdata/loop.turtle`).
 
 ### Control flow: `Signal` / `ExecResult`
 
@@ -236,7 +236,7 @@ A runtime error is a `fatalError` panic: `fatalf`/`fatalKind`
 `math`, `index`, `key`, `name`, `type`, `json`, `date`, `http`, `sql`, `csv`, `custom`), and the line and file
 it happened in. Two package-level variables track where code is running:
 `currentLine` (set by every statement) and `currentFile` ("" for the main
-script, "lib/utils.trt" for a module; switched by `callFunction` and
+script, "lib/utils.turtle" for a module; switched by `callFunction` and
 `loadModule`, which restore both when they return or unwind).
 
 `Interpreter.Run` recovers a `fatalError` and returns it; the CLI prints
@@ -256,7 +256,7 @@ naming the operation and the value involved.
 - `parser/`, `lexer/`, `object/` tests cover syntax and values;
   `evaluator/evaluator_test.go` runs Turtle source and checks its output
   or error, for every feature and library.
-- `testdata/everything.trt` uses every feature and checks its own results;
+- `testdata/everything.turtle` uses every feature and checks its own results;
   `testdata/shop/` is a whole program (modules in `lib/`, JSON data) with
   its own checks. Both run in `go test`.
 - `sqlite/sqlite_test.go` checks that this package's answers match real
@@ -289,8 +289,8 @@ naming the operation and the value involved.
 - `testdata/books.db` is a small committed SQLite file the Turtle-level
   tests read. `testdata/sql/` has one Turtle program per SQL topic, run
   by `TestSQLExamples`.
-- The `postgres` and `mysql` packages, and `testdata/sql/13_servers.trt`,
+- The `postgres` and `mysql` packages, and `testdata/sql/13_servers.turtle`,
   need real servers: they run when `TURTLE_PG_URL` / `TURTLE_MYSQL_URL`
   are set (CI starts both as service containers) and skip otherwise.
-- The historical scripts (`*.txt`, `legacy/test.trt`, `testdata/*.trt`) should keep
+- The historical scripts (`*.txt`, `legacy/test.turtle`, `testdata/*.turtle`) should keep
   producing the same output.

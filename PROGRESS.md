@@ -1272,3 +1272,16 @@ objects 78 -> 41 (1.9x), jsondata 66 -> 60 (1.1x), patterns 32 -> 22
   TensorRT engines by convention); kept. The local installer plan now adds
   Turtle to "Open with" and becomes the default only where no other
   program is; .t dropped.
+- File ending: `.turtle` is Turtle's ending (no other program uses it;
+  `.trt` is shared with AvaSoft spectrometer data and TensorRT engines),
+  and `.trt` still works everywhere, to be dropped only if it causes a
+  problem. One rule in syntax/files.go (Extensions, IsTurtleFile,
+  TrimExtension, FindModule) used by imports, turtle test, fmt, doc,
+  build, the language server and the built-in library; an import with
+  both name.turtle and name.trt is an error, not a quiet pick. The repo's
+  65 Turtle files are renamed .turtle (legacy/ kept as it was); tests that
+  write .trt modules still pass, proving the old ending. Checked: every
+  program prints the same under the new names as the old interpreter did
+  under the old ones (45 programs), all tests pass with the servers,
+  strict sqlite3 and the race detector. VS Code, Neovim and Helix setups
+  know both.

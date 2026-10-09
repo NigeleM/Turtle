@@ -61,7 +61,7 @@ func (e *Environment) Reuse(outer *Environment) {
 }
 
 // SetFile records which file a global environment belongs to, as errors
-// name it ("lib/utils.trt"). The main script's is "".
+// name it ("lib/utils.turtle"). The main script's is "".
 func (e *Environment) SetFile(name string) { e.root().file = name }
 
 // File is the file the code running in e comes from (see SetFile).

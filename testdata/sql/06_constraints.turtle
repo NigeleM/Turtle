@@ -1,0 +1,59 @@
+// 06_constraints.turtle: the database refuses bad rows: NOT NULL, UNIQUE,
+// PRIMARY KEY, CHECK, and STRICT types. Each refusal is an error of
+// kind sql, caught with safe / handle, and changes nothing.
+import sql
+import data
+import system [scriptfolder]
+import lib/verify [check, finish]
+import lib/shop [make_shop, drop_shop]
+
+path = "{scriptfolder[]}/work06.db"
+db = make_shop[path]
+
+messages = list []
+def try[db, statement, messages]
+    safe
+        sql_run[db, statement]
+        add "ok" to messages .
+    handle [sql] e .
+        add message of e to messages .
+    safe [end]
+def [end]
+
+try[db, "INSERT INTO books (sku, title, price) VALUES ('B1', 'Again', 10)", messages]
+try[db, "INSERT INTO books (sku, title, price) VALUES ('X1', NULL, 10)", messages]
+try[db, "INSERT INTO books (sku, title, price) VALUES ('X2', 'Free', 0)", messages]
+try[db, "INSERT INTO authors (name) VALUES ('Jane Austen')", messages]
+try[db, "UPDATE books SET price = -5 WHERE sku = 'B3'", messages]
+try[db, "INSERT INTO books (sku, title, price) VALUES ('X3', 'Fine', 10)", messages]
+[loop][m in messages]
+    show m .
+[loop][end]
+check["primary key", messages at get[0], "sql_run: UNIQUE constraint failed: books.sku"]
+check["not null", messages at get[1], "sql_run: NOT NULL constraint failed: books.title"]
+check["check", messages at get[2], "sql_run: CHECK constraint failed: price > 0"]
+check["unique", messages at get[3], "sql_run: UNIQUE constraint failed: authors.name"]
+check["check on update", messages at get[4], "sql_run: CHECK constraint failed: price > 0"]
+check["a good row", messages at get[5], "ok"]
+
+// A refused statement changes nothing, even when some of its rows were
+// fine: here the first row is new but the second isn't.
+before = sql_query[db, "SELECT count(*) AS n FROM books"]
+safe
+    sql_run[db, "INSERT INTO books (sku, title, price) VALUES ('X4', 'New', 5), ('B2', 'Dup', 5)"]
+handle [sql] e .
+safe [end]
+check["all or nothing", sql_query[db, "SELECT count(*) AS n FROM books"], before]
+
+// ---------- STRICT: values must match the column types ----------
+sql_run[db, "CREATE TABLE prices (sku TEXT, cents INTEGER) STRICT"]
+sql_run[db, "INSERT INTO prices VALUES ('B1', '950')"]
+safe
+    sql_run[db, "INSERT INTO prices VALUES ('B2', 'cheap')"]
+handle [sql] e .
+    check["strict", message of e, "sql_run: cannot store TEXT value in INTEGER column prices.cents"]
+safe [end]
+check["'950' became a number", sql_query[db, "SELECT typeof(cents) AS t FROM prices"], list [map ["t": "integer"]]]
+
+drop_shop[db, path]
+finish[]

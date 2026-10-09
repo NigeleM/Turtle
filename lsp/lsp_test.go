@@ -216,7 +216,7 @@ func TestDiagnostics(t *testing.T) {
 	if d[0].Severity != severityError || d[0].Range.Start.Line != 1 || !strings.Contains(d[0].Message, "this line needs a '.' at the end") {
 		t.Errorf("parse error: %+v", d[0])
 	}
-	if d[1].Severity != severityWarning || d[1].Range.Start.Line != 2 || !strings.Contains(d[1].Message, "no library called nowhere, and no file nowhere.trt") {
+	if d[1].Severity != severityWarning || d[1].Range.Start.Line != 2 || !strings.Contains(d[1].Message, "no library called nowhere, and no file nowhere.turtle (or .trt)") {
 		t.Errorf("missing import: %+v", d[1])
 	}
 }

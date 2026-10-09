@@ -1,12 +1,12 @@
-// Command turtle runs a .trt Turtle script, or shows documentation:
+// Command turtle runs a .turtle Turtle script, or shows documentation:
 //
 //	turtle                         the REPL (or runs piped-in code)
-//	turtle script.trt [args...]
-//	turtle trace script.trt [args...]
-//	turtle debug script.trt [args...]
-//	turtle doc [library | function | file.trt]
-//	turtle test [file.trt | folder ...]
-//	turtle fmt [--check] [file.trt | folder ...]
+//	turtle script.turtle [args...]
+//	turtle trace script.turtle [args...]
+//	turtle debug script.turtle [args...]
+//	turtle doc [library | function | file.turtle]
+//	turtle test [file.turtle | folder ...]
+//	turtle fmt [--check] [file.turtle | folder ...]
 //	turtle lsp                     the language server, for editors
 //	turtle version | help
 package main
@@ -37,12 +37,12 @@ var version = "dev"
 const usage = `Turtle %s
 
   turtle                       the interactive prompt (REPL)
-  turtle script.trt [args]     run a program
-  turtle trace script.trt      run it, showing each line as it runs (on stderr)
-  turtle debug script.trt      run it a line at a time: step, breakpoints, look at values
-  turtle test [file | folder]  run the test_ functions in test_*.trt files
-  turtle fmt [file | folder]   lay out .trt files the standard way (--check: only list them)
-  turtle build script.trt      make one program file that runs without Turtle (-o name)
+  turtle script.turtle [args]     run a program
+  turtle trace script.turtle      run it, showing each line as it runs (on stderr)
+  turtle debug script.turtle      run it a line at a time: step, breakpoints, look at values
+  turtle test [file | folder]  run the test_ functions in test_*.turtle files
+  turtle fmt [file | folder]   lay out .turtle files the standard way (--check: only list them)
+  turtle build script.turtle      make one program file that runs without Turtle (-o name)
   turtle doc [topic]           the standard library's documentation
   turtle lsp                   the language server, for editors (VS Code, Neovim ...)
   turtle version               the version
@@ -99,7 +99,7 @@ func main() {
 	case command("trace"), command("debug"):
 		mode := os.Args[1]
 		if len(os.Args) < 3 {
-			fmt.Fprintf(os.Stderr, "usage: turtle %s script.trt [args]\n", mode)
+			fmt.Fprintf(os.Stderr, "usage: turtle %s script.turtle [args]\n", mode)
 			os.Exit(2)
 		}
 		path := os.Args[2]

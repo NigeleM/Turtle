@@ -27,7 +27,7 @@ func TestBookshopScript(t *testing.T) {
 		t.Skip("no curl")
 	}
 	work := t.TempDir()
-	for _, f := range []string{"bookshop.trt", "shoplib.trt"} {
+	for _, f := range []string{"bookshop.turtle", "shoplib.turtle"} {
 		data, err := os.ReadFile(filepath.Join("..", "testdata", "bookshop", f))
 		if err != nil {
 			t.Fatal(err)
@@ -36,7 +36,7 @@ func TestBookshopScript(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	src, _ := os.ReadFile(filepath.Join(work, "bookshop.trt"))
+	src, _ := os.ReadFile(filepath.Join(work, "bookshop.turtle"))
 	p := parser.New(lexer.New(string(src)))
 	program := p.ParseProgram()
 	if errs := p.Errors(); len(errs) > 0 {

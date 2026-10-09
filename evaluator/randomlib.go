@@ -335,7 +335,7 @@ func (it *Interpreter) shapeRange(s *ast.Shape, what string, from, to ast.Expres
 	return int(randomBetween(rng, lo, hi))
 }
 
-// ---- shuffle and sample (pick and chance are in lib/random.trt) ----
+// ---- shuffle and sample (pick and chance are in lib/random.turtle) ----
 
 func (it *Interpreter) callRandom(name string, args []object.Object, env *object.Environment) object.Object {
 	rng := it.randomSource(env)

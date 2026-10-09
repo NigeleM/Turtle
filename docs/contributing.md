@@ -72,7 +72,7 @@ case "contains":
 ```
 
 That's it. Update the method table in `docs/library/builtins.md`, add a line to a
-`testdata/*.trt` script exercising it, done.
+`testdata/*.turtle` script exercising it, done.
 
 ## Worked example: a new builtin library
 
@@ -91,21 +91,21 @@ parser change is needed, since calls are ordinary `name[args]`.
    `evaluator.go` and its name in `errorKinds` in `parser/parser.go`, so
    `handle [<kind>] e .` accepts it.
 5. Document it on its library's page, `docs/library/<name>.md` (table, rules, a runnable example),
-   add tests, and a section in `testdata/everything.trt`.
+   add tests, and a section in `testdata/everything.turtle`.
 
 ## Worked example: library functions written in Turtle
 
 A builtin library can be partly written in Turtle (the hybrid standard
 library). `random` is: its sentence, `seed`, `shuffle` and `sample` are
-Go, and `pick` and `chance` are Turtle, in `evaluator/lib/random.trt`.
+Go, and `pick` and `chance` are Turtle, in `evaluator/lib/random.turtle`.
 
 Which to write in Turtle: code that does a little work around calls to
 other functions costs little more in Turtle (`chance` is about 2× its Go
 version). Code that goes through every item of a collection is 15× to
 150× slower in Turtle, so it belongs in Go (`shuffle` and `sample` were
-moved back after timing them; see `testdata/speed/test_speed.trt`).
+moved back after timing them; see `testdata/speed/test_speed.turtle`).
 
-1. Write the functions in `evaluator/lib/<name>.trt`. It's built into
+1. Write the functions in `evaluator/lib/<name>.turtle`. It's built into
    turtle (Go's `embed`) and runs once per program, when a file first
    imports `<name>`. It can import other libraries, and use its own
    library's sentences (the parser's `Enable(name)` turns them on, since
@@ -114,7 +114,7 @@ moved back after timing them; see `testdata/speed/test_speed.trt`).
    the exported functions in its `builtinModules` entry's `Funcs`, as for
    a Go library. Only those are exported: the file's other functions are
    private helpers. A library can mix Go and Turtle functions; a name the
-   `.trt` file doesn't define goes to `callBuiltin` (Go).
+   `.turtle` file doesn't define goes to `callBuiltin` (Go).
 3. Fail with `fail "..."` (kind `custom`). Errors point at the caller's
    line, not the library's, as a Go builtin's do.
 4. Document and test it as any library; `TestEveryBuiltinIsDocumented`
@@ -182,7 +182,7 @@ case *ast.SleepStatement:
 ```
 
 **5. Document and test**: add it to `docs/reference.md`'s statement table
-and `docs/tour.md` if it's a headline feature, and add a `testdata/*.trt`
+and `docs/tour.md` if it's a headline feature, and add a `testdata/*.turtle`
 script that exercises it.
 
 ## Worked example: a new binary operator
@@ -225,8 +225,8 @@ one more case.
 ## Testing
 
 There's no automated test runner yet (see `architecture.md`'s Testing
-section) — add a `.trt` script under `testdata/` exercising the new feature,
-run it with `go run ./cmd/turtle testdata/yourscript.trt`, and check the
+section) — add a `.turtle` script under `testdata/` exercising the new feature,
+run it with `go run ./cmd/turtle testdata/yourscript.turtle`, and check the
 output by hand against what you expect. Building a real
 expected-output-diffing harness is on the list; volunteering to build one
 is very welcome.

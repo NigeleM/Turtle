@@ -64,13 +64,13 @@ for reference; they still build and run.
 | Automated tests (`go test ./...`) | Done |
 | CI (build/vet/test on every push) + tag-triggered releases | Done |
 | Documentation | Done — see `docs/` |
-| `.trt` file extension for programs, libraries, imports and tests | Done |
+| `.turtle` file extension for programs, libraries, imports and tests (`.trt`, the earlier one, still works) | Done |
 
 ## Quick start
 
 ```sh
 go build -o turtle ./cmd/turtle
-./turtle path/to/script.trt
+./turtle path/to/script.turtle
 ```
 
 See [`docs/getting-started.md`](docs/getting-started.md) for more.
@@ -79,7 +79,7 @@ See [`docs/getting-started.md`](docs/getting-started.md) for more.
 
 ```
 import time [now, sleep]
-import mylib [binary]          // only what you list; mylib.trt's variables stay private
+import mylib [binary]          // only what you list; mylib.turtle's variables stay private
 
 def make_adder[n]              // functions are values; a nested def is a closure
     def adder[x]
@@ -124,7 +124,7 @@ names = list ["ana", "bo"]
 names process n give n at upper .   // [ "ANA", "BO" ]
 show names + list ["CY"] .           // [ "ANA", "BO", "CY" ]
 
-[loop][path in args[]]               // turtle report.trt notes.txt ...
+[loop][path in args[]]               // turtle report.turtle notes.txt ...
     if ] path exists [
         show path, " found" .
     if [end]

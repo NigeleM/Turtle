@@ -1,0 +1,40 @@
+// shoplib.turtle: the bookshop's own library, imported by bookshop.turtle.
+
+import math
+
+assemble Book [title, author, price, year]
+assemble Overdrawn [needed, balance]
+
+taxrate = 0.08
+
+// parsebook turns one "title;author;price;year" line into a Book.
+def parsebook[line]
+    parts = line at split[";"]
+    if ] length of parts != 4 [
+        fail "bad book line: " + line
+    if [end]
+    title = parts at get[0] at trim
+    author = parts at get[1] at trim
+    price = change parts at get[2] at trim to float
+    year = change parts at get[3] at trim to integer
+    return Book[title, author, price, year]
+def [end]
+
+// withtax adds the shop's tax, which stays private to this module.
+def withtax[amount]
+    full = amount + amount * taxrate
+    return full at round[2]
+def [end]
+
+// discounter gives back a function that takes pct off any price: a closure.
+def discounter[pct]
+    return p give p - p * pct / 100
+def [end]
+
+// fact is recursion: n! for the "lucky number" promotion.
+def fact[n]
+    if ] n <= 1 [
+        return 1
+    if [end]
+    return n * fact[n - 1]
+def [end]

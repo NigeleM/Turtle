@@ -95,7 +95,7 @@ nums process [x] give              // block form for longer logic
 give [end]
 ```
 
-These are ordinary functions, so you can write your own in a `.trt` library
+These are ordinary functions, so you can write your own in a `.turtle` library
 and call them the same sentence style. See
 [`reference.md`](../reference.md#sentence-style-calls).
 

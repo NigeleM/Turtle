@@ -15,7 +15,7 @@ import (
 //	turtle doc              every library and its functions
 //	turtle doc sql          one library: every function, in full
 //	turtle doc sql_load     one function
-//	turtle doc lib/shop.trt   the functions of a Turtle file, from the
+//	turtle doc lib/shop.turtle   the functions of a Turtle file, from the
 //	                        // comments written just above each def
 //
 // A Turtle file is documented the way Go code is: the // lines directly
@@ -81,7 +81,7 @@ func Doc(topic, dir string) (string, error) {
 		var sb strings.Builder
 		sb.WriteString("Turtle's libraries. Use one with import, e.g. \"import sql\".\n")
 		sb.WriteString("turtle doc <library> shows it in full; turtle doc <function> one function;\n")
-		sb.WriteString("turtle doc <file.trt> the functions of your own file.\n")
+		sb.WriteString("turtle doc <file.turtle> the functions of your own file.\n")
 		for _, m := range moduleNames() {
 			intro, es := parseModuleDoc(m, moduleDocs[m])
 			first, _, _ := strings.Cut(intro, "\n")
@@ -110,10 +110,15 @@ func Doc(topic, dir string) (string, error) {
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(dir, path)
 	}
-	if !strings.HasSuffix(path, ".trt") {
-		if _, err := os.Stat(path + ".trt"); err == nil {
-			path += ".trt"
+	if !syntax.IsTurtleFile(path) {
+		ext, err := syntax.FindModule(topic, func(ext string) bool {
+			_, err := os.Stat(path + ext)
+			return err == nil
+		})
+		if err != nil {
+			return "", err
 		}
+		path += ext
 	}
 	if data, err := os.ReadFile(path); err == nil {
 		return fileDoc(topic, string(data)), nil
@@ -241,7 +246,7 @@ func LibraryOf(name string) string {
 }
 
 // IsLibrary reports whether name is a builtin library (import json), not
-// a .trt file.
+// a .turtle file.
 func IsLibrary(name string) bool {
 	_, ok := builtinModules[name]
 	return ok

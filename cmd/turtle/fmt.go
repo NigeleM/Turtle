@@ -1,6 +1,7 @@
 package main
 
 import (
+	"Turtle/syntax"
 	"fmt"
 	"io"
 	"io/fs"
@@ -11,8 +12,8 @@ import (
 	"Turtle/format"
 )
 
-// fmtCommand is turtle fmt [--check] [file.trt | folder ...]: lays out
-// the .trt files named, or every one in the folders (the current one if
+// fmtCommand is turtle fmt [--check] [file.turtle | folder ...]: lays out
+// the .turtle files named, or every one in the folders (the current one if
 // none), in place, and names those it changed. With --check it changes
 // nothing, names those that need it, and exits 1 if any do. A file that
 // doesn't parse is reported and left alone.
@@ -47,7 +48,7 @@ func fmtCommand(args []string, out, errOut io.Writer) int {
 			if d.IsDir() && path != t && strings.HasPrefix(d.Name(), ".") {
 				return filepath.SkipDir
 			}
-			if !d.IsDir() && strings.HasSuffix(d.Name(), ".trt") {
+			if !d.IsDir() && syntax.IsTurtleFile(d.Name()) {
 				files = append(files, path)
 			}
 			return nil

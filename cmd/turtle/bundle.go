@@ -1,6 +1,7 @@
 package main
 
 import (
+	"Turtle/syntax"
 	"archive/zip"
 	"bytes"
 	"encoding/binary"
@@ -21,10 +22,10 @@ import (
 
 // turtle build: one program file that runs without Turtle installed.
 //
-//	turtle build report.trt            -> report (report.exe on Windows)
-//	turtle build report.trt -o tool    -> tool
+//	turtle build report.turtle            -> report (report.exe on Windows)
+//	turtle build report.turtle -o tool    -> tool
 //
-// The result is a copy of this turtle with the script and the .trt files
+// The result is a copy of this turtle with the script and the .turtle files
 // it imports packed onto its end (a zip, then its size and a marker).
 // When such a program starts it finds them and runs the script, with
 // every argument passed to it. Data files (CSV, settings) aren't packed:
@@ -60,7 +61,7 @@ func buildCommand(args []string, stdout, stderr io.Writer) int {
 		}
 	}
 	if script == "" {
-		fmt.Fprintln(stderr, "usage: turtle build script.trt [-o name]")
+		fmt.Fprintln(stderr, "usage: turtle build script.turtle [-o name]")
 		return 2
 	}
 	files, err := bundleFiles(script)
@@ -93,7 +94,7 @@ type bundleFile struct {
 	data []byte
 }
 
-// bundleFiles is the script and every .trt file it imports, however
+// bundleFiles is the script and every .turtle file it imports, however
 // deep, by their paths from the script's folder.
 func bundleFiles(script string) ([]bundleFile, error) {
 	dir := filepath.Dir(script)
@@ -121,7 +122,17 @@ func bundleFiles(script string) ([]bundleFile, error) {
 			if !ok || evaluator.IsLibrary(im.Path) {
 				continue
 			}
-			if err := add(im.Path + ".trt"); err != nil {
+			ext, err := syntax.FindModule(im.Path, func(ext string) bool {
+				_, err := os.Stat(filepath.Join(dir, filepath.FromSlash(im.Path+ext)))
+				return err == nil
+			})
+			if err != nil {
+				return fmt.Errorf("%s imports %s: %w", rel, im.Path, err)
+			}
+			if ext == "" {
+				ext = syntax.Extensions[0]
+			}
+			if err := add(im.Path + ext); err != nil {
 				return fmt.Errorf("%s imports %s: %w", rel, im.Path, err)
 			}
 		}

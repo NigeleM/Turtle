@@ -78,7 +78,7 @@ An option that isn't listed is an error naming the ones that are.
 list your own.
 
 ```
-// turtle report.trt data.csv --out result.csv -v
+// turtle report.turtle data.csv --out result.csv -v
 import system
 
 opts = options["--out": "result.csv", "-v": false, "--count": 10]
@@ -88,8 +88,8 @@ files = args[]                            // [ "data.csv" ]
 ```
 
 ```
-$ turtle report.trt --help
-usage: turtle report.trt [options]
+$ turtle report.turtle --help
+usage: turtle report.turtle [options]
 
 options:
   --out    default result.csv
@@ -111,7 +111,7 @@ erase["build"]
 **Paths resolve from the folder you ran `turtle` in**, like any
 command-line tool, unless absolute. That applies here and to `[read]`,
 `[write]`, `[append]` and `[directory]`. So
-`turtle ~/tools/count.trt notes.txt` reads `./notes.txt`. (`import` is
+`turtle ~/tools/count.turtle notes.txt` reads `./notes.txt`. (`import` is
 different: it always looks next to the script, so a program and its
 libraries can be moved together.) To use a file that sits next to the
 script, build its path from `scriptfolder[]`:
@@ -125,13 +125,13 @@ config = scriptfolder[] + "/config.txt"
 A complete tool, with usage message and exit codes:
 
 ```
-// turtle count.trt notes.txt
+// turtle count.turtle notes.txt
 import system
 import strings
 
 a = args[]
 if ] length of a == 0 [
-    show "usage: count.trt <file>" .
+    show "usage: count.turtle <file>" .
     exit[2]
 if [end]
 name is a at get 0 .
@@ -162,7 +162,7 @@ Check a file before reading it, since a missing file is a fatal error for
 `[read]`:
 
 ```
-// turtle tool.trt notes.txt sub missing.txt
+// turtle tool.turtle notes.txt sub missing.txt
 import system
 
 [loop][name in args[]]
