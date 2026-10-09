@@ -2,6 +2,11 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## Unreleased
+
+- Linux: downloads for ARM too, and a `.tar.gz` for any Linux. The `.deb`
+  installs `turtle` in `/usr/bin` (it was `/usr/local/bin`).
+
 ## 0.9.177 (2026-10-09)
 
 - VS Code: a ▶ button (and Ctrl-F5) runs the open file in a terminal.

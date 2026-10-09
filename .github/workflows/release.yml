@@ -63,26 +63,9 @@ jobs:
         go vet ./legacy/Files/... ./ast/... ./cmd/... ./docs/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/...
         go test ./legacy/Files/... ./ast/... ./cmd/... ./docs/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/...
 
-    - name: Build the binary for Linux
-      run: |
-        mkdir -p release
-        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X main.version=${{ github.ref_name }}" -o release/turtle-linux-amd64 ./cmd/turtle
-
-    - name: Install fpm for packaging
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y ruby ruby-dev
-        sudo gem install --no-document fpm
-
-    - name: Create Linux Installer
-      run: |
-        VERSION="${GITHUB_REF_NAME#v}"
-        # "turtle-linux-amd64=turtle" maps the built binary to /usr/local/bin/turtle
-        # inside the package (the old command packaged the whole release/
-        # directory verbatim, installing it as /usr/local/bin/turtle-linux-amd64).
-        fpm -s dir -t deb -n turtle -v "$VERSION" --prefix /usr/local/bin \
-          -C release turtle-linux-amd64=turtle
-        mv "turtle_${VERSION}_amd64.deb" release/turtle-linux-amd64.deb
+    - name: Create Linux Installers
+      # installer/linux/build.sh: a .deb and a .tar.gz, for amd64 and arm64.
+      run: installer/linux/build.sh "${{ github.ref_name }}" release
 
     - name: Upload Linux Release
       uses: softprops/action-gh-release@v1
@@ -90,7 +73,11 @@ jobs:
         tag_name: ${{ github.ref_name }}
         # 0.x versions are pre-releases: GitHub shows the badge.
         prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
-        files: release/turtle-linux-amd64.deb
+        files: |
+          release/turtle-linux-amd64.deb
+          release/turtle-linux-arm64.deb
+          release/turtle-linux-amd64.tar.gz
+          release/turtle-linux-arm64.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

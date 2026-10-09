@@ -18,6 +18,17 @@ Terminal, in its own folder, and opening Turtle itself starts the prompt.
 It isn't signed yet: if macOS won't open it, right-click it, choose Open,
 then Open again. To remove it: `sudo /usr/local/share/turtle/uninstall.sh`.
 
+## Install on Linux
+
+From a [release](https://github.com/NigeleM/Turtle/releases), for Intel or
+AMD (`amd64`) or ARM (`arm64`, such as a Raspberry Pi):
+
+- Debian or Ubuntu: `sudo apt install ./turtle-linux-amd64.deb`
+- any Linux: unpack `turtle-linux-amd64.tar.gz` and put `turtle` on your
+  PATH, for example in `~/.local/bin`
+
+`uname -m` says which you have: `x86_64` is amd64, `aarch64` is arm64.
+
 ## Requirements
 
 Go 1.24 or later. No C toolchain needed: Turtle is pure Go.

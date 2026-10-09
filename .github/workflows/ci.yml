@@ -64,6 +64,9 @@ jobs:
       - name: Test
         run: go test ./legacy/Files/... ./ast/... ./cmd/... ./docs/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/... -v
 
+      - name: Build the Linux installers
+        run: installer/linux/build.sh 0.0.0-ci "$RUNNER_TEMP"
+
       - name: Test the VS Code extension
         run: |
           out=$(sh editors/vscode/test/run.sh)
