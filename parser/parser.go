@@ -548,20 +548,27 @@ func (p *Parser) parseIdentifierLeadStatement() ast.Statement {
 	return nil
 }
 
-// parseAssignOrInputStatement parses "name = expr" and
-// "name = ? \"prompt\"". curToken is the name; peek is '='.
+// parseAssignOrInputStatement parses "name = expr", and input:
+// "name = ?" or "name = ? \"prompt\"", either with an optional closing
+// period. curToken is the name; peek is '='.
 func (p *Parser) parseAssignOrInputStatement() ast.Statement {
 	tok := p.curToken
 	name := p.curToken.Literal
 	p.nextToken() // name -> '='
 
 	if p.peekTokenIs(token.QUESTION) {
-		p.nextToken() // '=' -> '?'
-		if !p.expectPeek(token.STRING) {
-			return nil
+		p.nextToken()             // '=' -> '?'
+		var prompt ast.Expression // none: read without a prompt
+		if p.peekToken.Line == p.curToken.Line && !p.peekTokenIs(token.PERIOD) && !p.peekTokenIs(token.EOF) {
+			if !p.expectPeek(token.STRING) {
+				return nil
+			}
+			prompt = p.stringExpression(p.curToken)
 		}
-		prompt := p.stringExpression(p.curToken)
 		p.nextToken()
+		if p.curTokenIs(token.PERIOD) && p.curToken.Line == p.prevToken.Line {
+			p.nextToken()
+		}
 		return &ast.InputStatement{Token: tok, Name: name, Prompt: prompt}
 	}
 

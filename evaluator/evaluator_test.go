@@ -1877,6 +1877,27 @@ show lines .`, "7\n")
 	}
 }
 
+// Input reads a line with a prompt or without one, as Python's input()
+// does, and a closing period is fine either way.
+func TestInputWithAndWithoutAPrompt(t *testing.T) {
+	src := `a = ?
+b = ? "enter a number: " .
+c = ? .
+d = ? "last: "
+total = change a to integer + change b to integer + change c to integer + change d to integer
+show total .`
+	out, err := run(t, src, "1\n2\n3\n4\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out != "enter a number: last: 10\n" {
+		t.Errorf("got %q", out)
+	}
+	if _, err := run(t, "a = ?", ""); err == nil || !strings.Contains(err.Error(), "end of input") {
+		t.Errorf("no input left: %v", err)
+	}
+}
+
 func TestErrorsNameTheModuleFile(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(dir, "lib"), 0o755); err != nil {

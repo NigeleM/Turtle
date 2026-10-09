@@ -62,7 +62,7 @@ func (as *AssignStatement) Line() int            { return as.Token.Line }
 type InputStatement struct {
 	Token  token.Token
 	Name   string
-	Prompt Expression // a string, maybe with {name} parts
+	Prompt Expression // a string, maybe with {name} parts; nil for none
 }
 
 func (is *InputStatement) statementNode()       {}

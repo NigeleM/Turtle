@@ -418,7 +418,9 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		return noneResult
 
 	case *ast.InputStatement:
-		fmt.Print(it.evalExpression(s.Prompt, env).Inspect())
+		if s.Prompt != nil {
+			fmt.Print(it.evalExpression(s.Prompt, env).Inspect())
+		}
 		if !it.stdin.Scan() {
 			// EOF (or a read error) on stdin: there's nothing left to
 			// read, ever, so returning "" here would make any loop that

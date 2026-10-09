@@ -2,6 +2,10 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## Unreleased
+
+- Input without a prompt, `a = ?`, and a closing period: `a = ? "n: " .`
+
 ## 0.9.175 (2026-10-09)
 
 - macOS: `turtle.pkg` runs on Intel Macs too, gives `.turtle` files the

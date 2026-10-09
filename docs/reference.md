@@ -141,7 +141,7 @@ or `here`.
 | Statement kind | Trailing `.` |
 |---|---|
 | Assignment (`x = expr`) | No |
-| Input (`x = ? "prompt"`) | No |
+| Input (`x = ?`, `x = ? "prompt"`) | Optional |
 | `return` | No |
 | Bare function call statement | No |
 | `show` | **Yes** |
@@ -293,10 +293,19 @@ naturally after a sentence: `big = nums keep n give n > 10 .`
 ## Input
 
 ```
+<ident> = ?
 <ident> = ? <string>
 ```
 
-Prints the prompt, reads one line from stdin, assigns it as a string.
+Reads one line from stdin and assigns it as a string, like Python's
+`input()`. With a string, prints it first as the prompt. A closing period
+is optional:
+
+```
+a = ?
+age = ? "Age for {name}? " .
+n = change age to integer
+```
 
 ## Type conversion
 
