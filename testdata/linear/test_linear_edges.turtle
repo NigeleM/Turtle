@@ -46,6 +46,47 @@ def test_sizes[]
     check zeros[0, 3] at shape == list [0, 3] .
 def [end]
 
+// ---------- flatten and reshape ----------
+def test_flatten_and_reshape[]
+    m = matrix [1, 2, 3; 4, 5, 6]
+    flat = flatten[m]
+    check flat == matrix [1, 2, 3, 4, 5, 6] .
+    check typeof[flat] == "matrix" .
+    // Row by row, and back again unchanged.
+    check reshape[flat, 2, 3] == m .
+    check reshape[m, 3, 2] == matrix [1, 2; 3, 4; 5, 6] .
+    check reshape[m, 3, 2] != transpose[m] .
+    // The original is never changed.
+    check m at shape == list [2, 3] .
+    // Methods and sentences give the same.
+    check m at flatten == flat .
+    check m flatten == flat .
+    check m at reshape[6, 1] == reshape[m, 6, 1] .
+    check m reshape 3, 2 == reshape[m, 3, 2] .
+    // The shape's numbers, out for use: a column of sums the long way.
+    rows = m at rows
+    cols = m at columns
+    total = 0
+    [loop][x in flatten[m] at row[0]]
+        total = total + x
+    [loop][end]
+    check total == sum[flatten[m] at row[0]] .
+    check rows * cols == flat at columns .
+    // Reshaped matrices multiply as their new shape.
+    check reshape[m, 3, 2] * m == matrix [9, 12, 15; 19, 26, 33; 29, 40, 51] .
+    // Whole and decimal numbers stay as they were.
+    check flatten[matrix [1.5, 2; 3, 4]] == matrix [1.5, 2.0, 3.0, 4.0] .
+    check typeof[flatten[m] at get[0, 0]] == "integer" .
+    // Empty sizes.
+    check flatten[matrix []] at shape == list [1, 0] .
+    check reshape[zeros[0, 3], 3, 0] at shape == list [3, 0] .
+    // Counts that don't fit, and things that aren't matrices.
+    check reshape[m, 4, 2] fails [linear] .
+    check reshape[m, -2, -3] fails [linear] .
+    check reshape[m, 2.0, 3] fails [type] .
+    check flatten[list [1, 2]] fails [type] .
+def [end]
+
 // ---------- whole numbers stay whole ----------
 def test_integers_and_floats[]
     a = matrix [1, 2; 3, 4]

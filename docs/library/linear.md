@@ -7,8 +7,8 @@ A matrix value with its operators, and solving, inverting and decomposing matric
 
 `import linear` adds a value for matrices and the arithmetic of linear
 algebra. The work is done in Go, on one block of numbers per matrix, so
-it's fast: a 200 × 200 product takes a few milliseconds (see
-[the benchmark](../../bench/RESULTS.md)).
+it's fast: a 200 × 200 product takes a few milliseconds (`bench/` has
+the benchmark).
 
 ## Writing a matrix
 
@@ -89,6 +89,8 @@ of two matrices, use `multiply_each[a, b]`.
 | `m at get[r, c]` | the number at row `r`, column `c`, from 0 |
 | `m at put[value, r, c]` | puts a number there (value first, as a list's `put`); gives the matrix. On its own line: `m at put[9, 1, 2]`, `m at put 9, 1, 2 .`, or the sentence `put 9 to m at 1, 2 .` |
 | `m at row[r]`, `m at column[c]` | that row or column, as a list |
+| `m at flatten` | the numbers in one row, row by row: a 1 × n matrix |
+| `m at reshape[r, c]` | the same numbers, in order, as an r × c matrix |
 | `m at isempty`, `m at tostring` | as for lists |
 
 ## Functions
@@ -99,6 +101,8 @@ of two matrices, use `multiply_each[a, b]`.
 | `zeros[r, c]`, `ones[r, c]` | a matrix of 0s or 1s; with one size, square |
 | `diagonal[list]` / `diagonal[m]` | the square matrix with those numbers on its diagonal / the list of a matrix's diagonal |
 | `shape[m]`, `row[m, r]`, `column[m, c]` | as the methods |
+| `flatten[m]` | the numbers in one row, row by row: a 1 × n matrix |
+| `reshape[m, r, c]` | the same numbers, in order, as an r × c matrix; `r * c` must be how many numbers `m` has |
 | `transpose[m]` | rows as columns |
 | `trace[m]` | the sum of the diagonal |
 | `determinant[m]` | an integer for a matrix of whole numbers |
@@ -127,8 +131,15 @@ show a * x .                       // [ 3.0, 5.0 ]
 // A line through three points: y = b0 + b1 * x.
 points = matrix [1, 1; 1, 2; 1, 3]
 fit = least_squares[points, list [1, 2, 2]]   // [ 0.666666666666667, 0.5 ]
+
+m = matrix [1, 2, 3; 4, 5, 6]
+show flatten[m] .                  // [ 1  2  3  4  5  6 ]
+show m reshape 3, 2 .              // [ 1  2 ]  [ 3  4 ]  [ 5  6 ], as three rows
+rows = m at rows                   // 2: the shape's numbers, for your own loops
 ```
 
+- `flatten` and `reshape` give a new matrix; the one you started with is
+  unchanged.
 - Errors are of kind `linear`: sizes that don't fit (the message names
   both: "can't multiply a 2 x 3 matrix by a 2 x 3 matrix"), a singular
   matrix for `inverse` or `solve`, a non-symmetric one for `eigen`.

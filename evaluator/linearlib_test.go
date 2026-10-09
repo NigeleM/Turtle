@@ -53,6 +53,10 @@ func TestLinear(t *testing.T) {
 		{"show identity[2], zeros[1, 3], ones[2, 1] .", "[ 1  0 ]\n[ 0  1 ][ 0  0  0 ][ 1 ]\n[ 1 ]"},
 		{"show diagonal[list [1, 2]], diagonal[matrix [1, 2; 3, 4]] .", "[ 1  0 ]\n[ 0  2 ][ 1, 4 ]"},
 		{"m = matrix [1, 2, 3; 4, 5, 6]\nshow shape[m], row[m, 0], column[m, 2] .", "[ 2, 3 ][ 1, 2, 3 ][ 3, 6 ]"},
+		{"m = matrix [1, 2, 3; 4, 5, 6]\nshow flatten[m], reshape[m, 3, 2] .", "[ 1  2  3  4  5  6 ][ 1  2 ]\n[ 3  4 ]\n[ 5  6 ]"},
+		{"m = matrix [1, 2; 3, 4]\nshow m at flatten, m at reshape[4, 1] at shape, m flatten, m reshape 1, 4 .", "[ 1  2  3  4 ][ 4, 1 ][ 1  2  3  4 ][ 1  2  3  4 ]"},
+		{"m = matrix [1.5, 2; 3, 4]\nr = reshape[m, 1, 4]\nshow r, m .", "[ 1.5  2.0  3.0  4.0 ][ 1.5  2.0 ]\n[ 3.0  4.0 ]"},
+		{"show reshape[matrix [], 0, 0] at isempty, flatten[zeros[0, 3]] at shape .", "true[ 1, 0 ]"},
 		{"show transpose[matrix [1, 2, 3; 4, 5, 6]] .", "[ 1  4 ]\n[ 2  5 ]\n[ 3  6 ]"},
 		{"m = matrix [1, 2; 3, 4]\nshow m transpose .", "[ 1  3 ]\n[ 2  4 ]"},
 		{"show trace[matrix [1, 2; 3, 4]], determinant[matrix [1, 2; 3, 4]] .", "5-2"},
@@ -147,6 +151,11 @@ func TestLinearMisuse(t *testing.T) {
 		{`change list [map ["a": "x"]] to matrix`, "type", "column \"a\" is \"x\""},
 		{`multiply_each[matrix [1], matrix [1, 2]]`, "linear", "same size"},
 		{`power[matrix [1, 2], 2]`, "linear", "square"},
+		{`reshape[matrix [1, 2, 3; 4, 5, 6], 4, 2]`, "linear", "can't reshape a 2 x 3 matrix (6 numbers) into 4 x 2 (8 numbers)"},
+		{`reshape[matrix [1, 2], -1, -2]`, "linear", "0 or more"},
+		{`reshape[list [1, 2], 1, 2]`, "type", "needs a matrix, got list"},
+		{`flatten[list [1, 2]]`, "type", "needs a matrix, got list"},
+		{`matrix [1, 2] at reshape[2]`, "type", "expects 2"},
 	}
 	for _, c := range cases {
 		src := "import linear\nsafe\n    x = " + c.src + "\nhandle [] e .\n    show kind of e, \"|\", message of e .\nsafe [end]"

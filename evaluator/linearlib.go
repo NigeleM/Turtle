@@ -13,7 +13,7 @@ import (
 
 var linearFuncs = []string{
 	"identity", "zeros", "ones", "diagonal", "shape", "row", "column",
-	"transpose", "trace", "determinant", "inverse", "rank", "power",
+	"flatten", "reshape", "transpose", "trace", "determinant", "inverse", "rank", "power",
 	"multiply_each", "solve", "least_squares", "dot", "cross", "norm",
 	"unit", "lu", "qr", "eigen", "svd",
 }

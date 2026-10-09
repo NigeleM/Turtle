@@ -41,6 +41,12 @@ func matrixMethod(m *object.Matrix, name string, args []object.Object) object.Ob
 	case "column":
 		requireArgs(name, args, 1)
 		return matrixColumnList(m, columnIndex(m, args[0]))
+	case "flatten":
+		requireArgs(name, args, 0)
+		return reshaped(m, 1, len(m.Data))
+	case "reshape":
+		requireArgs(name, args, 2)
+		return reshaped(m, sizeArg(name, args[0]), sizeArg(name, args[1]))
 	case "isempty":
 		requireArgs(name, args, 0)
 		return object.Bool(m.Rows == 0 || m.Cols == 0)
@@ -48,8 +54,19 @@ func matrixMethod(m *object.Matrix, name string, args []object.Object) object.Ob
 		requireArgs(name, args, 0)
 		return &object.String{Value: m.Inspect()}
 	}
-	fatalKind(kindName, "a matrix has no method %q (it has rows, columns, shape, get, put, row, column, isempty, tostring)", name)
+	fatalKind(kindName, "a matrix has no method %q (it has rows, columns, shape, get, put, row, column, flatten, reshape, isempty, tostring)", name)
 	return nil
+}
+
+// reshaped is a new rows x cols matrix with m's numbers in the same
+// order, row by row.
+func reshaped(m *object.Matrix, rows, cols int) *object.Matrix {
+	if rows*cols != len(m.Data) {
+		fatalKind(kindLinear, "can't reshape a %s (%d numbers) into %d x %d (%d numbers)", m.SizeText(), len(m.Data), rows, cols, rows*cols)
+	}
+	out := m.Copy()
+	out.Rows, out.Cols = rows, cols
+	return out
 }
 
 func matrixShape(m *object.Matrix) *object.List {
@@ -161,6 +178,12 @@ func callLinear(name string, args []object.Object) object.Object {
 		return matrixShape(matrixArg(name, args, 0))
 	case "row", "column":
 		requireFuncArgs(name, args, 2)
+		return matrixMethod(matrixArg(name, args, 0), name, args[1:])
+	case "flatten":
+		requireFuncArgs(name, args, 1)
+		return matrixMethod(matrixArg(name, args, 0), name, nil)
+	case "reshape":
+		requireFuncArgs(name, args, 3)
 		return matrixMethod(matrixArg(name, args, 0), name, args[1:])
 	case "transpose":
 		requireFuncArgs(name, args, 1)

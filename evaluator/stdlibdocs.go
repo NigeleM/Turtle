@@ -107,6 +107,24 @@ row[r], column[c]. change rows to matrix makes one from a list of lists
   Example:
     prices = column[m, 2]
 
+### flatten[m]
+  The numbers of m in one row, read row by row: a 1 x n matrix. m is
+  unchanged. Method: m at flatten. Sentence form: m flatten.
+  Example:
+    m = matrix [1, 2, 3; 4, 5, 6]
+    f = flatten[m]                  // [ 1  2  3  4  5  6 ]
+
+### reshape[m, rows, columns]
+  The same numbers, in the same order, as a rows x columns matrix. m is
+  unchanged. rows times columns must be how many numbers m has, or it's a
+  linear error. Method: m at reshape[rows, columns]. Sentence form:
+  m reshape rows, columns.
+  Example:
+    m = matrix [1, 2, 3; 4, 5, 6]
+    r = reshape[m, 3, 2]            // [ 1  2 ]
+                                    // [ 3  4 ]
+                                    // [ 5  6 ]
+
 ### transpose[m]
   The matrix with its rows as columns. Sentence form: m transpose.
   Example:
