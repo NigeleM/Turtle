@@ -145,7 +145,8 @@ func TestFilesThatCantBeWritten(t *testing.T) {
 	if _, _, err := ro.Query("SELECT count(*) FROM f", nil); err != nil {
 		t.Errorf("reading a read-only file: %v", err)
 	}
-	if _, err := ro.Exec("INSERT INTO f VALUES (1)", nil); err == nil || !strings.Contains(err.Error(), "read-only") {
+	// root may write any file, read-only or not (as in a container).
+	if _, err := ro.Exec("INSERT INTO f VALUES (1)", nil); os.Geteuid() != 0 && (err == nil || !strings.Contains(err.Error(), "read-only")) {
 		t.Errorf("writing a read-only file: %v", err)
 	}
 	ro.Close()

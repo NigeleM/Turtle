@@ -152,3 +152,18 @@ jobs:
           release/turtle-windows-amd64.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Keep the newest 5 releases; older release pages go (their tags stay).
+  # Only after all three builds succeed, so a failed release removes nothing.
+  prune-releases:
+    needs: [build-mac, build-linux, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Delete releases past the newest 5
+      run: |
+        for tag in $(gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 --json tagName --jq '.[5:][].tagName'); do
+          echo "deleting release $tag (the tag stays)"
+          gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes
+        done
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

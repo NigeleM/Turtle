@@ -1,151 +1,634 @@
-# `linear` — matrices and linear algebra
+# `linear`: matrices and linear algebra
 
 [Library index](index.md) · `import linear`
 
-A matrix value with its operators, and solving, inverting and decomposing matrices.
+Matrices, their arithmetic, and solving, inverting and decomposing them.
+The work is done in Go, so it's fast: a 200 × 200 product takes a few
+milliseconds.
 
+```
+a = matrix [2, 1; 1, 3]
+x = solve[a, list [3, 5]]
+show x .
+```
 
-`import linear` adds a value for matrices and the arithmetic of linear
-algebra. The work is done in Go, on one block of numbers per matrix, so
-it's fast: a 200 × 200 product takes a few milliseconds (`bench/` has
-the benchmark).
+```
+[ 0.8, 1.4 ]
+```
 
 ## Writing a matrix
 
-```
-import linear
+Rows end at `;` or at the end of a line. Every row needs the same count
+of numbers, and any expression can be a number.
 
-a = matrix [1, 2; 3, 4]           // rows end at ;
+```
+a = matrix [1, 2; 3, 4]
 b = matrix [
     1, 2, 3
     4, 5, 6
-]                                  // ... or at the end of a line
-c = matrix [
-    1, 2, 3, 4,
-    5, 6, 7, 8
-]                                  // a comma at the end carries a long row on
+]
 show b .
 ```
+
 ```
 [ 1  2  3 ]
 [ 4  5  6 ]
 ```
 
-- `matrix` is a word only in a file that imports `linear`. Elsewhere
-  it's an ordinary name; in such a file it can't name a variable or a
-  function.
-- Every row needs the same count of numbers. Any expression can be a
-  number: `matrix [x * 2, f[x]; 0, 1]`. A row can start with a minus sign:
-  on a new line, `-3, 4` is a row, not a subtraction.
-- A matrix of whole numbers shows and gives back integers. Anything that
-  can make a fraction (`/`, `inverse`, `solve`, a float in it) gives a
-  float matrix, which shows `2.0`, as a float does.
-- `show` lines the columns up. A big matrix shows its first 20 rows and
-  10 columns, `...` for the rest, and its size: `(25 x 14 matrix)`.
-- Inside a list or map a matrix shows on one line, the way it's written:
-  `[ matrix [1, 2; 3, 4] ]`.
-- A number smaller than a ten-trillionth of the matrix's largest is float
-  arithmetic's leftover (`inverse[a] * a` gives `1e-16` where a `0`
-  belongs): it shows as `0.0` and compares equal to `0`, as `0.1 + 0.2`
-  shows `0.3`. `get` still gives it exactly.
-- Like a list, a matrix is shared, not copied: after `b = a`, a `put` on
-  `b` changes `a` too. `copy[a]` (`import data`) makes a separate one.
-  Operators always make a new matrix.
-
-From other values, and back, with `change`:
-
-```
-rows = list [list [1, 2], list [3, 4]]
-m = change rows to matrix                    // a list of lists: each a row
-m = change table_read["points.csv", types] to matrix   // rows of a table file
-back = change m to list                      // [ [ 1, 2 ], [ 3, 4 ] ]
-```
+- `matrix` is a word only in a file that imports `linear`.
+- A matrix of whole numbers stays whole. Anything that can make a
+  fraction (`/`, `inverse`, `solve`, a float in it) gives a float matrix.
+- `change rows to matrix` makes one from a list of lists (or a table's
+  rows); `change m to list` turns it back.
+- A matrix is shared, like a list: after `b = a`, a `put` on `b` changes
+  `a` too. `copy[a]` (`import data`) makes a separate one.
 
 ## Operators
-
-As in mathematics:
 
 | Expression | Gives |
 |---|---|
 | `a + b`, `a - b` | element by element; the sizes must match |
-| `a + 1`, `a - 1`, `10 - a` | the number on every element |
+| `a + 1`, `10 - a` | the number on every element |
 | `a * b` | the matrix product: `a` needs as many columns as `b` has rows |
-| `a * v`, `v * a` (`v` a list) | a matrix times a vector (or a vector times a matrix): a list |
-| `a * 2`, `2 * a`, `a / 2` | every number scaled |
+| `a * v` (`v` a list) | a matrix times a vector: a list |
+| `a * 2`, `a / 2` | every number scaled |
 | `-a` | every number negated |
 | `a == b`, `a != b` | the same size and the same numbers |
 
-A number added to or taken from a matrix goes on every element, as in
-numpy and MATLAB: `a + 1`, `10 - a`. (That isn't `a + identity[n]`,
-which adds to the diagonal only.) For element-by-element multiplication
-of two matrices, use `multiply_each[a, b]`.
+```
+a = matrix [1, 2; 3, 4]
+b = matrix [5, 6; 7, 8]
+show a * b .
+show a + 1 .
+```
+
+```
+[ 19  22 ]
+[ 43  50 ]
+[ 2  3 ]
+[ 4  5 ]
+```
 
 ## Methods
 
+Called with `at`: `m at rows`.
+
 | Method | Gives |
 |---|---|
-| `m at rows`, `m at columns` | the counts |
-| `m at shape` | `list [rows, columns]` |
+| `m at rows`, `m at columns` | how many rows or columns |
+| `m at shape` | `[rows, columns]` |
 | `m at get[r, c]` | the number at row `r`, column `c`, from 0 |
-| `m at put[value, r, c]` | puts a number there (value first, as a list's `put`); gives the matrix. On its own line: `m at put[9, 1, 2]`, `m at put 9, 1, 2 .`, or the sentence `put 9 to m at 1, 2 .` |
-| `m at row[r]`, `m at column[c]` | that row or column, as a list |
-| `m at flatten` | the numbers in one row, row by row: a 1 × n matrix |
-| `m at reshape[r, c]` | the same numbers, in order, as an r × c matrix |
+| `m at put[value, r, c]` | puts a number there, and gives the matrix |
+| `m at row[r]`, `m at column[c]` | a row or column, as a list |
+| `m at flatten` | the numbers in one row |
+| `m at reshape[r, c]` | the numbers as an r × c matrix |
 | `m at isempty`, `m at tostring` | as for lists |
 
-## Functions
-
-| Function | Gives |
-|---|---|
-| `identity[n]` | the n × n identity |
-| `zeros[r, c]`, `ones[r, c]` | a matrix of 0s or 1s; with one size, square |
-| `diagonal[list]` / `diagonal[m]` | the square matrix with those numbers on its diagonal / the list of a matrix's diagonal |
-| `shape[m]`, `row[m, r]`, `column[m, c]` | as the methods |
-| `flatten[m]` | the numbers in one row, row by row: a 1 × n matrix |
-| `reshape[m, r, c]` | the same numbers, in order, as an r × c matrix; `r * c` must be how many numbers `m` has |
-| `transpose[m]` | rows as columns |
-| `trace[m]` | the sum of the diagonal |
-| `determinant[m]` | an integer for a matrix of whole numbers |
-| `inverse[m]` | the inverse; a singular matrix is an error |
-| `rank[m]` | how many rows are independent |
-| `power[m, k]` | `m` times itself `k` times; `0` gives the identity, a negative `k` the inverse's power |
-| `multiply_each[a, b]` | element by element |
-| `solve[a, b]` | the `x` with `a * x == b`, for a square `a`: `b` a list (a list back) or a matrix (one answer per column) |
-| `least_squares[a, b]` | the `x` that brings `a * x` closest to `b`, for more equations than unknowns: a line of best fit |
-| `dot[u, v]`, `cross[u, v]` | of two lists (cross: of 3 numbers each) |
-| `norm[v]` | a list's length; a matrix's Frobenius norm |
-| `unit[v]` | the list scaled to length 1 |
-| `lu[m]` | a map: `"l"`, `"u"`, `"p"`, where `p * m == l * u` |
-| `qr[m]` | a map: `"q"`, `"r"`, where `q * r == m` (at least as many rows as columns) |
-| `eigen[m]` | for a symmetric matrix: a map, `"values"` (largest first) and `"vectors"` (one per column) |
-| `svd[m]` | any shape: a map, `"u"`, `"s"` (a list, largest first), `"v"`, where `m == u * diagonal[s] * transpose[v]` |
-
 ```
-import linear
-
-a = matrix [2, 1; 1, 3]
-x = solve[a, list [3, 5]]          // [ 0.8, 1.4 ]
-x = a solve list [3, 5]            //   the same, as a sentence
-show a * x .                       // [ 3.0, 5.0 ]
-
-// A line through three points: y = b0 + b1 * x.
-points = matrix [1, 1; 1, 2; 1, 3]
-fit = least_squares[points, list [1, 2, 2]]   // [ 0.666666666666667, 0.5 ]
-
 m = matrix [1, 2, 3; 4, 5, 6]
-show flatten[m] .                  // [ 1  2  3  4  5  6 ]
-show m reshape 3, 2 .              // [ 1  2 ]  [ 3  4 ]  [ 5  6 ], as three rows
-rows = m at rows                   // 2: the shape's numbers, for your own loops
+show m at get[1, 2] .
+m at put[0, 0, 0]
+show m .
 ```
 
-- `flatten` and `reshape` give a new matrix; the one you started with is
-  unchanged.
-- Errors are of kind `linear`: sizes that don't fit (the message names
-  both: "can't multiply a 2 x 3 matrix by a 2 x 3 matrix"), a singular
-  matrix for `inverse` or `solve`, a non-symmetric one for `eigen`.
-- A matrix counts as singular when it is, next to the size of its
-  numbers: `matrix [1e-18, 0; 0, 1e-18]` has an inverse.
-- `solve` and `least_squares` refine their answer once, which wins back
-  the last digits rounding loses.
-- Big products use every core of the computer.
-- A worked example that uses most of it: `testdata/linear/housing.turtle`.
+```
+6
+[ 0  2  3 ]
+[ 4  5  6 ]
+```
+
+## Making a matrix
+
+### `identity[n]`
+
+The n × n identity matrix: 1s on the diagonal, 0s elsewhere.
+
+- `n`: the size, a whole number, 0 or more
+
+**Gives:** a matrix.
+
+```
+show identity[3] .
+```
+
+```
+[ 1  0  0 ]
+[ 0  1  0 ]
+[ 0  0  1 ]
+```
+
+### `zeros[rows, columns]`
+
+A matrix full of 0s.
+
+- `rows`: how many rows
+- `columns`: how many columns; leave it out for a square matrix
+
+**Gives:** a matrix.
+
+```
+show zeros[2, 3] .
+show zeros[2] .
+```
+
+```
+[ 0  0  0 ]
+[ 0  0  0 ]
+[ 0  0 ]
+[ 0  0 ]
+```
+
+### `ones[rows, columns]`
+
+A matrix full of 1s.
+
+- `rows`: how many rows
+- `columns`: how many columns; leave it out for a square matrix
+
+**Gives:** a matrix.
+
+```
+show ones[2, 3] .
+```
+
+```
+[ 1  1  1 ]
+[ 1  1  1 ]
+```
+
+### `diagonal[x]`
+
+Goes both ways: a list becomes a square matrix with those numbers on its diagonal, and a matrix gives back the list of its diagonal.
+
+- `x`: a list of numbers, or a matrix
+
+**Gives:** a matrix (from a list) or a list (from a matrix).
+
+```
+show diagonal[list [1, 2, 3]] .
+show diagonal[matrix [1, 2; 3, 4]] .
+```
+
+```
+[ 1  0  0 ]
+[ 0  2  0 ]
+[ 0  0  3 ]
+[ 1, 4 ]
+```
+
+## Shape and parts
+
+### `shape[m]`
+
+The size of a matrix.
+
+- `m`: a matrix
+
+**Gives:** a list: [rows, columns].
+
+```
+m = matrix [1, 2, 3; 4, 5, 6]
+show shape[m] .
+rows = m at rows
+cols = m at columns
+show rows, " rows, ", cols, " columns" .
+```
+
+```
+[ 2, 3 ]
+2 rows, 3 columns
+```
+
+Also as methods: `m at shape`, `m at rows`, `m at columns`. Use these to pull the sizes out for your own loops.
+
+### `row[m, r]`
+
+One row of a matrix.
+
+- `m`: a matrix
+- `r`: the row number, from 0
+
+**Gives:** a list.
+
+```
+m = matrix [1, 2, 3; 4, 5, 6]
+show row[m, 1] .
+show m at row[0] .
+```
+
+```
+[ 4, 5, 6 ]
+[ 1, 2, 3 ]
+```
+
+**Errors:** An `index` error if `r` is outside the matrix.
+
+### `column[m, c]`
+
+One column of a matrix.
+
+- `m`: a matrix
+- `c`: the column number, from 0
+
+**Gives:** a list.
+
+```
+m = matrix [1, 2, 3; 4, 5, 6]
+show column[m, 2] .
+```
+
+```
+[ 3, 6 ]
+```
+
+**Errors:** An `index` error if `c` is outside the matrix.
+
+### `flatten[m]`
+
+All the numbers of a matrix in one row, read row by row. The matrix you pass in is unchanged.
+
+- `m`: a matrix
+
+**Gives:** a new 1 × n matrix.
+
+```
+m = matrix [1, 2, 3; 4, 5, 6]
+show flatten[m] .
+show m flatten .
+```
+
+```
+[ 1  2  3  4  5  6 ]
+[ 1  2  3  4  5  6 ]
+```
+
+Also as a method, `m at flatten`, and a sentence, `m flatten`.
+
+### `reshape[m, rows, columns]`
+
+The same numbers in the same order, laid out as a different shape. The matrix you pass in is unchanged.
+
+- `m`: a matrix
+- `rows`: the new number of rows
+- `columns`: the new number of columns
+
+**Gives:** a new rows × columns matrix.
+
+```
+m = matrix [1, 2, 3; 4, 5, 6]
+show reshape[m, 3, 2] .
+show m reshape 1, 6 .
+```
+
+```
+[ 1  2 ]
+[ 3  4 ]
+[ 5  6 ]
+[ 1  2  3  4  5  6 ]
+```
+
+Also as a method, `m at reshape[3, 2]`, and a sentence, `m reshape 3, 2`.
+
+**Errors:** A `linear` error if `rows * columns` isn't how many numbers `m` has: "can't reshape a 2 x 3 matrix (6 numbers) into 4 x 2 (8 numbers)".
+
+### `transpose[m]`
+
+Rows become columns, and columns rows.
+
+- `m`: a matrix
+
+**Gives:** a new matrix.
+
+```
+m = matrix [1, 2, 3; 4, 5, 6]
+show transpose[m] .
+```
+
+```
+[ 1  4 ]
+[ 2  5 ]
+[ 3  6 ]
+```
+
+Also a sentence: `m transpose`.
+
+## Arithmetic
+
+### `multiply_each[a, b]`
+
+Multiplies element by element: each number times the one in the same place. (`a * b` is the matrix product.)
+
+- `a, b`: two matrices of the same size
+
+**Gives:** a new matrix.
+
+```
+a = matrix [1, 2; 3, 4]
+b = matrix [5, 6; 7, 8]
+show multiply_each[a, b] .
+```
+
+```
+[  5  12 ]
+[ 21  32 ]
+```
+
+**Errors:** A `linear` error if the sizes differ.
+
+### `power[m, k]`
+
+Multiplies a square matrix by itself k times.
+
+- `m`: a square matrix
+- `k`: a whole number; 0 gives the identity, a negative k a power of the inverse
+
+**Gives:** a matrix.
+
+```
+fib = matrix [1, 1; 1, 0]
+show power[fib, 10] .
+```
+
+```
+[ 89  55 ]
+[ 55  34 ]
+```
+
+### `trace[m]`
+
+The sum of the numbers on the diagonal.
+
+- `m`: a square matrix
+
+**Gives:** a number.
+
+```
+show trace[matrix [1, 2; 3, 4]] .
+```
+
+```
+5
+```
+
+### `determinant[m]`
+
+The determinant of a square matrix: 0 when it has no inverse.
+
+- `m`: a square matrix
+
+**Gives:** an integer for a matrix of whole numbers, otherwise a float.
+
+```
+show determinant[matrix [1, 2; 3, 4]] .
+show determinant[matrix [1, 2; 2, 4]] .
+```
+
+```
+-2
+0
+```
+
+### `inverse[m]`
+
+The matrix that multiplies m to the identity.
+
+- `m`: a square matrix
+
+**Gives:** a float matrix.
+
+```
+m = matrix [4, 7; 2, 6]
+show inverse[m] .
+show m * inverse[m] .
+```
+
+```
+[  0.6  -0.7 ]
+[ -0.2   0.4 ]
+[ 1.0  0.0 ]
+[ 0.0  1.0 ]
+```
+
+**Errors:** A `linear` error if `m` is singular (its determinant is 0).
+
+### `rank[m]`
+
+How many rows are independent: not a mix of the others.
+
+- `m`: a matrix
+
+**Gives:** an integer.
+
+```
+show rank[matrix [1, 2; 2, 4]] .
+show rank[identity[3]] .
+```
+
+```
+1
+3
+```
+
+## Solving equations
+
+### `solve[a, b]`
+
+Finds x where a * x == b.
+
+- `a`: a square matrix
+- `b`: a list (one answer) or a matrix (one answer per column)
+
+**Gives:** a list, or a matrix when b is one.
+
+```
+// 2x + y = 3 and x + 3y = 5
+a = matrix [2, 1; 1, 3]
+x = solve[a, list [3, 5]]
+show x .
+show a * x .
+```
+
+```
+[ 0.8, 1.4 ]
+[ 3.0, 5.0 ]
+```
+
+Also a sentence: `a solve list [3, 5]`.
+
+**Errors:** A `linear` error if `a` is singular or the sizes don't fit.
+
+### `least_squares[a, b]`
+
+The x that brings a * x closest to b, when there are more equations than unknowns: a line or curve of best fit.
+
+- `a`: a matrix with at least as many rows as columns
+- `b`: a list, one number per row of a
+
+**Gives:** a list.
+
+```
+// A line y = b0 + b1 * x through (1, 1), (2, 2), (3, 2)
+points = matrix [1, 1; 1, 2; 1, 3]
+fit = least_squares[points, list [1, 2, 2]]
+show fit .
+```
+
+```
+[ 0.666666666666667, 0.5 ]
+```
+
+**Errors:** A `linear` error if the columns depend on each other.
+
+## Vectors (lists of numbers)
+
+### `dot[u, v]`
+
+The dot product: each pair multiplied, then added up.
+
+- `u, v`: two lists of numbers, the same length
+
+**Gives:** a number.
+
+```
+show dot[list [1, 2, 3], list [4, 5, 6]] .
+```
+
+```
+32
+```
+
+### `cross[u, v]`
+
+The cross product of two 3-D vectors.
+
+- `u, v`: two lists of 3 numbers
+
+**Gives:** a list of 3 numbers.
+
+```
+show cross[list [1, 0, 0], list [0, 1, 0]] .
+```
+
+```
+[ 0, 0, 1 ]
+```
+
+### `norm[x]`
+
+The length of a vector. For a matrix, every number counts (the Frobenius norm).
+
+- `x`: a list of numbers, or a matrix
+
+**Gives:** a float.
+
+```
+show norm[list [3, 4]] .
+```
+
+```
+5.0
+```
+
+### `unit[v]`
+
+The vector scaled to length 1, in the same direction.
+
+- `v`: a list of numbers, not all 0
+
+**Gives:** a list.
+
+```
+show unit[list [3, 4]] .
+```
+
+```
+[ 0.6, 0.8 ]
+```
+
+## Decompositions
+
+### `lu[m]`
+
+Splits a square matrix into lower and upper triangles.
+
+- `m`: a square matrix
+
+**Gives:** a map: "l" (lower, 1s on the diagonal), "u" (upper) and "p" (row order), where p * m == l * u.
+
+```
+m = matrix [2, 1; 4, 3]
+parts = lu[m]
+show parts at get["u"] .
+show parts at get["p"] * m == parts at get["l"] * parts at get["u"] .
+```
+
+```
+[ 4.0   3.0 ]
+[ 0.0  -0.5 ]
+true
+```
+
+### `qr[m]`
+
+Splits a matrix into orthonormal columns and an upper triangle.
+
+- `m`: a matrix with at least as many rows as columns
+
+**Gives:** a map: "q" and "r", where q * r == m.
+
+```
+m = matrix [12, -51, 4; 6, 167, -68; -4, 24, -41]
+parts = qr[m]
+show parts at get["r"] .
+```
+
+```
+[ 14.0   21.0  -14.0 ]
+[  0.0  175.0  -70.0 ]
+[  0.0    0.0   35.0 ]
+```
+
+### `eigen[m]`
+
+The eigenvalues and eigenvectors of a symmetric matrix.
+
+- `m`: a symmetric square matrix
+
+**Gives:** a map: "values" (a list, largest first) and "vectors" (a matrix, one vector per column).
+
+```
+e = eigen[matrix [2, 1; 1, 2]]
+show e at get["values"] .
+```
+
+```
+[ 3.0, 1.0 ]
+```
+
+**Errors:** A `linear` error if `m` isn't symmetric.
+
+### `svd[m]`
+
+The singular value decomposition, for any shape.
+
+- `m`: a matrix
+
+**Gives:** a map: "u", "s" (a list, largest first) and "v", where m == u * diagonal[s] * transpose[v].
+
+```
+parts = svd[matrix [3, 0; 0, 4]]
+show parts at get["s"] .
+```
+
+```
+[ 4.0, 3.0 ]
+```
+
+## Errors
+
+Mistakes with matrices are errors of kind `linear`, and the message names
+the sizes: "can't multiply a 2 x 3 matrix by a 2 x 3 matrix". Catch them
+with `safe ... handle [linear] e .`.
+
+A worked example that uses most of the library:
+[`testdata/linear/housing.turtle`](../../testdata/linear/housing.turtle).
