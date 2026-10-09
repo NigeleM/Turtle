@@ -1,0 +1,15 @@
+#!/bin/bash
+# Runs a double-clicked .turtle file in Terminal, in its own folder.
+# Turtle.app calls it.
+file="$1"
+base=$(mktemp -t turtle) || exit 1
+cmd="$base.command"
+mv "$base" "$cmd"
+{
+	echo '#!/bin/bash'
+	echo 'rm -f "$0"'
+	printf 'cd %q || exit 1\n' "$(dirname "$file")"
+	printf 'clear; exec /usr/local/bin/turtle %q\n' "$file"
+} >"$cmd"
+chmod +x "$cmd"
+open -a Terminal "$cmd"

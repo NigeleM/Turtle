@@ -32,25 +32,10 @@ jobs:
         go vet ./legacy/Files/... ./ast/... ./cmd/... ./docs/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/...
         go test ./legacy/Files/... ./ast/... ./cmd/... ./docs/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/...
 
-    - name: Build the binary for macOS
-      run: |
-        mkdir -p release
-        CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w -X main.version=${{ github.ref_name }}" -o release/turtle-darwin-arm64 ./cmd/turtle
-
     - name: Create macOS Installer
-      run: |
-        VERSION="${GITHUB_REF_NAME#v}"
-        # pkgroot's contents install AT --install-location, so pkgroot
-        # must contain just "turtle", not another usr/local/bin/turtle
-        # underneath it — that used to double the path to
-        # /usr/local/bin/usr/local/bin/turtle, silently: the .pkg reported
-        # success but "turtle" was never actually on PATH.
-        mkdir -p pkgroot
-        cp release/turtle-darwin-arm64 pkgroot/turtle
-        chmod 755 pkgroot/turtle
-        pkgbuild --root pkgroot --identifier com.genesys.turtle \
-          --version "$VERSION" --install-location /usr/local/bin \
-          --ownership recommended release/turtle.pkg
+      # installer/macos/build-pkg.sh: turtle for Apple silicon and Intel,
+      # and Turtle.app for .turtle files (icon, double-click to run).
+      run: installer/macos/build-pkg.sh "${{ github.ref_name }}" release
 
     - name: Upload Release
       uses: softprops/action-gh-release@v1

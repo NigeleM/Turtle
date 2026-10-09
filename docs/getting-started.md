@@ -8,6 +8,16 @@ the PATH; double-clicking a `.turtle` file runs it in its own folder. It
 isn't signed yet: if Windows says it "protected your PC", choose More
 info, then Run anyway.
 
+## Install on macOS
+
+Open `turtle.pkg` from a
+[release](https://github.com/NigeleM/Turtle/releases). It works on Apple
+silicon and Intel Macs, puts `turtle` in `/usr/local/bin`, and adds
+Turtle to Applications: double-clicking a `.turtle` file runs it in
+Terminal, in its own folder, and opening Turtle itself starts the prompt.
+It isn't signed yet: if macOS won't open it, right-click it, choose Open,
+then Open again. To remove it: `sudo /usr/local/share/turtle/uninstall.sh`.
+
 ## Requirements
 
 Go 1.24 or later. No C toolchain needed: Turtle is pure Go.

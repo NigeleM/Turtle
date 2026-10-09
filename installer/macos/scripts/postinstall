@@ -1,0 +1,5 @@
+#!/bin/sh
+# Register Turtle.app so .turtle files show its icon and open with it now,
+# not only after the next login.
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f /Applications/Turtle.app || true
+exit 0

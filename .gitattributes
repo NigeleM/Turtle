@@ -1,3 +1,7 @@
 # Windows batch files (installer/turtle-run.cmd) need CRLF line endings,
 # whatever system checks them out.
 *.cmd text eol=crlf
+# The macOS installer's scripts need LF line endings, whatever system
+# checks them out.
+installer/macos/** text eol=lf
+*.sh text eol=lf

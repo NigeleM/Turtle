@@ -97,6 +97,10 @@ jobs:
       - name: Test
         run: go test ./legacy/Files/... ./ast/... ./cmd/... ./docs/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/...
 
+      - name: Build the macOS installer
+        if: matrix.os == 'macos-latest'
+        run: installer/macos/build-pkg.sh 0.0.0-ci "$RUNNER_TEMP"
+
       # The installer the release makes, built (not installed) so a mistake
       # in installer/turtle.iss shows up now, not on release day.
       - name: Build the Windows installer
