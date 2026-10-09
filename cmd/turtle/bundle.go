@@ -197,7 +197,15 @@ func writeBundle(out string, files []bundleFile) error {
 	// doesn't accept data after it. Copied to another Mac by download,
 	// macOS may call it damaged: xattr -d com.apple.quarantine program.
 	os.Remove(out) // an older program of that name
-	return os.Rename(tmp, out)
+	if err := os.Rename(tmp, out); err != nil {
+		os.Remove(tmp)
+		// Windows won't replace a program while it runs.
+		if runtime.GOOS == "windows" && errors.Is(err, os.ErrPermission) {
+			return fmt.Errorf("can't replace %s: it's running (or open elsewhere); close it and build again", out)
+		}
+		return err
+	}
+	return nil
 }
 
 // bundleOf reports whether the program at path has packed files, and

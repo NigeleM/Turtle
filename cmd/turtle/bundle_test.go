@@ -73,4 +73,25 @@ func TestBuild(t *testing.T) {
 	if out, _ := exec.Command(turtle, "build", bad).CombinedOutput(); !strings.Contains(string(out), "imports missinglib") {
 		t.Errorf("missing import: %s", out)
 	}
+	// Windows won't replace a running program: building over one says so,
+	// and leaves no half-made file behind.
+	if runtime.GOOS == "windows" {
+		slow := filepath.Join(dir, "slow.trt")
+		os.WriteFile(slow, []byte("import time\nsleep[30]\n"), 0o644)
+		slowExe := filepath.Join(dir, "slow.exe")
+		if out, err := exec.Command(turtle, "build", slow, "-o", slowExe).CombinedOutput(); err != nil {
+			t.Fatalf("turtle build: %v\n%s", err, out)
+		}
+		running := exec.Command(slowExe)
+		if err := running.Start(); err != nil {
+			t.Fatal(err)
+		}
+		defer func() { running.Process.Kill(); running.Wait() }()
+		if out, _ := exec.Command(turtle, "build", slow, "-o", slowExe).CombinedOutput(); !strings.Contains(string(out), "it's running") {
+			t.Errorf("building over a running program: %s", out)
+		}
+		if _, err := os.Stat(slowExe + ".building"); err == nil {
+			t.Error("left slow.exe.building behind")
+		}
+	}
 }

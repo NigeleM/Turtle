@@ -104,3 +104,14 @@ jobs:
 
       - name: Test
         run: go test ./legacy/Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/...
+
+      # The installer the release makes, built (not installed) so a mistake
+      # in installer/turtle.iss shows up now, not on release day.
+      - name: Build the Windows installer
+        if: matrix.os == 'windows-latest'
+        run: |
+          $env:CGO_ENABLED="0"
+          go build -o turtle.exe ./cmd/turtle
+          choco install innosetup -y --no-progress
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /Q "/DOutputDir=$env:RUNNER_TEMP" installer\turtle.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

@@ -133,12 +133,22 @@ jobs:
         $env:GOARCH="amd64"
         go build -ldflags "-s -w -X main.version=${{ github.ref_name }}" -o release/turtle-windows-amd64.exe ./cmd/turtle
 
+    - name: Create Windows Installer
+      run: |
+        # installer/turtle.iss: Program Files, PATH, .turtle files, Start menu.
+        choco install innosetup -y --no-progress
+        $version = "${{ github.ref_name }}".TrimStart("v")
+        & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /Q "/DAppVersion=$version" "/DTurtleExe=..\release\turtle-windows-amd64.exe" "/DOutputDir=..\release" installer\turtle.iss
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
     - name: Upload Windows Release
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ github.ref_name }}
         # 0.x versions are pre-releases: GitHub shows the badge.
         prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
-        files: release/turtle-windows-amd64.exe
+        files: |
+          release/turtle-windows-amd64-setup.exe
+          release/turtle-windows-amd64.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

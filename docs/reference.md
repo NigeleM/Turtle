@@ -1538,6 +1538,9 @@ script (`args[]`):
 - **macOS.** A program made on your Mac runs on it. Copied to another Mac
   by download, macOS may say it's damaged (it isn't signed by Apple);
   `xattr -d com.apple.quarantine report` lets it run.
+- **Windows.** A program can't be rebuilt while it's running: close it
+  first. Downloaded on another PC, Windows may say it "protected your PC"
+  (it isn't signed); More info, then Run anyway, lets it run.
 
 ## Documentation: `turtle doc`
 
