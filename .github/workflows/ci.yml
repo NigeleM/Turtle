@@ -1,15 +1,7 @@
 name: CI
 
-# Validates every push to main and every PR: build, vet, and the real
-# `go test` suite. Separate from release.yml, which only runs when a
-# version tag is pushed — this one exists so a broken commit is caught
-# immediately instead of only being discovered at release time.
-#
-# Scope excludes the legacy interpreter in legacy/ (Turtle_interpreter.go,
-# kept for reference — see legacy/README.md) because it uses
-# cgo, whose C-compiler warnings get surfaced by GitHub as "failure"-level
-# annotations even though they never fail the build. legacy/Files/ has no cgo and
-# stays in scope.
+# Build, vet and test every push to main and every PR. legacy/ itself
+# needs cgo, so only legacy/Files/ is checked.
 on:
   push:
     branches:
@@ -64,13 +56,13 @@ jobs:
           go-version: '1.24'
 
       - name: Build
-        run: go build ./legacy/Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/...
+        run: go build ./legacy/Files/... ./ast/... ./cmd/... ./docs/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/...
 
       - name: Vet
-        run: go vet ./legacy/Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/...
+        run: go vet ./legacy/Files/... ./ast/... ./cmd/... ./docs/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/...
 
       - name: Test
-        run: go test ./legacy/Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/... -v
+        run: go test ./legacy/Files/... ./ast/... ./cmd/... ./docs/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/... -v
 
   # The same tests on macOS and Windows, so a problem on either shows up
   # on the push that causes it, not only when a release is tagged (file
@@ -100,10 +92,10 @@ jobs:
           go-version: '1.24'
 
       - name: Vet
-        run: go vet ./legacy/Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/...
+        run: go vet ./legacy/Files/... ./ast/... ./cmd/... ./docs/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/...
 
       - name: Test
-        run: go test ./legacy/Files/... ./ast/... ./cmd/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/...
+        run: go test ./legacy/Files/... ./ast/... ./cmd/... ./docs/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/...
 
       # The installer the release makes, built (not installed) so a mistake
       # in installer/turtle.iss shows up now, not on release day.

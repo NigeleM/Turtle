@@ -17,8 +17,7 @@ ages = map ["Alice": 30, "Bob": 25]
 `show`ing any of them prints:
 - list: `[ 3, 1, 2 ]`
 - set: `{ "a", "b" }`
-- map: `{ "Alice": 30, "Bob": 25 }` (insertion order, always — this is
-  deterministic, unlike the legacy interpreter's randomized map iteration)
+- map: `{ "Alice": 30, "Bob": 25 }` (always in insertion order)
 
 ## Statement-form operations
 
@@ -36,7 +35,7 @@ arbitrary expression).
 | `put <expr> to <target> at <expr> .` | list | Replaces the item at the given index (`0..length-1`); the length stays the same. |
 | `put <expr> to <target> at <row>, <column> .` | matrix (`import linear`) | Replaces the number at that row and column. |
 | `length of <expr> .` | list, set, map, string | Prints the count (map: number of keys; string: character count, in Unicode code points, not bytes). |
-| `min of <expr> .` | list, set, map | Prints the smallest element (list/set) or smallest **key** (map — matches legacy behavior; map values aren't compared). |
+| `min of <expr> .` | list, set, map | Prints the smallest element (list/set) or smallest **key** (map; values aren't compared). |
 | `max of <expr> .` | list, set, map | Same as `min of`, but largest. |
 
 `length of`/`min of`/`max of` are also ordinary expressions usable anywhere

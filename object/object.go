@@ -187,8 +187,7 @@ func (s *Set) Add(v Object) bool {
 // reordering.
 func (s *Set) Changed() { s.index = nil }
 
-// Map is Turtle's `map [...]` — insertion-ordered (fixes the legacy
-// interpreter's randomized Go-map iteration order). Keys can be any value
+// Map is Turtle's `map [...]`, insertion-ordered. Keys can be any value
 // and keep their type: map [1: "a"] has the integer key 1, distinct from
 // the string "1". Each entry holds its Key string (how keys are compared),
 // the original key value, and the value, in one list in order; a map of

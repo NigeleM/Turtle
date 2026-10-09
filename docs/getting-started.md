@@ -2,23 +2,15 @@
 
 ## Install on Windows
 
-From a release on [GitHub](https://github.com/NigeleM/Turtle/releases),
-run `turtle-windows-amd64-setup.exe` (it asks for administrator rights).
-It puts Turtle in Program Files and on the PATH, so `turtle` works in any
-new terminal, and sets up `.turtle` files: double-click one to run it (in
-its own folder, with the window kept open at the end), or right-click for
-Run with Turtle and Edit. The Start menu's Turtle opens the prompt.
-Settings > Apps uninstalls it.
-
-The installer isn't signed yet, so Windows may say it "protected your
-PC": choose More info, then Run anyway.
-
-Or build Turtle yourself, as below.
+Run `turtle-windows-amd64-setup.exe` from a
+[release](https://github.com/NigeleM/Turtle/releases). It puts `turtle` on
+the PATH; double-clicking a `.turtle` file runs it in its own folder. It
+isn't signed yet: if Windows says it "protected your PC", choose More
+info, then Run anyway.
 
 ## Requirements
 
-Go 1.24 or later. No C toolchain needed — unlike the legacy
-`legacy/Turtle_interpreter.go`, the current interpreter is pure Go (no cgo).
+Go 1.24 or later. No C toolchain needed: Turtle is pure Go.
 
 ## Build
 

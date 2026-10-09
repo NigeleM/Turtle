@@ -2,6 +2,10 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## 0.9.173 (2026-10-09)
+
+- Windows: a double-clicked `.turtle` file's window closes when it ends.
+
 ## 0.9.172 (2026-10-09)
 
 - The `linear` docs show every function with an example and its output.

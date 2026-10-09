@@ -123,8 +123,7 @@ func NewGlobalEnvironment() *Environment {
 // NewEnclosedEnvironment returns a fresh scope for one function call,
 // enclosing outer (the called function's defining scope). Every call gets
 // its own, so recursive/re-entrant calls to the same function never share
-// mutable state (the legacy interpreter's bug: one shared map per
-// function definition, reused by every call).
+// mutable state.
 func NewEnclosedEnvironment(outer *Environment) *Environment {
 	return &Environment{outer: outer}
 }

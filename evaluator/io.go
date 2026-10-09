@@ -250,9 +250,7 @@ func (it *Interpreter) loadModule(name string) *object.Module {
 
 // evalSys runs the rest of the line through a shell (sh, or cmd on
 // Windows), inheriting stdin/stdout/stderr — a deliberately dangerous
-// feature kept on request, on par with Python's os.system. Implemented
-// with os/exec instead of the legacy cgo system() call, so the
-// interpreter no longer needs a C toolchain to build.
+// feature kept on request, on par with Python's os.system.
 func (it *Interpreter) evalSys(s *ast.SysStatement) {
 	cmd := shellCommand(s.Command)
 	cmd.Stdin = os.Stdin

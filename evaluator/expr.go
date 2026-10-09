@@ -281,7 +281,7 @@ func evalInfix(op string, left, right object.Object) object.Object {
 		}
 	}
 	// '+' overloads to string concatenation whenever either side isn't a
-	// number (matches the legacy dual behavior).
+	// number.
 	if op == "+" {
 		lf, lIsInt, lIsNum := numeric(left)
 		rf, rIsInt, rIsNum := numeric(right)
@@ -675,8 +675,7 @@ func (it *Interpreter) callByName(name string, args []object.Object, env *object
 }
 
 // callFunction runs fn on already-evaluated args in a fresh, isolated
-// call environment (fixing the legacy bug of one shared mutable scope per
-// function definition, which broke recursion) that encloses the
+// call environment (so recursion works) that encloses the
 // function's defining scope, not the caller's — lexical scoping, which is
 // what lets a closure see the locals it captured, and an imported
 // function its own module's globals.

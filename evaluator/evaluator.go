@@ -37,8 +37,7 @@ type ExecResult struct {
 var noneResult = ExecResult{Signal: SigNone}
 
 // Interpreter holds everything shared across a whole program run: global
-// scope and a single stdin reader (fixing the legacy interpreter's habit
-// of allocating a fresh bufio.Scanner per input prompt).
+// scope and a single stdin reader.
 type Interpreter struct {
 	scrollStack []*object.Function // saved scrolls running, for one found inside itself
 

@@ -19,11 +19,7 @@ token stream
 side effects (show, file I/O, sys) + program exit
 ```
 
-This replaced `legacy/Turtle_interpreter.go`, a single ~6,800-line file that
-parsed every statement by re-scanning raw strings with
-`strings.Contains`/`strings.Index` and kept all interpreter state in
-global maps (`variableDict`, `functionDict`, ...). The current design is a
-conventional lexer → recursive-descent parser → AST → tree-walking
+A conventional lexer → recursive-descent parser → AST → tree-walking
 evaluator, so each stage can be reasoned about independently.
 
 ## Packages
@@ -87,8 +83,7 @@ stream is still only produced once.
 ### If/else nesting via bracket depth
 
 Real Turtle syntax is `if ] cond [ ... else if ] cond [ ... else ] ... if
-[end]` (reversed brackets — confirmed against real historical `.turtle`
-scripts, not invented). A nested if/else chain is written by prefixing
+[end]` (reversed brackets). A nested if/else chain is written by prefixing
 every keyword with one extra leading `[`, and has **no closing marker of
 its own** — it implicitly ends the moment a clause at the same-or-
 shallower bracket depth appears.
@@ -99,10 +94,8 @@ end (consume a real `if [end]`, vs. return immediately without consuming,
 leaving the terminating bare clause for the enclosing chain to see). The
 recursion is natural: a nested chain is just another statement
 (`parseNestedIfStatement`) encountered while parsing a clause's body via
-the ordinary statement dispatcher, so it generalizes to depths beyond what
-any known real program uses without any depth counter — depth 0 and 1
-were the only depths in the original interpreter's hard-coded (and
-admittedly buggy, by its own code comment) implementation.
+the ordinary statement dispatcher, so it works at any depth without a
+depth counter.
 
 ### Function calls vs. an if-header's closing bracket
 
@@ -134,17 +127,9 @@ a nested `[...]` inside the header doesn't confuse it) for a top-level `;`
 to decide C-style vs. while-style — cheaper and simpler than trying to
 parse both forms speculatively.
 
-Loop nesting is **not** modeled after the legacy behavior. The legacy
-interpreter collected a loop's body as one flat token blob up to the first
-`[loop][end]` line, then re-split that blob recursively at execution
-time — which happened to let one `[end]` close multiple nested loops, but
-only when the nested loop was the last statement in every enclosing loop's
-body (anything after it was silently dropped, and it wasn't documented
-anywhere as intentional, unlike the if/else bracket convention). The
-rewrite instead requires one `[loop][end]` per `[loop][...]`, matched by
-ordinary recursive descent (`isLoopEnd` + the closing token sequence in
-`parseLoopStatement`) — nesting works at any position in the body, not
-just last.
+Each `[loop][...]` needs its own `[loop][end]`, matched by ordinary
+recursive descent (`isLoopEnd` + the closing token sequence in
+`parseLoopStatement`), so nesting works at any position in the body.
 
 ## Evaluator
 
@@ -199,11 +184,8 @@ an `object.Assembly` instead of running a body when `Shape` is set.
 Each call gets `object.NewEnclosedEnvironment(fn.Env)`: a fresh, empty
 scope. A scope keeps its names in a short list (most hold a few), and
 builds a map once it has more than eight.
-This is a deliberate fix: the legacy interpreter stored one mutable
-variable map *per function definition*, shared by every call to that
-function, which broke recursion (a recursive call would stomp the outer
-call's locals mid-execution). Fresh-per-call environments make recursion
-work correctly (see `testdata/recursion.turtle`).
+A recursive call can't overwrite the outer call's locals (see
+`testdata/recursion.turtle`).
 
 Loops get scopes of their own that hold only the loop's names
 (`object.NewLoopEnvironment`): each for-each pass has one with its names,
@@ -283,12 +265,12 @@ naming the operation and the value involved.
   integrity_check` on the files Turtle wrote, repairing a journal Turtle
   left by a simulated crash (and Turtle repairing one left by sqlite3),
   and taking turns with Turtle through the file locks
-  (`crash_test.go`). Without the tool (Windows) those parts are skipped.
+  (`crash_test.go`). Without the tool those parts are skipped, and the
+  ones that use Unix shell commands skip on Windows.
 - `testdata/books.db` is a small committed SQLite file the Turtle-level
   tests read. `testdata/sql/` has one Turtle program per SQL topic, run
   by `TestSQLExamples`.
 - The `postgres` and `mysql` packages, and `testdata/sql/13_servers.turtle`,
   need real servers: they run when `TURTLE_PG_URL` / `TURTLE_MYSQL_URL`
   are set (CI starts both as service containers) and skip otherwise.
-- The historical scripts (`*.txt`, `legacy/test.turtle`, `testdata/*.turtle`) should keep
-  producing the same output.
+- The scripts in `testdata/` should keep producing the same output.

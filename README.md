@@ -16,10 +16,12 @@ programs on Mac, Windows and Linux.
 
 - Macros: define your own words and phrases
 - More of the standard library written in Turtle
-- A Windows installer
 - 1.0
 
 ## Quick start
+
+Install from a [release](https://github.com/NigeleM/Turtle/releases)
+(Mac `.pkg`, Windows setup, Linux `.deb`), or build it:
 
 ```sh
 go build -o turtle ./cmd/turtle

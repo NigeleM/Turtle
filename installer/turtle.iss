@@ -2,8 +2,7 @@
 ;
 ; Installs turtle.exe for all users in Program Files and puts it on the
 ; system PATH; makes .turtle Turtle's file type (double-click runs the
-; script in its own folder and waits for a key; right-click has Run with
-; Turtle and Edit);
+; script in its own folder; right-click has Run with Turtle and Edit);
 ; adds Turtle to "Open with" for .trt, the default only where no other
 ; program has it (.trt is shared with AvaSoft and TensorRT files); and adds
 ; a Start menu entry for the Turtle prompt. Uninstalling takes all of it

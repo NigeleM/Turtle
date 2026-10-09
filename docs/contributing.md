@@ -6,9 +6,7 @@ haven't — this assumes you know the pipeline and the parser conventions.
 
 The fastest way to spec a new feature is a concrete example of the syntax
 and behavior you want (real Turtle-code-shaped snippets, even informal
-ones) — that's exactly how the real if/else and loop syntax got nailed
-down for this rewrite (from the project's historical `.txt` example
-scripts), and it removes guesswork about edge cases.
+ones); it removes guesswork about edge cases.
 
 ## Contributor terms
 
