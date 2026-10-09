@@ -9,6 +9,36 @@ a breaking change will wait for a major version.
 
 For the full story of each change, see [`PROGRESS.md`](PROGRESS.md).
 
+## 0.9.169 (2026-10-08)
+
+### Breaking
+
+- **Turtle files end in `.turtle`.** `.trt` still works everywhere
+  (imports, `turtle test`, `fmt`, `doc`, `build`, the editors), so
+  nothing breaks; but an import that finds both `name.turtle` and
+  `name.trt` stops with an error naming both.
+  *What to do:* nothing; rename files to `.turtle` when convenient.
+- **`&&`, `||` and comparisons after a sentence call work on its
+  result**, as in other languages: `s has "a" && ok` is
+  `(s has "a") && ok` (it used to pass `"a" && ok` as the argument).
+  Arithmetic still belongs to the argument (`nums get i + 1` is
+  `get[nums, i + 1]`), and a `give` function still takes the rest of its
+  line.
+
+### Fixed
+
+- **The web server:** one slow client could freeze every other request;
+  now only the Turtle handler takes a turn, with time limits on reading a
+  request. A static folder no longer serves hidden files (`.env`, `.git`)
+  or links leading out of it.
+
+### New
+
+- Databases written by Turtle programs are checked by the official
+  `sqlite3` in the tests, and CI requires the tool rather than skipping;
+  CI also runs the editor, REPL and formatter tests. The `sql` and
+  `server` docs have notes on keeping your data and server safe.
+
 ## 0.9.168 (2026-10-08)
 
 ### Breaking

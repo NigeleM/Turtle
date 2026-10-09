@@ -1237,7 +1237,7 @@ objects 78 -> 41 (1.9x), jsondata 66 -> 60 (1.1x), patterns 32 -> 22
   and a test across the small/indexed switch. 200,000 small records: 216
   -> 100 MB and 80 -> 50 ms; maps 76 -> 68 ms, jsondata 30 -> 25.
 
-## 2026-10-08 (evening): && and || after a sentence call (not yet released)
+## 2026-10-08 (evening): && and || after a sentence call (released v0.9.169)
 
 - A sentence call's bare argument now stops before a comparison, && or
   ||, which work on the call's result, as in Python, JavaScript and Go:
@@ -1252,7 +1252,7 @@ objects 78 -> 41 (1.9x), jsondata 66 -> 60 (1.1x), patterns 32 -> 22
   precedence, ! and short-circuit; bookshop.trt uses && and || after
   sentence calls.
 
-## 2026-10-08 (night): data safety, server safety, .trt (not yet released)
+## 2026-10-08 (night): data safety, server safety, .turtle (released v0.9.169)
 
 - SQLite: TestTurtleDatabasesPassSQLite3 writes a database from a Turtle
   program through every kind of change and has the official sqlite3
