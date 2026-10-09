@@ -2,6 +2,10 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## Unreleased
+
+- VS Code: a ▶ button (and Ctrl-F5) runs the open file in a terminal.
+
 ## 0.9.176 (2026-10-09)
 
 - Input without a prompt, `a = ?`, and a closing period: `a = ? "n: " .`

@@ -3,12 +3,14 @@
 // else (errors as you type, completion, hover help, go to definition, the
 // outline, Format Document, exact colors) comes from turtle lsp, which this file starts and
 // talks to: a small Language Server Protocol client written against VS
-// Code's own API, with no npm packages.
+// Code's own API, with no npm packages. Turtle: Run File (the ▶ button)
+// runs the open file in a terminal.
 
 "use strict";
 
 const vscode = require("vscode");
 const { spawn } = require("child_process");
+const path = require("path");
 
 let server = null; // the running turtle lsp
 let active = []; // what start registered, undone on restart
@@ -281,6 +283,45 @@ function start(context, output) {
   );
 }
 
+// ---- running a file ----
+
+// shellCommand is "cd to dir, then run turtle on file", quoted for the
+// shell VS Code's terminal uses: PowerShell, cmd, or a Unix shell.
+function shellCommand(shell, turtle, dir, file) {
+  const name = (shell || "").split(/[\\/]/).pop().toLowerCase(); // either separator, on any system
+  if (name.startsWith("pwsh") || name.startsWith("powershell")) {
+    const q = (s) => "'" + s.replace(/'/g, "''") + "'";
+    return `Set-Location -LiteralPath ${q(dir)}; & ${q(turtle)} ${q(file)}`;
+  }
+  if (name === "cmd.exe" || name === "cmd") {
+    const q = (s) => '"' + s + '"';
+    return `cd /d ${q(dir)} && ${q(turtle)} ${q(file)}`;
+  }
+  const q = (s) => "'" + s.replace(/'/g, "'\\''") + "'";
+  return `cd ${q(dir)} && ${q(turtle)} ${q(file)}`;
+}
+
+// runFile saves the open Turtle file and runs it in the Turtle terminal,
+// in the file's own folder, as "turtle file.turtle" would.
+async function runFile() {
+  const editor = vscode.window.activeTextEditor;
+  const doc = editor && editor.document;
+  if (!doc || doc.languageId !== "turtle") {
+    vscode.window.showWarningMessage("Turtle: open a .turtle file to run it.");
+    return;
+  }
+  if (doc.isUntitled) {
+    vscode.window.showWarningMessage("Turtle: save the file first, then run it.");
+    return;
+  }
+  if (doc.isDirty && !(await doc.save())) return;
+  const turtle = vscode.workspace.getConfiguration("turtle").get("path", "turtle");
+  let term = vscode.window.terminals.find((t) => t.name === "Turtle" && t.exitStatus === undefined);
+  if (!term) term = vscode.window.createTerminal({ name: "Turtle" });
+  term.show(true);
+  term.sendText(shellCommand(vscode.env.shell, turtle, path.dirname(doc.fileName), doc.fileName));
+}
+
 function stop() {
   for (const d of active) d.dispose();
   active = [];
@@ -296,6 +337,7 @@ function activate(context) {
       stop();
       start(context, output);
     }),
+    vscode.commands.registerCommand("turtle.run", runFile),
     { dispose: stop }
   );
 }
@@ -304,4 +346,4 @@ function deactivate() {
   stop();
 }
 
-module.exports = { activate, deactivate };
+module.exports = { activate, deactivate, shellCommand };

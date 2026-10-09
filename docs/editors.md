@@ -21,7 +21,8 @@ library. Files end in `.turtle` (or `.trt`, the earlier ending).
 Install the extension in [`editors/vscode`](../editors/vscode/README.md)
 (copy the folder into `~/.vscode/extensions/turtle`). It adds the language,
 a color grammar, comment toggling (Ctrl-/), bracket matching and
-indenting, and starts `turtle lsp`.
+indenting, a ▶ button that runs the open file (Ctrl-F5), and starts
+`turtle lsp`.
 
 ## Neovim (0.11 and later)
 

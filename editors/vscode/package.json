@@ -1,8 +1,8 @@
 {
   "name": "turtle",
   "displayName": "Turtle",
-  "description": "The Turtle programming language: colors, errors as you type, completion, hover help and go to definition (through turtle lsp).",
-  "version": "0.1.3",
+  "description": "The Turtle programming language: run files, colors, errors as you type, completion, hover help and go to definition (through turtle lsp).",
+  "version": "0.1.4",
   "publisher": "turtle-lang",
   "license": "Apache-2.0",
   "repository": {
@@ -17,7 +17,8 @@
   ],
   "main": "./extension.js",
   "activationEvents": [
-    "onLanguage:turtle"
+    "onLanguage:turtle",
+    "onCommand:turtle.run"
   ],
   "contributes": {
     "languages": [
@@ -58,8 +59,35 @@
     },
     "commands": [
       {
+        "command": "turtle.run",
+        "title": "Turtle: Run File",
+        "icon": "$(play)"
+      },
+      {
         "command": "turtle.restartServer",
         "title": "Turtle: Restart Language Server"
+      }
+    ],
+    "menus": {
+      "editor/title/run": [
+        {
+          "command": "turtle.run",
+          "when": "editorLangId == turtle",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "turtle.run",
+          "when": "editorLangId == turtle"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "turtle.run",
+        "key": "ctrl+f5",
+        "when": "editorLangId == turtle"
       }
     ]
   }
