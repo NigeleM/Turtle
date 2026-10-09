@@ -2,7 +2,7 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
-## Unreleased
+## 0.9.175 (2026-10-09)
 
 - macOS: `turtle.pkg` runs on Intel Macs too, gives `.turtle` files the
   Turtle icon, and runs them on a double-click.
