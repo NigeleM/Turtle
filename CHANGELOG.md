@@ -9,6 +9,33 @@ a breaking change will wait for a major version.
 
 For the full story of each change, see [`PROGRESS.md`](PROGRESS.md).
 
+## Unreleased
+
+### Breaking
+
+- **`sys` runs through `cmd` on Windows**, as `runall` already did. It
+  used to need `sh`, so on most Windows machines it silently did nothing.
+  *What to do:* on Windows, write `sys` commands for `cmd`.
+- **Bad JSON is described the same whatever Go builds Turtle**, the
+  column always at the wrong character itself. A few places moved by a
+  column or two, and some messages that stopped short (`invalid character
+  ','`) now say what was expected.
+
+### Fixed
+
+- **Windows:** a command with double quotes in `runall` (or `sys`)
+  reaches `cmd` as written; it used to arrive as `\"...\"`.
+- Tests that failed only on Windows (a path in a Turtle string, the
+  `\r\n` lines `sqlite3` prints there), and JSON error tests that failed
+  on Go newer than 1.24.
+
+### New
+
+- CI installs `sqlite3` on Windows and requires its checks there too; a
+  Windows test covers `sys` and `runall` through `cmd`.
+- The README and getting-started docs show the Windows build and run
+  commands (`turtle.exe`).
+
 ## 0.9.169 (2026-10-08)
 
 ### Breaking

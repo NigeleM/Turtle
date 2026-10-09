@@ -83,11 +83,16 @@ jobs:
         os: [macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     env:
-      # macOS has sqlite3, so its checks must run; Windows has none.
-      TURTLE_REQUIRE_SQLITE3: ${{ matrix.os == 'macos-latest' && '1' || '' }}
+      # macOS has sqlite3 and Windows gets it below, so the checks must
+      # run on both.
+      TURTLE_REQUIRE_SQLITE3: "1"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Install sqlite3 (to check the files Turtle writes)
+        if: matrix.os == 'windows-latest'
+        run: choco install sqlite -y --no-progress
 
       - name: Set up Go
         uses: actions/setup-go@v5

@@ -77,7 +77,13 @@ func parseJSON(who, text string) object.Object {
 		}
 	}
 	if err != nil {
-		fatalKind(kindJSON, "%s: invalid JSON %s", who, describeJSONError(text, dec, err))
+		where := describeJSONError(text, dec, err)
+		// Go's own wording and positions change between Go versions; a
+		// mistake jsonSyntax finds is described the same on every one.
+		if offset, msg, bad := jsonSyntax(text); bad {
+			where = jsonPlace(text, int64(offset), msg)
+		}
+		fatalKind(kindJSON, "%s: invalid JSON %s", who, where)
 	}
 	return val
 }
@@ -183,6 +189,12 @@ func describeJSONError(text string, dec *json.Decoder, err error) string {
 			msg = "there's no JSON, the text is empty"
 		}
 	}
+	return jsonPlace(text, offset, msg)
+}
+
+// jsonPlace is "at line L, column C: msg", the place counted from the
+// start of text.
+func jsonPlace(text string, offset int64, msg string) string {
 	if offset > int64(len(text)) {
 		offset = int64(len(text))
 	}

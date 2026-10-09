@@ -1284,7 +1284,7 @@ import system
 [read] data.txt to l [end]
 show hi[], " ", l .
 show exists["helpers.trt"] .
-show scriptfolder[] == "` + scriptDir + `" .`))
+show scriptfolder[] == "` + strings.ReplaceAll(scriptDir, `\`, `\\`) + `" .`)) // a Windows path's \ is an escape in "..."
 	program := p.ParseProgram()
 	if errs := p.Errors(); len(errs) > 0 {
 		t.Fatal(errs)

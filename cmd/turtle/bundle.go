@@ -196,7 +196,7 @@ func writeBundle(out string, files []bundleFile) error {
 	// part of the file: it runs, though Apple's strict check (codesign -v)
 	// doesn't accept data after it. Copied to another Mac by download,
 	// macOS may call it damaged: xattr -d com.apple.quarantine program.
-	os.Remove(out) // Windows won't rename over a file
+	os.Remove(out) // an older program of that name
 	return os.Rename(tmp, out)
 }
 

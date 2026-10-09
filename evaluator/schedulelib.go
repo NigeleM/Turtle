@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"os/exec"
-	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -374,12 +373,7 @@ type commandResult struct {
 // exit code isn't an error: it's in the result. Trailing newlines are
 // dropped, as the shell's $(...) does.
 func runCommand(command, dir string) commandResult {
-	var cmd *exec.Cmd
-	if runtime.GOOS == "windows" {
-		cmd = exec.Command("cmd", "/C", command)
-	} else {
-		cmd = exec.Command("sh", "-c", command)
-	}
+	cmd := shellCommand(command)
 	cmd.Dir = dir
 	var out, errs bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &errs

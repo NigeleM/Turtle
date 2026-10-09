@@ -73,6 +73,13 @@ go build -o turtle ./cmd/turtle
 ./turtle path/to/script.turtle
 ```
 
+On Windows (PowerShell):
+
+```powershell
+go build -o turtle.exe ./cmd/turtle
+.\turtle.exe path\to\script.turtle
+```
+
 See [`docs/getting-started.md`](docs/getting-started.md) for more.
 
 ## A taste of Turtle

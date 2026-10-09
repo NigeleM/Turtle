@@ -122,7 +122,8 @@ func TestSQLiteRecoversOurJournal(t *testing.T) {
 	}()
 	forget(db)
 	out, err := exec.Command(bin, path, "SELECT group_concat(v) FROM c; PRAGMA integrity_check").CombinedOutput()
-	if err != nil || strings.TrimSpace(string(out)) != "a,b,c\nok" {
+	// sqlite3 on Windows ends its lines with \r\n.
+	if err != nil || strings.ReplaceAll(strings.TrimSpace(string(out)), "\r\n", "\n") != "a,b,c\nok" {
 		t.Fatalf("sqlite3 after our crash: %v\n%s", err, out)
 	}
 }

@@ -53,8 +53,9 @@ pages = fetchall[urls, map ["limit": 10, "skip_errors": true]]
 | `runall[commands [, settings]]` | a list of shell command lines | a list of maps: `output`, `errors` (what it printed to each), `code` (exit code) |
 | `queryall[db, queries [, settings]]` | a PostgreSQL or MySQL database, a list of queries (a query with `?` placeholders as `list [query, list of values]`) | a list of results, each a list of maps as `sql_query` gives |
 
-- `runall` runs each command with `sh -c` (`cmd /C` on Windows) in the
-  folder turtle was run in, where file paths resolve too. A nonzero exit code isn't an error: check `code`.
+- `runall` runs each command with `sh -c` (`cmd /c` on Windows, with any
+  quotes in the command reaching `cmd` as written: `"echo \"two words\""`)
+  in the folder turtle was run in, where file paths resolve too. A nonzero exit code isn't an error: check `code`.
   Trailing newlines are dropped from `output` and `errors`.
 - `queryall` opens one extra connection per item running at once and
   closes them when it's done, so the queries don't see a transaction

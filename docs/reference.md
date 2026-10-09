@@ -1372,8 +1372,9 @@ sys <rest of line>
 ```
 
 `sys` must be the first word of the statement. Everything after it,
-verbatim to end of line, runs through a shell with inherited stdin/stdout/
-stderr, in the folder turtle was run in (where file paths resolve too).
+verbatim to end of line, runs through a shell (`sh`, or `cmd` on Windows)
+with inherited stdin/stdout/stderr, in the folder turtle was run in (where
+file paths resolve too).
 
 ## Logging: `log`
 

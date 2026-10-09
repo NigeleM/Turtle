@@ -55,7 +55,8 @@ sys <rest of line>
 keyword, not a substring match, so it only triggers there (unlike the
 legacy interpreter, where any line merely *containing* "sys" anywhere
 would misfire into shell execution). Everything after it, verbatim to the
-end of the line, is passed to `sh -c`. It runs in the folder turtle was
+end of the line, is passed to `sh -c` (`cmd /c` on Windows, with any
+quotes in the command reaching `cmd` as written). It runs in the folder turtle was
 run in, where file paths resolve too. The child process inherits stdin,
 stdout, and stderr; its exit status is not checked or reported back to
 the Turtle program (`runall` in `import schedule` gives back the output

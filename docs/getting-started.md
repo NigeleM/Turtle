@@ -13,8 +13,16 @@ From the repository root:
 go build -o turtle ./cmd/turtle
 ```
 
-This produces a `turtle` binary in the current directory. You can also skip
-the build step for one-off runs:
+This produces a `turtle` binary in the current directory. On Windows,
+name it `turtle.exe` (Go doesn't add the `.exe` for you), and run it as
+`.\turtle.exe` wherever this page says `./turtle`:
+
+```powershell
+go build -o turtle.exe ./cmd/turtle
+.\turtle.exe path\to\script.turtle
+```
+
+You can also skip the build step for one-off runs:
 
 ```sh
 go run ./cmd/turtle path/to/script.turtle
@@ -152,3 +160,14 @@ answers; run them from their folders:
 cd testdata/bookshop && ../../turtle bookshop.turtle   # every library, ending with a web API
 cd testdata/linear && ../../turtle housing.turtle      # statistics and matrices on housing data
 ```
+
+In Windows PowerShell:
+
+```powershell
+cd testdata\bookshop; ..\..\turtle.exe bookshop.turtle
+cd testdata\linear; ..\..\turtle.exe housing.turtle
+```
+
+(The bookshop program ends by calling its own web API with a Unix shell
+command, which `cmd` on Windows doesn't run, so that last part is for
+macOS and Linux.)
