@@ -446,8 +446,10 @@ func learnRanges(shape *ast.Shape, vals []object.Object, within bool) {
 				items = append(items, x.Elements...)
 			}
 		}
+		// A set's items are all different: a narrow range may not hold
+		// enough of them, so they reach wide.
 		if shape.Item != nil {
-			learnRanges(shape.Item, items, within)
+			learnRanges(shape.Item, items, within && shape.Kind == "list")
 		}
 	case "map":
 		var keys, values []object.Object
@@ -460,7 +462,7 @@ func learnRanges(shape *ast.Shape, vals []object.Object, within bool) {
 			}
 		}
 		if shape.Key != nil {
-			learnRanges(shape.Key, keys, within)
+			learnRanges(shape.Key, keys, false) // all different, as a set's items
 		}
 		if shape.Item != nil {
 			learnRanges(shape.Item, values, within)

@@ -285,3 +285,79 @@ func captureStdout(t *testing.T, f func()) string {
 	os.Stdout = orig
 	return <-done
 }
+
+// Theories on text, maps, sets, nested lists and assembled values are
+// proved like those on numbers, whatever the seed: a set's items and a
+// map's keys (all different) have room to be.
+func TestTheoriesOfEveryKind(t *testing.T) {
+	defs := `assemble Pet [name, age]
+theory shout
+    abstract
+        shout gives the text t in capitals, with a ! after it.
+    notation shout t .
+    definition
+        return t at upper + "!"
+    theorem length of result == length of t + 1
+    proof
+        shout "hi" . is "HI!"
+theory [end]
+theory size_of
+    abstract
+        size_of is how many things are in the set s.
+    notation size_of s .
+    definition
+        return length of s
+    theorem result >= 0
+    proof
+        size_of set [1, 2] . is 2
+theory [end]
+theory keysum
+    abstract
+        keysum adds up the keys of the map m.
+    notation keysum m .
+    definition
+        t = 0
+        [loop][k in m at getkeys]
+            t = t + k
+        [loop][end]
+        return t
+    theorem result == result
+    proof
+        keysum map [1: "a", 2: "b"] . is 3
+theory [end]
+theory names_of
+    abstract
+        names_of gives the names of the pets ps.
+    notation names_of ps .
+    definition
+        return ps process p give name of p
+    theorem length of result == length of ps
+    proof
+        names_of list [Pet["Rex", 3]] . is list ["Rex"]
+theory [end]
+theory flat
+    abstract
+        flat joins the lists in xs into one list.
+    notation flat xs .
+    definition
+        out = list []
+        [loop][x in xs]
+            out = out + x
+        [loop][end]
+        return out
+    theorem length of result >= length of xs
+    proof
+        flat list [list [1], list [2, 3]] . is list [1, 2, 3]
+theory [end]
+`
+	for seed := 1; seed <= 20; seed++ {
+		src := "import data\nseed = " + strconv.Itoa(seed) + "\n" + defs +
+			"show hypothesis[shout], hypothesis[size_of], hypothesis[keysum], hypothesis[names_of], hypothesis[flat] .\n"
+		out, err := run(t, src, "")
+		// flat's theorem is false (an empty list in xs adds nothing), which
+		// most seeds find; either way it's tried without an error.
+		if err != nil || !strings.HasPrefix(out, "truetruetruetrue") {
+			t.Fatalf("seed %d: got %q, %v", seed, out, err)
+		}
+	}
+}
