@@ -151,7 +151,7 @@ var builtinModules = map[string]*object.Module{
 	"config":   {Name: "config", Funcs: []string{"config_read", "config_write"}},
 	"crypt":    {Name: "crypt", Funcs: []string{"hash", "filehash", "hmac", "encode", "decode", "uuid", "token", "passwordhash", "passwordcheck", "encrypt", "decrypt"}},
 	"schedule": {Name: "schedule", Funcs: []string{"fetchall", "runall", "queryall"}},
-	"random":   {Name: "random", Funcs: []string{"pick", "shuffle", "sample", "chance"}},
+	"random":   {Name: "random", Funcs: []string{"shuffle", "sample"}}, // and pick, chance: lib/random.turtle
 	"linear":   {Name: "linear", Funcs: linearFuncs},
 	"sql":      {Name: "sql", Funcs: []string{"sql_open", "sql_create", "sql_query", "sql_run", "sql_tables", "sql_load", "sql_save", "sql_update", "sql_delete", "sql_upsert", "sql_close"}},
 }

@@ -142,13 +142,9 @@ func fileDoc(name, src string) string {
 	lines := strings.Split(strings.ReplaceAll(src, "\r\n", "\n"), "\n")
 	var sb strings.Builder
 	sb.WriteString(name + "\n")
-	var top []string
-	i := 0
-	for ; i < len(lines) && strings.HasPrefix(strings.TrimSpace(lines[i]), "//"); i++ {
-		top = append(top, commentText(lines[i]))
-	}
-	if len(top) > 0 {
-		sb.WriteString("\n" + strings.Join(top, "\n") + "\n")
+	top, i := syntax.FileDoc(lines)
+	if top != "" {
+		sb.WriteString("\n" + top + "\n")
 	}
 	found := 0
 	var private []string

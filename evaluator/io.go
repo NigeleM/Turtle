@@ -147,7 +147,13 @@ func (it *Interpreter) evalDirectory(s *ast.DirectoryStatement, env *object.Envi
 // the same function name is fine; only calling that name unqualified is
 // an error (see resolveImported).
 func (it *Interpreter) evalImport(s *ast.ImportStatement, env *object.Environment) {
-	mod := it.loadModule(s.Path)
+	var mod *object.Module
+	if env.File() == builtinFilePrefix+s.Path+".turtle" {
+		// lib/data.turtle's own "import data": the library's Go half.
+		mod = builtinModules[s.Path]
+	} else {
+		mod = it.loadModule(s.Path)
+	}
 	if other, ok := env.FindImport(mod.Name); ok && other.Module != mod {
 		fatalKind(kindName, "import %s: this file already imports another module called %q — rename one of the files", s.Path, mod.Name)
 	}

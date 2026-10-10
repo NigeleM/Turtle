@@ -73,32 +73,60 @@ parser change is needed, since calls are ordinary `name[args]`.
 5. Document it on its library's page, `docs/library/<name>.md` (table, rules, a runnable example),
    add tests, and a section in `testdata/everything.turtle`.
 
-## Worked example: library functions written in Turtle
+## Worked example: the standard library in Turtle
 
-A builtin library can be partly written in Turtle (the hybrid standard
-library). `random` is: its sentence, `seed`, `shuffle` and `sample` are
-Go, and `pick` and `chance` are Turtle, in `evaluator/lib/random.turtle`.
+A library can be written in Turtle, wholly or in part, with no Go: put a
+file in `evaluator/lib/` and rebuild.
 
-Which to write in Turtle: code that does a little work around calls to
-other functions costs little more in Turtle (`chance` is about 2× its Go
-version). Code that goes through every item of a collection is 15× to
-150× slower in Turtle, so it belongs in Go (`shuffle` and `sample` were
-moved back after timing them; see `testdata/speed/test_speed.turtle`).
+- `evaluator/lib/data.turtle`, named after a library written in Go,
+  **adds to it**: `import data` gives its Go functions and these alike.
+- `evaluator/lib/geometry.turtle`, any other name, is **a new library**:
+  `import geometry`.
 
-1. Write the functions in `evaluator/lib/<name>.turtle`. It's built into
-   turtle (Go's `embed`) and runs once per program, when a file first
-   imports `<name>`. It can import other libraries, and use its own
-   library's sentences (the parser's `Enable(name)` turns them on, since
-   a library can't import itself).
-2. Add `<name>` to `turtleLibs` in `evaluator/turtlelibs.go`, and list
-   the exported functions in its `builtinModules` entry's `Funcs`, as for
-   a Go library. Only those are exported: the file's other functions are
-   private helpers. A library can mix Go and Turtle functions; a name the
-   `.turtle` file doesn't define goes to `callBuiltin` (Go).
-3. Fail with `fail "..."` (kind `custom`). Errors point at the caller's
-   line, not the library's, as a Go builtin's do.
-4. Document and test it as any library; `TestEveryBuiltinIsDocumented`
-   covers its functions too.
+```
+// evaluator/lib/data.turtle
+import data                        // here: data's Go half (mean, process, ...)
+
+// clamp keeps each number between low and high.
+//   clamp[list [3, 15, -2], 0, 10]      gives [ 3, 10, 0 ]
+def clamp[nums, low, high]
+    return nums process n give ~limit[n, low, high]
+def [end]
+
+// ~limit is a private helper: not exported, not documented.
+def ~limit[n, low, high]
+    return min of list [max of list [n, low], high]
+def [end]
+```
+
+- **What's exported:** the file's top-level `def`s and `assemble`
+  types. A `~` function is a private helper.
+- **Documentation:** each function's `turtle doc`, `help` and editor
+  hover is the comment above its `def` (`//` lines or a `//* *//`
+  block); a new library is described by the comment at the top of its
+  file. A function documented by hand in `evaluator/stdlibdocs.go`
+  keeps that text.
+- **Its own library's Go functions:** `import data` inside
+  `data.turtle` means the Go half, so `mean` and `process` are there. It
+  can import other libraries as any file can, and its own library's
+  sentences work without an import.
+- **Names:** a function in Turtle can't have the name of one its library
+  has in Go. That, and a file that doesn't parse, stops the build's
+  tests (`TestShippedStdlibInTurtle`) with the file and the name.
+- **Errors:** `fail "..."` (kind `custom`); they point at the caller's
+  line, as a Go function's do.
+- **Speed:** code that does a little work around other calls costs little
+  more in Turtle (`chance` is about 2× its Go version); code that goes
+  through every item of a collection is 15× to 150× slower, so it belongs
+  in Go (`shuffle` and `sample` stay there; see
+  `testdata/speed/test_speed.turtle`).
+
+`random` is built this way: `shuffle` and `sample` in Go, `pick` and
+`chance` in `evaluator/lib/random.turtle`. `evaluator/turtlelibs_test.go`
+adds a whole library in Turtle and extends `data`, for its tests. For
+colors in VS Code, add a new function's name to the list in
+`editors/vscode/syntaxes/turtle.tmLanguage.json`
+(`TestVSCodeGrammarIsCurrent` says which).
 
 ## Worked example: a new statement keyword
 

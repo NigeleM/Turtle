@@ -122,3 +122,42 @@ func blockText(lines []string) string {
 	}
 	return strings.Join(out, "\n")
 }
+
+// FileDoc is a file's description, and the line after it: the comment the
+// file starts with, // lines or a //* *// block. A comment directly above
+// a def or assemble (no blank line between) is that one's, not the file's.
+func FileDoc(lines []string) (string, int) {
+	var groups []string
+	k := 0
+	for k < len(lines) {
+		t := strings.TrimSpace(lines[k])
+		switch {
+		case strings.HasPrefix(t, "//*"):
+			end := -1 // the line the block closes on
+			if strings.Contains(t[3:], "*//") {
+				end = k
+			} else {
+				for j := k + 1; j < len(lines); j++ {
+					if strings.Contains(lines[j], "*//") {
+						end = j
+						break
+					}
+				}
+			}
+			if end < 0 {
+				return "", 0 // never closed: not a description
+			}
+			groups = append(groups, blockText(lines[k:end+1]))
+			k = end + 1
+		case strings.HasPrefix(t, "//"):
+			groups = append(groups, lineText(t))
+			k++
+		default:
+			if len(groups) > 0 && (strings.HasPrefix(t, "def ") || strings.HasPrefix(t, "assemble ")) {
+				return "", 0
+			}
+			return strings.Join(groups, "\n"), k
+		}
+	}
+	return strings.Join(groups, "\n"), k
+}
