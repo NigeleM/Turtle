@@ -2,7 +2,7 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
-## Unreleased
+## 0.9.184 (2026-10-10)
 
 - Theories on sets, and on maps with number keys, are proved again (0.9.183
   could stop with "wanted 5 different values").
