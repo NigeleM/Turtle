@@ -10,6 +10,7 @@ import (
 	"Turtle/ast"
 	"Turtle/evaluator"
 	"Turtle/lexer"
+	"Turtle/object"
 	"Turtle/parser"
 	"Turtle/syntax"
 	"Turtle/token"
@@ -103,7 +104,12 @@ func analyze(uri, path, src string, t *text) *analysis {
 				continue
 			}
 			ftext := newText(string(data), t.utf8)
-			a.symbols = append(a.symbols, definitions(fileURI(base+ext), string(data), ftext, false)...)
+			// An imported file's private (~) functions aren't this file's to use.
+			for _, sym := range definitions(fileURI(base+ext), string(data), ftext, false) {
+				if !object.IsPrivate(sym.name) {
+					a.symbols = append(a.symbols, sym)
+				}
+			}
 		}
 	}
 	a.symbols = append(definitions(uri, src, t, true), a.symbols...)
@@ -136,7 +142,7 @@ func lineRange(t *text, line int) rangeLSP {
 }
 
 var (
-	defLine      = regexp.MustCompile(`^(\s*)def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\[([^\]]*)\]`)
+	defLine      = regexp.MustCompile(`^(\s*)def\s+(~?[A-Za-z_][A-Za-z0-9_]*)\s*\[([^\]]*)\]`)
 	assembleLine = regexp.MustCompile(`^(\s*)assemble\s+([A-Za-z_][A-Za-z0-9_]*)\s*\[([^\]]*)\]`)
 	assignLine   = regexp.MustCompile(`^([A-Za-z_][A-Za-z0-9_]*)\s*(=|is\s)`)
 )

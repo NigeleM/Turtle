@@ -497,3 +497,12 @@ quiet[]
 		t.Errorf("quiet: %q", v)
 	}
 }
+
+// A private function's name, ~limit, is one word, for hover and go to
+// definition.
+func TestWordAtPrivateName(t *testing.T) {
+	tx := newText("x = ~limit[3]", true)
+	if w, start := tx.wordAt(7); w != "~limit" || start != 4 {
+		t.Errorf("got %q at %d", w, start)
+	}
+}

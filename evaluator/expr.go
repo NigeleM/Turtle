@@ -670,6 +670,13 @@ func (it *Interpreter) callByName(name string, args []object.Object, env *object
 		}
 		return it.applyMethod(&ast.MethodCallExpression{Method: name, Bracketed: true}, args[0], args[1:], env)
 	}
+	if object.IsPrivate(name) {
+		for _, im := range env.Imports() {
+			if im.Module.HasPrivate(name) {
+				fatalKind(kindName, "%s is private to %s: a ~ function is for its own file", name, im.Module.Name)
+			}
+		}
+	}
 	fatalKind(kindName, "undefined function %q", name)
 	return nil
 }
@@ -765,7 +772,7 @@ func (it *Interpreter) callImported(im *object.Import, name string, args []objec
 func resolveImported(env *object.Environment, name string) *object.Import {
 	var found []*object.Import
 	for _, im := range env.Imports() {
-		if im.Allows(name) && im.Module.ExportsFunction(name) {
+		if im.Allows(name) && im.Module.Reachable(name, env.IsTestFile()) {
 			found = append(found, im)
 		}
 	}
@@ -790,7 +797,10 @@ func qualifiedImport(env *object.Environment, module, name string) *object.Impor
 	if !ok {
 		fatalKind(kindName, "unknown module %q in \"%s %s\" — import it first", module, module, name)
 	}
-	if !im.Module.ExportsFunction(name) {
+	if !im.Module.Reachable(name, env.IsTestFile()) {
+		if im.Module.HasPrivate(name) {
+			fatalKind(kindName, "%s is private to %s: a ~ function is for its own file", name, module)
+		}
 		fatalKind(kindName, "module %q has no function %q", module, name)
 	}
 	if !im.Allows(name) {

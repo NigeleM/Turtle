@@ -100,5 +100,8 @@ func (t *text) wordAt(offset int) (string, int) {
 	for end < len(t.src) && isWord(t.src[end]) {
 		end++
 	}
+	if start > 0 && t.src[start-1] == '~' { // a private function: ~limit
+		start--
+	}
 	return t.src[start:end], start
 }

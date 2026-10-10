@@ -1,0 +1,8 @@
+// test_private_listed.turtle: a test file can list a private function in
+// its import.
+import test
+import lib/limits [limit, ~limit]
+
+def test_listed[]
+    check ~limit[50, 0, 10] == limit[50, 0, 10] .
+def [end]

@@ -2,6 +2,12 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## Unreleased
+
+- Private functions: a function named with `~` (`def ~limit[...]`) can
+  be used only in its own file, and by test files, which can test both
+  public and private functions.
+
 ## 0.9.179 (2026-10-09)
 
 - `[read]`, `[write]`, `[append]` and `[directory]` take any expression

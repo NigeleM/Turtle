@@ -1,16 +1,16 @@
 // random.turtle: the random library's functions written in Turtle, pick and
 // chance, on the parts written in Go (the "random" sentence, seed,
 // shuffle and sample). It's built into turtle; "import random" loads it.
-// items_of is a helper, private to it.
+// ~items_of is a helper, private to it.
 //
 // shuffle and sample go through every item, which is far faster in Go
 // (a Turtle shuffle of 1,000 items took 700µs, Go's 5µs), so they stay
 // there. pick and chance do a little work around one random value, which
 // Turtle does quickly (about 2µs and 0.25µs a call).
 
-// items_of is what pick chooses from: a list's or set's items, a map's
+// ~items_of is what pick chooses from: a list's or set's items, a map's
 // keys, a string's characters.
-def items_of[x, fn]
+def ~items_of[x, fn]
     safe
         return change x to list
     handle [] e .
@@ -19,7 +19,7 @@ def items_of[x, fn]
 def [end]
 
 def pick[x]
-    items = items_of[x, "pick"]
+    items = ~items_of[x, "pick"]
     if ] length of items == 0 [
         fail "pick: {x} is empty, so there's nothing to pick"
     if [end]

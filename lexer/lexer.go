@@ -176,7 +176,8 @@ func (l *Lexer) nextToken() token.Token {
 		}
 		tok.Type, tok.Literal = token.PERIOD, "."
 	default:
-		if isLetter(l.ch) {
+		// ~ before a name makes it a private function's: ~limit.
+		if isLetter(l.ch) || l.ch == '~' && isLetter(l.peekChar()) {
 			tok.Literal = l.readIdentifier()
 			// `sys` is only ever a leading statement keyword: when it starts a line, the rest of that line is
 			// captured raw as an arbitrary shell command rather than
@@ -268,6 +269,9 @@ func (l *Lexer) captureRestOfLine() string {
 
 func (l *Lexer) readIdentifier() string {
 	start := l.pos
+	if l.ch == '~' {
+		l.readChar()
+	}
 	for isLetter(l.ch) || isDigit(l.ch) {
 		l.readChar()
 	}

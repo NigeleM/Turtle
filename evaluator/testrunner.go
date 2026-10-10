@@ -152,6 +152,7 @@ func runTestFile(path, name string, out io.Writer) testCounts {
 	}
 	it := New(filepath.Dir(path))
 	it.Script = filepath.Base(path)
+	it.Global.MarkTestFile() // a test may test its imports' ~ functions
 	defer it.closeDatabases()
 	if fe, exited := it.runTop(program); fe != nil || exited {
 		msg := "it called exit[]"

@@ -1,11 +1,24 @@
 // Helper module for everything.turtle: exports functions and an assembled
-// type; its variables stay private.
+// type; its variables and its ~ functions stay private.
 assemble Point [x, y]
 
 SCALE = 10
 
 def scaled[n]
-    return n * SCALE
+    return ~times[n, SCALE]
+def [end]
+
+// ~times and times are two functions: only times is exported.
+def ~times[a, b]
+    return a * b
+def [end]
+
+def times[a, b]
+    return "public times"
+def [end]
+
+def area[w, h]
+    return ~times[w, h]
 def [end]
 
 def now[]

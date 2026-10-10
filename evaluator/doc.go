@@ -151,11 +151,19 @@ func fileDoc(name, src string) string {
 		sb.WriteString("\n" + strings.Join(top, "\n") + "\n")
 	}
 	found := 0
+	var private []string
 	for n, line := range lines {
 		if n < i || (!strings.HasPrefix(line, "def ") && !strings.HasPrefix(line, "assemble ")) {
 			continue
 		}
 		head := strings.TrimSpace(line)
+		// A private (~) function is for the file itself: named at the end,
+		// not documented for those who import it.
+		if _, rest, _ := strings.Cut(head, " "); strings.HasPrefix(rest, "~") {
+			name, _, _ := strings.Cut(rest, "[")
+			private = append(private, strings.TrimSpace(name))
+			continue
+		}
 		if strings.HasPrefix(head, "def ") {
 			head = strings.TrimSpace(strings.TrimPrefix(head, "def "))
 			if strings.HasPrefix(head, "[") {
@@ -180,6 +188,9 @@ func fileDoc(name, src string) string {
 	}
 	if found == 0 {
 		sb.WriteString("\n(no functions or assembled types at the top level)\n")
+	}
+	if len(private) > 0 {
+		fmt.Fprintf(&sb, "\nPrivate to this file: %s\n", strings.Join(private, ", "))
 	}
 	return sb.String()
 }

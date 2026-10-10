@@ -63,7 +63,8 @@ test_orders.turtle
   `test_lists.turtle`. A test file must `import test`.
 - **Test functions** are the top-level functions named `test_` + anything,
   with no arguments: `def test_total[]`. Other functions in the file are
-  helpers and don't run on their own.
+  helpers and don't run on their own, private ones (`def ~make_order[]`)
+  included.
 - **Both** are needed: a `test_` function in an ordinary file is just a
   function, and nothing runs it.
 
@@ -146,6 +147,57 @@ An error inside the library names the library's file and line:
 Don't start a library's name with `test_`: `turtle test` would take it
 for a test file (and ask for `import test`). See
 `testdata/testlib/test_import.turtle` for a full example.
+
+### Public and private functions
+
+A test file can test a library's private (`~`) functions as well as its
+public ones, the same ways: by name, by the library's name, or listed in
+the import. A program can't use them; a test can, so the parts can be
+tested on their own.
+
+`lib/limits.turtle`:
+
+```
+// limit keeps n between low and high.
+def limit[n, low, high]
+    if ] low > high [
+        fail "limit: low is above high"
+    if [end]
+    return ~limit[n, low, high]
+def [end]
+
+// ~limit does the work, for values already checked.
+def ~limit[n, low, high]
+    return min of list [max of list [n, low], high]
+def [end]
+```
+
+`test_limits.turtle`:
+
+```
+import test
+import lib/limits                  // or: import lib/limits [limit, ~limit]
+
+def test_limit[]
+    check limit[15, 0, 10] == 10 .
+    check limit[1, 5, 0] fails [custom] .
+def [end]
+
+def test_private_limit[]
+    check ~limit[15, 0, 10] == 10 .
+    check limits ~limit[-5, 0, 10] == 0 .
+    verify list [1, 5, 9] each n give ~limit[n, 0, 10] == n .
+def [end]
+
+// The private one gives the same answers as the public one.
+def test_private_matches_public[]
+    validate ~limit[n, 0, 10] with n as integer matches limit[n, 0, 10] .
+def [end]
+```
+
+Only the test file gets in: the libraries it imports stay as private to
+each other as in a program, so a test can check that too
+(`check peek[] fails [name] .`). See `testdata/testlib/test_private.turtle`.
 
 ## check: one fact
 

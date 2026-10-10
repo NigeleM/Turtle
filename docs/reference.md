@@ -1302,6 +1302,35 @@ import keeps calling the module's other functions, even ones you didn't
 import, and those never leak into your program. A module's own imports
 aren't passed on to the files that import it.
 
+**Private functions: `~`.** A function whose name starts with `~` is
+private to its file: its own code uses it like any other,
+and files that import the module can't, by any route (`~limit[...]`,
+`shop ~limit[...]` and `import shop [~limit]` all say it's private).
+`~limit` and `limit` are two different names, so a public function can
+check its values and hand the work to a private one:
+
+```
+// limit keeps n between low and high.
+def limit[n, low, high]
+    if ] low > high [
+        fail "limit: low is above high"
+    if [end]
+    return ~limit[n, low, high]
+def [end]
+
+// ~limit does the work, for values already checked.
+def ~limit[n, low, high]
+    return min of list [max of list [n, low], high]
+def [end]
+```
+
+Only a function's name can start with `~`. Variables are private to their
+file already, and an assembled type stays public, since the values a
+module gives back are its users' to work with. A test file run by
+`turtle test` can use the private functions of the modules it imports, to
+test them (see [`testing.md`](testing.md#public-and-private-functions)). `turtle doc` on the file documents its public
+functions and lists the private ones at the end.
+
 **Plain and qualified names.** Imported functions are called by their
 plain name: `t = now[]`. You can always name the module explicitly by
 writing it in front, separated by a space: `t = time now[]`. Without

@@ -3667,3 +3667,52 @@ show table[rows] .`
 		t.Errorf("got\n%s\nwant\n%s", got, want)
 	}
 }
+
+// A ~ function or type is private to its file: it works there, as a call,
+// a value and a sentence, and importers can't reach it, by any route.
+func TestPrivateFunctions(t *testing.T) {
+	dir := t.TempDir()
+	lib := `import data
+def limit[n, low, high]
+    return ~limit[n, low, high]
+def [end]
+def ~limit[n, low, high]
+    return min of list [max of list [n, low], high]
+def [end]
+def ~double[x]
+    return x * 2
+def [end]
+def twice[nums]
+    f = ~double
+    return nums process n give f[n] + n ~double - n * 2
+def [end]
+`
+	if err := os.WriteFile(filepath.Join(dir, "shop.turtle"), []byte(lib), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got, err := runIn(t, dir, "import shop\nshow limit[15, 0, 10], \" \", twice[list [1, 2]], \" \", shop limit[-1, 0, 3] .", "")
+	if err != nil || strings.TrimSpace(got) != "10 [ 2, 4 ] 0" {
+		t.Errorf("using the public functions: %q, %v", got, err)
+	}
+	for src, want := range map[string]string{
+		"import shop\nx = ~limit[1, 2, 3]":      "~limit is private to shop: a ~ function is for its own file",
+		"import shop\nx = shop ~limit[1, 2, 3]": "~limit is private to shop: a ~ function is for its own file",
+		"import shop [limit, ~limit]":           "import shop: ~limit is private to shop",
+		"import shop\nx = shop ~nothing[1]":     `module "shop" has no function "~nothing"`,
+	} {
+		_, err := runIn(t, dir, src, "")
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%s:\n got  %v\n want %q", src, err, want)
+		}
+	}
+}
+
+// turtle doc on a file documents what importers can use, and names the
+// private functions at the end.
+func TestDocOfAFileWithPrivateFunctions(t *testing.T) {
+	src := "// shop: prices.\n\n// limit keeps n in range.\ndef limit[n]\n    return ~limit[n]\ndef [end]\n\n// ~limit does the work.\ndef ~limit[n]\n    return n\ndef [end]\n"
+	got := fileDoc("shop.turtle", src)
+	if strings.Contains(got, "~limit does the work") || !strings.Contains(got, "limit keeps n in range") || !strings.Contains(got, "Private to this file: ~limit") {
+		t.Errorf("got:\n%s", got)
+	}
+}

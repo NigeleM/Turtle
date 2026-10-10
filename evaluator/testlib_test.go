@@ -454,3 +454,33 @@ func TestSpeedFile(t *testing.T) {
 		t.Fatalf("exit %d:\n%s", code, out)
 	}
 }
+
+// A test file tests a module's public and private (~) functions; the
+// module's own imports stay private to each other; a ~ function in a test
+// file is a helper, not a test.
+func TestTestingPrivateFunctions(t *testing.T) {
+	files := map[string]string{
+		"shop.turtle": "def limit[n]\n    return ~limit[n]\ndef [end]\ndef ~limit[n]\n    return n * 2\ndef [end]\n",
+		"peek.turtle": "import shop\ndef peek[]\n    return ~limit[1]\ndef [end]\n",
+		"test_shop.turtle": `import test
+import shop
+import peek
+def test_both[]
+    check limit[2] == 4 .
+    check ~limit[3] == 6 .
+    check shop ~limit[4] == 8 .
+    validate ~limit[n] with n as integer matches limit[n] .
+def [end]
+def test_modules_stay_private[]
+    check peek[] fails [name] .
+def [end]
+def ~helper_not_a_test[]
+    check false .
+def [end]
+`,
+	}
+	out, code := testRun(t, files)
+	if code != 0 || !strings.Contains(out, "ok: 2 passed, 0 failed") || strings.Contains(out, "helper_not_a_test") {
+		t.Errorf("exit %d:\n%s", code, out)
+	}
+}

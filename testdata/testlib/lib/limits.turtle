@@ -1,0 +1,26 @@
+// limits.turtle: a public function that checks its values, and the
+// private one that does the work. test_private.turtle tests both.
+import data
+
+// limit keeps n between low and high.
+def limit[n, low, high]
+    if ] low > high [
+        fail "limit: low ({low}) is above high ({high})"
+    if [end]
+    return ~limit[n, low, high]
+def [end]
+
+// ~limit does the work, for values already checked.
+def ~limit[n, low, high]
+    return min of list [max of list [n, low], high]
+def [end]
+
+// ~spread is a private helper with no public partner.
+def ~spread[nums]
+    return max of nums - min of nums
+def [end]
+
+// in_range says whether every number is between low and high.
+def in_range[nums, low, high]
+    return ~spread[nums] <= high - low && min of nums >= low
+def [end]

@@ -1,0 +1,37 @@
+// test_private.turtle: a test file tests a module's public functions and
+// its private (~) ones, by every route; a program can't reach them.
+import test
+import lib/limits
+import lib/peeker
+
+def test_public_functions[]
+    check limit[15, 0, 10] == 10 .
+    check limit[-3, 0, 10] == 0 .
+    check limit[1, 5, 0] fails [custom] .
+    check in_range[list [2, 4, 9], 0, 10] .
+    check !in_range[list [2, 40], 0, 10] .
+def [end]
+
+def test_private_functions[]
+    check ~limit[15, 0, 10] == 10 .
+    check limits ~limit[-5, 0, 10] == 0 .
+    // The private one doesn't check its values: limit would fail here.
+    check ~limit[5, 10, 0] == 0 .
+    check ~spread[list [3, 9, 4]] == 6 .
+    verify list [1, 5, 9] each n give ~limit[n, 0, 10] == n .
+def [end]
+
+def test_private_against_public[]
+    validate ~limit[n, 0, 10] with n as integer from -100 to 100
+        that result >= 0 && result <= 10 .
+    validate ~limit[n, 0, 10] with n as integer matches limit[n, 0, 10] .
+def [end]
+
+def test_modules_stay_private_to_each_other[]
+    check peek[] fails [name] .
+def [end]
+
+// ~not_a_test is private, so turtle test doesn't run it as a test.
+def ~not_a_test[]
+    check false .
+def [end]

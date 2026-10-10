@@ -120,7 +120,7 @@
     "definitions": {
       "patterns": [
         {
-          "match": "\\b(def)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "match": "\\b(def)\\s+(~?[A-Za-z_][A-Za-z0-9_]*)",
           "captures": {
             "1": {
               "name": "keyword.other.turtle"
@@ -169,7 +169,7 @@
     },
     "calls": {
       "name": "entity.name.function.call.turtle",
-      "match": "\\b[A-Za-z_][A-Za-z0-9_]*(?=\\[)"
+      "match": "~?\\b[A-Za-z_][A-Za-z0-9_]*(?=\\[)"
     },
     "libraryWords": {
       "name": "keyword.other.library.turtle",

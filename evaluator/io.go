@@ -152,7 +152,10 @@ func (it *Interpreter) evalImport(s *ast.ImportStatement, env *object.Environmen
 		fatalKind(kindName, "import %s: this file already imports another module called %q — rename one of the files", s.Path, mod.Name)
 	}
 	for _, n := range s.Names {
-		if !mod.Exports(n) {
+		if !mod.Exports(n) && !mod.Reachable(n, env.IsTestFile()) {
+			if object.IsPrivate(n) {
+				fatalKind(kindName, "import %s: %s is private to %s (a ~ function is for its own file)", s.Path, n, s.Path)
+			}
 			fatalKind(kindName, "import %s: module %q has no %q", s.Path, s.Path, n)
 		}
 	}

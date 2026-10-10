@@ -1,0 +1,7 @@
+// peeker.turtle: a module that tries to use another module's private
+// function. Modules stay private to each other, even under turtle test.
+import lib/limits
+
+def peek[]
+    return ~limit[50, 0, 10]
+def [end]

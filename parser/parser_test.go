@@ -411,3 +411,31 @@ func TestWarnings(t *testing.T) {
 		}
 	}
 }
+
+// ~ marks a private function or type; anything else with it is an error.
+func TestPrivateNames(t *testing.T) {
+	good := "def ~limit[n]\n    return n\ndef [end]\nx = ~limit[1]\n"
+	p := New(lexer.New(good))
+	p.ParseProgram()
+	if errs := p.Errors(); len(errs) > 0 {
+		t.Errorf("private function and type: %v", errs)
+	}
+	for src, what := range map[string]string{
+		"~x = 5":                                      "a variable",
+		"~x is 5 .":                                   "a variable",
+		"def f[~a]\n    return 1\ndef [end]":          "a parameter",
+		"g = [~a] give ~a":                            "a parameter",
+		"[loop][~i in list [1]]\n[loop][end]":         "a loop variable",
+		"assemble P [~x]":                             "a field",
+		"assemble ~Box [w]":                           "an assembled type",
+		"[read] f.txt to ~lines [end]":                "a variable",
+		"safe\n    x = 1\nhandle [] ~e .\nsafe [end]": "an error variable",
+	} {
+		p := New(lexer.New(src))
+		p.ParseProgram()
+		errs := p.Errors()
+		if len(errs) == 0 || !strings.Contains(errs[0], "can't be "+what+" name: ~ marks a private function") {
+			t.Errorf("%q: %v", src, errs)
+		}
+	}
+}

@@ -17,7 +17,7 @@ import strings
 import system
 import json
 import sql
-import everything_lib [scaled, total, Point, now]
+import everything_lib [scaled, total, Point, now, area, times]
 
 failures = list []
 
@@ -234,6 +234,13 @@ check["sentence call imported", list [1, 2, 3] + list [] == list [1, 2, 3], true
 lst = list [1, 2, 3]
 check["sentence call", lst total, 6]
 check["qualified on clash", everything_lib now[], "lib now"]
+check["a module's ~ helper works inside it", everything_lib area[3, 4], 12]
+check["~times and times are different", everything_lib times[2, 3], "public times"]
+safe
+    x = everything_lib ~times[2, 3]
+handle [name] err .
+safe [end]
+check["a ~ function is private", message of err, "~times is private to everything_lib: a ~ function is for its own file"]
 show "modules ok" .
 
 // ---------- assembled types ----------

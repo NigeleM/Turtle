@@ -553,6 +553,7 @@ func (p *Parser) parseIdentifierLeadStatement() ast.Statement {
 // period. curToken is the name; peek is '='.
 func (p *Parser) parseAssignOrInputStatement() ast.Statement {
 	tok := p.curToken
+	p.notPrivate(tok, "a variable")
 	name := p.curToken.Literal
 	p.nextToken() // name -> '='
 
@@ -587,6 +588,7 @@ func (p *Parser) parseAssignOrInputStatement() ast.Statement {
 // "name is receiver at method arg, arg ." curToken is name; peek is IS.
 func (p *Parser) parseIsStatement() ast.Statement {
 	tok := p.curToken
+	p.notPrivate(tok, "a variable")
 	name := p.curToken.Literal
 	p.nextToken() // name -> IS
 	p.nextToken() // IS -> first token of receiver
@@ -761,6 +763,7 @@ func (p *Parser) parseSafeStatement() ast.Statement {
 	} else if !p.expectPeek(token.IDENT) {
 		return nil
 	}
+	p.notPrivate(p.curToken, "an error variable")
 	name := p.curToken.Literal
 	if !p.expectPeek(token.PERIOD) {
 		return nil
@@ -1230,6 +1233,9 @@ func (p *Parser) parseLoopStatement() ast.Statement {
 	if p.isEachHeader() {
 		kind = ast.LoopEach
 		vars, iterable = p.parseEachHeader()
+		for _, v := range vars {
+			p.notPrivate(token.Token{Literal: v, Line: tok.Line, Pos: tok.Pos}, "a loop variable")
+		}
 	} else {
 		kind, init, cond, post = p.parseLoopHeader()
 	}
@@ -1438,6 +1444,7 @@ func (p *Parser) parseFileReadStatement() ast.Statement {
 	if !p.expectPeek(token.IDENT) {
 		return nil
 	}
+	p.notPrivate(p.curToken, "a variable")
 	varName := p.curToken.Literal
 	if !p.expectPeek(token.LBRACKET) {
 		return nil
@@ -1513,6 +1520,7 @@ func (p *Parser) parseDirectoryStatement() ast.Statement {
 	if !p.expectPeek(token.IDENT) {
 		return nil
 	}
+	p.notPrivate(p.curToken, "a variable")
 	varName := p.curToken.Literal
 	if !p.expectPeek(token.LBRACKET) {
 		return nil
@@ -1680,6 +1688,7 @@ func (p *Parser) parseBracketFunctionLiteral() ast.Expression {
 	}
 	for !p.curTokenIs(token.RBRACKET) {
 		p.nextToken()
+		p.notPrivate(p.curToken, "a parameter")
 		params = append(params, p.curToken.Literal)
 		p.nextToken()
 	}
@@ -2171,6 +2180,7 @@ func (p *Parser) parseAssembleStatement() ast.Statement {
 	} else if !p.expectPeek(token.IDENT) {
 		return nil
 	}
+	p.notPrivate(p.curToken, "an assembled type")
 	name := p.curToken.Literal
 	if !p.expectPeek(token.LBRACKET) {
 		return nil
@@ -2186,6 +2196,7 @@ func (p *Parser) parseAssembleStatement() ast.Statement {
 			p.skipLine()
 			return nil
 		}
+		p.notPrivate(p.curToken, "a field")
 		f := p.curToken.Literal
 		if seen[f] {
 			p.errorf("assemble %s: field %q listed twice", name, f)
@@ -2263,10 +2274,22 @@ func (p *Parser) reservedNameError(tok token.Token, what string) {
 		tok.Literal, what, tok.Literal)
 }
 
-// checkName reports a reserved word where a name is expected.
+// checkName reports a reserved word, or a private (~) name, where a
+// name is expected.
 func (p *Parser) checkName(tok token.Token, what string) {
 	if p.isReservedWord(tok) {
 		p.reservedNameError(tok, what)
+	}
+	p.notPrivate(tok, what)
+}
+
+// notPrivate reports a ~name used for something other than a function:
+// ~ marks a function private to its file. A file's variables are private
+// to it already, and its assembled types stay public, since the values
+// it gives back are its users' to work with.
+func (p *Parser) notPrivate(tok token.Token, what string) {
+	if len(tok.Literal) > 1 && tok.Literal[0] == '~' {
+		p.errorAt(tok.Line, tok.Pos, "%s can't be %s name: ~ marks a private function (def %s[...]), and only a function's name can start with it", tok.Literal, what, tok.Literal)
 	}
 }
 

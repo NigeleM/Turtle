@@ -30,6 +30,7 @@ type Environment struct {
 	imports   []*Import
 	loop      bool   // a loop's scope: see NewLoopEnvironment
 	file      string // root only: the module's file as errors show it, "" for the main script
+	testFile  bool   // root only: a test file run by turtle test, which may use its imports' ~ functions
 	// captured is set once a function (a give, a nested def, a saved
 	// scroll, an assembled type) keeps this scope; a scope nobody kept
 	// can be reused for the next loop pass or call (see Reuse).
@@ -66,6 +67,15 @@ func (e *Environment) SetFile(name string) { e.root().file = name }
 
 // File is the file the code running in e comes from (see SetFile).
 func (e *Environment) File() string { return e.root().file }
+
+// MarkTestFile marks a global environment as a test file's, run by
+// turtle test: its code may use the private (~) functions of the modules
+// it imports, so a test can test them. Those modules stay as private to
+// each other, and to programs, as ever.
+func (e *Environment) MarkTestFile() { e.root().testFile = true }
+
+// IsTestFile reports whether the code running in e is a test file's.
+func (e *Environment) IsTestFile() bool { return e.root().testFile }
 
 // binding is one name and its value.
 type binding struct {
