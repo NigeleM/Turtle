@@ -2,7 +2,7 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
-## Unreleased
+## 0.9.185 (2026-10-10)
 
 - `!w type string` is "w isn't text": `!` takes the whole type check (it
   was `(!w) type string`, always false). `s at upper type string` works.
