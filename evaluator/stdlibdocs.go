@@ -736,9 +736,10 @@ characters from 0.
 `,
 
 	"pattern": `Patterns (regular expressions) in text. Write patterns in backticks,
-which keep { } and \ exactly as typed: \d is a digit, \s a space, \w a
-letter, digit or _; {3} three of the one before, + one or more, * any
-number, ? maybe; [abc] one of; ^ start, $ end; ( ) a group. The syntax is
+which keep { } and \ exactly as typed: \d is a digit, \s a space, \w an
+English letter, digit or _ (\p{L} is a letter in any language: é, ß, я);
+{3} three of the one before, + one or more, * any number, ? maybe; [abc]
+one of; ^ start, $ end; ( ) a group. The syntax is
 Go's (RE2), so no pattern can take forever. A pattern that isn't valid is
 an error of kind pattern.
 
@@ -755,8 +756,9 @@ an error of kind pattern.
     findall["a1 b22", ` + "`" + `\d+` + "`" + `]          // [ "1", "22" ]
 
 ### replaceall[text, pattern, with]
-  Replaces every match. In with, $1 is the first group, $2 the second
-  (write with in backticks too, so {} and $ stay as typed).
+  Replaces every match. In with, $1 (or ${1}) is the first group, $name
+  a named one, $$ a $; a $ that names no group stays as written ("$10").
+  Write with in backticks too: in "...", {1} is interpolation.
   Example:
     replaceall["2026-10-06", ` + "`" + `(\d+)-(\d+)-(\d+)` + "`" + `, ` + "`" + `$3/$2/$1` + "`" + `]   // "06/10/2026"
 
@@ -767,7 +769,8 @@ an error of kind pattern.
     splitby["a, b;c", ` + "`" + `[,;]\s*` + "`" + `]      // [ "a", "b", "c" ]
 
 ### groups[text, pattern]
-  The parts in ( ) of the first match.
+  The parts in ( ) of the first match; a group that took no part in it
+  is "".
   Gives back: a list of text, or none if nothing matches.
   Example:
     groups["2026-10-06", ` + "`" + `(\d+)-(\d+)` + "`" + `]    // [ "2026", "10" ]

@@ -1,0 +1,47 @@
+// test_pattern.turtle: the pattern library as programs use it: checking
+// codes, pulling numbers out, rewriting dates and names, replacements
+// with $ in them, letters in any language, and patterns made on the fly.
+import test
+import data
+import system
+import pattern
+
+def test_codes_and_numbers[]
+    codes = list ["ab-1234", "AB-12", "zz-0000"]
+    good = codes keep c give matches[c, `^[a-z]{2}-\d{4}$`]
+    check good == list ["ab-1234", "zz-0000"] .
+    check findall["a1 b22 c333", `\d+`] == list ["1", "22", "333"] .
+    check splitby["a, b;c", `[,;]\s*`] == list ["a", "b", "c"] .
+    check groups["2026-10-06", `(\d+)-(\d+)`] == list ["2026", "10"] .
+    check groups["ab", `(a)(x)?(b)`] == list ["a", "", "b"] .
+    check groups["none here", `\d+`] is none .
+def [end]
+
+def test_replacements[]
+    check replaceall["2026-10-06", `(\d+)-(\d+)-(\d+)`, `$3/$2/$1`] == "06/10/2026" .
+    check replaceall["a-b", `(\w)-(\w)`, `$1x$2`] == "axb" .
+    check replaceall["a-b", `(\w)-(\w)`, `${1}x${2}`] == "axb" .
+    check replaceall["ann lee", `(?P<first>\w+) (?P<last>\w+)`, `$last, $first`] == "lee, ann" .
+    check replaceall["price: 5", `\d+`, "$10"] == "price: $10" .
+    check replaceall["cost", `cost`, `$$ cost`] == "$ cost" .
+    check replaceall["a.b", `\.`, "$"] == "a$b" .
+    check replaceall["x", `x`, `${nope}`] == `${nope}` .
+def [end]
+
+def test_letters_in_any_language[]
+    check findall["héllo wörld", `\w+`] == list ["h", "llo", "w", "rld"] .
+    check findall["héllo wörld", `\p{L}+`] == list ["héllo", "wörld"] .
+    check matches["straße", `^\p{L}+$`] .
+def [end]
+
+def test_patterns_made_on_the_fly_dont_pile_up[]
+    before = memory[]
+    [loop][i in range[0, 20000]]
+        ok = matches["item-" + i, "^item-" + i + "$"]
+    [loop][end]
+    check memory[] - before < 20000000 .
+def [end]
+
+def test_a_bad_pattern_is_a_pattern_error[]
+    check matches["x", `(`] fails [pattern] .
+def [end]

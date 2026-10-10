@@ -14,9 +14,9 @@ as typed, so `{3}` isn't interpolation and `\d` isn't an escape (see
 |---|---|---|
 | `matches` | text, pattern | `true` if the pattern is found anywhere in the text (`^` and `$` to match all of it) |
 | `findall` | text, pattern | a list of every match, in order (empty if none) |
-| `replaceall` | text, pattern, with | the text with every match replaced; in `with`, `$1` is the first group |
+| `replaceall` | text, pattern, with | the text with every match replaced; in `with`, `$1` is the first group (see below) |
 | `splitby` | text, pattern | a list of the pieces between matches |
-| `groups` | text, pattern | a list of the parts in `( )` of the first match, or `none` if nothing matches |
+| `groups` | text, pattern | a list of the parts in `( )` of the first match (`""` for a group that took no part), or `none` if nothing matches |
 
 ```
 import pattern
@@ -32,9 +32,33 @@ show splitby["a, b;c", `[,;]\s*`] .                        // [ "a", "b", "c" ]
 parts = groups["2026-10-06", `(\d+)-(\d+)`]               // [ "2026", "10" ]
 ```
 
-The pattern words: `\d` a digit, `\w` a letter, digit or `_`, `\s` a
+The pattern words: `\d` a digit, `\w` an English letter, digit or `_`, `\s` a
 space, `.` any character; `[abc]` one of, `[^abc]` none of; `+` one or
 more, `*` any number, `?` maybe, `{3}` / `{2,4}` exactly / between; `^`
 start, `$` end; `( )` a group; `a|b` either. The syntax is Go's (RE2):
 no backreferences, and no pattern can take forever. Patterns are compiled
 once and reused. A pattern that isn't valid is an error of kind `pattern`.
+
+**Letters in any language.** `\w` and `\b` (a word's edge) know only
+English letters: ``findall["héllo", `\w+`]`` is `[ "h", "llo" ]`. For
+letters in any language use `\p{L}`, and `[\p{L}\p{N}_]` for a word
+character:
+
+```
+show findall["héllo wörld", `\p{L}+`] .        // [ "héllo", "wörld" ]
+```
+
+**In the replacement**, `$1` or `${1}` is the first group, `$name` or
+`${name}` a named group (`(?P<name>...)`), and `$$` a `$`. A number ends
+where the digits do (`$1x` is group 1, then `x`), and a `$` that names no
+group of the pattern stays as written:
+
+```
+show replaceall["a-b", `(\w)-(\w)`, `$1x$2`] .           // axb
+show replaceall["price: 5", `\d+`, "$10"] .              // price: $10
+show replaceall["ann lee", `(?P<first>\w+) (?P<last>\w+)`, `$last, $first`] .   // lee, ann
+```
+
+Write the replacement in backticks too: inside `"..."`, `{1}` is
+interpolation, so `"${1}"` is `"$1"`.
+

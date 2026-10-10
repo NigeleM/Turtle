@@ -8,6 +8,14 @@ Turtle is pre-release (0.x). Breaking changes are listed first.
   checked on that result (it ran once more per theorem: three times as
   often for two theorems).
 - `reportfile` set inside a function counts for `diagnose[...]` there.
+- `pattern`: patterns made as a program goes no longer pile up in memory
+  (at most 1,000 are kept compiled).
+- `replaceall`: a `$` that names no group stays as written (`"$10"`), and
+  a group number ends where its digits do (`$1x` is group 1, then `x`).
+  Both gave empty text before; `$1`, `${1}`, `$name` and `$$` work as before.
+- Docs: `\w` is English letters only (`\p{L}` for any language); write
+  replacements in backticks; `groups` gives `""` for a group that took no
+  part.
 
 ## 0.9.187 (2026-10-10)
 
