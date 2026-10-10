@@ -32,6 +32,9 @@ var hypothesisStops = []string{"fails", "each", "any", "not", "exactly", "with",
 
 func (p *Parser) parseHypothesis() ast.Expression {
 	tok := p.curToken
+	if p.inTheory != "" {
+		p.errorf("hypothesis[...] isn't written in a theory: a theory's claims are its theorems (theorem ...). Try one from outside it: hypothesis[%s, theorem ...]", p.inTheory)
+	}
 	h := &ast.HypothesisExpression{Token: tok}
 	p.nextToken() // -> [
 	if p.peekTokenIs(token.RBRACKET) {

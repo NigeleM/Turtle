@@ -149,6 +149,9 @@ func (p *Parser) parseTheoryStatement() ast.Statement {
 		}
 	}
 	ts := &ast.TheoryStatement{Token: tok, Name: name}
+	outer := p.inTheory
+	p.inTheory = name
+	defer func() { p.inTheory = outer }()
 	p.nextToken() // -> the first section
 	if p.curTokenIs(token.EOF) {
 		p.errorAt(tok.Line, tok.Pos, "theory %s is never closed: add theory [end] after its last line", name)

@@ -764,6 +764,7 @@ o = order ["tea", 2]
 show typeof[o] .                 // order
 if ] o type order [ ... if [end]
 if ] n type integer && s type string [ ... if [end]
+if ] !o type order [ ... if [end]  // not an order: ! takes the whole check
 ```
 
 The kinds are the ones `check ... is` takes (see
@@ -1133,6 +1134,15 @@ inputs made like their values. A definition that refuses an input with
 shows the smallest input that breaks it. A theory with no proof, or an
 abstract that doesn't name its word, gets a warning. In an ordinary run
 none of this is checked. See [`testing.md`](testing.md#theories).
+
+Tip: a proof is optional, and so are proof cases at the edges (empty,
+`0`, negative, one item), but those are checked on every run, while
+random inputs only find them by chance.
+
+`hypothesis[...]` isn't written in a theory: a theory's claims are its
+theorems. It checks a theory from outside: `hypothesis[tally]`, or a
+theorem before it goes in, `hypothesis[tally, theorem result >= 0]`
+(see [hypothesis](#trying-a-claim-hypothesis)).
 
 **Looking inside.** `diagnose[tally 1 in nums]` shows one use: its values,
 its result, each theorem for it, and how long it took. `diagnose[tally]`

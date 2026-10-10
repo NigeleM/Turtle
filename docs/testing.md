@@ -595,7 +595,8 @@ FAILED: 1 passed, 0 failed, 3 theories proven, 1 theory failed, 1 warning (1 fil
   numbers, ...). Half the numbers reach past the largest in the proof
   cases, on both sides of 0; the other half stay between the proof
   cases' smallest and largest (and 0), starting with those edges
-  themselves. A theory that doesn't take negative numbers says so in
+  themselves. Proof cases are where to put the edges a theory must get
+  right (an empty list, empty text, one item): they're checked every run. A theory that doesn't take negative numbers says so in
   its definition (`fail "a quantity can't be negative"`), and an input it
   refuses doesn't count against a theorem. The definition may refuse an input with `fail`; that
   input then doesn't count against a theorem. When a theorem breaks, the

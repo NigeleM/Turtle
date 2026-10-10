@@ -130,6 +130,29 @@ show type .`
 	}
 }
 
+// ! takes a whole type check, as it takes a whole method call: !w type
+// string is "w isn't text", and a method's value can be checked too.
+func TestNotTypeCheck(t *testing.T) {
+	src := `assemble Pet [name]
+w = 3
+s = "a"
+p = Pet["Rex"]
+show !w type string, " ", !s type string, " ", !p type Pet, " ", !w type Pet .
+show s at upper type string, " ", !s at upper type string .
+show !w type string && !s type integer, " ", !s type string || false .
+if ] !w type string [
+    show "not text" .
+if [end]`
+	got, err := run(t, src, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "true false false true\ntrue false\ntrue false\nnot text\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
 func TestCallBeforeDef(t *testing.T) {
 	cases := []struct{ src, want string }{
 		// Main code first, functions below.

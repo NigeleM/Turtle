@@ -99,3 +99,35 @@ theory half
         half 3.0 . is 1.5
         half -4.5 . is -2.25
 theory [end]
+
+theory all_caps
+    abstract
+        all_caps says whether every word in the list ws is in capitals.
+        A word with no letters, like "42" or "", counts as capitals.
+    notation all_caps ws .
+    definition
+        [loop][w in ws]
+            if ] !w type string [
+                fail "all_caps: every item must be text, got " + w
+            if [end]
+            if ] w != w at upper [
+                return false
+            if [end]
+        [loop][end]
+        return true
+    theorem result type boolean
+    theorem result == ~lowercase_in[ws] at isempty
+    proof
+        all_caps list ["TEA", "PIE"] . is true
+        all_caps list ["TEA", "Pie"] . is false
+        all_caps list ["tea"] . is false
+        all_caps list [] . is true
+        all_caps list [""] . is true
+        all_caps list ["42", "OK!"] . is true
+        all_caps list ["ÉTÉ", "été"] . is false
+theory [end]
+
+// the words of ws that change in capitals
+def ~lowercase_in[ws]
+    return ws keep w give w != w at upper
+def [end]

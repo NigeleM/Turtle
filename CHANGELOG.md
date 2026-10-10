@@ -2,6 +2,13 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## Unreleased
+
+- `!w type string` is "w isn't text": `!` takes the whole type check (it
+  was `(!w) type string`, always false). `s at upper type string` works.
+- `hypothesis[...]` isn't written in a theory; it checks theories from
+  outside them.
+
 ## 0.9.184 (2026-10-10)
 
 - Theories on sets, and on maps with number keys, are proved again (0.9.183

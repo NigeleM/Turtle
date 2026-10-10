@@ -13,6 +13,9 @@ def test_every_kind_reads_as_a_phrase[]
     check names_of list [Pet["Ada", 2]] == list ["Ada"] .
     check joined list [list [], list [1]] == list [1] .
     check half -1.0 == -0.5 .
+    check all_caps list ["STOP", "GO"] .
+    check !all_caps list ["STOP", "go"] .
+    check all_caps list ["A", 3] fails [custom] .
 def [end]
 
 def test_hypotheses_on_every_kind[]
@@ -23,6 +26,7 @@ def test_hypotheses_on_every_kind[]
     check hypothesis[names_of] .
     check hypothesis[joined] .
     check hypothesis[half] .
+    check hypothesis[all_caps] .
     check hypothesis[shout, theorem result at upper == result] .
     wrong = hypothesis[shout, theorem result == t]
     check !wrong .

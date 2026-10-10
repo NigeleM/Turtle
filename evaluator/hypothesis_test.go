@@ -185,6 +185,8 @@ func TestHypothesisParseErrors(t *testing.T) {
 		"hypothesis[f[n] that result > 0]":           "say what inputs to try, e.g. with n as list of integer",
 		"hypothesis[share, result > 0]":              "write theorem and the claim to try",
 		"hypothesis[xs each]":                        "give the rule after",
+		"theory t\n    abstract\n        t is n.\n    notation t n .\n    definition\n        return hypothesis[n == 1]\ntheory [end]":                     "hypothesis[...] isn't written in a theory: a theory's claims are its theorems",
+		"theory t\n    abstract\n        t is n.\n    notation t n .\n    definition\n        return n\n    theorem hypothesis[result == n]\ntheory [end]": "Try one from outside it: hypothesis[t, theorem ...]",
 	} {
 		p := parser.New(lexer.New(src))
 		p.ParseProgram()

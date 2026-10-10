@@ -139,6 +139,9 @@ type Parser struct {
 	// imported files are read from it, ahead of ModuleDir.
 	Modules       fs.FS
 	inVerifyValue int
+	// inTheory is the theory being read: hypothesis[...] isn't written in
+	// one (a theory's claims are its theorems).
+	inTheory string
 
 	// lines is the source split into lines, for statements' text.
 	lines []string
@@ -1810,7 +1813,7 @@ func (p *Parser) parseMethodCallExpression(receiver ast.Expression) ast.Expressi
 	// value, so "3 at pow 2 == 9" compares the power and
 	// "s at contains "a" && ok" asks both; more than one argument needs
 	// brackets (x at get[0, 1]). A test or scroll word isn't an argument.
-	if (p.curTokenIs(token.IDENT) || slices.Contains(syntax.Methods, method)) && p.argumentStartsAt(1) && !p.isStop(p.peekToken.Literal) && !p.inVerifyValueStop() {
+	if (p.curTokenIs(token.IDENT) || slices.Contains(syntax.Methods, method)) && p.argumentStartsAt(1) && !p.isStop(p.peekToken.Literal) && !p.inVerifyValueStop() && !p.typeCheckAhead() {
 		p.nextToken()
 		mc.Arguments = append(mc.Arguments, p.parseExpression(INDEX))
 	}
@@ -2056,11 +2059,16 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 	right := p.parseExpression(PREFIX)
 	// "!" applies to a whole method call: "!r at isempty" is
 	// !(r at isempty), like Python's "not r.isempty()". (The is-statement
-	// form with unbracketed args is handled in parseIsStatement.)
+	// form with unbracketed args is handled in parseIsStatement.) And to a
+	// whole type check: "!w type string" is !(w type string).
 	if tok.Type == token.BANG && !p.inIsReceiver {
 		for p.peekTokenIs(token.AT) {
 			p.nextToken()
 			right = p.parseMethodCallExpression(right)
+		}
+		if p.typeCheckAhead() {
+			p.nextToken()
+			right = p.parseTypeCheck(right)
 		}
 	}
 	return &ast.PrefixExpression{Token: tok, Operator: tok.Literal, Right: right}
