@@ -2,7 +2,7 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
-## Unreleased
+## 0.9.188 (2026-10-10)
 
 - Theories: each random input runs the theory once, with every theorem
   checked on that result (it ran once more per theorem: three times as
