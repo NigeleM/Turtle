@@ -154,9 +154,9 @@ func (it *Interpreter) diagnoseTheoryUse(tc *ast.TheoryCall, env *object.Environ
 	for i, name := range ts.Slots {
 		fmt.Fprintf(&b, "  %-9s %s\n", name, briefValue(args[i]))
 	}
-	start := time.Now()
+	start, mem := time.Now(), allocatedBytes()
 	defer func() {
-		took := fmt.Sprintf("  %-9s %s", "took", fmtDuration(time.Since(start)))
+		took := fmt.Sprintf("  %-9s %s\n%s", "took", fmtDuration(time.Since(start)), memoryLine(mem))
 		if r := recover(); r != nil {
 			fe, ok := r.(fatalError)
 			if !ok || fe.parse {

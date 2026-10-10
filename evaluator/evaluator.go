@@ -138,7 +138,7 @@ var builtinModules = map[string]*object.Module{
 	"math":     {Name: "math", Methods: []string{"sqrt", "abs", "round", "floor", "ceil", "pow", "random"}},
 	"time":     {Name: "time", Funcs: []string{"now", "sleep", "today", "today_utc", "make_date", "to_date", "to_zone", "add_time", "time_between", "format_date", "wait_until", "every"}},
 	"data":     {Name: "data", Funcs: append([]string{"process", "keep", "copy", "table", "table_read", "table_write", "range", "reduce", "sum"}, statsFuncs...)},
-	"system":   {Name: "system", Aliases: map[string]string{"isFile": "isfile", "isFolder": "isfolder", "scriptFolder": "scriptfolder"}, Funcs: []string{"args", "exists", "isfile", "isfolder", "exit", "env", "scriptfolder", "contents", "erase", "warn", "copyto", "moveto", "makefolder", "walk", "pack", "unpack", "loadenv", "options"}},
+	"system":   {Name: "system", Aliases: map[string]string{"isFile": "isfile", "isFolder": "isfolder", "scriptFolder": "scriptfolder"}, Funcs: []string{"args", "exists", "isfile", "isfolder", "exit", "env", "scriptfolder", "contents", "erase", "warn", "copyto", "moveto", "makefolder", "walk", "pack", "unpack", "loadenv", "options", "memory", "sizeof", "freememory"}},
 	"strings":  {Name: "strings", Funcs: []string{"find", "substring", "isinstring", "join"}},
 	"json":     {Name: "json", Funcs: []string{"load", "json_text", "json_read", "json_write", "json_get"}},
 	"http":     {Name: "http", Funcs: []string{"http_get", "http_post", "http_request"}},

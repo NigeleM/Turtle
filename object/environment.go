@@ -61,6 +61,13 @@ func (e *Environment) Reuse(outer *Environment) {
 	e.outer = outer
 }
 
+// Release empties a finished call's scope as it's put aside for reuse,
+// so the values its call made can be collected now, not when the next
+// call takes the scope.
+func (e *Environment) Release() {
+	e.Reuse(nil)
+}
+
 // SetFile records which file a global environment belongs to, as errors
 // name it ("lib/utils.turtle"). The main script's is "".
 func (e *Environment) SetFile(name string) { e.root().file = name }

@@ -750,6 +750,7 @@ func (it *Interpreter) callFunction(fn *object.Function, name string, args []obj
 	}
 	res := it.evalBlock(fn.Body, callEnv)
 	if !callEnv.Captured() && len(it.freeScopes) < maxFreeScopes {
+		callEnv.Release()
 		it.freeScopes = append(it.freeScopes, callEnv)
 	}
 	if res.Signal == SigReturn {

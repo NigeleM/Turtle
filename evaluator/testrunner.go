@@ -144,6 +144,7 @@ type testOutcome struct {
 	exited  bool        // it called system's exit[]
 	time    time.Duration
 	runs    []time.Duration // benchmark runs (the first run not counted)
+	memory  uint64          // what the (first) run allocated
 	failRun int             // the benchmark run that failed (0: the first)
 }
 
@@ -242,7 +243,7 @@ func runTestFile(path, name string, out io.Writer) testCounts {
 			continue
 		}
 		counts.failed++
-		fmt.Fprintf(out, "  FAIL  %s%s   %s\n", fn.Name, pad, fmtDuration(o.time))
+		fmt.Fprintf(out, "  FAIL  %s%s   %-9s  %s\n", fn.Name, pad, fmtDuration(o.time), fmtBytes(o.memory))
 		if mode == "all" {
 			failures = append(failures, o)
 		} else {
@@ -302,7 +303,7 @@ func writeFailure(out io.Writer, file string, o testOutcome, indent string) {
 
 func (o testOutcome) timing() string {
 	if len(o.runs) == 0 {
-		return fmtDuration(o.time)
+		return fmt.Sprintf("%-9s  %s", fmtDuration(o.time), fmtBytes(o.memory))
 	}
 	var sum time.Duration
 	fast, slow := o.runs[0], o.runs[0]
@@ -311,7 +312,7 @@ func (o testOutcome) timing() string {
 		fast, slow = min(fast, d), max(slow, d)
 	}
 	avg := sum / time.Duration(len(o.runs))
-	return fmt.Sprintf("%d %s   avg %s   fastest %s   slowest %s", len(o.runs), plural(len(o.runs), "run"), fmtDuration(avg), fmtDuration(fast), fmtDuration(slow))
+	return fmt.Sprintf("%d %s   avg %s   fastest %s   slowest %s   %s a run", len(o.runs), plural(len(o.runs), "run"), fmtDuration(avg), fmtDuration(fast), fmtDuration(slow), fmtBytes(o.memory))
 }
 
 func importsTest(program *ast.Program) bool {
@@ -351,8 +352,9 @@ func (it *Interpreter) runTest(fn *object.Function) testOutcome {
 		o.err = &e
 		return o
 	}
+	mem := allocatedBytes()
 	env, d, fe, exited := it.runTestOnce(fn)
-	o.time, o.err, o.exited = d, fe, exited
+	o.time, o.err, o.exited, o.memory = d, fe, exited, allocatedBytes()-mem
 	if fe != nil || exited {
 		return o
 	}

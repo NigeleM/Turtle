@@ -51,6 +51,9 @@ type scrollRun struct {
 	// starting value, likewise.
 	snapshot   bool
 	startShown string
+	// memory is what was allocated when diagnose started the run, for
+	// its memory line; 0 for a run with no report.
+	memory uint64
 }
 
 const (
@@ -435,6 +438,9 @@ func (run *scrollRun) report(heading string, start object.Object, result object.
 	if finished {
 		fmt.Fprintf(&b, "  %-*s   %s\n", width, "result", briefValue(result))
 	}
+	if run.memory > 0 {
+		fmt.Fprintf(&b, "  %-*s   %s allocated\n", width, "memory", fmtBytes(allocatedBytes()-run.memory))
+	}
 	return strings.TrimRight(b.String(), "\n")
 }
 
@@ -582,6 +588,7 @@ func (it *Interpreter) diagnoseScroll(heading string, steps []*ast.ScrollStep, e
 	run := &scrollRun{from: "the start", snapshot: true}
 	run.startShown = briefValue(value) // as it was, before any step changes it
 	start := value
+	run.memory = allocatedBytes()
 	defer func() {
 		if r := recover(); r != nil {
 			fe, ok := r.(fatalError)
@@ -609,9 +616,9 @@ func (it *Interpreter) diagnoseCall(name string, args []object.Object, call func
 		}
 		fmt.Fprintf(&b, "  %-9s %s\n", label, briefValue(a))
 	}
-	start := time.Now()
+	start, mem := time.Now(), allocatedBytes()
 	defer func() {
-		took := fmt.Sprintf("  %-9s %s", "took", fmtDuration(time.Since(start)))
+		took := fmt.Sprintf("  %-9s %s\n%s", "took", fmtDuration(time.Since(start)), memoryLine(mem))
 		if r := recover(); r != nil {
 			fe, ok := r.(fatalError)
 			if !ok || fe.parse {
@@ -656,6 +663,7 @@ func (it *Interpreter) evalDiagnoseBlock(s *ast.DiagnoseStatement, env *object.E
 		out.shown.WriteString(text + "\n")
 	}
 	say(fmt.Sprintf("diagnose (lines %d-%d)", s.Line()+1, s.End-1))
+	mem := allocatedBytes()
 	prevTrace, prevOpen := it.Trace, it.traceOpen
 	if it.traceSrc == nil {
 		it.traceSrc = map[string][]string{}
@@ -685,11 +693,13 @@ func (it *Interpreter) evalDiagnoseBlock(s *ast.DiagnoseStatement, env *object.E
 				panic(r)
 			}
 			say(fmt.Sprintf("  ✗ failed: %s error: %s", fe.kind, fe.msg))
+			say(memoryLine(mem))
 			currentLine, currentFile = s.Line(), file
 			it.fileReport(env, strings.TrimRight(out.shown.String(), "\n"))
 			res = noneResult
 			return
 		}
+		say(memoryLine(mem))
 		say("  finished")
 		currentLine, currentFile = s.Line(), file
 		it.fileReport(env, strings.TrimRight(out.shown.String(), "\n"))

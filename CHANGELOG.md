@@ -2,6 +2,15 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## Unreleased
+
+- A function's own values are freed when it returns. A finished call used
+  to keep them until the next call, so a big list made inside a function
+  stayed in memory.
+- `system`: `memory[]`, `sizeof[x]` and `freememory[]`.
+- `diagnose`, `hypothesis` and `turtle test` show the memory each step or
+  test allocated.
+
 ## 0.9.185 (2026-10-10)
 
 - `!w type string` is "w isn't text": `!` takes the whole type check (it

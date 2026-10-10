@@ -38,7 +38,7 @@ func (r *hypothesisReport) add(label string, lines ...string) {
 	}
 }
 
-func (r hypothesisReport) text(h *ast.HypothesisExpression, line int, took time.Duration) string {
+func (r hypothesisReport) text(h *ast.HypothesisExpression, line int, took time.Duration, mem uint64) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "hypothesis %s (line %d)\n", h.Text, line)
 	yes := "no"
@@ -58,7 +58,7 @@ func (r hypothesisReport) text(h *ast.HypothesisExpression, line int, took time.
 			fmt.Fprintf(&b, "  %-9s %s\n", label, l)
 		}
 	}
-	fmt.Fprintf(&b, "  %-9s %s", "took", fmtDuration(took))
+	fmt.Fprintf(&b, "  %-9s %s\n%s", "took", fmtDuration(took), memoryLine(mem))
 	return b.String()
 }
 
@@ -66,7 +66,10 @@ func (r hypothesisReport) text(h *ast.HypothesisExpression, line int, took time.
 // of its own) also shows the report.
 func (it *Interpreter) evalHypothesis(h *ast.HypothesisExpression, env *object.Environment, shown bool) object.Object {
 	line := currentLine
-	start := time.Now()
+	start, mem := time.Now(), uint64(0)
+	if shown { // measured only for the report: a value in a loop stays quick
+		mem = allocatedBytes()
+	}
 	var r hypothesisReport
 	if fe := it.protect(func() { r = it.tryHypothesis(h, env) }); fe != nil {
 		if fe.kind == kindName {
@@ -77,7 +80,7 @@ func (it *Interpreter) evalHypothesis(h *ast.HypothesisExpression, env *object.E
 	}
 	currentLine = line
 	if shown {
-		it.showReport(env, r.text(h, line, time.Since(start)))
+		it.showReport(env, r.text(h, line, time.Since(start), mem))
 	}
 	return object.Bool(r.holds)
 }

@@ -42,17 +42,21 @@ def [end]
 ```
 $ turtle test
 test_orders.turtle
-  PASS  test_total              35.0µs
-  PASS  test_total_of_nothing   11.9µs
+  PASS  test_total              35.0µs     1.2 KB
+  PASS  test_total_of_nothing   11.9µs     472 B
 
 ok: 2 passed, 0 failed (1 file, 2.1ms)
 ```
+
+Each test shows how long it took and how much memory it allocated. To
+test against memory, check it: `check sizeof[rows] < 5000000 .`, or
+compare `memory[]` before and after (both from `import system`).
 
 If `total` were wrong:
 
 ```
 test_orders.turtle
-  FAIL  test_total   12.3µs
+  FAIL  test_total   12.3µs     1.1 KB
         test_orders.turtle line 9: failed: check total[Order["pen", 3, 15]] == 45 .
             got 40, want 45 (5 less)
 ```
@@ -676,7 +680,7 @@ def [end]
 ```
 
 ```
-PASS  test_sort_list   1000 runs   avg 1.5µs   fastest 1.2µs   slowest 4.6µs
+PASS  test_sort_list   1000 runs   avg 1.5µs   fastest 1.2µs   slowest 4.6µs   2.1 KB a run
 ```
 
 With `runs = none` (the default), it runs as many times as fit in

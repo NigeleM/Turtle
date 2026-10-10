@@ -43,6 +43,9 @@ func (it *Interpreter) callSystem(name string, args []object.Object) object.Obje
 	if v, ok := it.callFiles(name, args); ok {
 		return v
 	}
+	if v, ok := callMemory(name, args); ok {
+		return v
+	}
 	switch name {
 	case "exit":
 		code := int64(0)

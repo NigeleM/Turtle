@@ -26,6 +26,9 @@ Arguments, environment variables, files and folders, and the program itself.
 | `unpack[archive, folder, replace]` | paths, optional Boolean | puts the archive's files into `folder` (made if missing). A file already there is a `file` error unless `replace` is `true`; an entry that would land outside `folder` (`../x`) is refused |
 | `loadenv[file]` | optional path (default `".env"`) | reads `KEY=value` lines into a `map` (values are text) and sets each for `env[...]`, unless the environment already has it |
 | `options[name: default, ...]` | option names and defaults | reads named options from the command line into a `map`; see below |
+| `memory[]` | — | how many bytes the program's values hold now (it collects first, so values already let go don't count) |
+| `sizeof[x]` | any value | about how many bytes `x` takes, with everything in it; an estimate, and a value in it twice counts once |
+| `freememory[]` | — | collects what nothing refers to now and gives that memory back to the system; gives back the bytes freed |
 
 **Files and folders:**
 
@@ -59,6 +62,25 @@ NAME="Ann Lee"
 ```
 settings = loadenv[]                     // { "API_KEY": "abc123", "NAME": "Ann Lee" }
 key = env["API_KEY"]
+```
+
+**Memory.** Turtle frees a value by itself once nothing refers to it:
+a function's own values when it's done, a variable's old value when it
+changes. Go collects them in batches, though, so between big steps (a
+whole file loaded, then a report built) `freememory[]` collects now and
+hands the memory back. Set what you're done with to `none` first; a value
+a variable still holds can't be freed. `diagnose`, `hypothesis` and
+`turtle test` show how much each step allocated.
+
+```
+import system
+
+rows = table_read["sales.csv"]
+show sizeof[rows] / 1048576, " MB" .
+count = length of rows
+rows = none                              // done with the rows
+freed = freememory[]
+show memory[] / 1048576, " MB held" .
 ```
 
 **Named options.** `options` takes each option with its default, written

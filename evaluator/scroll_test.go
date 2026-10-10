@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -161,6 +162,12 @@ safe [end]`
 	}
 }
 
+// memoryLines are reports' memory lines, whose numbers vary run to run.
+var memoryLines = regexp.MustCompile(`(?m)^  memory +[0-9.]+ (B|KB|MB|GB) allocated\n`)
+
+// withoutMemory is a report without its memory lines, to compare.
+func withoutMemory(s string) string { return memoryLines.ReplaceAllString(s, "") }
+
 func TestDiagnose(t *testing.T) {
 	src := scrollDefs + `s = scroll add1, double .
 x is diagnose[s, 3] .
@@ -174,6 +181,10 @@ show d .`
 	if err != nil {
 		t.Fatal(err)
 	}
+	if n := len(memoryLines.FindAllString(got, -1)); n != 4 {
+		t.Errorf("want a memory line in each of the 4 reports, got %d:\n%s", n, got)
+	}
+	got = withoutMemory(got)
 	for _, want := range []string{
 		"diagnose s (line 17)\n  start      3\n  1 add1   → returned 4\n  2 double → returned 8\n  result     8\n8",
 		"diagnose t (line 20)\n  start          1\n  1 add1       → returned 2\n  2 s          → returned 6\n    2.1 add1   → returned 3\n    2.2 double → returned 6\n  result         6",
@@ -188,6 +199,7 @@ show d .`
 	// none goes on, marked; then the error it led to ends the scroll,
 	// and comes back as a value: the program goes on.
 	got, err = run(t, scrollDefs+"x is diagnose[scroll 3 into add1, shownumber, double .] .\nshow typeof[x], \"|\", kind of x .\nshow \"still running\" .", "")
+	got = withoutMemory(got)
 	if err != nil {
 		t.Fatalf("diagnose stopped the program: %v", err)
 	}
@@ -198,6 +210,7 @@ show d .`
 	}
 	// The none came from the start, or from a step outside a saved scroll.
 	got, _ = run(t, scrollDefs+"x is diagnose[scroll none into double .] .\ns = scroll double .\ny is diagnose[scroll 1 into shownumber, s .] .", "")
+	got = withoutMemory(got)
 	for _, want := range []string{"(it was given none, from the start)", "2.1 double ✗ failed:", "(it was given none, from step 1)"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing %q in:\n%s", want, got)
@@ -205,6 +218,7 @@ show d .`
 	}
 	// none as the answer: shown, marked, given back.
 	got, err = run(t, scrollDefs+"x is diagnose[scroll 3 into add1, shownumber .] .\nshow x .", "")
+	got = withoutMemory(got)
 	if err != nil || !strings.Contains(got, "2 shownumber → returned nothing (none)   is none expected!?\n  result         nothing (none)\nnone") {
 		t.Errorf("none result: %v\n%s", err, got)
 	}
@@ -273,6 +287,10 @@ diagnose [end]`
 	if err != nil {
 		t.Fatalf("diagnose stopped the program: %v", err)
 	}
+	if n := len(memoryLines.FindAllString(got, -1)); n != 2 {
+		t.Errorf("want a memory line in each block's report, got %d:\n%s", n, got)
+	}
+	got = withoutMemory(got)
 	for _, want := range []string{
 		"diagnose (lines 3-8)\n  line 3       total = 0",
 		"pass 1: x = 4\n  line 5           total = total + x        total = 4",
@@ -290,6 +308,7 @@ diagnose [end]`
 	}
 	// A long loop: the first lines, then a count.
 	got, _ = run(t, "diagnose\n    [loop][i = 0; i < 500; i++]\n        y = i\n    [loop][end]\ndiagnose [end]", "")
+	got = withoutMemory(got)
 	if !strings.Contains(got, "more lines\n  finished") || strings.Count(got, "\n") > 70 {
 		t.Errorf("long loop not cut short: %d lines", strings.Count(got, "\n"))
 	}

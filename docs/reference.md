@@ -880,7 +880,7 @@ again. It needs no import.
 |---|---|---|
 | a saved scroll and a value: `diagnose[s, 3]` or `s diagnose 3` | each step and what it returned | the result, or the error |
 | a scroll written in it: `diagnose[scroll 3 into add1, double .]` | the same | the result, or the error |
-| a function and its values: `diagnose[double, 21]`, `diagnose[load, text]` | what it was given, what it returned, how long it took | the result, or the error |
+| a function and its values: `diagnose[double, 21]`, `diagnose[load, text]` | what it was given, what it returned, how long it took, the memory it allocated | the result, or the error |
 | an error from `handle`: `diagnose[e]` | its kind and message, and for a scroll each step | the error |
 
 ```
@@ -940,6 +940,9 @@ program, or goes to a `safe` block, as usual.
 - Only Turtle's errors are traced: `exit[]` and Ctrl-C still stop the program.
 - A program's own function called `diagnose` wins over this one.
 - `turtle trace` also shows each scroll step's result as the program runs.
+- Every report ends with `memory`, what the step allocated (as do
+  `hypothesis` reports and each test in `turtle test`). See
+  [`system`](library/system.md) for `memory[]`, `sizeof[x]` and `freememory[]`.
 
 ### Looking inside any code: the `diagnose` block
 

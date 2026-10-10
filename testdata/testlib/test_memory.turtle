@@ -1,0 +1,49 @@
+// test_memory.turtle: a function's own values are freed when it returns;
+// what the program keeps stays until it lets go; sizeof grows with what's
+// in a value. turtle test shows what each test allocated.
+import test
+import data
+import system
+
+assemble Order [item, qty, notes]
+
+def orders_for[n]
+    out = list []
+    [loop][i in range[0, n]]
+        out at add Order["tea", i, "note " + i]
+    [loop][end]
+    return out
+def [end]
+
+def total_qty[n]
+    rows = orders_for[n]
+    t = 0
+    [loop][o in rows]
+        t = t + qty of o
+    [loop][end]
+    return t
+def [end]
+
+def test_a_finished_call_lets_go[]
+    before = memory[]
+    t = total_qty[200000]
+    check t == 19999900000 .
+    check memory[] - before < 2000000 .
+def [end]
+
+def test_what_is_kept_stays_until_let_go[]
+    before = memory[]
+    kept = orders_for[200000]
+    check memory[] - before > 10000000 .
+    check sizeof[kept] > 10000000 .
+    kept = none
+    freed = freememory[]
+    check memory[] - before < 2000000 .
+def [end]
+
+def test_sizeof_grows_with_what_is_in_it[]
+    few = orders_for[10]
+    many = orders_for[1000]
+    check sizeof[many] > sizeof[few] * 50 .
+    check sizeof[list []] < sizeof[few] .
+def [end]

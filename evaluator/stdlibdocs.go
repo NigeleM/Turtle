@@ -639,6 +639,27 @@ script's own folder).
   Example:
     opts = options["--out": "result.csv", "-v": false]
     out = opts at get["--out"]
+
+### memory[]
+  How much memory the program's values hold now, in bytes. It collects
+  first, so values already let go don't count.
+  Example:
+    show memory[] / 1048576, " MB" .
+
+### sizeof[x]
+  About how many bytes x takes, with everything in it (an estimate: a
+  value inside it twice counts once).
+  Example:
+    check sizeof[rows] < 5000000 .
+
+### freememory[]
+  Collects the values nothing refers to now, and gives that memory back
+  to the system: worth it between big steps, not after every small one.
+  Turtle frees such values by itself; this does it now.
+  Gives back: how many bytes it freed.
+  Example:
+    rows = none
+    freed = freememory[]
 `,
 
 	"strings": `Text functions that read well as sentences. Positions count
