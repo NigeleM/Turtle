@@ -2,7 +2,7 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
-## Unreleased
+## 0.9.187 (2026-10-10)
 
 - Theories: random inputs try edges of text, lists, sets and maps too
   (empty ones, and ones holding a single edge), not only numbers'.
