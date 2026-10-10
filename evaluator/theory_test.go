@@ -360,10 +360,11 @@ theory [end]
 	}
 }
 
-// Random inputs keep to the proof cases' ranges: numbers 0 or more stay 0
-// or more; a proof with a negative number gets negative ones too. A failed
-// theorem's reason is one tidy line.
-func TestTheoryInputsLearnRanges(t *testing.T) {
+// Random numbers reach both sides of 0, even when the proof cases are all
+// positive: a theory that can't take negatives refuses them with fail,
+// and a refused input doesn't count against a theorem. A failed theorem's
+// reason is one tidy line.
+func TestTheoryInputsIncludeNegatives(t *testing.T) {
 	out, code := testRun(t, map[string]string{
 		"lib.turtle": `assemble Sale [qty, cents]
 theory revenue
@@ -373,12 +374,26 @@ theory revenue
     definition
         t = 0
         [loop][x in s]
+            if ] qty of x < 0 || cents of x < 0 [
+                fail "revenue: a quantity or price can't be negative"
+            if [end]
             t = t + qty of x * cents of x
         [loop][end]
         return t
     theorem result >= 0
     proof
         revenue of_sales list [Sale[2, 300]] . is 600
+theory [end]
+
+theory doubled
+    abstract
+        doubled is twice n.
+    notation doubled n .
+    definition
+        return n * 2
+    theorem result >= n
+    proof
+        doubled 3 . is 6
 theory [end]
 
 theory shift
@@ -395,7 +410,10 @@ theory [end]
 		"test_lib.turtle": "import test\nimport lib\nseed = 3\n",
 	})
 	if code != 1 || !strings.Contains(out, "PASS  theory revenue") {
-		t.Errorf("exit %d\n%s", code, out)
+		t.Errorf("a theory that refuses negatives: exit %d\n%s", code, out)
+	}
+	if !strings.Contains(out, "FAIL  theory doubled") || !strings.Contains(out, "theorem result >= n fails on n = -") {
+		t.Errorf("negatives are tried though the proof is positive:\n%s", out)
 	}
 	if !strings.Contains(out, "theorem result > 100 || result < -100 fails on n = ") || strings.Contains(out, ";  ") {
 		t.Errorf("the shift theorem's failure:\n%s", out)

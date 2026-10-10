@@ -344,38 +344,29 @@ func (it *Interpreter) writeTheories(out io.Writer, name string, env *object.Env
 	return counts
 }
 
-// learnRanges sets the numbers' ranges in shape from the proof cases'
-// values: when they're all 0 or more, so are the random ones (a quantity,
-// a price, a count), and the range reaches past the largest seen. Inside
-// lists, sets, maps and assembled values too.
+// learnRanges sets how far the numbers in shape reach, from the proof
+// cases' values: past the largest seen, either side of 0 (a theory that
+// doesn't take negative numbers refuses them with fail). Inside lists,
+// sets, maps and assembled values too.
 func learnRanges(shape *ast.Shape, vals []object.Object) {
 	switch shape.Kind {
 	case "integer", "float":
-		lowest, largest := math.Inf(1), 0.0
+		largest, seen := 0.0, false
 		for _, v := range vals {
 			if f, _, ok := numeric(v); ok {
-				lowest = math.Min(lowest, f)
-				largest = math.Max(largest, math.Abs(f))
+				largest, seen = math.Max(largest, math.Abs(f)), true
 			}
 		}
-		if math.IsInf(lowest, 1) {
+		if !seen {
 			return
 		}
 		if shape.Kind == "integer" {
 			hi := int64(math.Max(1000, 2*largest))
-			lo := -hi
-			if lowest >= 0 {
-				lo = 0
-			}
-			shape.From, shape.To = &ast.IntegerLiteral{Value: lo}, &ast.IntegerLiteral{Value: hi}
+			shape.From, shape.To = &ast.IntegerLiteral{Value: -hi}, &ast.IntegerLiteral{Value: hi}
 			return
 		}
 		hi := math.Max(1, 2*largest)
-		lo := -hi
-		if lowest >= 0 {
-			lo = 0
-		}
-		shape.From, shape.To = &ast.FloatLiteral{Value: lo}, &ast.FloatLiteral{Value: hi}
+		shape.From, shape.To = &ast.FloatLiteral{Value: -hi}, &ast.FloatLiteral{Value: hi}
 	case "list", "set":
 		var items []object.Object
 		for _, v := range vals {

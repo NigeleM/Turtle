@@ -8,8 +8,8 @@ Turtle is pre-release (0.x). Breaking changes are listed first.
 - The standard library can have theories, giving any library new phrases.
 - `of` and `is` can be a notation's words: `notation average of xs to places .`
 - Theories: imports are as fast as before theories; a theory's random
-  inputs keep to its proof cases' ranges; diagnose previews big values
-  without copying them.
+  numbers reach past its proof cases' largest; diagnose previews big
+  values without copying them.
 
 ## 0.9.181 (2026-10-10)
 
