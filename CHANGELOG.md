@@ -2,7 +2,7 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
-## Unreleased
+## 0.9.179 (2026-10-09)
 
 - `[read]`, `[write]`, `[append]` and `[directory]` take any expression
   for the path: `[read] folder + "/" + name + ".txt" to lines [end]`.
