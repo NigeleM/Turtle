@@ -49,9 +49,10 @@ def test_sizeof_grows_with_what_is_in_it[]
 def [end]
 
 // Counting a million passes allocates about 15 MB (the numbers
-// themselves); making range's list first too would be about 47 MB.
+// themselves; about 30 MB under Go's race detector); making range's list
+// first too would be about 47 MB.
 def test_a_loop_over_range_makes_no_list[]
-    memorylimit = 25000000
+    memorylimit = 40000000
     n = 0
     [loop][i in range[0, 1000000]]
         n = n + 1
