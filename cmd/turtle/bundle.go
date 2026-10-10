@@ -112,6 +112,7 @@ func bundleFiles(script string) ([]bundleFile, error) {
 			return err
 		}
 		p := parser.New(lexer.New(string(data)))
+		p.ModuleDir = dir
 		program := p.ParseProgram()
 		if errs := p.ErrorList(); len(errs) > 0 {
 			return fmt.Errorf("%s, %s", rel, parser.Format(string(data), errs[0]))

@@ -54,6 +54,7 @@ var scriptName string
 func runFull(t *testing.T, dir, src, stdin string, args []string) (string, error) {
 	t.Helper()
 	p := parser.New(lexer.New(src))
+	p.ModuleDir = dir
 	program := p.ParseProgram()
 	if errs := p.Errors(); len(errs) > 0 {
 		t.Fatalf("parse error(s) for %q: %v", src, errs)

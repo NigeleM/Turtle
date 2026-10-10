@@ -50,6 +50,9 @@ type Session struct {
 	entries []string        // entries that ran, for save
 	dir     string
 	quit    bool
+	// theories are the theories entered (or imported) so far: later
+	// entries read their phrases.
+	theories parser.Theories
 }
 
 // NewSession makes a session whose files and imports resolve from dir.
@@ -119,6 +122,8 @@ func (s *Session) Eval(src string) {
 
 func (s *Session) parser(src string) *parser.Parser {
 	p := parser.New(lexer.New(src))
+	p.ModuleDir = s.dir
+	p.UseTheories(s.theories)
 	for lib := range s.libs {
 		p.Enable(lib)
 	}
@@ -131,6 +136,7 @@ func (s *Session) parse(src string) (*ast.Program, []string) {
 	if errs := p.Errors(); len(errs) > 0 {
 		return nil, errs
 	}
+	s.theories = p.Theories() // the theories entered so far, for the next entry
 	return program, nil
 }
 

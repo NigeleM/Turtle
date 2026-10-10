@@ -120,6 +120,13 @@ type Parser struct {
 	// in the file is, so a use above its theory can say so.
 	theories      map[string]*theorySpec
 	laterTheories map[string]int
+	// ModuleDir is the folder imports are found in (the program's), so
+	// an imported file's theories are known and their phrases read; ""
+	// when there's no file to look in. importing is the files being read
+	// for their theories, so two files importing each other end.
+	ModuleDir     string
+	importing     map[string]bool
+	unlisted      map[string]string // theories an import list leaves out, and the file they're in
 	inVerifyValue int
 
 	// lines is the source split into lines, for statements' text.
@@ -887,6 +894,7 @@ func (p *Parser) parseImportStatement() ast.Statement {
 			return nil
 		}
 	}
+	p.importTheories(tok, path, names)
 	p.nextToken()
 	return &ast.ImportStatement{Token: tok, Path: path, Names: names}
 }

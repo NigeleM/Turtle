@@ -58,6 +58,9 @@ type analysis struct {
 func analyze(uri, path, src string, t *text) *analysis {
 	a := &analysis{libs: map[string]bool{}, idents: map[string]bool{}}
 	p := parser.New(lexer.New(src))
+	if path != "" {
+		p.ModuleDir = filepath.Dir(path)
+	}
 	program := p.ParseProgram()
 	if errs := p.ErrorList(); len(errs) > 0 {
 		// The first error is the real one; the parser trips over what

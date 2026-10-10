@@ -141,6 +141,7 @@ func runTestFile(path, name string, out io.Writer) testCounts {
 		return broken
 	}
 	p := parser.New(lexer.New(string(data)))
+	p.ModuleDir = filepath.Dir(path)
 	program := p.ParseProgram()
 	if errs := p.ErrorList(); len(errs) > 0 {
 		fmt.Fprintf(out, "%s, %s\n", name, parser.Format(string(data), errs[0]))

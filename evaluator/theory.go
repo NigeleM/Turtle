@@ -74,6 +74,11 @@ func (it *Interpreter) theoryNamed(word string, env *object.Environment) *object
 	if fn, ok := env.GetFunction(word); ok && fn.Theory != nil {
 		return fn
 	}
+	if im := resolveImported(env, word); im != nil {
+		if fn, ok := im.Module.Function(word); ok && fn.Theory != nil {
+			return fn
+		}
+	}
 	fatalKind(kindName, "%s is a theory's word, but its theory isn't defined here", word)
 	return nil
 }

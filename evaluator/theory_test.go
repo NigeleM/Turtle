@@ -1,6 +1,8 @@
 package evaluator
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -140,6 +142,64 @@ func TestTheoryMistakes(t *testing.T) {
 		}
 		if !strings.Contains(got, c.want) {
 			t.Errorf("%s\n got  %v\n want %q", c.src, got, c.want)
+		}
+	}
+}
+
+// A file's theories come with it when it's imported: all of them, or the
+// ones an import list names.
+func TestImportedTheories(t *testing.T) {
+	dir := t.TempDir()
+	lib := `assemble Item [name, qty, cents]
+
+theory price
+    abstract
+        price is what an item costs, in cents, every twelfth one free.
+    notation price i .
+    definition
+        free = qty of i div 12
+        return qty of i * cents of i - free * cents of i
+theory [end]
+
+theory discount
+    abstract
+        discount takes p percent off c.
+    notation discount p off c .
+    definition
+        return c - c * p div 100
+    theorem result <= c
+theory [end]
+`
+	if err := os.MkdirAll(filepath.Join(dir, "lib"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "lib", "shop.turtle"), []byte(lib), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got, err := runIn(t, dir, `import lib/shop
+basket = list [Item["Cookie", 12, 150], Item["Loaf", 2, 650]]
+s = 0
+[loop][i in basket]
+    s = s + price i
+[loop][end]
+total is discount 10 off s .
+show total, " ", typeof[discount] .`, "")
+	if err != nil || strings.TrimSpace(got) != "2655 theory" {
+		t.Errorf("imported theories: %q, %v", got, err)
+	}
+	got, err = runIn(t, dir, "import lib/shop [price, Item]\nshow price Item[\"Tart\", 2, 525] .", "")
+	if err != nil || strings.TrimSpace(got) != "1050" {
+		t.Errorf("an import list: %q, %v", got, err)
+	}
+	for src, want := range map[string]string{
+		"import lib/shop [price, Item]\nx = discount 10 off 100": `"discount" isn't imported: add it to "import lib/shop [...]"`,
+		"import lib/shop\ntheory price\n    abstract\n        price again.\n    notation price i .\n    definition\n        return i\ntheory [end]\n": "price is already a theory, imported from lib/shop",
+	} {
+		p := parser.New(lexer.New(src))
+		p.ModuleDir = dir
+		p.ParseProgram()
+		if errs := strings.Join(p.Errors(), "; "); !strings.Contains(errs, want) {
+			t.Errorf("%s:\n got  %s\n want %q", src, errs, want)
 		}
 	}
 }

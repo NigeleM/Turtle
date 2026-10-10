@@ -1,11 +1,15 @@
 package parser
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"strings"
 
 	"Turtle/ast"
+	"Turtle/lexer"
+	"Turtle/syntax"
 	"Turtle/token"
 )
 
@@ -34,12 +38,30 @@ var theorySections = map[string]bool{"abstract": true, "notation": true, "defini
 type theorySpec struct {
 	name      string
 	line      int
+	from      string // the file it's imported from, "" for this file's own
 	notations []*ast.Notation
 	slots     []string
 	fixed     map[string]bool // every fixed word of every notation (not the word itself)
 }
 
 var theoryLine = regexp.MustCompile(`(?m)^[ \t]*theory[ \t]+(~?[A-Za-z_][A-Za-z0-9_]*)[ \t]*(//.*)?\r?$`)
+
+// Theories is what this parser has learned of theories, to hand to the
+// next one (the REPL reads each entry with a parser of its own).
+type Theories map[string]*theorySpec
+
+// Theories gives the theories read so far.
+func (p *Parser) Theories() Theories { return Theories(p.theories) }
+
+// UseTheories starts this parser knowing theories another has read.
+func (p *Parser) UseTheories(t Theories) {
+	if p.theories == nil {
+		p.theories = map[string]*theorySpec{}
+	}
+	for k, v := range t {
+		p.theories[k] = v
+	}
+}
 
 // scanTheories notes where each theory in the source is defined, so a use
 // above its theory can say so.
@@ -110,7 +132,11 @@ func (p *Parser) parseTheoryStatement() ast.Statement {
 		p.errorAt(p.curToken.Line, p.curToken.Pos, "theory %s: private theories aren't part of Turtle yet", name)
 	}
 	if other, ok := p.theories[name]; ok {
-		p.errorAt(p.curToken.Line, p.curToken.Pos, "theory %s: %s is already a theory (line %d)", name, name, other.line)
+		if other.from != "" {
+			p.errorAt(p.curToken.Line, p.curToken.Pos, "theory %s: %s is already a theory, imported from %s", name, name, other.from)
+		} else {
+			p.errorAt(p.curToken.Line, p.curToken.Pos, "theory %s: %s is already a theory (line %d)", name, name, other.line)
+		}
 	}
 	ts := &ast.TheoryStatement{Token: tok, Name: name}
 	p.nextToken() // -> the first section
@@ -376,8 +402,13 @@ func (p *Parser) startsPhrase() bool {
 	return spec.fixed[p.peekToken.Literal] || p.argumentStartsAt(1)
 }
 
-// usedBeforeTheory reports a theory's word used above its theory.
+// usedBeforeTheory reports a theory's word used above its theory, or one
+// its file's import list leaves out.
 func (p *Parser) usedBeforeTheory() bool {
+	if path, ok := p.unlisted[p.curToken.Literal]; ok && p.theories[p.curToken.Literal] == nil && p.peekToken.Line == p.curToken.Line && p.argumentStartsAt(1) {
+		p.errorAt(p.curToken.Line, p.curToken.Pos, "%q isn't imported: add it to \"import %s [...]\"", p.curToken.Literal, path)
+		return true
+	}
 	line, later := p.laterTheories[p.curToken.Literal]
 	if !later || line <= p.curToken.Line || p.theories[p.curToken.Literal] != nil {
 		return false
@@ -488,4 +519,59 @@ func (p *Parser) parseProofCase(spec *theorySpec) *ast.ProofCase {
 	text := strings.TrimSpace(p.l.Source()[tok.Pos:p.curToken.End])
 	p.nextToken()
 	return &ast.ProofCase{Line: tok.Line, Text: text, Use: use, Want: want}
+}
+
+// importTheories learns the theories of the file "import path" brings in
+// (the ones it defines, not its own imports'), so their phrases can be
+// read from here on. A file that can't be found or read is the import's
+// own error, when the program runs.
+func (p *Parser) importTheories(tok token.Token, path string, names []string) {
+	if p.ModuleDir == "" || p.importing[path] {
+		return
+	}
+	full := filepath.Join(p.ModuleDir, filepath.FromSlash(path))
+	ext, err := syntax.FindModule(full, func(ext string) bool {
+		info, err := os.Stat(full + ext)
+		return err == nil && !info.IsDir()
+	})
+	if err != nil || ext == "" {
+		return
+	}
+	data, err := os.ReadFile(full + ext)
+	if err != nil {
+		return
+	}
+	sub := New(lexer.New(strings.ReplaceAll(string(data), "\r\n", "\n")))
+	sub.ModuleDir = p.ModuleDir
+	sub.importing = map[string]bool{path: true}
+	for k := range p.importing {
+		sub.importing[k] = true
+	}
+	sub.ParseProgram()
+	for word, spec := range sub.theories {
+		if spec.from != "" {
+			continue
+		}
+		if names != nil && !containsString(names, word) {
+			if p.unlisted == nil {
+				p.unlisted = map[string]string{}
+			}
+			p.unlisted[word] = path
+			continue
+		}
+		if p.theories == nil {
+			p.theories = map[string]*theorySpec{}
+		}
+		if other, ok := p.theories[word]; ok {
+			where := "this file"
+			if other.from != "" {
+				where = other.from
+			}
+			p.errorAt(tok.Line, tok.Pos, "import %s: %s is a theory in %s too: a word has one meaning", path, word, where)
+			continue
+		}
+		mine := *spec
+		mine.from = path
+		p.theories[word] = &mine
+	}
 }

@@ -149,6 +149,7 @@ func runProgram(src, dir, script string, args []string) int {
 // (mode "trace") or run a line at a time (mode "debug").
 func runWatched(src, dir, script string, args []string, mode string) int {
 	p := parser.New(lexer.New(src))
+	p.ModuleDir = dir
 	program := p.ParseProgram()
 	if errs := p.ErrorList(); len(errs) > 0 {
 		// The first error only: the rest are usually the parser tripping

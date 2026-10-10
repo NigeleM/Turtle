@@ -375,3 +375,14 @@ func TestHelpCommands(t *testing.T) {
 		t.Errorf("a variable called help: %q", out.String())
 	}
 }
+
+// A theory entered once is known to the entries after it.
+func TestTheoryAcrossEntries(t *testing.T) {
+	s, out := session(t)
+	s.Eval("theory twice\n    abstract\n        twice doubles n.\n    notation twice n .\n    definition\n        return n * 2\ntheory [end]")
+	out.Reset()
+	s.Eval("twice 21")
+	if strings.TrimSpace(out.String()) != "42" {
+		t.Errorf("got %q", out.String())
+	}
+}
