@@ -2,7 +2,7 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
-## Unreleased
+## 0.9.181 (2026-10-10)
 
 - Theories: new words and phrases written in Turtle, with an abstract,
   notations, a definition, theorems and a proof. `turtle test` proves
