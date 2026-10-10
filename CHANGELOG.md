@@ -2,7 +2,7 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
-## Unreleased
+## 0.9.190 (2026-10-10)
 
 - Colors grouped by what a word does: keywords, imports, functions, data
   structures, `show`, text, numbers and theories (a theory's word wherever
