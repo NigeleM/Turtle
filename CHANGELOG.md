@@ -2,6 +2,11 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## 0.9.189 (2026-10-10)
+
+- REPL: a theory typed a line at a time waits for `theory [end]` (it ran
+  `theory name` on its own line and gave an error).
+
 ## 0.9.188 (2026-10-10)
 
 - Theories: each random input runs the theory once, with every theorem
