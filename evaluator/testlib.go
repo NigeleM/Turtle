@@ -70,11 +70,17 @@ func (it *Interpreter) tryEval(e ast.Expression, env *object.Environment) (v obj
 // ---- check ----
 
 func (it *Interpreter) evalCheck(c *ast.CheckStatement, env *object.Environment) {
+	if ok, details := it.checkHolds(c, env); !ok {
+		testFail(c.Text, details)
+	}
+}
+
+// checkHolds works out a check: whether it holds, and when it doesn't,
+// why.
+func (it *Interpreter) checkHolds(c *ast.CheckStatement, env *object.Environment) (bool, []string) {
 	switch c.Form {
 	case "true":
-		if ok, details := it.explainTruth(c.Value, env); !ok {
-			testFail(c.Text, details)
-		}
+		return it.explainTruth(c.Value, env)
 	case "is":
 		v := it.evalExpression(c.Value, env)
 		if it.isKind(v, c.Kind, env) == c.Negate {
@@ -83,9 +89,9 @@ func (it *Interpreter) evalCheck(c *ast.CheckStatement, env *object.Environment)
 				subject = exprText(c.Value) + " is "
 			}
 			if c.Negate {
-				testFail(c.Text, []string{fmt.Sprintf("%s%s", subject, kindWithArticle(c.Kind))})
+				return false, []string{fmt.Sprintf("%s%s", subject, kindWithArticle(c.Kind))}
 			}
-			testFail(c.Text, []string{fmt.Sprintf("%s%s, not %s", subject, valueKind(v), kindWithArticle(c.Kind))})
+			return false, []string{fmt.Sprintf("%s%s, not %s", subject, valueKind(v), kindWithArticle(c.Kind))}
 		}
 	case "close":
 		v := it.evalExpression(c.Value, env)
@@ -111,19 +117,20 @@ func (it *Interpreter) evalCheck(c *ast.CheckStatement, env *object.Environment)
 			}
 			diff := (&object.Float{Value: a - b}).Inspect()
 			if c.Negate {
-				testFail(c.Text, []string{fmt.Sprintf("got %s, which is within %s of %s", v.Inspect(), allowed, other.Inspect())})
+				return false, []string{fmt.Sprintf("got %s, which is within %s of %s", v.Inspect(), allowed, other.Inspect())}
 			}
-			testFail(c.Text, []string{fmt.Sprintf("got %s, want %s (off by %s; allowed: %s)", object.Exact(v), object.Exact(other), diff, allowed)})
+			return false, []string{fmt.Sprintf("got %s, want %s (off by %s; allowed: %s)", object.Exact(v), object.Exact(other), diff, allowed)}
 		}
 	case "fails":
 		v, fe := it.tryEval(c.Value, env)
 		if fe == nil {
-			testFail(c.Text, []string{fmt.Sprintf("expected an error, but it gave %s", object.Shown(v))})
+			return false, []string{fmt.Sprintf("expected an error, but it gave %s", object.Shown(v))}
 		}
 		if len(c.Errors) > 0 && !containsString(c.Errors, fe.kind) {
-			testFail(c.Text, []string{fmt.Sprintf("expected a %s error, got a %s error: %s", strings.Join(c.Errors, " or "), fe.kind, fe.text)})
+			return false, []string{fmt.Sprintf("expected a %s error, got a %s error: %s", strings.Join(c.Errors, " or "), fe.kind, fe.text)}
 		}
 	}
+	return true, nil
 }
 
 // kindWithArticle writes a check's kind word as words: "an integer".
@@ -266,6 +273,16 @@ func (it *Interpreter) explainTruth(e ast.Expression, env *object.Environment) (
 				details = append(details, fmt.Sprintf("%s is %s", exprText(x.Right), object.Shown(r)))
 			}
 		}
+	case *ast.TypeCheckExpression:
+		val := it.evalExpression(x.Value, env)
+		if it.isKind(val, x.Kind, env) {
+			return true, nil
+		}
+		subject := exprText(x.Value) + " is " + object.Shown(val) + ", "
+		if isLiteral(x.Value) {
+			subject = exprText(x.Value) + " is "
+		}
+		return false, []string{fmt.Sprintf("%s%s, not %s", subject, valueKind(val), kindWithArticle(x.Kind))}
 	case *ast.PrefixExpression:
 		if x.Operator == "!" {
 			ok, _ := it.explainTruth(x.Right, env)
@@ -420,6 +437,21 @@ func ruleItems(coll object.Object, fn *object.Function, pair bool) []ruleItem {
 // checkRule tries the rule on every item and counts the ones that follow
 // it; false, with the reason, when there are too many or too few.
 func (it *Interpreter) checkRule(r *ast.Rule, coll object.Object, env *object.Environment) (bool, []string) {
+	return it.tryRule(r, coll, env).verdict(r)
+}
+
+// ruleRun is a rule tried on every item: the ones that follow it and the
+// ones that break it.
+type ruleRun struct {
+	fn             *object.Function
+	items          []ruleItem
+	follow, breaks []ruleItem
+	unit           string // item or pair
+	count          int    // how many must follow it (at least, at most, exactly), else -1
+}
+
+// tryRule tries the rule on every item of coll.
+func (it *Interpreter) tryRule(r *ast.Rule, coll object.Object, env *object.Environment) ruleRun {
 	f := it.evalExpression(r.Fn, env)
 	fn, ok := f.(*object.Function)
 	if !ok || fn.Shape != nil {
@@ -443,7 +475,6 @@ func (it *Interpreter) checkRule(r *ast.Rule, coll object.Object, env *object.En
 	if r.Pair {
 		unit = "pair"
 	}
-	total := len(items)
 	count := -1
 	if r.Count != nil {
 		cv := it.evalExpression(r.Count, env)
@@ -453,6 +484,14 @@ func (it *Interpreter) checkRule(r *ast.Rule, coll object.Object, env *object.En
 		}
 		count = int(n.Value)
 	}
+	return ruleRun{fn: fn, items: items, follow: follow, breaks: breaks, unit: unit, count: count}
+}
+
+// verdict is whether the run has as many items following the rule as r
+// says, and when it hasn't, why.
+func (run ruleRun) verdict(r *ast.Rule) (bool, []string) {
+	follow, breaks, unit, count := run.follow, run.breaks, run.unit, run.count
+	total := len(run.items)
 	listed := func(head string, items []ruleItem) []string {
 		out := []string{head}
 		for i, item := range items {
@@ -524,6 +563,29 @@ func colonIf(b bool) string {
 // ---- validate ----
 
 func (it *Interpreter) evalValidate(v *ast.ValidateStatement, env *object.Environment) {
+	if found := it.searchValidate(v, env, false); found.failed {
+		testFail(v.Text, found.lines)
+	}
+}
+
+// validateFound is what trying a validate's call on random inputs found.
+type validateFound struct {
+	failed       bool
+	tried, cases int   // inputs tried, and how many it would try
+	seed         int64 // to repeat the run
+	caseN        int   // the case that failed
+	inputs       []*ast.ValidateInput
+	vals, first  []object.Object // the smallest failing inputs, and the first
+	result       object.Object   // the call's answer on vals (nil: it stopped)
+	details      []string        // why the rule failed on vals
+	lines        []string        // all of it, as validate reports it
+}
+
+// searchValidate tries v's call on random inputs until one breaks its
+// rule, then shrinks that input. lenient (hypothesis, which needs no
+// import test) reads the cases and seed settings only when they're whole
+// numbers, as a program's own variables of those names may be anything.
+func (it *Interpreter) searchValidate(v *ast.ValidateStatement, env *object.Environment, lenient bool) validateFound {
 	inputs := v.Inputs
 	learned := false
 	if len(inputs) == 0 {
@@ -533,6 +595,9 @@ func (it *Interpreter) evalValidate(v *ast.ValidateStatement, env *object.Enviro
 	cases := defaultCases
 	if c, ok := env.Get(casesName); ok {
 		n, isInt := c.(*object.Integer)
+		if lenient && (!isInt || n.Value < 1) {
+			n, isInt = object.Int(defaultCases), true
+		}
 		if !isInt || n.Value < 1 {
 			fatalf("cases (how many random inputs validate tries) must be a whole number of 1 or more, got %s", object.Shown(c))
 		}
@@ -546,6 +611,10 @@ func (it *Interpreter) evalValidate(v *ast.ValidateStatement, env *object.Enviro
 		case *object.None:
 			seed = rand.New(rand.NewSource(time.Now().UnixNano())).Int63n(1_000_000_000)
 		default:
+			if lenient {
+				seed = rand.New(rand.NewSource(time.Now().UnixNano())).Int63n(1_000_000_000)
+				break
+			}
 			fatalf("seed must be a whole number or none, got %s", object.Shown(s))
 		}
 	} else {
@@ -583,8 +652,10 @@ func (it *Interpreter) evalValidate(v *ast.ValidateStatement, env *object.Enviro
 			lines = append(lines, "inputs made like the ones in this test's checks")
 		}
 		lines = append(lines, fmt.Sprintf("to repeat this run: seed = %d", seed))
-		testFail(v.Text, lines)
+		return validateFound{failed: true, tried: n, cases: cases, seed: seed, caseN: n, inputs: inputs,
+			vals: vals, first: original, result: result, details: details, lines: lines}
 	}
+	return validateFound{tried: cases, cases: cases, seed: seed, inputs: inputs}
 }
 
 // validateRun calls the function on one set of inputs and tries the rule
@@ -602,7 +673,7 @@ func (it *Interpreter) validateRun(v *ast.ValidateStatement, inputs []*ast.Valid
 	}
 	res, fe := it.tryEval(v.Call, callEnv)
 	if fe != nil {
-		return true, []string{"it stopped with an error: " + fe.text}, nil
+		return true, []string{"it stopped with an error: " + errorWhere(fe)}, nil
 	}
 	child.Set(v.ResultName, res)
 	var ok bool

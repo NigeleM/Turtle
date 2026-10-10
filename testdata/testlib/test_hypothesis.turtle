@@ -1,0 +1,55 @@
+// test_hypothesis.turtle: hypothesis[...] used as a value answers true or
+// false, about facts, data, functions and the bakery's theories.
+import test
+import data
+import lib/bakery_words
+
+def evens[nums]
+    return nums keep x give x % 2 == 0
+def [end]
+
+def odd_ones_out[nums]
+    return nums keep x give x % 2 != 1
+def [end]
+
+def test_facts[]
+    basket = list [Item["Cookie", 12, 150], Item["Loaf", 2, 650]]
+    check hypothesis[length of basket == 2] .
+    wrong = hypothesis[length of basket == 3]
+    check !wrong .
+    check hypothesis[basket is list] .
+    check hypothesis[1 / 0 fails [math]] .
+def [end]
+
+def test_data[]
+    basket = list [Item["Cookie", 12, 150], Item["Loaf", 2, 650], Item["Bad", -1, 5]]
+    all_whole = hypothesis[basket each i give ~whole qty of i]
+    check !all_whole .
+    check hypothesis[basket any i give qty of i < 0] .
+    check hypothesis[basket each i give i type Item] .
+    check hypothesis[basket at least 2 i give cents of i > 100] .
+    none_free = hypothesis[basket not i give qty of i >= 12]
+    check !none_free .
+def [end]
+
+def test_functions_on_random_inputs[]
+    check hypothesis[evens[nums] with nums as list of integer that result each x give x % 2 == 0] .
+    sloppy = hypothesis[odd_ones_out[nums] with nums as list of integer that result each x give x % 2 == 0]
+    check !sloppy .
+def [end]
+
+def test_theories[]
+    check hypothesis[discount] .
+    check hypothesis[discount, theorem result <= c] .
+    too_strong = hypothesis[discount, theorem result <= c div 2]
+    check !too_strong .
+    check hypothesis[tally 1 in list [1, 2, 1] . is 2] .
+    check hypothesis[discount 10 off 500] .
+    refused = hypothesis[discount 200 off 500]
+    check !refused .
+def [end]
+
+def test_an_error_is_a_no[]
+    broke = hypothesis[10 / 0 == 1]
+    check !broke .
+def [end]

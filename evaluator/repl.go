@@ -38,6 +38,10 @@ func (it *Interpreter) RunEntry(program *ast.Program) (shown object.Object, err 
 			return it.evalExpression(st.Call, it.Global), nil
 		case *ast.ExpressionStatement:
 			currentLine = st.Line()
+			if h, ok := st.Expression.(*ast.HypothesisExpression); ok {
+				it.evalHypothesis(h, it.Global, true) // its report says whether it holds
+				return nil, nil
+			}
 			return it.evalExpression(st.Expression, it.Global), nil
 		}
 	}

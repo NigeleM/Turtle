@@ -48,6 +48,8 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 	case *ast.NoneLiteral:
 		return object.NoneValue
 
+	case *ast.HypothesisExpression:
+		return it.evalHypothesis(e, env, false)
 	case *ast.TheoryCall:
 		return it.evalTheoryCall(e, env)
 

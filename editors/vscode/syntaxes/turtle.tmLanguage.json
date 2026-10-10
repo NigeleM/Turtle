@@ -176,7 +176,7 @@
     },
     "libraryWords": {
       "name": "keyword.other.library.turtle",
-      "match": "^\\s*(check|verify|validate|log)\\b|\\brandom(?=\\s+(integer|float|string|digits?|letter|boolean|date|time|list|set|map|[A-Z]))|(?<=[\\w\\]\\)\"] )type(?=\\s+[A-Za-z])|\\bmatrix(?=\\s*\\[)"
+      "match": "^\\s*(check|verify|validate|log)\\b|\\brandom(?=\\s+(integer|float|string|digits?|letter|boolean|date|time|list|set|map|[A-Z]))|(?<=[\\w\\]\\)\"] )type(?=\\s+[A-Za-z])|\\bmatrix(?=\\s*\\[)|\\bhypothesis(?=\\[)"
     },
     "sentences": {
       "name": "support.function.turtle",

@@ -99,6 +99,18 @@ func (p *Parser) parseCheckStatement() ast.Statement {
 	value := p.parseExpression(LOWEST)
 	p.popStops("fails")
 	c := &ast.CheckStatement{Token: tok, Value: value, Form: "true"}
+	if !p.parseCheckForm(c) {
+		return nil
+	}
+	if !p.endStatement(tok.Line, &c.Text) {
+		return nil
+	}
+	return c
+}
+
+// parseCheckForm reads what comes after a check's value: is <kind>,
+// is close to ..., fails [...], or nothing (a true/false value).
+func (p *Parser) parseCheckForm(c *ast.CheckStatement) bool {
 	switch {
 	case p.peekTokenIs(token.IS):
 		p.nextToken()
@@ -135,7 +147,7 @@ func (p *Parser) parseCheckStatement() ast.Statement {
 			c.Kind = p.curToken.Literal
 		default:
 			p.errorf("check ... is: say what kind of value, e.g. check x is integer . (integer, float, number, string, boolean, list, set, map, date, none, function, empty, or an assembled type)")
-			return nil
+			return false
 		}
 	case p.peekTokenIs(token.IDENT) && p.peekToken.Literal == "fails":
 		p.nextToken()
@@ -145,7 +157,7 @@ func (p *Parser) parseCheckStatement() ast.Statement {
 			for !p.peekTokenIs(token.RBRACKET) {
 				if !p.expectPeek(token.IDENT) {
 					p.errorf("check ... fails [...]: list error kinds, e.g. fails [math, type]")
-					return nil
+					return false
 				}
 				c.Errors = append(c.Errors, p.curToken.Literal)
 				if p.peekTokenIs(token.COMMA) {
@@ -155,10 +167,7 @@ func (p *Parser) parseCheckStatement() ast.Statement {
 			p.nextToken() // -> ]
 		}
 	}
-	if !p.endStatement(tok.Line, &c.Text) {
-		return nil
-	}
-	return c
+	return true
 }
 
 // peekIsQuant: peekToken begins a rule (each, any, not, exactly N, at
@@ -207,7 +216,7 @@ func (p *Parser) parseRule(what string) *ast.Rule {
 		p.nextToken()
 		r.Pair = true
 	}
-	if p.peekTokenIs(token.PERIOD) || p.peekTokenIs(token.EOF) {
+	if p.peekTokenIs(token.PERIOD) || p.peekTokenIs(token.EOF) || p.peekTokenIs(token.RBRACKET) {
 		p.errorf("%s: give the rule after %q, e.g. x give x > 0", what, p.curToken.Literal)
 		return nil
 	}
@@ -247,10 +256,23 @@ func (p *Parser) parseValidateStatement() ast.Statement {
 		return nil
 	}
 	v := &ast.ValidateStatement{Token: tok, Call: call, ResultName: "result"}
+	if !p.parseValidateRest(v, "validate") {
+		return nil
+	}
+	if !p.endStatement(tok.Line, &v.Text) {
+		return nil
+	}
+	return v
+}
+
+// parseValidateRest reads what comes after validate's call: [to name]
+// with x as <shape>, ... and that ... or matches ....
+func (p *Parser) parseValidateRest(v *ast.ValidateStatement, what string) bool {
+	call := v.Call
 	if p.peekTokenIs(token.TO) {
 		p.nextToken()
 		if !p.expectPeek(token.IDENT) {
-			return nil
+			return false
 		}
 		v.ResultName = p.curToken.Literal
 	}
@@ -258,12 +280,12 @@ func (p *Parser) parseValidateStatement() ast.Statement {
 		p.nextToken()
 		for {
 			if !p.expectPeek(token.IDENT) {
-				return nil
+				return false
 			}
 			name := p.curToken.Literal
 			if !p.peekTokenIs(token.IDENT) || p.peekToken.Literal != "as" {
-				p.errorf("validate ... with %s: say what %s is, e.g. with %s as list of integer", name, name, name)
-				return nil
+				p.errorf("%s ... with %s: say what %s is, e.g. with %s as list of integer", what, name, name, name)
+				return false
 			}
 			p.nextToken() // -> as
 			p.nextToken() // -> the shape
@@ -271,7 +293,7 @@ func (p *Parser) parseValidateStatement() ast.Statement {
 			shape := p.parseShape()
 			p.popStops("that", "matches")
 			if shape == nil {
-				return nil
+				return false
 			}
 			v.Inputs = append(v.Inputs, &ast.ValidateInput{Name: name, Shape: shape})
 			if !p.peekTokenIs(token.COMMA) {
@@ -291,8 +313,8 @@ func (p *Parser) parseValidateStatement() ast.Statement {
 		p.popStops(quantWords...)
 		if p.peekIsQuant() {
 			v.Collection = e
-			if v.Rule = p.parseRule("validate"); v.Rule == nil {
-				return nil
+			if v.Rule = p.parseRule(what); v.Rule == nil {
+				return false
 			}
 		} else {
 			v.That = e
@@ -302,13 +324,10 @@ func (p *Parser) parseValidateStatement() ast.Statement {
 		p.nextToken()
 		v.Matches = p.parseExpression(LOWEST)
 	default:
-		p.errorf("validate %s[...]: give the rule every answer must follow: that ... (true or false), that %s each x give ..., or matches another_function[...]", call.Name, v.ResultName)
-		return nil
+		p.errorf("%s %s[...]: give the rule every answer must follow: that ... (true or false), that %s each x give ..., or matches another_function[...]", what, call.Name, v.ResultName)
+		return false
 	}
-	if !p.endStatement(tok.Line, &v.Text) {
-		return nil
-	}
-	return v
+	return true
 }
 
 // linkValidateExamples gives each validate without "with" the calls to

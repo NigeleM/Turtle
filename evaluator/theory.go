@@ -16,7 +16,7 @@ import (
 
 // coreWords are the functions every program has, which a theory's word
 // can't be.
-var coreWords = []string{"typeof", "help", "stdlib", "version", "diagnose"}
+var coreWords = []string{"typeof", "help", "stdlib", "version", "diagnose", "hypothesis"}
 
 // defineTheory makes the theory's word, which must be new.
 func (it *Interpreter) defineTheory(s *ast.TheoryStatement, env *object.Environment) {
@@ -163,7 +163,7 @@ func (it *Interpreter) diagnoseTheoryUse(tc *ast.TheoryCall, env *object.Environ
 				panic(r)
 			}
 			fmt.Fprintf(&b, "  %-9s ✗ %s error: %s\n%s", "failed", fe.kind, fe.text, took)
-			fmt.Println(b.String())
+			it.showReport(env, b.String())
 			result = it.errorValue(fe)
 			return
 		}
@@ -181,7 +181,7 @@ func (it *Interpreter) diagnoseTheoryUse(tc *ast.TheoryCall, env *object.Environ
 			fmt.Fprintf(&b, "  %-9s %-*s  %s\n", "theorem", width, th.Text, mark)
 		}
 		b.WriteString(took)
-		fmt.Println(b.String())
+		it.showReport(env, b.String())
 	}()
 	return it.callFunction(fn, tc.Word, args)
 }

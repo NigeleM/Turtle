@@ -25,6 +25,7 @@ type theoryProof struct {
 	cases    []caseCheck
 	theorems []theoremCheck
 	tried    int   // random inputs tried
+	refused  int   // of those, the ones the theory itself stopped on
 	seed     int64 // the random inputs' seed, to repeat a run
 	warnings []string
 }
@@ -116,6 +117,10 @@ func (it *Interpreter) proveTheory(fn *object.Function, seed int64) theoryProof 
 			vals[i] = it.randomValue(in.Shape, fn.Env, rng)
 		}
 		pr.tried++
+		if it.protect(func() { it.callFunction(fn, ts.Name, copies(vals)) }) != nil {
+			pr.refused++ // an input it doesn't take is no counterexample
+			continue
+		}
 		for k, th := range ts.Theorems {
 			if !pr.theorems[k].holds {
 				continue

@@ -2,6 +2,13 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## Unreleased
+
+- `hypothesis[...]` tries a claim about data, a function, or a theory and
+  gives true or false; on its own line it shows where the claim breaks.
+- `reportfile = "checks.txt"` also adds diagnose and hypothesis reports to
+  a file.
+
 ## 0.9.182 (2026-10-10)
 
 - Private theories: `theory ~name` is for its own file (and its tests).

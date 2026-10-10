@@ -1101,6 +1101,9 @@ func (p *Parser) parseFunctionDef() ast.Statement {
 	if p.linearImported && name == "matrix" {
 		p.matrixNameError(p.curToken, "a function")
 	}
+	if name == "hypothesis" {
+		p.errorf("hypothesis is Turtle's own word (hypothesis[claim] tries a claim), so it can't name a function; choose another name")
+	}
 	if p.testImported && testWords[name] {
 		p.errorf("%s is a test word in a file that imports test, so it can't name a function here; rename it (a function called %s from another file can be used as module %s[...])", name, name, name)
 	}
@@ -1627,6 +1630,9 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 // "x give ..." is a one-parameter anonymous function.
 func (p *Parser) parseIdentifier() ast.Expression {
 	tok := p.curToken
+	if p.startsHypothesis() {
+		return p.parseHypothesis()
+	}
 	if p.startsPhrase() {
 		return p.parseTheoryCall()
 	}

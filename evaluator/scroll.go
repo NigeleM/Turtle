@@ -495,7 +495,7 @@ func (it *Interpreter) evalDiagnose(ce *ast.CallExpression, env *object.Environm
 	// diagnose[discount]: a theory, this file's or an imported one.
 	if id, ok := ce.Arguments[0].(*ast.Identifier); ok && id.Module == "" && len(ce.Arguments) == 1 {
 		if fn := theoryIn(id.Value, env); fn != nil {
-			fmt.Println(it.proveTheory(fn, theorySeed(it.Global)).report())
+			it.showReport(env, it.proveTheory(fn, theorySeed(it.Global)).report())
 			return fn
 		}
 	}
@@ -544,11 +544,11 @@ func (it *Interpreter) diagnoseValues(args []object.Object) object.Object {
 			}
 			out += "\n" + strings.SplitN(run.report("", nil, nil, false), "\n", 3)[2]
 		}
-		fmt.Println(out)
+		it.showReport(nil, out)
 		return v
 	case *object.Function:
 		if v.Theory != nil && len(args) == 1 {
-			fmt.Println(it.proveTheory(v, theorySeed(it.Global)).report())
+			it.showReport(nil, it.proveTheory(v, theorySeed(it.Global)).report())
 			return v
 		}
 		if v.Scroll != nil {
@@ -588,11 +588,11 @@ func (it *Interpreter) diagnoseScroll(heading string, steps []*ast.ScrollStep, e
 			if !ok || fe.parse {
 				panic(r)
 			}
-			fmt.Println(run.report(heading, start, nil, false))
+			it.showReport(env, run.report(heading, start, nil, false))
 			result = it.errorValue(fe)
 			return
 		}
-		fmt.Println(run.report(heading, start, result, true))
+		it.showReport(env, run.report(heading, start, result, true))
 	}()
 	return it.runScroll(run, steps, env, value)
 }
@@ -618,12 +618,12 @@ func (it *Interpreter) diagnoseCall(name string, args []object.Object, call func
 				panic(r)
 			}
 			fmt.Fprintf(&b, "  %-9s ✗ %s error: %s\n%s", "failed", fe.kind, fe.text, took)
-			fmt.Println(b.String())
+			it.showReport(nil, b.String())
 			result = it.errorValue(fe)
 			return
 		}
 		fmt.Fprintf(&b, "  %-9s %s\n%s", "returned", briefValue(result), took)
-		fmt.Println(b.String())
+		it.showReport(nil, b.String())
 	}()
 	return call()
 }
@@ -650,8 +650,12 @@ const maxDiagnoseLines = 60
 // the value each assignment gave, and each loop pass; an error in it is
 // shown, and the program goes on after diagnose [end].
 func (it *Interpreter) evalDiagnoseBlock(s *ast.DiagnoseStatement, env *object.Environment) (res ExecResult) {
-	fmt.Printf("diagnose (lines %d-%d)\n", s.Line()+1, s.End-1)
 	out := &cappedWriter{max: maxDiagnoseLines}
+	say := func(text string) { // shown now, and kept for reportfile
+		fmt.Println(text)
+		out.shown.WriteString(text + "\n")
+	}
+	say(fmt.Sprintf("diagnose (lines %d-%d)", s.Line()+1, s.End-1))
 	prevTrace, prevOpen := it.Trace, it.traceOpen
 	if it.traceSrc == nil {
 		it.traceSrc = map[string][]string{}
@@ -673,18 +677,22 @@ func (it *Interpreter) evalDiagnoseBlock(s *ast.DiagnoseStatement, env *object.E
 		}
 		out.flush()
 		if out.dropped > 0 {
-			fmt.Printf("  ... %d more lines\n", out.dropped)
+			say(fmt.Sprintf("  ... %d more lines", out.dropped))
 		}
 		if r != nil {
 			fe, ok := r.(fatalError)
 			if !ok || fe.parse {
 				panic(r)
 			}
-			fmt.Printf("  ✗ failed: %s error: %s\n", fe.kind, fe.msg)
+			say(fmt.Sprintf("  ✗ failed: %s error: %s", fe.kind, fe.msg))
+			currentLine, currentFile = s.Line(), file
+			it.fileReport(env, strings.TrimRight(out.shown.String(), "\n"))
 			res = noneResult
 			return
 		}
-		fmt.Println("  finished")
+		say("  finished")
+		currentLine, currentFile = s.Line(), file
+		it.fileReport(env, strings.TrimRight(out.shown.String(), "\n"))
 	}()
 	return it.evalBlock(s.Body, env)
 }
@@ -694,6 +702,7 @@ func (it *Interpreter) evalDiagnoseBlock(s *ast.DiagnoseStatement, env *object.E
 type cappedWriter struct {
 	max, lines, dropped int
 	partial             []byte
+	shown               strings.Builder // what it showed, for reportfile
 }
 
 func (c *cappedWriter) Write(b []byte) (int, error) {
@@ -709,6 +718,7 @@ func (c *cappedWriter) Write(b []byte) (int, error) {
 func (c *cappedWriter) emit() {
 	if c.lines < c.max {
 		os.Stdout.Write(append([]byte("  "), c.partial...))
+		c.shown.WriteString("  " + string(c.partial))
 		c.lines++
 	} else {
 		c.dropped++

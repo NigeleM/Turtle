@@ -131,6 +131,8 @@ or `here`.
 | `into` | in a scroll: the steps follow | `x is scroll 3 into add1, double .` | [Scrolls](#scrolls) |
 | `here` | in a scroll step: the value so far | `here at get[0]` | [Scrolls](#scrolls) |
 | `diagnose` | a line of its own, or `diagnose[...]`: look inside | `diagnose` ... `diagnose [end]` | [diagnose](#looking-inside-diagnose) |
+| `hypothesis` | `hypothesis[...]`: try a claim, true or false | `hypothesis[prices each p give p > 0]` | [hypothesis](#trying-a-claim-hypothesis) |
+| `reportfile` | a variable: also write diagnose and hypothesis reports to a file | `reportfile = "checks.txt"` | [reportfile](#reports-in-a-file-reportfile) |
 | `type` | after a value: whether it's that kind, true or false | `if ] n type integer [` | [The kind of a value](#the-kind-of-a-value-typeof-type) |
 | `integer`, `float`, `string`, `ascii`, `char`, `hex`, `keys`, `values` | after `change ... to` | `change x to float` | [Type conversion](#type-conversion) |
 | `each`, `any`, `not`, `exactly`, `least`, `most`, `pair`, `that`, `with`, `as`, `matches`, `fails`, `close`, `within` | in `check`, `verify` and `validate` sentences | `verify xs at least 2 x give x > 0 .` | [Tests](#tests-check-verify-validate-turtle-test) |
@@ -974,6 +976,93 @@ after: 11
 - Lines of functions called from the block show too, as in `turtle trace`.
 - It ends with `finished`, or `✗ failed:` and the error.
 - `turtle fmt` indents the block, and the REPL waits for `diagnose [end]`.
+
+### Trying a claim: `hypothesis`
+
+`hypothesis[...]` tries something you believe about your data, a
+function or a theory, and gives back `true` or `false`. On a line of its
+own it also shows a report: whether the claim holds, and when it doesn't,
+where it breaks. It never stops the program and needs no import.
+
+```
+hypothesis[prices each p give p > 0]
+```
+
+```
+hypothesis prices each p give p > 0 (line 4)
+  holds     no: 2 of 50 items (4%) break it
+  prices    list of 50: [ 4.5, 3.0, -3, 12.0, ... ]
+  where     at 7   -3   (p is -3, which isn't > 0)
+            at 31  0    (p is 0, which isn't > 0)
+  took      12µs
+```
+
+Used as a value it only answers, so a program can act on it:
+
+```
+if ] hypothesis[rows each r give r type Sale] [
+    show "every row is a sale" .
+if [end]
+```
+
+The claim is written the way tests write theirs (see
+[Tests](#tests-check-verify-validate-turtle-test)), with the same words:
+
+| Claim | Example | The report adds |
+|---|---|---|
+| a fact, any `check` form | `hypothesis[sum[xs] == 1]`, `hypothesis[n is integer]`, `hypothesis[x is close to 1 within 0.1]`, `hypothesis[load[p] fails [file]]` | how the sides differ, and the values it read |
+| about data: `each`, `any`, `not`, `at least`, `at most`, `exactly` | `hypothesis[rows each r give qty of r > 0]` | how many items break it (and what share), each one's place, value and why; for a rule about kinds, how many of each kind |
+| a function, on random inputs | `hypothesis[evens[nums] with nums as list of integer that result each x give x % 2 == 0]` | the smallest input that breaks it, the answer, why, and the seed to repeat it |
+| a theory | `hypothesis[share]` | each proof case and theorem, and the line of any that fails |
+| a theorem, before it goes in the theory | `hypothesis[share, theorem result <= 100]` | the smallest input it fails on |
+| a proof case | `hypothesis[share 1 of 4 . is 25.0]` | what it gave instead |
+| one use of a theory | `hypothesis[share 2 of 1]` | whether each of its theorems holds for it |
+
+Tests *enforce* a claim: a failed `check` fails the test. A hypothesis
+*asks*: it's for finding out what's true of your data, and for trying a
+theorem before you commit it to a theory.
+
+```
+hypothesis[share, theorem result <= 100]
+```
+
+```
+hypothesis share, theorem result <= 100 (line 9)
+  holds     no: it fails on a = 2, b = 1
+  where     on a = 2, b = 1: result is 200.0, which isn't <= 100
+  proof     2 of 2 hold
+  seed      678301857
+  took      211µs
+```
+
+- An error while trying the claim is a `no`, with the error and its line
+  as where it broke. Only a misspelled name still stops the program.
+- Random inputs follow the `seed` and `cases` settings when the program
+  has them as whole numbers (as `import test` makes them).
+- A theory's random inputs that it refuses (with `fail`) try nothing; the
+  report says how many it refused, so a `yes` from a few inputs shows.
+- `hypothesis` can't name a function; a variable can still be called that.
+
+### Reports in a file: `reportfile`
+
+Reports always show on the screen. To keep them too, set `reportfile`
+to a file's path (any text: `folder + "/run.txt"` works); each
+`diagnose` and `hypothesis` report after that is also added to the end
+of that file, under the time and the line it came from.
+
+```
+reportfile = "checks.txt"
+hypothesis[prices each p give p > 0]
+x is diagnose[best 1 of sales] .
+reportfile = none                // the screen only, again
+```
+
+```
+== 2026-10-10 14:32:07  shop.turtle line 2
+hypothesis prices each p give p > 0 (line 2)
+  holds     yes: all 50 items follow it
+  ...
+```
 
 
 ## Theories

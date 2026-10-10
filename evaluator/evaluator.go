@@ -464,6 +464,10 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		return noneResult
 
 	case *ast.ExpressionStatement:
+		if h, ok := s.Expression.(*ast.HypothesisExpression); ok {
+			it.evalHypothesis(h, env, true)
+			return noneResult
+		}
 		val := it.evalExpression(s.Expression, env)
 		if s.Print {
 			fmt.Println(val.Inspect())

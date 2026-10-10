@@ -825,3 +825,30 @@ type TheoryCall struct {
 func (tc *TheoryCall) expressionNode()      {}
 func (tc *TheoryCall) TokenLiteral() string { return tc.Token.Literal }
 func (tc *TheoryCall) String() string       { return tc.Word + " ..." }
+
+// HypothesisExpression is hypothesis[...]: a claim tried without failing.
+// It gives true or false; on a line of its own it also shows a report of
+// where the claim breaks. One of the forms is set:
+//
+//	hypothesis[sum[xs] == 1]                         Check (any check form)
+//	hypothesis[prices each p give p > 0]             Verify
+//	hypothesis[evens[nums] with nums as ... that ...]  Validate
+//	hypothesis[share]                                Check: a theory by name
+//	hypothesis[share, theorem result <= 100]         Theory and Theorem
+//	hypothesis[share 1 of 4 . is 25.0]               Use and Want
+//	hypothesis[share 2 of 1]                         Use: its theorems on it
+type HypothesisExpression struct {
+	Token    token.Token
+	Text     string // the claim as written
+	Check    *CheckStatement
+	Verify   *VerifyStatement
+	Validate *ValidateStatement
+	Theory   *Identifier
+	Theorem  *Theorem
+	Use      *TheoryCall
+	Want     Expression
+}
+
+func (h *HypothesisExpression) expressionNode()      {}
+func (h *HypothesisExpression) TokenLiteral() string { return h.Token.Literal }
+func (h *HypothesisExpression) String() string       { return "hypothesis[" + h.Text + "]" }
