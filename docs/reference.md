@@ -1010,7 +1010,7 @@ show "ones: ", tally 1 in nums .   // inside other sentences
 | Section | | What it does |
 |---|---|---|
 | `abstract` | required | what the word means, in plain words; `help`, `turtle doc` and the editor show it. It should name the word. |
-| `notation` | required, one or more | how the word is written. The names the definition uses (`b`, `a`) are its **values**; every other word (`in`) is **fixed**. Two values need a word or a comma between them. |
+| `notation` | required, one or more | how the word is written. The names the definition uses (`b`, `a`) are its **values**; every other word (`in`, `of`, `is` ...) is **fixed**. Two values need a word or a comma between them. Inside a phrase whose notation uses `of` or `is`, they're the phrase's words: name a value like `qty of item` first. |
 | `definition` | required | the code, with each value by its name; `return` gives the result |
 | `theorem` | optional, any number | something every result satisfies, written with `result` and the values |
 | `proof` | optional | worked cases: a use, `is`, what it gives |

@@ -592,7 +592,9 @@ FAILED: 1 passed, 0 failed, 3 theories proven, 1 theory failed, 1 warning (1 fil
 - Each **proof case** must give what it says.
 - Each **theorem** must hold for the proof cases' results, and for 100
   random inputs made like their values (an `Item` with text and two whole
-  numbers, ...). The definition may refuse an input with `fail`; that
+  numbers, ...). Numbers keep to the proof cases' range: when every proof
+  case has a value 0 or more, its random ones are too. To have a value
+  tried with negative numbers, give it a negative number in a proof case. The definition may refuse an input with `fail`; that
   input then doesn't count against a theorem. When a theorem breaks, the
   report shows the smallest input that breaks it and the seed to repeat
   the run (`seed = 7` sets it).

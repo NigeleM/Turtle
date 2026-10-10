@@ -1637,7 +1637,9 @@ func (p *Parser) parseIdentifier() ast.Expression {
 	if p.peekTokenIs(token.IDENT) && p.peekToken.Literal == "gives" && p.peekToken.Line == tok.Line {
 		p.errorf("%s gives ...: the word is give now: %s give ...", tok.Literal, tok.Literal)
 	}
-	if p.peekTokenIs(token.OF) && p.peekToken.Line == tok.Line {
+	// "x of y" reads a field, unless of is a word of the phrase being read
+	// (notation average of xs to places .).
+	if p.peekTokenIs(token.OF) && p.peekToken.Line == tok.Line && !p.isStop("of") {
 		return p.parseFieldExpression()
 	}
 	if p.peekTokenIs(token.GIVES) && p.peekToken.Line == tok.Line {

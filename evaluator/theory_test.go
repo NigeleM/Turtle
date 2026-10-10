@@ -409,3 +409,59 @@ func TestDiagnosePreviewsBigValues(t *testing.T) {
 		t.Errorf("%v\n%s", err, got)
 	}
 }
+
+// of and is can be a notation's words: inside the phrase they're its own,
+// and elsewhere of still reads a field.
+func TestTheoriesWithOfAndIs(t *testing.T) {
+	defs := `import data
+import math
+assemble Item [name, qty]
+theory average
+    abstract
+        average is the mean of xs, rounded to places decimals.
+    notation average of xs to places .
+    definition
+        return mean[xs] at round[places]
+theory [end]
+theory share
+    abstract
+        share is the part a of the whole b, as a percent.
+    notation share a of b .
+    definition
+        return a * 100 / b
+theory [end]
+theory same
+    abstract
+        same says whether a is b.
+    notation same a is b .
+    definition
+        return a == b
+theory [end]
+`
+	cases := []struct{ src, want string }{
+		{"show average of list [3, 4, 4] to 1 .", "3.7"},
+		{"x is average of list [1, 2] to 1 .\nshow x .", "1.5"},
+		{"part = 5\nshow share part of 20 .", "25.0"},
+		{"item = Item[\"tea\", 30]\nq = qty of item\nshow share q of 120, \" \", qty of item .", "25.0 30"},
+		{"a = 2\nshow same a is 2, \" \", same \"x\" is \"y\" .", "true false"},
+	}
+	for _, c := range cases {
+		got, err := run(t, defs+c.src, "")
+		if err != nil {
+			t.Errorf("%s: %v", c.src, err)
+		} else if strings.TrimSpace(got) != c.want {
+			t.Errorf("%s:\n got  %q\n want %q", c.src, strings.TrimSpace(got), c.want)
+		}
+	}
+	for src, want := range map[string]string{
+		defs + "item = Item[\"tea\", 30]\nx = share qty of item of 120":                                                          "in this phrase of is share's own word: name a value that uses of first",
+		"theory same\n    abstract\n        same.\n    notation same is b .\n    definition\n        return b\ntheory [end]\n":   "a notation can't have is right after its word",
+		"theory near\n    abstract\n        near.\n    notation near a at b .\n    definition\n        return a\ntheory [end]\n": `a notation can't use "at"`,
+	} {
+		p := parser.New(lexer.New(src))
+		p.ParseProgram()
+		if errs := strings.Join(p.Errors(), "; "); !strings.Contains(errs, want) {
+			t.Errorf("%s\n got  %s\n want %q", src, errs, want)
+		}
+	}
+}

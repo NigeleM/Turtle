@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"hash/fnv"
 	"os"
 	"path/filepath"
@@ -306,9 +307,11 @@ func (p *Parser) parseNotation(ts *ast.TheoryStatement) *ast.Notation {
 		case t.Type == token.COMMA:
 			n.Parts = append(n.Parts, ast.NotationPart{Word: ","})
 		case t.Type == token.IDENT || token.LookupIdent(t.Literal) != token.IDENT && isWord(t.Literal):
-			switch t.Literal {
-			case "at", "of", "is", "give":
+			switch {
+			case t.Literal == "at" || t.Literal == "give":
 				p.errorAt(t.Line, t.Pos, "a notation can't use %q: it already joins values in Turtle (x %s ...)", t.Literal, t.Literal)
+			case t.Literal == "is" && len(n.Parts) == 1:
+				p.errorAt(t.Line, t.Pos, "a notation can't have is right after its word: %s is ... names a result", ts.Name)
 			}
 			n.Parts = append(n.Parts, ast.NotationPart{Word: t.Literal})
 		default:
@@ -528,7 +531,14 @@ func (p *Parser) parseTheoryCall() *ast.TheoryCall {
 	for _, n := range spec.notations {
 		forms = append(forms, n.Text())
 	}
-	p.errorAt(tok.Line, tok.Pos, "this isn't how %s is written: %s", tok.Literal, strings.Join(forms, " or "))
+	hint := ""
+	for _, w := range []string{"of", "is"} {
+		if spec.fixed[w] {
+			hint = fmt.Sprintf(" (in this phrase %s is %s's own word: name a value that uses %s first, like q = qty of item, then %s ... q ...)", w, tok.Literal, w, tok.Literal)
+			break
+		}
+	}
+	p.errorAt(tok.Line, tok.Pos, "this isn't how %s is written: %s%s", tok.Literal, strings.Join(forms, " or "), hint)
 	return &ast.TheoryCall{Token: tok, Word: tok.Literal, Args: make([]ast.Expression, len(spec.slots))}
 }
 
