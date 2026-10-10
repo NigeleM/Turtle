@@ -2,7 +2,7 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
-## Unreleased
+## 0.9.183 (2026-10-10)
 
 - `hypothesis[...]` tries a claim about data, a function, or a theory and
   gives true or false; on its own line it shows where the claim breaks.
