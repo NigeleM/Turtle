@@ -87,6 +87,18 @@ def test_flatten_and_reshape[]
     check flatten[list [1, 2]] fails [type] .
 def [end]
 
+// ---------- how a matrix shows ----------
+def test_showing[]
+    m = matrix [1250.5, 980; 15, 7.125]
+    // Decimal points line up in each column.
+    check m at tostring == "[ 1250.5  980.0   ]\n[   15.0    7.125 ]" .
+    // Joined into text, the rows stay under the first.
+    check "m = " + m == "m = [ 1250.5  980.0   ]\n    [   15.0    7.125 ]" .
+    check "m: {m}" == "m: [ 1250.5  980.0   ]\n   [   15.0    7.125 ]" .
+    // Inside a list, one line, the way it's written.
+    check list [matrix [1, 2; 3, 4]] at tostring == "[ matrix [1, 2; 3, 4] ]" .
+def [end]
+
 // ---------- whole numbers stay whole ----------
 def test_integers_and_floats[]
     a = matrix [1, 2; 3, 4]

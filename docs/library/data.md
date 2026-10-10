@@ -177,7 +177,8 @@ id  sku  title        price  rating  added
 - Columns appear in the order their keys or fields are first seen, so
   rows with different keys still line up. A row without a column's key
   leaves the cell blank; a value of `none` shows as `none`.
-- Columns of numbers are right-aligned, everything else left-aligned.
+- Columns of numbers are right-aligned, everything else left-aligned. Numbers
+  already written as text (`"$1,250.50"`, `"12%"`) count as numbers.
   Text is shown without quotes; a line break inside a value shows as `\n`
   so the row stays on one line. Wide characters (emoji, CJK) are counted
   as two columns so the table still lines up.

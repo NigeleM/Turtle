@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"regexp"
 	"strings"
 	"unicode"
 
@@ -212,6 +213,10 @@ type textTable struct {
 
 func (t *textTable) add(row []object.Object) { t.rows = append(t.rows, row) }
 
+// numberText is text that's a number as people write one: a sign, a
+// currency symbol, digits with commas, decimals, a percent.
+var numberText = regexp.MustCompile(`^[-+]?[$€£¥]?[-+]?(\d{1,3}(,\d{3})+|\d+)(\.\d+)?%?$`)
+
 func (t *textTable) render(limit int) string {
 	if t.empty {
 		return "no rows"
@@ -237,10 +242,18 @@ func (t *textTable) render(limit int) string {
 			if c < len(row) {
 				v = row[c]
 			}
-			switch v.(type) {
+			switch x := v.(type) {
 			case *object.Integer, *object.Float:
 				hasNumber[c] = true
 			case nil, *object.None:
+			case *object.String:
+				// A number already written as text ("$1,250.50", "12%")
+				// lines up like a number.
+				if numberText.MatchString(x.Value) {
+					hasNumber[c] = true
+				} else {
+					numeric[c] = false
+				}
 			default:
 				numeric[c] = false
 			}

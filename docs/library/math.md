@@ -13,12 +13,13 @@ that is a fatal error naming exactly which import is missing. `fixed` and
 | Method | Args | Returns |
 |---|---|---|
 | `fixed` | places | text with exactly that many digits after the point (0 to 20), rounded: `3.5 at fixed[2]` is `"3.50"` |
-| `commas` | — | text with commas between thousands: `1234567 at commas` is `"1,234,567"`; a fraction is kept (`-1234.5` gives `"-1,234.5"`) |
+| `commas` | optional places | text with commas between thousands: `1234567 at commas` is `"1,234,567"`; a fraction is kept (`-1234.5` gives `"-1,234.5"`). With places, exactly that many decimals, as `fixed`: `1250.5 at commas[2]` is `"1,250.50"` |
 
 ```
 price = 1234.5
 show "$", price at fixed[2] .    // $1234.50
 show 1234567 at commas .         // 1,234,567
+show 1250.5 at commas[2] .       // 1,250.50
 ```
 
 The math methods:

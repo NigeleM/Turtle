@@ -482,7 +482,8 @@ isn't a number is an error. Sentence form: prices mean.
   limit   optional: at most this many rows for this call (else tablerows)
   Gives back: text, so show it: show table[rows] .
   A row without one of the columns leaves that cell blank; none shows as
-  none. Numbers line up on the right. Rows past the limit end with a
+  none. Numbers line up on the right, and so does text written as a number
+  ("$1,250.50", "12%"). Rows past the limit end with a
   line like "... 12 more rows".
   Example:
     show table[sql_query[db, "SELECT * FROM books"]] .

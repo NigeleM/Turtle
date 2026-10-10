@@ -110,15 +110,26 @@ func (m *Matrix) Inspect() string {
 	}
 	rows, cols := min(m.Rows, MatrixShowRows), min(m.Cols, MatrixShowCols)
 	cutCols, cutRows := cols < m.Cols, rows < m.Rows
-	cells := make([][]string, rows)
-	widths := make([]int, cols)
+	// Each column lines up on its decimal points: the whole parts to the
+	// right, the fractions to the left (980.0 over 7.125 is " 980.0" over
+	// "   7.125").
+	wholes := make([][]string, rows)
+	fracs := make([][]string, rows)
+	wholeW := make([]int, cols)
+	fracW := make([]int, cols)
 	scale := m.scale()
 	for r := range rows {
-		cells[r] = make([]string, cols)
+		wholes[r] = make([]string, cols)
+		fracs[r] = make([]string, cols)
 		for c := range cols {
 			s := m.cell(m.At(r, c), scale)
-			cells[r][c] = s
-			widths[c] = max(widths[c], len(s))
+			whole, frac := s, ""
+			if i := strings.IndexByte(s, '.'); i >= 0 {
+				whole, frac = s[:i], s[i:]
+			}
+			wholes[r][c], fracs[r][c] = whole, frac
+			wholeW[c] = max(wholeW[c], len(whole))
+			fracW[c] = max(fracW[c], len(frac))
 		}
 	}
 	var b strings.Builder
@@ -126,8 +137,10 @@ func (m *Matrix) Inspect() string {
 		b.WriteString("[")
 		for c := range cols {
 			b.WriteString(" ")
-			b.WriteString(strings.Repeat(" ", widths[c]-len(cells[r][c])))
-			b.WriteString(cells[r][c])
+			b.WriteString(strings.Repeat(" ", wholeW[c]-len(wholes[r][c])))
+			b.WriteString(wholes[r][c])
+			b.WriteString(fracs[r][c])
+			b.WriteString(strings.Repeat(" ", fracW[c]-len(fracs[r][c])))
 			if c < cols-1 {
 				b.WriteString(" ")
 			}

@@ -13,6 +13,7 @@ import (
 //
 //	3.5 at fixed[2]              "3.50"
 //	1234567 at commas            "1,234,567"
+//	1250.5 at commas[2]          "1,250.50"
 //	"7" at padleft[3, "0"]       "007"
 //	"ab" at padright[5, "."]     "ab..."
 
@@ -30,15 +31,22 @@ func fixedText(method string, receiver object.Object, args []object.Object) obje
 	return &object.String{Value: strconv.FormatFloat(f, 'f', int(n.Value), 64)}
 }
 
-// commasText groups a number's whole part in threes: 1,234,567.5.
+// commasText groups a number's whole part in threes: 1,234,567.5. With
+// a number of places, it first writes the number with exactly that many
+// decimals, as fixed does: 1250.5 at commas[2] is "1,250.50".
 func commasText(method string, receiver object.Object, args []object.Object) object.Object {
-	requireArgs(method, args, 0)
+	if len(args) > 1 {
+		fatalf("'commas' takes nothing, or how many decimal places: x at commas or x at commas[2], got %d values", len(args))
+	}
 	var text string
 	switch n := receiver.(type) {
 	case *object.Integer:
 		text = strconv.FormatInt(n.Value, 10)
 	case *object.Float:
 		text = strconv.FormatFloat(n.Value, 'f', -1, 64)
+	}
+	if len(args) == 1 {
+		text = fixedText("fixed", receiver, args).(*object.String).Value
 	}
 	sign := ""
 	if strings.HasPrefix(text, "-") {

@@ -38,6 +38,8 @@ show b .
 - `matrix` is a word only in a file that imports `linear`.
 - A matrix of whole numbers stays whole. Anything that can make a
   fraction (`/`, `inverse`, `solve`, a float in it) gives a float matrix.
+- `show` lines each column up on its decimal points. Joined into text
+  (`"m = " + m`, `"{m}"`), its rows stay lined up under the first.
 - `change rows to matrix` makes one from a list of lists (or a table's
   rows); `change m to list` turns it back.
 - A matrix is shared, like a list: after `b = a`, a `put` on `b` changes

@@ -66,7 +66,7 @@ func TestLinear(t *testing.T) {
 		{"show inverse[matrix [4, 7; 2, 6]] .", "[  0.6  -0.7 ]\n[ -0.2   0.4 ]"},
 		{"show rank[matrix [1, 2; 2, 4]], rank[identity[3]], rank[zeros[2]] .", "130"},
 		{"show power[matrix [1, 1; 1, 0], 10] .", "[ 89  55 ]\n[ 55  34 ]"},
-		{"show power[matrix [2, 0; 0, 4], -1], power[matrix [5], 0] .", "[ 0.5   0.0 ]\n[ 0.0  0.25 ][ 1 ]"},
+		{"show power[matrix [2, 0; 0, 4], -1], power[matrix [5], 0] .", "[ 0.5  0.0  ]\n[ 0.0  0.25 ][ 1 ]"},
 		{"show multiply_each[matrix [1, 2; 3, 4], matrix [5, 6; 7, 8]] .", "[  5  12 ]\n[ 21  32 ]"},
 		{"show solve[matrix [2, 1; 1, 3], list [3, 5]] .", "[ 0.8, 1.4 ]"},
 		{"a = matrix [2, 1; 1, 3]\nshow a solve list [3, 5] .", "[ 0.8, 1.4 ]"},
@@ -690,5 +690,17 @@ func TestBothFileEndings(t *testing.T) {
 	doc, err := Doc("lib/older", dir)
 	if err != nil || !strings.Contains(doc, "double") {
 		t.Errorf("turtle doc of a .trt file: %q %v", doc, err)
+	}
+}
+
+// Each column of a matrix lines up on its decimal points.
+func TestMatrixColumnsAlignOnDecimals(t *testing.T) {
+	got, err := run(t, "import linear\nshow matrix [1250.5, 980; 15, 7.125] .\nshow matrix [1, 20; 300, 4] .", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "[ 1250.5  980.0   ]\n[   15.0    7.125 ]\n[   1  20 ]\n[ 300   4 ]\n"
+	if got != want {
+		t.Errorf("got\n%s\nwant\n%s", got, want)
 	}
 }

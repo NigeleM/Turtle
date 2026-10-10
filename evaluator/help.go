@@ -40,7 +40,7 @@ var typeMethods = map[string][]string{
 	"string": {"upper", "lower", "trim", "get[index]", "slice[start, end]", "split[separator]",
 		"contains[text]", "indexof[text]", "replace[old, new]", "padleft[width]", "padright[width]",
 		"isnumber", "len", "isempty", "tostring"},
-	"integer": {"fixed[places]", "commas", "sqrt", "abs", "round", "floor", "ceil", "pow[power]", "random"},
+	"integer": {"fixed[places]", "commas", "commas[places]", "sqrt", "abs", "round", "floor", "ceil", "pow[power]", "random"},
 	"matrix": {"rows", "columns", "shape", "get[r, c]", "put[value, r, c]", "row[r]", "column[c]",
 		"flatten", "reshape[rows, columns]", "isempty", "tostring"},
 }

@@ -9,6 +9,9 @@ Turtle is pre-release (0.x). Breaking changes are listed first.
 - `make_date` also takes year, month, day, hour and minute.
 - `diagnose` shows each step's value as it was then, with what's inside.
 - A matrix joined into text keeps its rows lined up: `show "m is " + m .`
+- A matrix's columns line up on their decimal points.
+- `commas[2]`: commas and exactly 2 decimals, `1250.5 at commas[2]` is `"1,250.50"`.
+- `table` right-aligns numbers written as text, like `"$1,250.50"` and `"12%"`.
 - A failed step in a saved scroll says which step it sits in.
 - `turtle fmt` keeps maps and lists written over several lines indented,
   and a one-line scroll inside brackets no longer indents what follows.

@@ -3640,3 +3640,30 @@ show make_date[2026, 10, 9], "|", make_date[2026, 10, 9, 6, 30], "|", make_date[
 		t.Errorf("4 values: %v", err)
 	}
 }
+
+// commas with places writes exactly that many decimals, then the commas.
+func TestCommasWithPlaces(t *testing.T) {
+	got, err := run(t, `show 1250.5 at commas[2], "|", 1234567 at commas[2], "|", -9876543.219 at commas[1], "|", 999.999 at commas[2], "|", 7 at commas[0], "|", 12.5 at commas .`, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.TrimSpace(got) != "1,250.50|1,234,567.00|-9,876,543.2|1,000.00|7|12.5" {
+		t.Errorf("got %s", got)
+	}
+}
+
+// In a table, numbers already written as text line up on the right, like
+// numbers; a column with other text stays on the left.
+func TestTableAlignsNumberText(t *testing.T) {
+	src := `import data
+rows = list [map ["cost": "$1,250.50", "pct": "12%", "code": "A-1"], map ["cost": "$15.00", "pct": "-3.5%", "code": "B-22"]]
+show table[rows] .`
+	got, err := run(t, src, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "     cost    pct  code\n---------  -----  ----\n$1,250.50    12%  A-1\n   $15.00  -3.5%  B-22\n"
+	if got != want {
+		t.Errorf("got\n%s\nwant\n%s", got, want)
+	}
+}

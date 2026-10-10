@@ -322,6 +322,9 @@ check["days between", time_between[start_day, due_day, "days"], 30]
 check["date part", weekday of start_day, "Saturday"]
 check["format", format_date[due_day, "DD/MM/YYYY"], "02/03/2026"]
 check["make_date with minutes", format_date[make_date[2026, 1, 31, 9, 45], "hh:mm"], "09:45"]
+check["commas with places", 1250.5 at commas[2], "1,250.50"]
+money = list [map ["cost": 1250.5 at commas[2]], map ["cost": 15 at commas[2]]]
+check["money lines up", table[money] at split["\n"] at get[3], "   15.00"]
 check["compare dates", today[] > start_day, true]
 show "dates ok" .
 
