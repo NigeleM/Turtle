@@ -230,6 +230,17 @@ const maxRange = 10_000_000
 // whole numbers from from (0 if left out) up to, not including, to, as in
 // Python; a negative step counts down.
 func dataRange(args []object.Object) object.Object {
+	from, step, count := rangeBounds(args)
+	out := &object.List{Elements: make([]object.Object, 0, count)}
+	for i, v := int64(0), from; i < count; i, v = i+1, v+step {
+		out.Elements = append(out.Elements, object.Int(v))
+	}
+	return out
+}
+
+// rangeBounds is where range[...] starts, its step, and how many numbers
+// it has.
+func rangeBounds(args []object.Object) (from, step, count int64) {
 	if len(args) < 1 || len(args) > 3 {
 		fatalf("'range' takes an end, or a start and an end, and optionally a step: range[5], range[1, 10], range[10, 0, -2]; got %d arguments", len(args))
 	}
@@ -241,7 +252,8 @@ func dataRange(args []object.Object) object.Object {
 		return n.Value
 	}
 	// As in Python: the end is left out. range[5] is 0 to 4.
-	from, to, step := int64(0), int64(0), int64(1)
+	to := int64(0)
+	from, step = 0, 1
 	if len(args) == 1 {
 		to = num(0, "end")
 	} else {
@@ -253,7 +265,7 @@ func dataRange(args []object.Object) object.Object {
 			fatalKind(kindMath, "'range' step can't be 0 (use a negative step to count down: range[10, 0, -1])")
 		}
 	}
-	count := int64(0)
+	count = 0
 	switch {
 	case step > 0 && to > from:
 		count = (to - from + step - 1) / step
@@ -263,11 +275,7 @@ func dataRange(args []object.Object) object.Object {
 	if count > maxRange {
 		fatalKind(kindMath, "range[%d, %d] would be %d items; the most is %d", from, to, count, maxRange)
 	}
-	out := &object.List{Elements: make([]object.Object, 0, count)}
-	for i, v := int64(0), from; i < count; i, v = i+1, v+step {
-		out.Elements = append(out.Elements, object.Int(v))
-	}
-	return out
+	return from, step, count
 }
 
 // dataReduce is reduce[collection, start, [total, x] give ...]: the

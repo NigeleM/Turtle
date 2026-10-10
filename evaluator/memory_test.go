@@ -69,3 +69,61 @@ func TestMemoryInReports(t *testing.T) {
 func regexpMatch(pattern, s string) bool {
 	return regexp.MustCompile(pattern).MatchString(s)
 }
+
+// memorylimit fails a test that allocates more; a test can set its own.
+func TestMemoryLimit(t *testing.T) {
+	files := map[string]string{"test_limit.turtle": `import test
+import data
+memorylimit = 1000000
+def test_small[]
+    check length of range[0, 10] == 10 .
+def [end]
+def test_big[]
+    b = range[0, 200000]
+    check length of b == 200000 .
+def [end]
+def test_own_limit[]
+    memorylimit = none
+    b = range[0, 200000]
+    check length of b == 200000 .
+def [end]
+`}
+	got, code := testRun(t, files)
+	if code == 0 || !regexpMatch(`PASS  test_small `, got) || !regexpMatch(`FAIL  test_big .*\n.*it allocated [0-9.]+ MB; memorylimit is 1.0 MB \(1000000 bytes\)`, got) || !regexpMatch(`PASS  test_own_limit `, got) {
+		t.Errorf("exit %d:\n%s", code, got)
+	}
+	files["test_limit.turtle"] = "import test\nmemorylimit = \"big\"\ndef test_a[]\n    check true .\ndef [end]\n"
+	if got, _ := testRun(t, files); !regexpMatch(`memorylimit must be a number of bytes of 0 or more, or none, got "big"`, got) {
+		t.Errorf("want a memorylimit error:\n%s", got)
+	}
+}
+
+// A loop over range counts without its list; a user's own range is used.
+func TestLoopOverRange(t *testing.T) {
+	out, err := run(t, `import data
+s = 0
+[loop][i in range[0, 5]]
+    s = s + i
+[loop][end]
+show s .
+[loop][i, x in range[10, 0, -3]]
+    show i, ":", x .
+[loop][end]
+fs = list []
+[loop][x in data range[3]]
+    g = y give y + x * 10
+    fs at add g
+[loop][end]
+h = fs at get[2]
+show h[1] .
+[loop][x in range[5, 5]]
+    show "never" .
+[loop][end]`, "")
+	if err != nil || out != "10\n0:10\n1:7\n2:4\n3:1\n21\n" {
+		t.Errorf("got %q, %v", out, err)
+	}
+	out, err = run(t, "def range[n]\n    return list [\"mine\"]\ndef [end]\n[loop][x in range[3]]\n    show x .\n[loop][end]", "")
+	if err != nil || out != "mine\n" {
+		t.Errorf("a program's own range: got %q, %v", out, err)
+	}
+}

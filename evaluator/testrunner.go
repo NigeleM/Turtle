@@ -362,6 +362,25 @@ func (it *Interpreter) runTest(fn *object.Function) testOutcome {
 		v, _ := env.Get(name)
 		return v
 	}
+	// memorylimit: a test that allocates more fails.
+	switch limit := setting(memoryLimit).(type) {
+	case nil, *object.None:
+	case *object.Integer:
+		if limit.Value < 0 {
+			e := fatalError{text: "memorylimit must be a number of bytes of 0 or more, or none, got " + limit.Inspect(), kind: kindType}
+			o.err = &e
+			return o
+		}
+		if o.memory > uint64(limit.Value) {
+			e := fatalError{text: fmt.Sprintf("it allocated %s; memorylimit is %s (%d bytes)", fmtBytes(o.memory), fmtBytes(uint64(limit.Value)), limit.Value), kind: kindTest}
+			o.err = &e
+			return o
+		}
+	default:
+		e := fatalError{text: "memorylimit must be a number of bytes of 0 or more, or none, got " + object.Shown(limit), kind: kindType}
+		o.err = &e
+		return o
+	}
 	if b, ok := setting(benchmarkName).(*object.Boolean); !ok || !b.Value {
 		if _, isBool := setting(benchmarkName).(*object.Boolean); !isBool && setting(benchmarkName) != nil {
 			e := fatalError{text: "benchmark must be true or false, got " + object.Shown(setting(benchmarkName)), kind: kindType}

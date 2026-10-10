@@ -10,6 +10,10 @@ Turtle is pre-release (0.x). Breaking changes are listed first.
 - `system`: `memory[]`, `sizeof[x]` and `freememory[]`.
 - `diagnose`, `hypothesis` and `turtle test` show the memory each step or
   test allocated.
+- `import test`: `memorylimit = 5000000` fails a test that allocates more.
+- Loops over `range[...]` count without making the list first, and a big
+  list grows by doubling: building one by `at add` allocates about half
+  as much, and runs faster.
 
 ## 0.9.185 (2026-10-10)
 

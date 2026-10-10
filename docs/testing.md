@@ -49,8 +49,8 @@ ok: 2 passed, 0 failed (1 file, 2.1ms)
 ```
 
 Each test shows how long it took and how much memory it allocated. To
-test against memory, check it: `check sizeof[rows] < 5000000 .`, or
-compare `memory[]` before and after (both from `import system`).
+test against memory, set a [`memorylimit`](#settings), or check one
+value: `check sizeof[rows] < 5000000 .` (from `import system`).
 
 If `total` were wrong:
 
@@ -624,6 +624,22 @@ wins.
 | `benchtime` | `1` | seconds, when `runs` is `none` |
 | `cases` | `100` | random inputs each `validate` tries |
 | `seed` | `none` | `none`: different random inputs each run; a number: the same ones (shared with `import random`) |
+| `memorylimit` | `none` | bytes: a test that allocates more fails (`memorylimit = 5000000` is 5 MB) |
+
+```
+import test
+memorylimit = 5000000
+
+def test_load[]
+    rows = load_rows["big.csv"]
+    check length of rows == 200000 .
+def [end]
+```
+
+```
+  FAIL  test_load   2.1ms      41.3 MB
+        test_orders.turtle: it allocated 41.3 MB; memorylimit is 5.0 MB (5000000 bytes)
+```
 
 ### Suites
 

@@ -673,7 +673,13 @@ func (it *Interpreter) evalLoop(s *ast.LoopStatement, env *object.Environment) E
 func (it *Interpreter) evalEach(s *ast.LoopStatement, env *object.Environment) ExecResult {
 	var firsts, seconds []object.Object
 	isMap := false
-	switch c := it.evalExpression(s.Iterable, env).(type) {
+	// [loop][i in range[0, n]] counts without making the list first.
+	from, step, count, counting := it.loopRange(s.Iterable, env)
+	var iterable object.Object = object.NoneValue
+	if !counting {
+		iterable = it.evalExpression(s.Iterable, env)
+	}
+	switch c := iterable.(type) {
 	case *object.List:
 		seconds = append(seconds, c.Elements...)
 	case *object.Set:
@@ -689,38 +695,48 @@ func (it *Interpreter) evalEach(s *ast.LoopStatement, env *object.Environment) E
 			seconds = append(seconds, me.Val)
 		}
 	default:
-		fatalf("'[loop][... in ...]' needs a list, set, map, or string, got %s", typeName(c))
-	}
-	if firsts == nil && len(s.Vars) == 2 { // [loop][i, x in nums]: the positions
-		firsts = make([]object.Object, len(seconds))
-		for i := range seconds {
-			firsts[i] = object.Int(int64(i))
+		if !counting {
+			fatalf("'[loop][... in ...]' needs a list, set, map, or string, got %s", typeName(c))
 		}
 	}
 	if len(s.Vars) == 1 && isMap {
 		seconds = firsts // one name over a map: its keys
+	}
+	n := len(seconds)
+	item := func(i int) object.Object { return seconds[i] }
+	if counting {
+		n = int(count)
+		item = func(i int) object.Object { return object.Int(from + int64(i)*step) }
+	}
+	first := func(i int) object.Object { // [loop][i, x in nums]: the positions
+		if firsts != nil {
+			return firsts[i]
+		}
+		return object.Int(int64(i))
 	}
 
 	// Each pass has a scope of its own, so a function made in the loop
 	// keeps the names it saw; a pass's scope nobody kept stands in for
 	// the next one.
 	var pass *object.Environment
-	for i := range seconds {
+	for i := range n {
 		if pass == nil || pass.Captured() {
 			pass = object.NewLoopEnvironment(env)
 		} else {
 			pass.Reuse(env)
 		}
+		x := item(i)
 		if len(s.Vars) == 2 {
-			pass.Define(s.Vars[0], firsts[i])
-			pass.Define(s.Vars[1], seconds[i])
+			pos := first(i)
+			pass.Define(s.Vars[0], pos)
+			pass.Define(s.Vars[1], x)
 			if it.Trace != nil {
-				it.tracePass(i+1, s.Vars[0]+" = "+object.Shown(firsts[i])+", "+s.Vars[1]+" = "+object.Shown(seconds[i]))
+				it.tracePass(i+1, s.Vars[0]+" = "+object.Shown(pos)+", "+s.Vars[1]+" = "+object.Shown(x))
 			}
 		} else {
-			pass.Define(s.Vars[0], seconds[i])
+			pass.Define(s.Vars[0], x)
 			if it.Trace != nil {
-				it.tracePass(i+1, s.Vars[0]+" = "+object.Shown(seconds[i]))
+				it.tracePass(i+1, s.Vars[0]+" = "+object.Shown(x))
 			}
 		}
 		res := it.evalBlock(s.Body, pass)
@@ -732,6 +748,37 @@ func (it *Interpreter) evalEach(s *ast.LoopStatement, env *object.Environment) E
 		}
 	}
 	return noneResult
+}
+
+// loopRange reports whether a loop goes over data's range[...] (not a
+// function of the program's own called range), and its numbers: where
+// they start, the step, and how many.
+func (it *Interpreter) loopRange(e ast.Expression, env *object.Environment) (from, step, count int64, ok bool) {
+	ce, isCall := e.(*ast.CallExpression)
+	if !isCall || ce.Name != "range" || ce.Subject != nil || ce.Module != "" && ce.Module != "data" {
+		return 0, 0, 0, false
+	}
+	if ce.Module == "" {
+		if _, isVar := env.Get("range"); isVar {
+			return 0, 0, 0, false
+		}
+		if _, isDef := env.GetFunction("range"); isDef {
+			return 0, 0, 0, false
+		}
+	}
+	im := resolveImported(env, "range")
+	if im == nil || im.Module.Name != "data" {
+		return 0, 0, 0, false
+	}
+	if _, inTurtle := im.Module.Function("range"); inTurtle {
+		return 0, 0, 0, false
+	}
+	args := make([]object.Object, len(ce.Arguments))
+	for i, a := range ce.Arguments {
+		args[i] = it.evalExpression(a, env)
+	}
+	from, step, count = rangeBounds(args)
+	return from, step, count, true
 }
 
 func isTruthy(obj object.Object) bool {

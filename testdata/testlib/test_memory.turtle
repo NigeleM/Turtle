@@ -47,3 +47,24 @@ def test_sizeof_grows_with_what_is_in_it[]
     check sizeof[many] > sizeof[few] * 50 .
     check sizeof[list []] < sizeof[few] .
 def [end]
+
+// Counting a million passes allocates about 15 MB (the numbers
+// themselves); making range's list first too would be about 47 MB.
+def test_a_loop_over_range_makes_no_list[]
+    memorylimit = 25000000
+    n = 0
+    [loop][i in range[0, 1000000]]
+        n = n + 1
+    [loop][end]
+    check n == 1000000 .
+def [end]
+
+// About 58 MB, where growing by a quarter at a time took about 110 MB.
+def test_a_list_built_by_add_stays_lean[]
+    memorylimit = 80000000
+    rows = list []
+    [loop][i in range[0, 1000000]]
+        rows at add i
+    [loop][end]
+    check length of rows == 1000000 .
+def [end]

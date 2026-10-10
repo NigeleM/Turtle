@@ -39,7 +39,7 @@ func memoryLine(since uint64) string {
 
 // fmtBytes writes a number of bytes for people: 512 B, 3.4 KB, 31.5 MB.
 func fmtBytes(n uint64) string {
-	const k = 1024
+	const k = 1000 // as limits are written: 5000000 is 5 MB
 	switch {
 	case n < k:
 		return fmt.Sprintf("%d B", n)

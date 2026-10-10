@@ -21,6 +21,7 @@ const (
 	runsName      = "runs"
 	benchtimeName = "benchtime"
 	casesName     = "cases"
+	memoryLimit   = "memorylimit"
 	defaultCases  = 100
 )
 
@@ -37,6 +38,7 @@ func defineTestSettings(env *object.Environment) {
 	set(runsName, object.NoneValue)
 	set(benchtimeName, object.Int(1))
 	set(casesName, object.Int(defaultCases))
+	set(memoryLimit, object.NoneValue)
 	defineSeed(env)
 }
 

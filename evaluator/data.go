@@ -365,6 +365,14 @@ func listMethod(l *object.List, method string, args []object.Object) object.Obje
 		return object.Bool(len(l.Elements) == 0)
 	case "add":
 		requireArgs(method, args, 1)
+		// A big list doubles its room when full (Go's own growth adds a
+		// quarter), so a list built one add at a time is copied a few
+		// times, not dozens.
+		if n := len(l.Elements); n == cap(l.Elements) && n >= 1024 {
+			grown := make([]object.Object, n, 2*n)
+			copy(grown, l.Elements)
+			l.Elements = grown
+		}
 		l.Elements = append(l.Elements, args[0])
 		return l
 	case "len", "length":
