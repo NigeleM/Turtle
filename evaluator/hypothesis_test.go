@@ -4,6 +4,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -130,6 +132,42 @@ hypothesis[boom[n] with n as integer that result <= n]`, []string{
 	out, err := run(t, "ok = hypothesis[1 == 2]\nshow ok .", "")
 	if err != nil || out != "false\n" {
 		t.Errorf("a value shows nothing: got %q, %v", out, err)
+	}
+}
+
+// A theory that takes few of the numbers either side of 0 is still tried
+// on many: half the random inputs stay within its proof cases' range, and
+// the first of those try the edges (smallest, largest, 0).
+func TestTheoryInputsStayWhereTheTheoryWorks(t *testing.T) {
+	src := `seed = 1
+theory cut
+    abstract
+        cut takes p percent off c.
+    notation cut p off c .
+    definition
+        if ] p < 0 || p > 100 || c < 0 [
+            fail "cut: p is a percent from 0 to 100, c an amount of 0 or more"
+        if [end]
+        return c - c * p div 100
+    proof
+        cut 10 off 2000 . is 1800
+        cut 100 off 7 . is 0
+theory [end]
+hypothesis[cut, theorem result < c]
+hypothesis[cut, theorem result <= c]`
+	out, err := run(t, src, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out, "hypothesis cut, theorem result < c (line 15)\n  holds     no: it fails on ") {
+		t.Errorf("want the false theorem caught (p = 0 or c = 0):\n%s", out)
+	}
+	refused := regexp.MustCompile(`100 random inputs, (\d+) of them refused`).FindStringSubmatch(out)
+	if refused == nil {
+		t.Fatalf("want a refused count:\n%s", out)
+	}
+	if n, _ := strconv.Atoi(refused[1]); n > 60 {
+		t.Errorf("want most random inputs taken:\n%s", out)
 	}
 }
 

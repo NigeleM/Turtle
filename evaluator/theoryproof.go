@@ -106,15 +106,29 @@ func (it *Interpreter) proveTheory(fn *object.Function, seed int64) theoryProof 
 	}
 
 	// Then on random inputs, made like the proof cases' values.
-	inputs := theoryInputs(ts, examples)
+	inputs := theoryInputs(ts, examples, false)
+	within := theoryInputs(ts, examples, true)
+	edges := numberEdges(ts, examples)
 	if len(ts.Theorems) == 0 || inputs == nil {
 		return pr
 	}
 	rng := rand.New(rand.NewSource(seed))
 	for n := 0; n < defaultCases; n++ {
-		vals := make([]object.Object, len(inputs))
-		for i, in := range inputs {
+		// Every other input stays within the proof cases' range (and 0),
+		// where the theory takes most of them; the rest reach past it,
+		// either side of 0.
+		kinds := inputs
+		if n%2 == 1 {
+			kinds = within
+		}
+		vals := make([]object.Object, len(kinds))
+		for i, in := range kinds {
 			vals[i] = it.randomValue(in.Shape, fn.Env, rng)
+			// The first few in range try a number's edges: the proof
+			// cases' smallest and largest, and 0.
+			if n%2 == 1 && n < 2*edgeCases && len(edges[i]) > 0 {
+				vals[i] = edges[i][rng.Intn(len(edges[i]))]
+			}
 		}
 		pr.tried++
 		if it.protect(func() { it.callFunction(fn, ts.Name, copies(vals)) }) != nil {
@@ -152,9 +166,48 @@ func (it *Interpreter) theoremOn(fn *object.Function, th *ast.Theorem, args []ob
 	return holds, why, true
 }
 
+// edgeCases is how many random inputs try numbers' edges.
+const edgeCases = 12
+
+// numberEdges are, for each value that's a number in every proof case,
+// its smallest and largest there, and 0.
+func numberEdges(ts *ast.TheoryStatement, examples [][]object.Object) [][]object.Object {
+	out := make([][]object.Object, len(ts.Slots))
+	for i := range ts.Slots {
+		var lo, hi object.Object
+		zero := object.Object(object.Int(0))
+		for _, args := range examples {
+			f, isInt, ok := numeric(args[i])
+			if !ok {
+				lo = nil
+				break
+			}
+			if !isInt {
+				zero = &object.Float{Value: 0}
+			}
+			if lo == nil || f < mustNumber(lo) {
+				lo = args[i]
+			}
+			if hi == nil || f > mustNumber(hi) {
+				hi = args[i]
+			}
+		}
+		if lo != nil {
+			out[i] = []object.Object{lo, zero, hi}
+		}
+	}
+	return out
+}
+
+func mustNumber(v object.Object) float64 {
+	f, _, _ := numeric(v)
+	return f
+}
+
 // theoryInputs are the random inputs' kinds, one per value, learned from
-// the proof cases; nil when a value's kind can't be learned.
-func theoryInputs(ts *ast.TheoryStatement, examples [][]object.Object) []*ast.ValidateInput {
+// the proof cases; nil when a value's kind can't be learned. within keeps
+// numbers between the proof cases' smallest and largest (and 0).
+func theoryInputs(ts *ast.TheoryStatement, examples [][]object.Object, within bool) []*ast.ValidateInput {
 	if len(examples) == 0 {
 		return nil
 	}
@@ -168,7 +221,7 @@ func theoryInputs(ts *ast.TheoryStatement, examples [][]object.Object) []*ast.Va
 		if shape == nil {
 			return nil
 		}
-		learnRanges(shape, vals)
+		learnRanges(shape, vals, within)
 		inputs = append(inputs, &ast.ValidateInput{Name: name, Shape: shape})
 	}
 	return inputs
@@ -351,27 +404,38 @@ func (it *Interpreter) writeTheories(out io.Writer, name string, env *object.Env
 
 // learnRanges sets how far the numbers in shape reach, from the proof
 // cases' values: past the largest seen, either side of 0 (a theory that
-// doesn't take negative numbers refuses them with fail). Inside lists,
-// sets, maps and assembled values too.
-func learnRanges(shape *ast.Shape, vals []object.Object) {
+// doesn't take negative numbers refuses them with fail); or, within,
+// from the smallest seen to the largest, and 0. Inside lists, sets, maps
+// and assembled values too.
+func learnRanges(shape *ast.Shape, vals []object.Object, within bool) {
 	switch shape.Kind {
 	case "integer", "float":
 		largest, seen := 0.0, false
+		lo, hi := 0.0, 0.0
 		for _, v := range vals {
 			if f, _, ok := numeric(v); ok {
 				largest, seen = math.Max(largest, math.Abs(f)), true
+				lo, hi = math.Min(lo, f), math.Max(hi, f)
 			}
 		}
 		if !seen {
 			return
 		}
-		if shape.Kind == "integer" {
-			hi := int64(math.Max(1000, 2*largest))
-			shape.From, shape.To = &ast.IntegerLiteral{Value: -hi}, &ast.IntegerLiteral{Value: hi}
+		if within {
+			if shape.Kind == "integer" {
+				shape.From, shape.To = &ast.IntegerLiteral{Value: int64(lo)}, &ast.IntegerLiteral{Value: int64(hi)}
+			} else {
+				shape.From, shape.To = &ast.FloatLiteral{Value: lo}, &ast.FloatLiteral{Value: hi}
+			}
 			return
 		}
-		hi := math.Max(1, 2*largest)
-		shape.From, shape.To = &ast.FloatLiteral{Value: -hi}, &ast.FloatLiteral{Value: hi}
+		if shape.Kind == "integer" {
+			reach := int64(math.Max(1000, 2*largest))
+			shape.From, shape.To = &ast.IntegerLiteral{Value: -reach}, &ast.IntegerLiteral{Value: reach}
+			return
+		}
+		reach := math.Max(1, 2*largest)
+		shape.From, shape.To = &ast.FloatLiteral{Value: -reach}, &ast.FloatLiteral{Value: reach}
 	case "list", "set":
 		var items []object.Object
 		for _, v := range vals {
@@ -383,7 +447,7 @@ func learnRanges(shape *ast.Shape, vals []object.Object) {
 			}
 		}
 		if shape.Item != nil {
-			learnRanges(shape.Item, items)
+			learnRanges(shape.Item, items, within)
 		}
 	case "map":
 		var keys, values []object.Object
@@ -396,10 +460,10 @@ func learnRanges(shape *ast.Shape, vals []object.Object) {
 			}
 		}
 		if shape.Key != nil {
-			learnRanges(shape.Key, keys)
+			learnRanges(shape.Key, keys, within)
 		}
 		if shape.Item != nil {
-			learnRanges(shape.Item, values)
+			learnRanges(shape.Item, values, within)
 		}
 	case "assembled":
 		for i, f := range shape.Fields {
@@ -409,7 +473,7 @@ func learnRanges(shape *ast.Shape, vals []object.Object) {
 					fields = append(fields, a.Values[i])
 				}
 			}
-			learnRanges(f, fields)
+			learnRanges(f, fields, within)
 		}
 	}
 }

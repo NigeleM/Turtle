@@ -592,8 +592,10 @@ FAILED: 1 passed, 0 failed, 3 theories proven, 1 theory failed, 1 warning (1 fil
 - Each **proof case** must give what it says.
 - Each **theorem** must hold for the proof cases' results, and for 100
   random inputs made like their values (an `Item` with text and two whole
-  numbers, ...). Numbers reach past the largest in the proof cases, on
-  both sides of 0. A theory that doesn't take negative numbers says so in
+  numbers, ...). Half the numbers reach past the largest in the proof
+  cases, on both sides of 0; the other half stay between the proof
+  cases' smallest and largest (and 0), starting with those edges
+  themselves. A theory that doesn't take negative numbers says so in
   its definition (`fail "a quantity can't be negative"`), and an input it
   refuses doesn't count against a theorem. The definition may refuse an input with `fail`; that
   input then doesn't count against a theorem. When a theorem breaks, the

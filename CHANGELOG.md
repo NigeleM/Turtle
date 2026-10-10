@@ -8,6 +8,9 @@ Turtle is pre-release (0.x). Breaking changes are listed first.
   gives true or false; on its own line it shows where the claim breaks.
 - `reportfile = "checks.txt"` also adds diagnose and hypothesis reports to
   a file.
+- Theories: half the random inputs stay within the proof cases' range,
+  starting at its edges and 0, so a theory that refuses most numbers is
+  still tried on many; reports say how many inputs it refused.
 
 ## 0.9.182 (2026-10-10)
 
