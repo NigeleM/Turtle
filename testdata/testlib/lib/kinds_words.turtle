@@ -1,0 +1,101 @@
+// kinds_words.turtle: theories on every kind of value (text, maps, sets,
+// nested lists, assembled values, floats), so proving them tries random
+// inputs of each kind. test_kinds.turtle uses them.
+import data
+
+assemble Pet [name, age]
+
+theory shout
+    abstract
+        shout gives the text t in capitals, with a ! after it.
+    notation shout t .
+    definition
+        return t at upper + "!"
+    theorem length of result == length of t + 1
+    theorem result at contains["!"]
+    proof
+        shout "hi" . is "HI!"
+        shout "" . is "!"
+theory [end]
+
+theory value_total
+    abstract
+        value_total adds up the values of the map m, which can be negative.
+    notation value_total m .
+    definition
+        t = 0
+        [loop][v in m at getvalues]
+            t = t + v
+        [loop][end]
+        return t
+    theorem result <= length of m * 1000000
+    proof
+        value_total map ["a": 1, "b": -2] . is -1
+        value_total map [] . is 0
+theory [end]
+
+theory key_total
+    abstract
+        key_total adds up the number keys of the map m.
+    notation key_total m .
+    definition
+        t = 0
+        [loop][k in m at getkeys]
+            t = t + k
+        [loop][end]
+        return t
+    theorem result == result
+    proof
+        key_total map [1: "a", 2: "b"] . is 3
+theory [end]
+
+theory size_of
+    abstract
+        size_of is how many things are in the set s.
+    notation size_of s .
+    definition
+        return length of s
+    theorem result >= 0
+    proof
+        size_of set [1, 2] . is 2
+        size_of set [] . is 0
+theory [end]
+
+theory names_of
+    abstract
+        names_of gives the names of the pets ps, in order.
+    notation names_of ps .
+    definition
+        return ps process p give name of p
+    theorem length of result == length of ps
+    proof
+        names_of list [Pet["Rex", 3], Pet["Tom", -1]] . is list ["Rex", "Tom"]
+theory [end]
+
+theory joined
+    abstract
+        joined puts the lists in xs together into one list.
+    notation joined xs .
+    definition
+        out = list []
+        [loop][x in xs]
+            out = out + x
+        [loop][end]
+        return out
+    theorem length of result >= 0
+    proof
+        joined list [list [1], list [2, 3]] . is list [1, 2, 3]
+        joined list [] . is list []
+theory [end]
+
+theory half
+    abstract
+        half is the number x divided by 2.
+    notation half x .
+    definition
+        return x / 2
+    theorem result * 2 == x
+    proof
+        half 3.0 . is 1.5
+        half -4.5 . is -2.25
+theory [end]

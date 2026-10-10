@@ -1,0 +1,29 @@
+// test_kinds.turtle: theories on every kind of value, used and proved
+// (turtle test tries each theorem on random text, maps, sets, nested
+// lists, assembled values and floats), and asked about with hypothesis.
+import test
+import data
+import lib/kinds_words
+
+def test_every_kind_reads_as_a_phrase[]
+    check shout "tea" == "TEA!" .
+    check value_total map ["x": 5, "y": -7] == -2 .
+    check key_total map [10: "a", -3: "b"] == 7 .
+    check size_of set [4, 5, 6] == 3 .
+    check names_of list [Pet["Ada", 2]] == list ["Ada"] .
+    check joined list [list [], list [1]] == list [1] .
+    check half -1.0 == -0.5 .
+def [end]
+
+def test_hypotheses_on_every_kind[]
+    check hypothesis[shout] .
+    check hypothesis[value_total] .
+    check hypothesis[key_total] .
+    check hypothesis[size_of] .
+    check hypothesis[names_of] .
+    check hypothesis[joined] .
+    check hypothesis[half] .
+    check hypothesis[shout, theorem result at upper == result] .
+    wrong = hypothesis[shout, theorem result == t]
+    check !wrong .
+def [end]
