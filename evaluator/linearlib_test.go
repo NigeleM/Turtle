@@ -33,15 +33,15 @@ func TestLinear(t *testing.T) {
 		{"x = 2\nshow matrix [x, x * 2; -x, 0] .", "[  2  4 ]\n[ -2  0 ]"},
 		{"show typeof[matrix [1]] .", "matrix"},
 		{"a = matrix [1, 2; 3, 4]\nb = matrix [5, 6; 7, 8]\nshow a * b .", "[ 19  22 ]\n[ 43  50 ]"},
-		{"a = matrix [1, 2; 3, 4]\nshow a + a, a - a .", "[ 2  4 ]\n[ 6  8 ][ 0  0 ]\n[ 0  0 ]"},
+		{"a = matrix [1, 2; 3, 4]\nshow a + a, a - a .", "[ 2  4 ]\n[ 6  8 ][ 0  0 ]\n        [ 0  0 ]"},
 		{"a = matrix [1, 2; 3, 4]\nshow 2 * a == a * 2, -a == a * -1 .", "truetrue"},
-		{"a = matrix [1, 2; 3, 4]\nshow a + 1, 10 - a, a - 0.5 .", "[ 2  3 ]\n[ 4  5 ][ 9  8 ]\n[ 7  6 ][ 0.5  1.5 ]\n[ 2.5  3.5 ]"},
+		{"a = matrix [1, 2; 3, 4]\nshow a + 1, 10 - a, a - 0.5 .", "[ 2  3 ]\n[ 4  5 ][ 9  8 ]\n        [ 7  6 ][ 0.5  1.5 ]\n                [ 2.5  3.5 ]"},
 		{"show matrix [1, 2; 3, 4] / 2 .", "[ 0.5  1.0 ]\n[ 1.5  2.0 ]"},
 		{"show matrix [1, 2; 3, 4] * list [1, 1] .", "[ 3, 7 ]"},
 		{"show list [1, 1] * matrix [1, 2; 3, 4] .", "[ 4, 6 ]"},
 		{"show matrix [1, 2, 3] * matrix [4; 5; 6] .", "[ 32 ]"},
 		{"show matrix [1, 2; 3, 4] == matrix [1.0, 2.0; 3.0, 4.0], matrix [1, 2] == matrix [1; 2] .", "truefalse"},
-		{"a = matrix [4, 7; 2, 6]\nshow a * inverse[a] == identity[2], inverse[a] * a .", "true[ 1.0  0.0 ]\n[ 0.0  1.0 ]"},
+		{"a = matrix [4, 7; 2, 6]\nshow a * inverse[a] == identity[2], inverse[a] * a .", "true[ 1.0  0.0 ]\n    [ 0.0  1.0 ]"},
 		{"show \"m: \" + matrix [1] .", "m: [ 1 ]"},
 		// Methods.
 		{"m = matrix [1, 2, 3; 4, 5, 6]\nshow m at rows, m at columns, m at get[1, 2] .", "236"},
@@ -50,12 +50,12 @@ func TestLinear(t *testing.T) {
 		{"m = zeros[1, 2]\nm = m at put[0.5, 0, 0]\nshow m, m at get[0, 1] .", "[ 0.5  0.0 ]0.0"},
 		{"show matrix [1] at isempty, matrix [] at isempty .", "falsetrue"},
 		// Functions.
-		{"show identity[2], zeros[1, 3], ones[2, 1] .", "[ 1  0 ]\n[ 0  1 ][ 0  0  0 ][ 1 ]\n[ 1 ]"},
+		{"show identity[2], zeros[1, 3], ones[2, 1] .", "[ 1  0 ]\n[ 0  1 ][ 0  0  0 ][ 1 ]\n                   [ 1 ]"},
 		{"show diagonal[list [1, 2]], diagonal[matrix [1, 2; 3, 4]] .", "[ 1  0 ]\n[ 0  2 ][ 1, 4 ]"},
 		{"m = matrix [1, 2, 3; 4, 5, 6]\nshow shape[m], row[m, 0], column[m, 2] .", "[ 2, 3 ][ 1, 2, 3 ][ 3, 6 ]"},
-		{"m = matrix [1, 2, 3; 4, 5, 6]\nshow flatten[m], reshape[m, 3, 2] .", "[ 1  2  3  4  5  6 ][ 1  2 ]\n[ 3  4 ]\n[ 5  6 ]"},
+		{"m = matrix [1, 2, 3; 4, 5, 6]\nshow flatten[m], reshape[m, 3, 2] .", "[ 1  2  3  4  5  6 ][ 1  2 ]\n                    [ 3  4 ]\n                    [ 5  6 ]"},
 		{"m = matrix [1, 2; 3, 4]\nshow m at flatten, m at reshape[4, 1] at shape, m flatten, m reshape 1, 4 .", "[ 1  2  3  4 ][ 4, 1 ][ 1  2  3  4 ][ 1  2  3  4 ]"},
-		{"m = matrix [1.5, 2; 3, 4]\nr = reshape[m, 1, 4]\nshow r, m .", "[ 1.5  2.0  3.0  4.0 ][ 1.5  2.0 ]\n[ 3.0  4.0 ]"},
+		{"m = matrix [1.5, 2; 3, 4]\nr = reshape[m, 1, 4]\nshow r, m .", "[ 1.5  2.0  3.0  4.0 ][ 1.5  2.0 ]\n                      [ 3.0  4.0 ]"},
 		{"show reshape[matrix [], 0, 0] at isempty, flatten[zeros[0, 3]] at shape .", "true[ 1, 0 ]"},
 		{"show transpose[matrix [1, 2, 3; 4, 5, 6]] .", "[ 1  4 ]\n[ 2  5 ]\n[ 3  6 ]"},
 		{"m = matrix [1, 2; 3, 4]\nshow m transpose .", "[ 1  3 ]\n[ 2  4 ]"},
@@ -77,7 +77,7 @@ func TestLinear(t *testing.T) {
 		// Decompositions: each gives back what it promises.
 		{"m = matrix [2, 1, 1; 4, -6, 0; -2, 7, 2]\nf = lu[m]\nshow f at get[\"p\"] * m == f at get[\"l\"] * f at get[\"u\"] .", "true"},
 		{"m = matrix [12, -51, 4; 6, 167, -68; -4, 24, -41]\nf = qr[m]\nshow f at get[\"q\"] * f at get[\"r\"] == m, f at get[\"r\"] .",
-			"true[ 14.0   21.0  -14.0 ]\n[  0.0  175.0  -70.0 ]\n[  0.0    0.0   35.0 ]"},
+			"true[ 14.0   21.0  -14.0 ]\n    [  0.0  175.0  -70.0 ]\n    [  0.0    0.0   35.0 ]"},
 		{"m = matrix [1, 2; 3, 4; 5, 6]\nf = qr[m]\nq = f at get[\"q\"]\nshow q * f at get[\"r\"] == m, transpose[q] * q == identity[2] .", "truetrue"},
 		{"e = eigen[matrix [2, 1; 1, 2]]\nshow e at get[\"values\"] .", "[ 3.0, 1.0 ]"},
 		{"m = matrix [4, 1, 2; 1, 3, 0; 2, 0, 5]\ne = eigen[m]\nv = e at get[\"vectors\"]\nshow m * v == v * diagonal[e at get[\"values\"]] .", "true"},
@@ -101,6 +101,19 @@ func TestLinear(t *testing.T) {
 		} else if strings.TrimSpace(got) != c.want {
 			t.Errorf("%s:\n got  %q\n want %q", c.src, strings.TrimSpace(got), c.want)
 		}
+	}
+}
+
+// A matrix joined into text keeps its rows lined up under the first.
+func TestMatrixInTextStaysAligned(t *testing.T) {
+	src := "import linear\nm = matrix [1, 2; 3, 4]\nshow \"m is \" + m .\nshow \"m: {m}\" .\nshow \"m is \", m, \" and so on\" .\nshow m + \" first\" .\nshow m ."
+	got, err := run(t, src, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "m is [ 1  2 ]\n     [ 3  4 ]\nm: [ 1  2 ]\n   [ 3  4 ]\nm is [ 1  2 ]\n     [ 3  4 ] and so on\n[ 1  2 ]\n[ 3  4 ] first\n[ 1  2 ]\n[ 3  4 ]\n"
+	if got != want {
+		t.Errorf("got\n%s\nwant\n%s", got, want)
 	}
 }
 

@@ -445,7 +445,7 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		}
 		out := ""
 		for _, e := range s.Expressions {
-			out += it.evalExpression(e, env).Inspect()
+			out = joinShown(out, it.evalExpression(e, env))
 		}
 		if s.Stderr {
 			fmt.Fprintln(os.Stderr, out)

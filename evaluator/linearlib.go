@@ -1,6 +1,9 @@
 package evaluator
 
 import (
+	"strings"
+	"unicode/utf8"
+
 	"Turtle/ast"
 	"Turtle/object"
 )
@@ -16,6 +19,20 @@ var linearFuncs = []string{
 	"flatten", "reshape", "transpose", "trace", "determinant", "inverse", "rank", "power",
 	"multiply_each", "solve", "least_squares", "dot", "cross", "norm",
 	"unit", "lu", "qr", "eigen", "svd",
+}
+
+// joinShown is text with v shown after it. A matrix shows over several
+// lines: its rows after the first line up under the first, wherever on
+// the line it starts ("m is [ 1  2 ]" then "      [ 3  4 ]").
+func joinShown(text string, v object.Object) string {
+	shown := v.Inspect()
+	if _, ok := v.(*object.Matrix); ok && strings.Contains(shown, "\n") {
+		col := utf8.RuneCountInString(text[strings.LastIndex(text, "\n")+1:])
+		if col > 0 {
+			shown = strings.ReplaceAll(shown, "\n", "\n"+strings.Repeat(" ", col))
+		}
+	}
+	return text + shown
 }
 
 // evalMatrixLiteral works out each number of matrix [...].

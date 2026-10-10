@@ -38,11 +38,11 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 		e.Cache = v
 		return v
 	case *ast.InterpolatedString:
-		var sb strings.Builder
+		text := ""
 		for _, part := range e.Parts {
-			sb.WriteString(it.evalExpression(part, env).Inspect())
+			text = joinShown(text, it.evalExpression(part, env))
 		}
-		return &object.String{Value: sb.String()}
+		return &object.String{Value: text}
 	case *ast.BooleanLiteral:
 		return object.Bool(e.Value)
 	case *ast.NoneLiteral:
@@ -291,7 +291,7 @@ func evalInfix(op string, left, right object.Object) object.Object {
 			}
 			return &object.Float{Value: lf + rf}
 		}
-		return &object.String{Value: left.Inspect() + right.Inspect()}
+		return &object.String{Value: joinShown(left.Inspect(), right)}
 	}
 
 	lf, lIsInt, lIsNum := numeric(left)
