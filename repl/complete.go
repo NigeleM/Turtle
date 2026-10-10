@@ -1,6 +1,9 @@
 package repl
 
 import (
+	"regexp"
+	"strings"
+
 	"Turtle/lexer"
 	"Turtle/token"
 )
@@ -92,7 +95,7 @@ func openBlocks(src string) int {
 // validate sentence or a scroll (which can run over several lines) still
 // waiting for its period.
 func needsMore(src string) bool {
-	if openBlocks(src) > 0 || scrollOpen(src) || matrixOpen(src) {
+	if openBlocks(src) > 0 || theoryOpen(src) || scrollOpen(src) || matrixOpen(src) {
 		return true
 	}
 	l := lexer.New(src)
@@ -108,13 +111,37 @@ func needsMore(src string) bool {
 }
 
 // indentFor is how far to indent the next line of an unfinished entry:
-// four spaces per open block, and four more for a scroll's steps.
+// four spaces per open block, and four more for a theory's lines or a
+// scroll's steps.
 func indentFor(src string) int {
 	n := openBlocks(src)
-	if scrollOpen(src) || matrixOpen(src) {
+	if theoryOpen(src) || scrollOpen(src) || matrixOpen(src) {
 		n++
 	}
 	return 4 * n
+}
+
+var (
+	theoryStart = regexp.MustCompile(`^theory[ \t]+~?[A-Za-z_][A-Za-z0-9_]*[ \t]*(//.*)?$`)
+	theoryEnd   = regexp.MustCompile(`^theory[ \t]*\[[ \t]*end[ \t]*\]`)
+)
+
+// theoryOpen reports whether src is inside a theory ... theory [end].
+// Its lines all go one level in: a section word any deeper would be read
+// as part of the section before it. Theories are read by their lines, as
+// the parser reads them, not by tokens.
+func theoryOpen(src string) bool {
+	open := false
+	for _, line := range strings.Split(src, "\n") {
+		text := strings.TrimSpace(line)
+		switch {
+		case theoryEnd.MatchString(text):
+			open = false
+		case theoryStart.MatchString(text):
+			open = true
+		}
+	}
+	return open
 }
 
 // matrixOpen reports whether src has a matrix [ ... still waiting for its

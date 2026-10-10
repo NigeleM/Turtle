@@ -1,6 +1,7 @@
 package repl
 
 import (
+	"bufio"
 	"bytes"
 	"os"
 	"path/filepath"
@@ -61,6 +62,12 @@ func TestNeedsMore(t *testing.T) {
 		"m = matrix [\n  1, 2\n  3, 4\n]":                      false,
 		"m = matrix [1, 2; 3, 4]":                              false,
 		"x = list [":                                           false,
+		"theory twice":                                         true,
+		"theory ~twice // mine":                                true,
+		"theory twice\n    notation twice n .\n    definition\n        return n * 2":               true,
+		"theory twice\n    notation twice n .\n    definition\n        return n * 2\ntheory [end]": false,
+		"theory":      false,
+		"x = theory":  false,
 	}
 	for src, want := range cases {
 		if got := needsMore(src); got != want {
@@ -69,6 +76,15 @@ func TestNeedsMore(t *testing.T) {
 	}
 	if got := indentFor("def f[]\n  if ] x [\n"); got != 8 {
 		t.Errorf("indentFor two open blocks: %d", got)
+	}
+	for src, want := range map[string]int{
+		"theory twice": 4,
+		"theory twice\n    abstract\n    doubles n.":     4,
+		"theory twice\n    definition\n    if ] n > 0 [": 8,
+	} {
+		if got := indentFor(src); got != want {
+			t.Errorf("indentFor(%q) = %d, want %d", src, got, want)
+		}
 	}
 }
 
@@ -373,6 +389,24 @@ func TestHelpCommands(t *testing.T) {
 	s.Eval("help")
 	if !strings.Contains(out.String(), "5") || strings.Contains(out.String(), "Commands") {
 		t.Errorf("a variable called help: %q", out.String())
+	}
+}
+
+// A theory typed a line at a time is one entry: theory twice waits for
+// theory [end] instead of running on its own.
+func TestTheoryTypedLineByLine(t *testing.T) {
+	s, out := session(t)
+	in := bufio.NewReader(strings.NewReader("theory twice\nabstract\ntwice doubles n.\nnotation twice n .\ndefinition\nreturn n * 2\ntheory [end]\ntwice 21\n"))
+	var history []string
+	for {
+		entry, ok := s.readEntry(in, &history)
+		if !ok {
+			break
+		}
+		s.Eval(entry)
+	}
+	if strings.TrimSpace(out.String()) != "42" {
+		t.Errorf("got %q", out.String())
 	}
 }
 
