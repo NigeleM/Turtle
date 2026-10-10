@@ -213,6 +213,10 @@ type fatalError struct {
 	// 2 of 2 (b), in step 1 of 1 (s)" and "division by zero"; none for a
 	// scroll's own error, which outer steps add to at the end.
 	scrollWhere, scrollBase string
+	// fromLibrary is set once the message names the standard-library
+	// theory it came from ("clampall (data library): ..."), so a theory
+	// around it doesn't name itself too.
+	fromLibrary bool
 }
 
 func (e fatalError) Error() string { return e.msg }

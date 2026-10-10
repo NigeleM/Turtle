@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"hash/fnv"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -596,6 +597,26 @@ func (p *Parser) importTheories(tok token.Token, path string, names []string) {
 				sub := New(lexer.New(src))
 				sub.Enable(path)
 				sub.SelfLibrary = path
+				return sub
+			}))
+			return
+		}
+	}
+	// A program made by turtle build: its imported files are packed in it.
+	if p.Modules != nil {
+		ext, err := syntax.FindModule(path, func(ext string) bool {
+			_, err := fs.Stat(p.Modules, path+ext)
+			return err == nil
+		})
+		if data, rerr := fs.ReadFile(p.Modules, path+ext); err == nil && ext != "" && rerr == nil {
+			src := strings.ReplaceAll(string(data), "\r\n", "\n")
+			p.learnImported(tok, path, names, ownTheories(src, func() *Parser {
+				sub := New(lexer.New(src))
+				sub.Modules = p.Modules
+				sub.importing = map[string]bool{path: true}
+				for k := range p.importing {
+					sub.importing[k] = true
+				}
 				return sub
 			}))
 			return

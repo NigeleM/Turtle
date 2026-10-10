@@ -10,6 +10,7 @@ package parser
 
 import (
 	"fmt"
+	"io/fs"
 	"slices"
 	"strconv"
 	"strings"
@@ -133,7 +134,10 @@ type Parser struct {
 	TestFile bool
 	// SelfLibrary is the library a standard-library file belongs to:
 	// its own "import data" is data's Go half, not its theories again.
-	SelfLibrary   string
+	SelfLibrary string
+	// Modules, when set, holds a built program's files (turtle build):
+	// imported files are read from it, ahead of ModuleDir.
+	Modules       fs.FS
 	inVerifyValue int
 
 	// lines is the source split into lines, for statements' text.

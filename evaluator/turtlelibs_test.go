@@ -271,6 +271,12 @@ func TestStdlibTheories(t *testing.T) {
 			t.Errorf("%s:\n got  %q\n want %q", c.src, strings.TrimSpace(got), c.want)
 		}
 	}
+	// An error inside a library theory points at the user's line and
+	// names the theory it came from.
+	_, err := run(t, "import units\nx = 1\ny = celsius \"hot\" from fahrenheit", "")
+	if err == nil || !strings.Contains(err.Error(), "line 3: celsius (units library): ") {
+		t.Errorf("an error in a library theory: %v", err)
+	}
 	// A private theory stays in its library.
 	p := parser.New(lexer.New("import units\nx = ~secret 1"))
 	p.ParseProgram()

@@ -69,7 +69,29 @@ func (it *Interpreter) evalTheoryCall(tc *ast.TheoryCall, env *object.Environmen
 		}
 		args[i] = it.evalExpression(a, env)
 	}
+	if isBuiltinEnv(fn.Env) {
+		defer nameLibraryTheory(fn)
+	}
 	return it.callFunction(fn, tc.Word, args)
+}
+
+// nameLibraryTheory, deferred around a standard-library theory's run,
+// names it in an error from inside it: the error still points at the
+// user's line, and says which library word it came from.
+func nameLibraryTheory(fn *object.Function) {
+	r := recover()
+	if r == nil {
+		return
+	}
+	fe, ok := r.(fatalError)
+	if !ok || fe.fromLibrary {
+		panic(r)
+	}
+	lib := strings.TrimSuffix(strings.TrimPrefix(fn.Env.File(), builtinFilePrefix), ".turtle")
+	fe.text = fmt.Sprintf("%s (%s library): %s", fn.Name, lib, fe.text)
+	fe.msg = place(fe.file, fe.line) + fe.text
+	fe.fromLibrary = true
+	panic(fe)
 }
 
 // theoryNamed finds the theory word stands for.

@@ -8,8 +8,10 @@ Turtle is pre-release (0.x). Breaking changes are listed first.
 - The standard library can have theories, giving any library new phrases.
 - `of` and `is` can be a notation's words: `notation average of xs to places .`
 - Theories: imports are as fast as before theories; a theory's random
-  numbers reach past its proof cases' largest; diagnose previews big
-  values without copying them.
+  numbers reach past its proof cases' largest and include negatives;
+  diagnose previews big values without copying them.
+- An error inside a library's theory names it: `celsius (units library): ...`
+- A built program can use theories from its own imported files.
 
 ## 0.9.181 (2026-10-10)
 

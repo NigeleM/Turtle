@@ -27,8 +27,9 @@ func TestBuild(t *testing.T) {
 	}
 	src := filepath.Join(dir, "src")
 	os.MkdirAll(filepath.Join(src, "lib"), 0o755)
-	os.WriteFile(filepath.Join(src, "lib", "greet.trt"), []byte("def greet[n]\n    return \"hello \" + n\ndef [end]\n"), 0o644)
-	os.WriteFile(filepath.Join(src, "app.trt"), []byte("import lib/greet\nimport system\nshow greet[args[] at get[0]], \" \", args[] at len .\n[write] out.txt\n\"made here\"\n[end]\n"), 0o644)
+	// The library has a theory: its phrase reads in the built program too.
+	os.WriteFile(filepath.Join(src, "lib", "greet.trt"), []byte("def greet[n]\n    return \"hello \" + n\ndef [end]\ntheory shout\n    abstract\n        shout is the text t in capitals.\n    notation shout t .\n    definition\n        return t at upper\ntheory [end]\n"), 0o644)
+	os.WriteFile(filepath.Join(src, "app.trt"), []byte("import lib/greet\nimport system\nshow greet[args[] at get[0]], \" \", args[] at len, \" \", shout \"hi\" .\n[write] out.txt\n\"made here\"\n[end]\n"), 0o644)
 	cmd := exec.Command(turtle, "build", "app.trt", "-o", filepath.Join(dir, "app"))
 	cmd.Dir = src
 	if out, err := cmd.CombinedOutput(); err != nil || !strings.Contains(string(out), "built ") {
@@ -43,7 +44,7 @@ func TestBuild(t *testing.T) {
 	run := exec.Command(app, "Ann", "two words")
 	run.Dir = work
 	out, err := run.CombinedOutput()
-	if err != nil || strings.TrimSpace(string(out)) != "hello Ann 2" {
+	if err != nil || strings.TrimSpace(string(out)) != "hello Ann 2 HI" {
 		t.Fatalf("running the built program: %v\n%s", err, out)
 	}
 	if data, err := os.ReadFile(filepath.Join(work, "out.txt")); err != nil || strings.TrimSpace(string(data)) != "made here" {

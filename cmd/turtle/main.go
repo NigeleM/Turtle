@@ -150,6 +150,7 @@ func runProgram(src, dir, script string, args []string) int {
 func runWatched(src, dir, script string, args []string, mode string) int {
 	p := parser.New(lexer.New(src))
 	p.ModuleDir = dir
+	p.Modules = bundleFS // a built program's own files, or nil
 	program := p.ParseProgram()
 	if errs := p.ErrorList(); len(errs) > 0 {
 		// The first error only: the rest are usually the parser tripping

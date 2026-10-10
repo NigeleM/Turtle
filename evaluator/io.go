@@ -234,6 +234,7 @@ func (it *Interpreter) loadModule(name string) *object.Module {
 	}
 	p := parser.New(lexer.New(string(data)))
 	p.ModuleDir = it.Dir
+	p.Modules = it.Bundle
 	program := p.ParseProgram()
 	if errs := p.Errors(); len(errs) > 0 {
 		// errs[0] is "line N: ...": name the module's file and line.
