@@ -305,6 +305,13 @@ func (it *Interpreter) applyMethod(mc *ast.MethodCallExpression, receiver object
 		return it.numberMethod(r, mc.Method, args, env)
 	case *object.Matrix:
 		return matrixMethod(r, mc.Method, args)
+	case *object.Date:
+		if mc.Method == "tostring" {
+			requireArgs(mc.Method, args, 0)
+			return &object.String{Value: r.Inspect()} // as show writes it
+		}
+		fatalf("a date's only method is tostring, not %q; for more, use the time library's functions (format_date[d, pattern])", mc.Method)
+		return nil
 	case *object.Assembly:
 		if mc.Method == "get" || mc.Method == "slice" {
 			// "tags of book at get[0]": the get goes with book, not tags.

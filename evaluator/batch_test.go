@@ -261,3 +261,31 @@ show 9007199254740993 == 9007199254740992 .`
 		t.Errorf("got %q\nwant %q", got, want)
 	}
 }
+
+// warn is system's: import system [warn] takes just it.
+func TestWarnInAnImportList(t *testing.T) {
+	cases := []struct{ src, wantErr string }{
+		{"import system [warn]\nwarn \"careful\" .", ""},
+		{"import system [scriptfolder, warn]\nwarn \"a\" .", ""},
+		{"import system\nwarn \"a\" .", ""},
+		{"import system [scriptfolder]\nwarn \"a\" .", `"warn" isn't imported`},
+		{"warn \"a\" .", `"warn" needs "import system" first`},
+	}
+	for _, c := range cases {
+		_, err := run(t, c.src, "")
+		if c.wantErr == "" && err != nil || c.wantErr != "" && (err == nil || !strings.Contains(err.Error(), c.wantErr)) {
+			t.Errorf("%q: got %v, want %q", c.src, err, c.wantErr)
+		}
+	}
+}
+
+// A date writes itself as text with tostring, as show writes it.
+func TestDateTostring(t *testing.T) {
+	out, err := run(t, "import time\nd = make_date[2026, 10, 10]\nshow d at tostring == \"\" + d, \" \", typeof[d at tostring] .", "")
+	if err != nil || out != "true string\n" {
+		t.Errorf("got %q, %v", out, err)
+	}
+	if _, err := run(t, "import time\nd = make_date[2026, 10, 10]\nx = d at upper", ""); err == nil || !strings.Contains(err.Error(), "a date's only method is tostring") {
+		t.Errorf("want the date method error, got %v", err)
+	}
+}

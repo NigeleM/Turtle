@@ -15,8 +15,8 @@ import pattern
 import json
 import linear
 import test
-import system
-import time [today, format_date]
+import system [scriptfolder, exists, erase, warn]
+import time [today]
 import lib/bakery_terms
 
 // ---------- data structures, numbers, values ----------
@@ -142,7 +142,7 @@ safe [end]
 
 // ---------- files and JSON ----------
 path = scriptfolder[] + "/colors_out.json"
-json_write[path, map ["total": sum_cents, "day": format_date[today[], "YYYY-MM-DD"]]]
+json_write[path, map ["total": sum_cents, "day": today[] at tostring]]
 back = json_read[path]
 expect["json", back at get["total"], 1400]
 erase[path]

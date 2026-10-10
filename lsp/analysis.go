@@ -63,6 +63,14 @@ func analyze(uri, path, src string, t *text) *analysis {
 		p.ModuleDir = filepath.Dir(path)
 		p.TestFile = strings.HasPrefix(filepath.Base(path), "test_")
 	}
+	// A standard library's own Turtle file (evaluator/lib/random.turtle)
+	// uses its library's sentences without importing itself, as Turtle
+	// reads it.
+	if lib := ownLibrary(path); lib != "" {
+		p.Enable(lib)
+		p.SelfLibrary = lib
+		a.libs[lib] = true
+	}
 	program := p.ParseProgram()
 	if errs := p.ErrorList(); len(errs) > 0 {
 		// The first error is the real one; the parser trips over what
@@ -119,6 +127,22 @@ func analyze(uri, path, src string, t *text) *analysis {
 	}
 	a.symbols = append(definitions(uri, src, t, true), a.symbols...)
 	return a
+}
+
+// ownLibrary is the library a standard library file belongs to:
+// "random" for .../evaluator/lib/random.turtle; "" for any other file.
+func ownLibrary(path string) string {
+	dir := filepath.Dir(path)
+	if filepath.Base(dir) != "lib" || filepath.Base(filepath.Dir(dir)) != "evaluator" {
+		return ""
+	}
+	name := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+	for _, lib := range evaluator.Libraries() {
+		if lib == name {
+			return name
+		}
+	}
+	return ""
 }
 
 // errorRange covers the word a parse error points at, or the line when

@@ -600,3 +600,25 @@ func TestTheorySymbols(t *testing.T) {
 		t.Fatalf("got %+v", syms)
 	}
 }
+
+// A standard library's own Turtle file reads as Turtle reads it: its
+// library's sentences (random integer from ...) aren't errors there.
+func TestStandardLibraryFiles(t *testing.T) {
+	path, err := filepath.Abs("../evaluator/lib/random.turtle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := strings.ReplaceAll(string(data), "\r\n", "\n")
+	if a := analyze(fileURI(path), path, src, newText(src, false)); len(a.diags) > 0 {
+		t.Errorf("random.turtle: %v", a.diags)
+	}
+	// The same lines in an ordinary file are still an error without the import.
+	other := filepath.Join(t.TempDir(), "mine.turtle")
+	if a := analyze(fileURI(other), other, "x = random integer from 0 to 3\n", newText("x = random integer from 0 to 3\n", false)); len(a.diags) == 0 {
+		t.Errorf("an ordinary file without import random: want an error")
+	}
+}

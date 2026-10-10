@@ -2,6 +2,13 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## Unreleased
+
+- `import system [warn]`: `warn` can be listed with system's other names.
+- `d at tostring` writes a date as text, as `show` does.
+- `turtle lsp`: the standard library's own Turtle files (evaluator/lib/)
+  read as Turtle reads them, so their own sentences aren't marked as errors.
+
 ## 0.9.190 (2026-10-10)
 
 - Colors grouped by what a word does: keywords, imports, functions, data

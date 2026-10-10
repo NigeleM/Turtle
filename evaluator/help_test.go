@@ -27,7 +27,7 @@ func TestHelp(t *testing.T) {
 		{"assemble Book [title, pages]\nhelp[Book[\"Dune\", 412]]", "This is an assembled Book.\nIts fields: title, pages. Read one: title of x"},
 		{"assemble Book [title, pages]\nhelp[Book]", "Make one: Book[title, pages]."},
 		{"def area[w, h]\n    return w * h\ndef [end]\nhelp[area]", "This is a function.\nCall it: area[w, h]"},
-		{"import time\nhelp[today[]]", "This is a date.\nLibraries for it: help[\"time\"]"},
+		{"import time\nhelp[today[]]", "This is a date.\nA date's methods, as x at tostring:\n  tostring\nLibraries for it: help[\"time\"]"},
 		// Your own names come first.
 		{"def help[x]\n    show \"mine\" .\ndef [end]\nhelp[1]", "mine"},
 		{"version = \"1.2\"\nshow version .", "1.2"},
@@ -52,7 +52,7 @@ func TestHelp(t *testing.T) {
 func TestHelpMethodsAreReal(t *testing.T) {
 	samples := map[string]string{
 		"list": "list [1]", "set": "set [1]", "map": `map ["a": 1]`, "string": `"a"`,
-		"integer": "1", "float": "1.5", "matrix": "matrix [1]",
+		"integer": "1", "float": "1.5", "matrix": "matrix [1]", "date": "make_date[2026, 1, 2]",
 	}
 	for kind, methods := range typeMethods {
 		v, ok := samples[kind]
@@ -62,7 +62,7 @@ func TestHelpMethodsAreReal(t *testing.T) {
 		}
 		for _, m := range methods {
 			name := methodName(m)
-			src := "import linear\nimport math\nv = " + v + "\nsafe\n    x = v at " + name + "\nhandle [] e .\n    show message of e .\nsafe [end]"
+			src := "import linear\nimport math\nimport time\nv = " + v + "\nsafe\n    x = v at " + name + "\nhandle [] e .\n    show message of e .\nsafe [end]"
 			got, _ := run(t, src, "")
 			if strings.Contains(got, "unknown") || strings.Contains(got, "has no method") || strings.Contains(got, "needs a list, set") {
 				t.Errorf("%s at %s: %s", kind, name, got)

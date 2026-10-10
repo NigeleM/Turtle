@@ -895,6 +895,10 @@ func (p *Parser) parseImportStatement() ast.Statement {
 			return nil
 		}
 		for {
+			// warn is a keyword, and system's: import system [warn].
+			if p.peekTokenIs(token.WARN) {
+				p.peekToken.Type = token.IDENT
+			}
 			if !p.expectPeek(token.IDENT) {
 				return nil
 			}

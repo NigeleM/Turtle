@@ -19,6 +19,7 @@ The clock, dates and time zones, date arithmetic and formatting, and waiting or 
 | `add_time[date, amount, unit]` | date, whole number, unit | a new date; a negative amount goes back |
 | `time_between[a, b, unit]` | two dates, unit | how many whole units from `a` to `b` (negative if `b` is earlier) |
 | `format_date[date, pattern]` | date, pattern text | the date written with the pattern (below) |
+| `d at tostring` | a date | the date as text, as `show` writes it: `"2026-10-10 00:00:00"` (no import needed) |
 | `wait_until[date]` | date | sleeps until then (at once if it's past); returns `none` |
 | `every[amount, unit, job]` | whole number, unit, a function with no parameters | runs `job` now and then on a repeat, until `job` returns `false` |
 

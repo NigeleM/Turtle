@@ -43,6 +43,7 @@ var typeMethods = map[string][]string{
 	"integer": {"fixed[places]", "commas", "commas[places]", "sqrt", "abs", "round", "floor", "ceil", "pow[power]", "random"},
 	"matrix": {"rows", "columns", "shape", "get[r, c]", "put[value, r, c]", "row[r]", "column[c]",
 		"flatten", "reshape[rows, columns]", "isempty", "tostring"},
+	"date": {"tostring"},
 }
 
 // methodName is "get" for "get[index]".
