@@ -104,12 +104,21 @@ func (p *Parser) column(tok token.Token) int {
 
 // atSection: curToken starts a line with one of a theory's section words,
 // at the sections' own indent, or is "theory [end]".
+// A section word starts a line, no deeper than the sections, and isn't
+// code (proof = 5, abstract is x .): a theory is read by its words, not
+// its indentation, as the rest of Turtle is.
 func (p *Parser) atSection(indent int) bool {
 	if p.atTheoryEnd() {
 		return true
 	}
-	return p.curToken.Type == token.IDENT && theorySections[p.curToken.Literal] &&
-		p.prevToken.Line != p.curToken.Line && p.column(p.curToken) == indent
+	if p.curToken.Type != token.IDENT || !theorySections[p.curToken.Literal] || p.prevToken.Line == p.curToken.Line || p.column(p.curToken) > indent {
+		return false
+	}
+	switch p.peekToken.Type {
+	case token.ASSIGN, token.IS, token.AT, token.OF:
+		return p.peekToken.Line != p.curToken.Line
+	}
+	return true
 }
 
 func (p *Parser) atTheoryEnd() bool {
@@ -154,7 +163,11 @@ func (p *Parser) parseTheoryStatement() ast.Statement {
 		}
 		sec := p.curToken
 		if !p.atSection(indent) {
-			p.errorAt(sec.Line, sec.Pos, "theory %s: expected abstract, notation, definition, theorem or proof, found %s", name, describe(sec))
+			if theorySections[sec.Literal] && p.prevToken.Line != sec.Line {
+				p.errorAt(sec.Line, sec.Pos, "theory %s: %s is one of its sections: start it in line with the others", name, sec.Literal)
+			} else {
+				p.errorAt(sec.Line, sec.Pos, "theory %s: expected abstract, notation, definition, theorem or proof, found %s", name, describe(sec))
+			}
 			p.skipLine()
 			continue
 		}
@@ -170,9 +183,13 @@ func (p *Parser) parseTheoryStatement() ast.Statement {
 				ts.Notations = append(ts.Notations, n)
 			}
 		case "definition":
-			// It ends at the next line as far in as the sections.
+			// It ends at the next section. Written indented under its
+			// section, it also ends at a line back at the sections' indent,
+			// so a misspelled section (lemma) is reported as one.
+			indented := p.peekToken.Line != sec.Line && p.column(p.peekToken) > indent
 			ts.Definition = p.parseBlockUntil(func() bool {
-				return p.atSection(indent) || p.curTokenIs(token.EOF) || p.prevToken.Line != p.curToken.Line && p.column(p.curToken) <= indent
+				return p.atSection(indent) || p.curTokenIs(token.EOF) ||
+					indented && p.prevToken.Line != p.curToken.Line && p.column(p.curToken) <= indent
 			})
 			spec = p.learnTheory(ts)
 		case "theorem":
@@ -184,6 +201,7 @@ func (p *Parser) parseTheoryStatement() ast.Statement {
 		case "proof":
 			if spec == nil {
 				p.errorAt(sec.Line, sec.Pos, "theory %s: its notation and definition come before its proof", name)
+				p.nextToken()
 				p.skipToSection(indent)
 				continue
 			}
@@ -243,7 +261,7 @@ func (p *Parser) parseAbstract(sec token.Token, indent int) string {
 	for ; n <= len(lines); n++ {
 		l := strings.TrimRight(lines[n-1], "\r")
 		t := strings.TrimSpace(l)
-		if t != "" && len(l)-len(strings.TrimLeft(l, " \t")) <= indent {
+		if t != "" && len(l)-len(strings.TrimLeft(l, " \t")) <= indent && startsSection(t) {
 			break
 		}
 		text = append(text, t)
@@ -256,6 +274,25 @@ func (p *Parser) parseAbstract(sec token.Token, indent int) string {
 	}
 	p.reseek(n)
 	return strings.Join(text, "\n")
+}
+
+// startsSection: a line of text starts a theory's next section, or ends
+// the theory.
+func startsSection(line string) bool {
+	word, rest, _ := strings.Cut(line, " ")
+	rest = strings.TrimSpace(rest)
+	if word == "theory" && strings.HasPrefix(strings.ReplaceAll(rest, " ", ""), "[end]") {
+		return true
+	}
+	if !theorySections[word] {
+		return false
+	}
+	for _, code := range []string{"=", "is ", "at ", "of "} {
+		if strings.HasPrefix(rest, code) {
+			return false
+		}
+	}
+	return true
 }
 
 // parseNotation reads "notation tally b in a ." Which words are slots is
