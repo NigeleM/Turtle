@@ -300,6 +300,8 @@ func (s *Server) completion(d *document, offset int) any {
 		switch sym.kind {
 		case symFunc:
 			add(sym.name, completionFunction, sym.detail, sym.doc, "1")
+		case symTheory:
+			add(sym.name, completionFunction, "theory: "+sym.detail, sym.doc, "1")
 		case symType:
 			add(sym.name, completionClass, sym.detail, sym.doc, "1")
 		case symVar:
@@ -376,6 +378,8 @@ func (s *Server) hover(d *document, offset int) any {
 			head = "assemble " + sym.detail
 		case symVar:
 			head = sym.detail
+		case symTheory:
+			head = "theory " + sym.name + "\nnotation " + sym.detail
 		}
 		text = "```turtle\n" + head + "\n```"
 		if sym.doc != "" {
@@ -555,7 +559,11 @@ func fileURI(path string) string {
 // whole text. Code that doesn't parse yet is left alone (no edits); its
 // error is already showing.
 func (s *Server) formatting(d *document) any {
-	formatted, err := format.Format(d.text.src)
+	dir := ""
+	if d.path != "" {
+		dir = filepath.Dir(d.path)
+	}
+	formatted, err := format.FormatIn(d.text.src, dir)
 	if err != nil || formatted == d.text.src {
 		return []any{}
 	}

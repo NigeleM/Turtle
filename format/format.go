@@ -22,12 +22,20 @@ import (
 // Lines inside a `raw string` or a //* *// comment are left exactly as
 // they are. Code that doesn't parse isn't formatted: fix it first.
 func Format(src string) (string, error) {
+	return FormatIn(src, "")
+}
+
+// FormatIn is Format for a file in folder dir, where its imports are:
+// the phrases of an imported file's theories are read as phrases.
+func FormatIn(src, dir string) (string, error) {
 	p := parser.New(lexer.New(src))
+	p.ModuleDir = dir
 	p.ParseProgram()
 	if len(p.ErrorList()) > 0 {
 		// Perhaps a library's own code, using its words without importing
 		// itself.
 		lib := parser.New(lexer.New(src))
+		lib.ModuleDir = dir
 		for _, name := range []string{"random", "test", "log", "linear"} {
 			lib.Enable(name)
 		}
@@ -160,6 +168,9 @@ func lineDepth(t []token.Token, stack []string) (int, []string, error) {
 	}
 	if len(t) == 0 { // a comment line: at the depth of what's around it
 		return len(stack), stack, nil
+	}
+	if d, next, ok := theoryDepth(t, stack); ok {
+		return d, next, nil
 	}
 	last := t[len(t)-1]
 	// A scroll over several lines: its steps one step in, until the
@@ -323,4 +334,78 @@ func codeOf(src string) string {
 		}
 	}
 	return sb.String()
+}
+
+// theoryDepth lays out a theory: its sections one step in, what they hold
+// (the abstract's text, the definition's code, the proof's lines) a step
+// further, and theory [end] back at theory's depth.
+//
+//	theory tally
+//	    abstract
+//	        tally says how many times b is in a.
+//	    notation tally b in a .
+//	    definition
+//	        ...
+//	theory [end]
+func theoryDepth(t []token.Token, stack []string) (int, []string, bool) {
+	top := ""
+	if len(stack) > 0 {
+		top = stack[len(stack)-1]
+	}
+	switch {
+	case len(t) == 2 && t[0].Literal == "theory" && t[1].Type == token.IDENT:
+		return len(stack), append(append([]string{}, stack...), "theory"), true
+	case len(t) == 4 && t[0].Literal == "theory" && t[1].Type == token.LBRACKET && t[2].Type == token.END:
+		s := closeSection(stack)
+		if len(s) > 0 && s[len(s)-1] == "theory" {
+			return len(s) - 1, s[:len(s)-1], true
+		}
+		return 0, stack, false
+	case isSection(t) && inTheory(stack):
+		s := closeSection(stack)
+		switch t[0].Literal {
+		case "abstract", "definition", "proof":
+			return len(s), append(append([]string{}, s...), "section:"+t[0].Literal), true
+		}
+		return len(s), s, true
+	case top == "section:abstract":
+		return len(stack), stack, true // its text, as it is
+	}
+	return 0, nil, false
+}
+
+var theorySections = map[string]bool{"abstract": true, "notation": true, "definition": true, "theorem": true, "proof": true}
+
+// isSection: the line starts a theory's section (abstract, notation,
+// definition, theorem, proof), not code that uses the word as a name.
+func isSection(t []token.Token) bool {
+	if t[0].Type != token.IDENT || !theorySections[t[0].Literal] {
+		return false
+	}
+	if len(t) > 1 {
+		switch t[1].Type {
+		case token.ASSIGN, token.IS, token.AT, token.OF, token.LBRACKET:
+			return false
+		}
+	}
+	return true
+}
+
+// inTheory: the line is in a theory, outside any block of code a section
+// opened.
+func inTheory(stack []string) bool {
+	if len(stack) == 0 {
+		return false
+	}
+	top := stack[len(stack)-1]
+	return top == "theory" || strings.HasPrefix(top, "section:")
+}
+
+// closeSection ends the section open, if one is.
+func closeSection(stack []string) []string {
+	s := popNested(stack, "")
+	if len(s) > 0 && strings.HasPrefix(s[len(s)-1], "section:") {
+		return s[:len(s)-1]
+	}
+	return s
 }

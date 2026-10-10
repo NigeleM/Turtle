@@ -14,6 +14,9 @@
       "include": "#strings"
     },
     {
+      "include": "#theories"
+    },
+    {
       "include": "#definitions"
     },
     {
@@ -178,6 +181,42 @@
     "sentences": {
       "name": "support.function.turtle",
       "match": "(?<=[\\w\\]\\)\"'`] )(process|keep|copy|reduce|range|sum)\\b(?![\\[=])"
+    },
+    "theories": {
+      "patterns": [
+        {
+          "comment": "theory tally ... theory [end]",
+          "match": "^\\s*(theory)\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*$",
+          "captures": {
+            "1": {
+              "name": "keyword.control.turtle"
+            },
+            "2": {
+              "name": "entity.name.function.turtle"
+            }
+          }
+        },
+        {
+          "match": "^\\s*(theory)\\s*(\\[end\\])",
+          "captures": {
+            "1": {
+              "name": "keyword.control.turtle"
+            },
+            "2": {
+              "name": "keyword.control.turtle"
+            }
+          }
+        },
+        {
+          "comment": "a theory's sections, not the same words used as names (proof = 5)",
+          "match": "^\\s*(abstract|notation|definition|theorem|proof)\\b(?!\\s*(=|is\\b|at\\b|of\\b|\\[))",
+          "captures": {
+            "1": {
+              "name": "keyword.control.turtle"
+            }
+          }
+        }
+      ]
     }
   }
 }

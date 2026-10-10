@@ -2,6 +2,12 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## Unreleased
+
+- Theories: new words and phrases written in Turtle, with an abstract,
+  notations, a definition, theorems and a proof. `turtle test` proves
+  them; `diagnose` and `help` look inside them.
+
 ## 0.9.180 (2026-10-10)
 
 - Private functions: a function named with `~` (`def ~limit[...]`) can

@@ -481,7 +481,7 @@ func (p *Parser) parseTheoryCall() *ast.TheoryCall {
 		if len(shape) > 0 && shape[len(shape)-1] == "\x00" {
 			// A value right after a value: the phrase is over, unless a
 			// word follows, which no notation has there.
-			if next.Type == token.IDENT {
+			if next.Type == token.IDENT && !p.isStop(next.Literal) && next.Literal != "type" {
 				shape = append(shape, next.Literal)
 			}
 			break

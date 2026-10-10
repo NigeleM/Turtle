@@ -1,0 +1,35 @@
+// test_theories.turtle: theories from another file, used as phrases.
+// turtle test also proves each of them (their proofs and theorems).
+import test
+import lib/bakery_words
+
+def test_phrases_read_like_sentences[]
+    basket = list [Item["Cookie", 12, 150], Item["Loaf", 2, 650]]
+    subtotal = 0
+    [loop][item in basket]
+        subtotal = subtotal + price item
+    [loop][end]
+    total is discount 10 off subtotal .
+    check total == 2655 .
+    check discount 10 off price Item["Cookie", 12, 150] == 1485 .
+    check tally 1 in list [1, 1, 0] == 2 .
+    check between 50 from 0 to 10 == 10 .
+def [end]
+
+def test_a_value_reaches_through_arithmetic[]
+    nums = list [1, 1]
+    check tally 1 in nums + list [1] == 3 .
+    rate = 25
+    check discount rate off 2000 == 1500 .
+def [end]
+
+def test_refused_inputs[]
+    check discount 101 off 5 fails [custom] .
+def [end]
+
+def test_a_theory_is_a_value[]
+    check typeof[tally] == "theory" .
+    check tally type theory .
+    is_function = tally type function
+    check !is_function .
+def [end]

@@ -107,7 +107,7 @@ func TestFormatEveryFile(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		once, err := Format(string(data))
+		once, err := FormatIn(string(data), filepath.Dir(f))
 		if err != nil {
 			if strings.Contains(f, "parse_error") || strings.Contains(f, "bad") {
 				continue
@@ -115,7 +115,7 @@ func TestFormatEveryFile(t *testing.T) {
 			t.Errorf("%s: %v", f, err)
 			continue
 		}
-		if twice, _ := Format(once); twice != once {
+		if twice, _ := FormatIn(once, filepath.Dir(f)); twice != once {
 			t.Errorf("%s: formatting twice changed it again", f)
 		}
 	}
@@ -172,5 +172,18 @@ func TestFormatScrollOnOneLine(t *testing.T) {
 	src := "res = diagnose[scroll 3 into add1, here * 2 .]\nshow res .\n"
 	if got, err := Format(src); err != nil || got != src {
 		t.Errorf("got %q, %v", got, err)
+	}
+}
+
+// A theory: its sections one step in, what they hold a step further.
+func TestFormatTheory(t *testing.T) {
+	src := "theory tally\nabstract\ntally counts b in a; simply.\nnotation tally b in a .\ndefinition\nn = 0\n[loop][x in a]\nif ] x == b [\nn = n + 1\nif [end]\n[loop][end]\nreturn n\ntheorem result >= 0\nproof\ntally 1 in list [1, 1] . is 2\ntheory [end]\nproof = 1\n"
+	want := "theory tally\n    abstract\n        tally counts b in a; simply.\n    notation tally b in a .\n    definition\n        n = 0\n        [loop][x in a]\n            if ] x == b [\n                n = n + 1\n            if [end]\n        [loop][end]\n        return n\n    theorem result >= 0\n    proof\n        tally 1 in list [1, 1] . is 2\ntheory [end]\nproof = 1\n"
+	got, err := Format(src)
+	if err != nil || got != want {
+		t.Errorf("got %v\n%s", err, got)
+	}
+	if again, _ := Format(want); again != want {
+		t.Errorf("formatting twice changed it:\n%s", again)
 	}
 }

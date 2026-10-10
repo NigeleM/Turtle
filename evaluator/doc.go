@@ -1,6 +1,9 @@
 package evaluator
 
 import (
+	"Turtle/ast"
+	"Turtle/lexer"
+	"Turtle/parser"
 	"Turtle/syntax"
 
 	"fmt"
@@ -181,6 +184,14 @@ func fileDoc(name, src string) string {
 		}
 		fmt.Fprintf(&sb, "\n%s\n%s\n", head, strings.Join(doc, "\n"))
 		found++
+	}
+	// Its theories: how each is written, its abstract and its theorems.
+	program := parser.New(lexer.New(strings.Join(lines, "\n"))).ParseProgram()
+	for _, st := range program.Statements {
+		if ts, ok := st.(*ast.TheoryStatement); ok {
+			sb.WriteString("\n" + strings.Replace(theoryHelp(ts), "        (a theory, line", "        (theory, line", 1) + "\n")
+			found++
+		}
 	}
 	if found == 0 {
 		sb.WriteString("\n(no functions or assembled types at the top level)\n")

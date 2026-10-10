@@ -62,7 +62,7 @@ func fmtCommand(args []string, out, errOut io.Writer) int {
 			broken++
 			continue
 		}
-		formatted, err := format.Format(string(data))
+		formatted, err := format.FormatIn(string(data), filepath.Dir(f))
 		if err != nil {
 			fmt.Fprintf(errOut, "turtle fmt: %s: %v\n", f, err)
 			broken++

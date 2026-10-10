@@ -135,6 +135,7 @@ or `here`.
 | `integer`, `float`, `string`, `ascii`, `char`, `hex`, `keys`, `values` | after `change ... to` | `change x to float` | [Type conversion](#type-conversion) |
 | `each`, `any`, `not`, `exactly`, `least`, `most`, `pair`, `that`, `with`, `as`, `matches`, `fails`, `close`, `within` | in `check`, `verify` and `validate` sentences | `verify xs at least 2 x give x > 0 .` | [Tests](#tests-check-verify-validate-turtle-test) |
 | `debug`, `info`, `error` | right after `log` | `log debug "x is ", x .` | [Logging](#logging-log) |
+| `theory`, `abstract`, `notation`, `definition`, `theorem`, `proof` | a theory, and its sections | `theory tally` ... `theory [end]` | [Theories](#theories) |
 
 ## Statement terminators
 
@@ -973,6 +974,76 @@ after: 11
 - Lines of functions called from the block show too, as in `turtle trace`.
 - It ends with `finished`, or `✗ failed:` and the error.
 - `turtle fmt` indents the block, and the REPL waits for `diagnose [end]`.
+
+
+## Theories
+
+A theory brings a new word into Turtle: how it's written, what it means,
+and what it promises. Once a file has a theory, its phrases read like
+the rest of the language.
+
+```
+theory tally
+    abstract
+        tally says how many times b appears in the list a.
+    notation tally b in a .
+    definition
+        n = 0
+        [loop][x in a]
+            if ] x == b [
+                n = n + 1
+            if [end]
+        [loop][end]
+        return n
+    theorem result >= 0
+    theorem result <= length of a
+    proof
+        tally 1 in list [1, 1, 0, 3] . is 2
+        tally 9 in list [] . is 0
+theory [end]
+
+tally 1 in nums .                  // on its own line
+c is tally 1 in nums .             // its result, named
+show "ones: ", tally 1 in nums .   // inside other sentences
+```
+
+| Section | | What it does |
+|---|---|---|
+| `abstract` | required | what the word means, in plain words; `help`, `turtle doc` and the editor show it. It should name the word. |
+| `notation` | required, one or more | how the word is written. The names the definition uses (`b`, `a`) are its **values**; every other word (`in`) is **fixed**. Two values need a word or a comma between them. |
+| `definition` | required | the code, with each value by its name; `return` gives the result |
+| `theorem` | optional, any number | something every result satisfies, written with `result` and the values |
+| `proof` | optional | worked cases: a use, `is`, what it gives |
+
+**Rules.**
+- The word follows `theory` and starts every notation. It must be new:
+  not a keyword, a function, a method, a variable or another theory.
+- A theory comes before its word is used, reading top to bottom. It's
+  written at the top level of a file.
+- `import shapes` brings in that file's theories with its functions;
+  `import shapes [tally]` names the ones to bring. Two imports with the
+  same word is an error.
+- A value reaches as a sentence call's does: through arithmetic, not past
+  a comparison, `&&` or `||` (`tally 1 in nums == 2` compares the
+  result). A fixed word ends the value before it.
+- The section words are special only in a theory, and `theory` only at
+  the start of a line before a name: elsewhere they're ordinary names.
+- The word alone is the theory itself, a value: `typeof[tally]` is
+  `"theory"`, `tally type theory` is true, `help[tally]` describes it.
+
+**Checking a theory.** `turtle test` proves the theories of each test
+file and of the files it imports: every proof case must give what it
+says, and every theorem must hold for the proof cases and for 100 random
+inputs made like their values. A definition that refuses an input with
+`fail` doesn't count that input against a theorem. A theorem that breaks
+shows the smallest input that breaks it. A theory with no proof, or an
+abstract that doesn't name its word, gets a warning. In an ordinary run
+none of this is checked. See [`testing.md`](testing.md#theories).
+
+**Looking inside.** `diagnose[tally 1 in nums]` shows one use: its values,
+its result, each theorem for it, and how long it took. `diagnose[tally]`
+runs the theory's proof and its theorems, as `turtle test` does, and
+shows where they fail. Neither stops the program.
 
 ## None
 

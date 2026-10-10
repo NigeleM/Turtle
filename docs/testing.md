@@ -570,6 +570,36 @@ test has no check on the function, it says so and asks for `with`.
 `cases = 100` (made by `import test`) is how many inputs each validate
 tries. Set it at the top of the file, or inside one test.
 
+
+## Theories
+
+`turtle test` proves the [theories](reference.md#theories) of each test
+file and of the files it imports, after the file's tests:
+
+```
+test_shop.turtle
+  PASS  test_order        12.0µs
+  PASS  theory price      proof 2 of 2
+  PASS  theory discount   proof 1 of 1, 1 theorem holds on 100 random inputs
+  FAIL  theory keep_off
+        lib/shop.turtle line 30: proof: keep_off 10 off 2000 . gave 200, expected 1800
+  PASS  theory twice      no proof
+  WARN  theory twice      unproven: it has no proof
+
+FAILED: 1 passed, 0 failed, 3 theories proven, 1 theory failed, 1 warning (1 file, 2.1ms)
+```
+
+- Each **proof case** must give what it says.
+- Each **theorem** must hold for the proof cases' results, and for 100
+  random inputs made like their values (an `Item` with text and two whole
+  numbers, ...). The definition may refuse an input with `fail`; that
+  input then doesn't count against a theorem. When a theorem breaks, the
+  report shows the smallest input that breaks it and the seed to repeat
+  the run (`seed = 7` sets it).
+- A theory with **no proof**, or whose **abstract doesn't name its
+  word**, gets a warning; warnings don't fail the run.
+- `diagnose[discount]` shows the same checks for one theory, anywhere.
+
 ## Settings
 
 `import test` makes these variables. Set them at the top of the file for

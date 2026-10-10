@@ -1,0 +1,67 @@
+// bakery_words.turtle: words for a bakery, as theories. test_theories.turtle
+// uses them and proves them.
+
+assemble Item [name, qty, cents]
+
+theory price
+    abstract
+        price is what an item costs, in cents: its quantity times its price,
+        with every twelfth one free.
+    notation price i .
+    definition
+        if ] qty of i < 0 || cents of i < 0 [
+            fail "price: an item's quantity and price can't be negative"
+        if [end]
+        free = qty of i div 12
+        return qty of i * cents of i - free * cents of i
+    theorem result <= qty of i * cents of i
+    proof
+        price Item["Cookie", 12, 150] . is 1650
+        price Item["Loaf", 2, 650] . is 1300
+theory [end]
+
+theory discount
+    abstract
+        discount takes p percent off an amount c, rounding the saving down.
+    notation discount p off c .
+    definition
+        if ] p < 0 || p > 100 || c < 0 [
+            fail "discount: p is a percent from 0 to 100, c an amount of 0 or more"
+        if [end]
+        return c - c * p div 100
+    theorem result <= c
+    theorem result >= 0
+    proof
+        discount 10 off 2000 . is 1800
+        discount 100 off 7 . is 0
+theory [end]
+
+theory tally
+    abstract
+        tally says how many times b appears in the list a.
+    notation tally b in a .
+    definition
+        n = 0
+        [loop][x in a]
+            if ] x == b [
+                n = n + 1
+            if [end]
+        [loop][end]
+        return n
+    theorem result >= 0
+    theorem result <= length of a
+    proof
+        tally 1 in list [1, 1, 0, 3] . is 2
+        tally 9 in list [4] . is 0
+theory [end]
+
+theory between
+    abstract
+        between keeps n from going below low or above high.
+    notation between n from low to high .
+    definition
+        return min of list [max of list [n, low], high]
+    proof
+        between 15 from 0 to 10 . is 10
+        between -2 from 0 to 10 . is 0
+theory [end]

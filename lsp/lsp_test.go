@@ -506,3 +506,15 @@ func TestWordAtPrivateName(t *testing.T) {
 		t.Errorf("got %q at %d", w, start)
 	}
 }
+
+// A theory, this file's or an imported one: hover shows how it's
+// written and its abstract; completion offers its word; go to definition
+// finds it.
+func TestTheorySymbols(t *testing.T) {
+	src := "theory tally\n    abstract\n        tally says how many times b is in a.\n    notation tally b in a .\n    definition\n        return 0\ntheory [end]\nshow tally 1 in list [1] .\n"
+	tx := newText(src, true)
+	syms := definitions("file:///x.turtle", src, tx, true)
+	if len(syms) == 0 || syms[0].name != "tally" || syms[0].kind != symTheory || syms[0].detail != "tally b in a ." || syms[0].doc != "tally says how many times b is in a." {
+		t.Fatalf("got %+v", syms)
+	}
+}

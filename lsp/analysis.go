@@ -26,6 +26,7 @@ const (
 	symFunc symbolKind = iota
 	symType
 	symVar
+	symTheory // detail: its first notation, "tally b in a ."; doc: its abstract
 )
 
 // symbol is a name a file defines, and where.
@@ -148,6 +149,7 @@ var (
 	defLine      = regexp.MustCompile(`^(\s*)def\s+(~?[A-Za-z_][A-Za-z0-9_]*)\s*\[([^\]]*)\]`)
 	assembleLine = regexp.MustCompile(`^(\s*)assemble\s+([A-Za-z_][A-Za-z0-9_]*)\s*\[([^\]]*)\]`)
 	assignLine   = regexp.MustCompile(`^([A-Za-z_][A-Za-z0-9_]*)\s*(=|is\s)`)
+	theoryHead   = regexp.MustCompile(`^(\s*)theory\s+([A-Za-z_][A-Za-z0-9_]*)\s*$`)
 )
 
 // definitions finds the top-level functions and assembled types in src
@@ -162,6 +164,12 @@ func definitions(uri, src string, t *text, vars bool) []symbol {
 		if m := defLine.FindStringSubmatchIndex(line); m != nil && m[3]-m[2] == 0 {
 			name := line[m[4]:m[5]]
 			out = append(out, symbol{name: name, kind: symFunc, detail: name + "[" + line[m[6]:m[7]] + "]", doc: syntax.FunctionDoc(lines, n), uri: uri, line: n, col: m[4], endCol: m[5]})
+			continue
+		}
+		if m := theoryHead.FindStringSubmatchIndex(line); m != nil && m[3]-m[2] == 0 {
+			name := line[m[4]:m[5]]
+			notation, abstract := theoryParts(lines, n)
+			out = append(out, symbol{name: name, kind: symTheory, detail: notation, doc: abstract, uri: uri, line: n, col: m[4], endCol: m[5]})
 			continue
 		}
 		if m := assembleLine.FindStringSubmatchIndex(line); m != nil && m[3]-m[2] == 0 {
@@ -203,4 +211,36 @@ func (a *analysis) words() syntax.Words {
 		w.Builtin[f] = true
 	}
 	return w
+}
+
+// theoryParts are a theory's first notation ("tally b in a .") and its
+// abstract, from the lines after "theory tally" on line n.
+func theoryParts(lines []string, n int) (notation, abstract string) {
+	var text []string
+	inAbstract := false
+	for _, l := range lines[n+1:] {
+		t := strings.TrimSpace(l)
+		word, rest, _ := strings.Cut(t, " ")
+		if word == "theory" && strings.HasPrefix(strings.ReplaceAll(rest, " ", ""), "[end]") {
+			break
+		}
+		switch word {
+		case "abstract":
+			inAbstract = true
+			if rest != "" {
+				text = append(text, strings.TrimSpace(rest))
+			}
+			continue
+		case "notation", "definition", "theorem", "proof":
+			inAbstract = false
+			if word == "notation" && notation == "" {
+				notation = strings.TrimSpace(rest)
+			}
+			continue
+		}
+		if inAbstract && t != "" {
+			text = append(text, t)
+		}
+	}
+	return notation, strings.Join(text, "\n")
 }
