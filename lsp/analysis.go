@@ -202,7 +202,15 @@ func (a *analysis) symbolNamed(name string) (symbol, bool) {
 // words for coloring: the imported libraries' words, and the library
 // functions.
 func (a *analysis) words() syntax.Words {
-	w := syntax.Words{Context: map[string]bool{}, Builtin: map[string]bool{}}
+	w := syntax.Words{Context: map[string]bool{}, Builtin: map[string]bool{}, Theories: map[string]bool{}, Types: map[string]bool{}}
+	for _, sym := range a.symbols {
+		switch sym.kind {
+		case symTheory:
+			w.Theories[sym.name] = true
+		case symType:
+			w.Types[sym.name] = true
+		}
+	}
 	for lib := range a.libs {
 		for _, word := range syntax.LibraryWords[lib] {
 			w.Context[word] = true

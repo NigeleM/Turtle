@@ -2,7 +2,7 @@
   "name": "turtle",
   "displayName": "Turtle",
   "description": "The Turtle programming language: run files, colors, errors as you type, completion, hover help and go to definition (through turtle lsp).",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "publisher": "turtle-lang",
   "license": "Apache-2.0",
   "repository": {
@@ -18,7 +18,8 @@
   "main": "./extension.js",
   "activationEvents": [
     "onLanguage:turtle",
-    "onCommand:turtle.run"
+    "onCommand:turtle.run",
+    "onStartupFinished"
   ],
   "contributes": {
     "languages": [
@@ -54,6 +55,89 @@
           "type": "boolean",
           "default": true,
           "description": "Run turtle lsp for errors as you type, completion, hover and go to definition. Colors work without it."
+        },
+        "turtle.colorScheme": {
+          "type": "string",
+          "default": "Turtle",
+          "enum": [
+            "Turtle",
+            "Classic",
+            "Ocean",
+            "Sunset",
+            "Forest",
+            "Soft",
+            "Dusk",
+            "Okabe-Ito",
+            "Blue & Orange",
+            "Teal & Rose",
+            "High Contrast",
+            "No Color",
+            "Theme colors"
+          ],
+          "enumDescriptions": [
+            "The default: clean green keywords and a gold theory.",
+            "Close to VS Code's own colors, for a familiar start.",
+            "Cool blues and teals, with warm text.",
+            "Warm keywords and a violet show.",
+            "Earthy greens, rust and moss.",
+            "Muted colors for long sessions; nothing glares.",
+            "Low glare, warm and dim, for night work.",
+            "The palette scientists use so that all common color blindness can tell the colors apart.",
+            "Red-green color blindness (the most common): only blues and oranges, plus styles.",
+            "Blue-yellow color blindness: teals against reds and pinks.",
+            "Low vision: every color at 7:1 or more, keywords bold.",
+            "Any color vision, even none: brightness and style alone.",
+            "Your color theme's own colors, with nothing from Turtle."
+          ],
+          "markdownDescription": "How Turtle files are colored: each group (keywords, imports, functions, data structures, `show`, text, numbers, theories) gets a color, in a shade for dark themes and one for light. The color-vision schemes also use bold, italic and underline. Only Turtle files change."
+        },
+        "turtle.colors": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": false,
+          "markdownDescription": "Your own color for any group, over the scheme's: `{ \"theories\": \"#E5484D\" }`.",
+          "properties": {
+            "keywords": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "description": "if, loop, def, return, ..."
+            },
+            "imports": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "description": "import lines"
+            },
+            "functions": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "description": "function names, calls and methods"
+            },
+            "data": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "description": "list, set, map, matrix, assemble and assembled types"
+            },
+            "show": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "description": "show and warn"
+            },
+            "text": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "description": "text in quotes"
+            },
+            "numbers": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "description": "numbers, true, false, none"
+            },
+            "theories": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "description": "theories and their words"
+            }
+          }
         }
       }
     },
@@ -88,6 +172,43 @@
         "command": "turtle.run",
         "key": "ctrl+f5",
         "when": "editorLangId == turtle"
+      }
+    ],
+    "semanticTokenModifiers": [
+      {
+        "id": "test",
+        "description": "A test function: def test_total[]"
+      }
+    ],
+    "semanticTokenScopes": [
+      {
+        "language": "turtle",
+        "scopes": {
+          "namespace": [
+            "keyword.other.import.turtle"
+          ],
+          "struct": [
+            "storage.type.data.turtle"
+          ],
+          "struct.declaration": [
+            "entity.name.type.definition.turtle"
+          ],
+          "event": [
+            "keyword.other.show.turtle"
+          ],
+          "macro": [
+            "keyword.other.theory.turtle"
+          ],
+          "method": [
+            "entity.name.function.method.turtle"
+          ],
+          "function.declaration": [
+            "entity.name.function.definition.turtle"
+          ],
+          "function.declaration.test": [
+            "entity.name.function.test.turtle"
+          ]
+        }
       }
     ]
   }

@@ -40,6 +40,7 @@ type Server struct {
 	docs        map[string]*document
 	utf8        bool
 	initialized bool
+	groups      bool // the editor takes Turtle's own color groups (tokenTypes)
 	shutdown    bool
 	version     string
 }
@@ -188,9 +189,20 @@ func (s *Server) initialize(msg *message) {
 			General struct {
 				PositionEncodings []string `json:"positionEncodings"`
 			} `json:"general"`
+			TextDocument struct {
+				SemanticTokens struct {
+					TokenTypes []string `json:"tokenTypes"`
+				} `json:"semanticTokens"`
+			} `json:"textDocument"`
 		} `json:"capabilities"`
 	}
 	json.Unmarshal(msg.Params, &p)
+	// An editor that takes "macro" and "namespace" gets Turtle's own groups.
+	takes := map[string]bool{}
+	for _, t := range p.Capabilities.TextDocument.SemanticTokens.TokenTypes {
+		takes[t] = true
+	}
+	s.groups = takes["macro"] && takes["namespace"] && takes["struct"] && takes["event"] && takes["method"]
 	encoding := "utf-16"
 	for _, e := range p.Capabilities.General.PositionEncodings {
 		if e == "utf-8" {
@@ -499,23 +511,8 @@ func (s *Server) semanticTokens(d *document) any {
 		prevLine, prevChar = p.Line, p.Character
 	}
 	for _, sp := range syntax.Highlight(t.src, d.analysis.words()) {
-		typ, mods := 0, 0
-		switch sp.Class {
-		case syntax.Keyword:
-			typ = 0
-		case syntax.String:
-			typ = 1
-		case syntax.Constant:
-			typ = 2
-		case syntax.Comment:
-			typ = 3
-		case syntax.Definition:
-			typ, mods = 4, 1
-		case syntax.Call:
-			typ = 4
-		case syntax.Builtin:
-			typ, mods = 4, 2
-		default:
+		typ, mods := tokenFor(sp.Class, s.groups)
+		if typ < 0 {
 			continue
 		}
 		for start := sp.Start; start < sp.End; {
@@ -528,6 +525,59 @@ func (s *Server) semanticTokens(d *document) any {
 		}
 	}
 	return map[string]any{"data": data}
+}
+
+// tokenFor is the token type and modifiers for a class of word; with
+// groups, Turtle's own groups, else the six every editor takes. -1: none.
+func tokenFor(c syntax.Class, groups bool) (typ, mods int) {
+	switch c {
+	case syntax.Keyword:
+		return tokKeyword, 0
+	case syntax.String:
+		return tokString, 0
+	case syntax.Constant:
+		return tokNumber, 0
+	case syntax.Comment:
+		return tokComment, 0
+	case syntax.Definition:
+		return tokFunction, modDeclaration
+	case syntax.Call:
+		return tokFunction, 0
+	case syntax.Builtin:
+		return tokFunction, modDefaultLibrary
+	}
+	if !groups {
+		switch c {
+		case syntax.Import, syntax.Show, syntax.Theory:
+			return tokKeyword, 0
+		case syntax.Data:
+			return tokType, 0
+		case syntax.DataDefinition:
+			return tokType, modDeclaration
+		case syntax.Method:
+			return tokFunction, 0
+		case syntax.TestDefinition:
+			return tokFunction, modDeclaration
+		}
+		return -1, 0
+	}
+	switch c {
+	case syntax.Import:
+		return tokNamespace, 0
+	case syntax.Show:
+		return tokEvent, 0
+	case syntax.Theory:
+		return tokMacro, 0
+	case syntax.Data:
+		return tokStruct, 0
+	case syntax.DataDefinition:
+		return tokStruct, modDeclaration
+	case syntax.Method:
+		return tokMethod, 0
+	case syntax.TestDefinition:
+		return tokFunction, modDeclaration | modTest
+	}
+	return -1, 0
 }
 
 // ---- URIs ----

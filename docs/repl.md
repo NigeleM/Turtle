@@ -41,16 +41,20 @@ error (math): division by zero
 
 Colors come from Turtle's own lexer, so they always match the language:
 
+They're grouped by what a word does, as in the VS Code extension's
+Turtle scheme:
+
 | Color | What |
 |---|---|
-| orange | keywords: `def`, `if`, `show`, `import`, `at`, `div` ..., and a library's words once imported (`random`, `check`, `log`) |
-| green | strings |
-| purple | numbers, `true`, `false`, `none` |
-| red | comments |
-| bold blue | the name after `def` or `assemble` |
-| blue | function calls `name[...]`; results |
-| magenta | library functions: `sql_open[...]`, `min_sort[...]` |
-| red | errors |
+| green | keywords: `def`, `if`, `loop`, `at`, `div` ..., and a library's words once imported (`random`, `check`, `log`) |
+| teal | an `import` line, all of it |
+| blue | functions: calls `name[...]`, library functions, methods after `at`; bold where defined, bold italic for a `test_` function |
+| amber | data structures: `list`, `set`, `map`, `matrix`, `assemble` and your types (bold where made) |
+| bold violet | `show` and `warn` |
+| red | text |
+| pink | numbers, `true`, `false`, `none` |
+| bold italic gold | theories: `theory`, its sections, and its word where it's used |
+| italic gray | comments |
 
 They work in macOS Terminal and iTerm, Linux terminals, and Windows
 Terminal / PowerShell on Windows 10 and later. Set the environment

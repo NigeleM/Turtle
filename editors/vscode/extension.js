@@ -1,5 +1,6 @@
 // The Turtle extension for VS Code. Colors come from the grammar
-// (syntaxes/turtle.tmLanguage.json) and need nothing else. Everything
+// (syntaxes/turtle.tmLanguage.json) and need nothing else; the color
+// scheme (turtle.colorScheme) picks them, for Turtle files only. Everything
 // else (errors as you type, completion, hover help, go to definition, the
 // outline, Format Document, exact colors) comes from turtle lsp, which this file starts and
 // talks to: a small Language Server Protocol client written against VS
@@ -149,10 +150,226 @@ const posParams = (doc, pos) => ({ textDocument: { uri: doc.uri.toString() }, po
 const completionKind = (k) => (k ? k - 1 : vscode.CompletionItemKind.Text);
 const symbolKind = (k) => (k ? k - 1 : vscode.SymbolKind.Variable);
 
-const legend = new vscode.SemanticTokensLegend(
-  ["keyword", "string", "number", "comment", "function", "type"],
-  ["declaration", "defaultLibrary"]
+// The colors turtle lsp sends, by index: the first six every editor
+// takes, then Turtle's own groups (imports, data structures, show,
+// theories, methods), which it sends once initialize lists them.
+const tokenTypes = ["keyword", "string", "number", "comment", "function", "type", "namespace", "struct", "event", "macro", "method"];
+const tokenModifiers = ["declaration", "defaultLibrary", "test"];
+const legend = new vscode.SemanticTokensLegend(tokenTypes, tokenModifiers);
+
+// ---- color schemes ----
+
+// Each scheme colors the eight groups: [dark themes, light themes, style],
+// the style b bold, i italic, u underline. Every color has 4.5:1 contrast
+// or more on its theme's background (7:1 in High Contrast).
+const SCHEMES = {
+  "Turtle": {
+    kw: ["#4eba65", "#2c7a39", ""],
+    imp: ["#4ec9b0", "#0b8577", ""],
+    fn: ["#6cb6ff", "#1f63c7", ""],
+    ds: ["#f0a04b", "#a85800", ""],
+    show: ["#c9a7ff", "#6a3fc0", "b"],
+    str: ["#e5865f", "#b5432a", ""],
+    num: ["#f27db8", "#b4307d", ""],
+    thy: ["#ffd24d", "#956e00", "bi"]
+  },
+  "Classic": {
+    kw: ["#569cd6", "#216197", ""],
+    imp: ["#c586c0", "#7e3a78", ""],
+    fn: ["#dcdcaa", "#797930", ""],
+    ds: ["#4ec9b0", "#258370", ""],
+    show: ["#9cdcfe", "#0078b8", "b"],
+    str: ["#ce9178", "#89492f", ""],
+    num: ["#b5cea8", "#537741", ""],
+    thy: ["#d7ba7d", "#8f6e29", "bi"]
+  },
+  "Ocean": {
+    kw: ["#4fc1e9", "#117ca2", ""],
+    imp: ["#3fd1c0", "#1c8276", ""],
+    fn: ["#8c9cff", "#001ab8", ""],
+    ds: ["#ffb86c", "#b35c00", ""],
+    show: ["#a6e3ff", "#007bb3", "b"],
+    str: ["#f4a988", "#ac3d0c", ""],
+    num: ["#ff8fb3", "#b8003b", ""],
+    thy: ["#ffd866", "#946e00", "bi"]
+  },
+  "Sunset": {
+    kw: ["#ff9e64", "#b84500", ""],
+    imp: ["#e0af68", "#9b671c", ""],
+    fn: ["#7aa2f7", "#063db1", ""],
+    ds: ["#f7768e", "#b20626", ""],
+    show: ["#bb9af7", "#440aae", "b"],
+    str: ["#9ece6a", "#568027", ""],
+    num: ["#ff9eaf", "#b80020", ""],
+    thy: ["#ffd75f", "#946f00", "bi"]
+  },
+  "Forest": {
+    kw: ["#8fbf6a", "#578235", ""],
+    imp: ["#8fbcbb", "#447473", ""],
+    fn: ["#88c0d0", "#327386", ""],
+    ds: ["#d08770", "#8d422b", ""],
+    show: ["#b48ead", "#6f4868", "b"],
+    str: ["#e0a5a0", "#8d322b", ""],
+    num: ["#d9707a", "#94242f", ""],
+    thy: ["#ebcb8b", "#976c17", "bi"]
+  },
+  "Soft": {
+    kw: ["#93b88a", "#4d7344", ""],
+    imp: ["#8ab5b0", "#46726c", ""],
+    fn: ["#8fa8c8", "#3b587d", ""],
+    ds: ["#c9a27e", "#835a34", ""],
+    show: ["#b9a3c9", "#604375", "b"],
+    str: ["#c99a8c", "#7f4939", ""],
+    num: ["#c49aab", "#754257", ""],
+    thy: ["#d6c08a", "#8a6f2d", "bi"]
+  },
+  "Dusk": {
+    kw: ["#a7b77a", "#69783f", ""],
+    imp: ["#87a9a0", "#4c6c63", ""],
+    fn: ["#9aa6c9", "#3f4d79", ""],
+    ds: ["#c7a06c", "#876231", ""],
+    show: ["#c4a7b9", "#6f4960", "b"],
+    str: ["#bf9277", "#7f5339", ""],
+    num: ["#b98f9c", "#724653", ""],
+    thy: ["#d4b46a", "#917127", "bi"]
+  },
+  "Okabe-Ito": {
+    kw: ["#009e73", "#00714f", ""],
+    imp: ["#56b4e9", "#1f6f9e", ""],
+    fn: ["#2f9be0", "#0060a0", ""],
+    ds: ["#e69f00", "#8a5c00", ""],
+    show: ["#cc79a7", "#9c3d73", "b"],
+    str: ["#df6300", "#a64800", ""],
+    num: ["#f0e442", "#6e6600", ""],
+    thy: ["#ffffff", "#000000", "biu"]
+  },
+  "Blue & Orange": {
+    kw: ["#4da3ff", "#0059b8", "b"],
+    imp: ["#82c4ff", "#0061b8", "i"],
+    fn: ["#c4e0ff", "#0057b8", ""],
+    ds: ["#ff9933", "#b85c00", ""],
+    show: ["#ffd166", "#996b00", "bu"],
+    str: ["#ffb380", "#b84a00", "i"],
+    num: ["#e6e6e6", "#5c5c5c", ""],
+    thy: ["#ffe066", "#8f7200", "biu"]
+  },
+  "Teal & Rose": {
+    kw: ["#2ec4b6", "#0f7f74", "b"],
+    imp: ["#8be9e0", "#0d6e66", "i"],
+    fn: ["#7fd8d0", "#14736b", ""],
+    ds: ["#ff6b6b", "#c0392b", ""],
+    show: ["#ffffff", "#000000", "bu"],
+    str: ["#ff9e9e", "#b03a3a", "i"],
+    num: ["#ff4fa3", "#b3196a", ""],
+    thy: ["#ff7a7a", "#a3201f", "biu"]
+  },
+  "High Contrast": {
+    kw: ["#8cff66", "#1a6600", "b"],
+    imp: ["#5cf0d8", "#076455", ""],
+    fn: ["#7fc8ff", "#005a9e", ""],
+    ds: ["#ffb84d", "#804c00", ""],
+    show: ["#e0b8ff", "#6700b8", "b"],
+    str: ["#ff9f80", "#a42800", ""],
+    num: ["#ff8fd0", "#ae0065", ""],
+    thy: ["#ffe14d", "#665500", "biu"]
+  },
+  "No Color": {
+    kw: ["#ffffff", "#000000", "b"],
+    imp: ["#9a9a9a", "#6b6b6b", "i"],
+    fn: ["#d9d9d9", "#2b2b2b", "u"],
+    ds: ["#ffffff", "#000000", "bi"],
+    show: ["#ffffff", "#000000", "bu"],
+    str: ["#b3b3b3", "#5c5c5c", "i"],
+    num: ["#c6c6c6", "#454545", ""],
+    thy: ["#ffffff", "#000000", "biu"]
+  },
+};
+
+// What each group colors: the grammar's scopes (colors before turtle lsp
+// starts, or without it) and turtle lsp's tokens, Turtle files only.
+const GROUPS = {
+  kw: { setting: "keywords", scopes: ["keyword.control.turtle", "keyword.other.turtle", "keyword.other.library.turtle"], tokens: ["keyword"] },
+  imp: { setting: "imports", scopes: ["keyword.other.import.turtle"], tokens: ["namespace"] },
+  fn: { setting: "functions", scopes: ["entity.name.function.call.turtle", "entity.name.function.method.turtle", "support.function.turtle"], tokens: ["function", "method"] },
+  ds: { setting: "data", scopes: ["storage.type.data.turtle"], tokens: ["struct", "type"] },
+  show: { setting: "show", scopes: ["keyword.other.show.turtle"], tokens: ["event"] },
+  str: { setting: "text", scopes: ["string.quoted.double.turtle", "string.quoted.single.turtle", "string.quoted.other.raw.turtle"], tokens: ["string"] },
+  num: { setting: "numbers", scopes: ["constant.numeric.turtle", "constant.language.turtle"], tokens: ["number"] },
+  thy: { setting: "theories", scopes: ["keyword.other.theory.turtle"], tokens: ["macro"] },
+};
+// Where a function or a type is made: its group's color, in bold (a test
+// function bold and italic).
+const DEFINITIONS = [
+  { group: "fn", style: "b", scopes: ["entity.name.function.definition.turtle"], tokens: ["function.declaration"] },
+  { group: "fn", style: "bi", scopes: ["entity.name.function.test.turtle"], tokens: ["function.declaration.test"] },
+  { group: "ds", style: "b", scopes: ["entity.name.type.definition.turtle"], tokens: ["struct.declaration", "type.declaration"] },
+];
+const RULE_NAME = "Turtle: "; // the start of every text-color rule this extension writes
+
+const fontStyle = (style) => [style.includes("b") && "bold", style.includes("i") && "italic", style.includes("u") && "underline"].filter(Boolean).join(" ");
+
+// schemeRules are the color rules for a scheme on a light or dark theme,
+// with the user's own colors (turtle.colors) over the scheme's: the
+// grammar's (textMateRules) and turtle lsp's (semantic rules).
+function schemeRules(name, light, own) {
+  const scheme = SCHEMES[name];
+  if (!scheme) return { textMate: [], semantic: {} };
+  const textMate = [];
+  const semantic = {};
+  const add = (label, color, style, scopes, tokens) => {
+    textMate.push({ name: RULE_NAME + label, scope: scopes, settings: { foreground: color, fontStyle: fontStyle(style) } });
+    for (const t of tokens) {
+      semantic[t + ":turtle"] = { foreground: color, bold: style.includes("b"), italic: style.includes("i"), underline: style.includes("u") };
+    }
+  };
+  const colorOf = (group) => (own && own[GROUPS[group].setting]) || scheme[group][light ? 1 : 0];
+  for (const group of Object.keys(GROUPS)) {
+    add(GROUPS[group].setting, colorOf(group), scheme[group][2], GROUPS[group].scopes, GROUPS[group].tokens);
+  }
+  for (const d of DEFINITIONS) {
+    add(GROUPS[d.group].setting + " (where made)", colorOf(d.group), d.style + scheme[d.group][2], d.scopes, d.tokens);
+  }
+  return { textMate, semantic };
+}
+
+// The semantic rule names this extension writes: only these are replaced,
+// so a user's own rules for Turtle stay.
+const OWN_TOKENS = new Set(
+  Object.values(GROUPS).flatMap((g) => g.tokens).concat(DEFINITIONS.flatMap((d) => d.tokens)).map((t) => t + ":turtle")
 );
+
+// applyColors writes the chosen scheme into the user's color settings,
+// for Turtle files only, in the shades for the theme now in use: light or
+// dark. It replaces only what it wrote before.
+async function applyColors() {
+  const turtle = vscode.workspace.getConfiguration("turtle");
+  const name = turtle.get("colorScheme", "Turtle");
+  const kind = vscode.window.activeColorTheme ? vscode.window.activeColorTheme.kind : 2;
+  const light = kind === 1 || kind === 4; // Light, HighContrastLight
+  const rules = schemeRules(name, light, turtle.get("colors", {}));
+
+  const editor = vscode.workspace.getConfiguration("editor");
+  const target = vscode.ConfigurationTarget.Global;
+
+  const tm = Object.assign({}, (editor.inspect("tokenColorCustomizations") || {}).globalValue || {});
+  const kept = (tm.textMateRules || []).filter((r) => !(r.name || "").startsWith(RULE_NAME));
+  const textMateRules = kept.concat(rules.textMate);
+  if (JSON.stringify(textMateRules) !== JSON.stringify(tm.textMateRules || [])) {
+    if (textMateRules.length) tm.textMateRules = textMateRules;
+    else delete tm.textMateRules;
+    await editor.update("tokenColorCustomizations", Object.keys(tm).length ? tm : undefined, target);
+  }
+
+  const sem = Object.assign({}, (editor.inspect("semanticTokenColorCustomizations") || {}).globalValue || {});
+  const semRules = {};
+  for (const [k, v] of Object.entries(sem.rules || {})) if (!OWN_TOKENS.has(k)) semRules[k] = v;
+  Object.assign(semRules, rules.semantic);
+  if (JSON.stringify(semRules) !== JSON.stringify(sem.rules || {})) {
+    if (Object.keys(semRules).length) sem.rules = semRules;
+    else delete sem.rules;
+    await editor.update("semanticTokenColorCustomizations", Object.keys(sem).length ? sem : undefined, target);
+  }
+}
 
 // ---- the server's life ----
 
@@ -193,7 +410,7 @@ function start(context, output) {
     .request("initialize", {
       processId: process.pid,
       rootUri: vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0].uri.toString() : null,
-      capabilities: {},
+      capabilities: { textDocument: { semanticTokens: { tokenTypes, tokenModifiers } } },
       clientInfo: { name: "vscode-turtle" },
     })
     .then(() => {
@@ -332,6 +549,14 @@ function activate(context) {
   const output = vscode.window.createOutputChannel("Turtle");
   context.subscriptions.push(output);
   start(context, output);
+  const recolor = () => applyColors().catch((err) => output.appendLine(`colors: ${err.message}`));
+  recolor();
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveColorTheme(recolor),
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("turtle.colorScheme") || e.affectsConfiguration("turtle.colors")) recolor();
+    })
+  );
   context.subscriptions.push(
     vscode.commands.registerCommand("turtle.restartServer", () => {
       stop();
@@ -346,4 +571,4 @@ function deactivate() {
   stop();
 }
 
-module.exports = { activate, deactivate, shellCommand };
+module.exports = { activate, deactivate, shellCommand, schemeRules, applyColors, SCHEMES };

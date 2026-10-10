@@ -2,6 +2,16 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## Unreleased
+
+- Colors grouped by what a word does: keywords, imports, functions, data
+  structures, `show`, text, numbers and theories (a theory's word wherever
+  it's used); where a function or type is made, bold. `turtle lsp` sends
+  the groups to editors that take them, and the REPL uses them.
+- VS Code extension 0.1.7: twelve color schemes (Turtle Color Scheme in
+  the settings), five of them for color vision, and `turtle.colors` for
+  your own color for a group.
+
 ## 0.9.189 (2026-10-10)
 
 - REPL: a theory typed a line at a time waits for `theory [end]` (it ran

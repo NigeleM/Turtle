@@ -101,6 +101,31 @@ type markup struct {
 	Value string `json:"value"`
 }
 
-// The colors (semantic tokens) the server sends, by index.
-var tokenTypes = []string{"keyword", "string", "number", "comment", "function", "type"}
-var tokenModifiers = []string{"declaration", "defaultLibrary"}
+// The colors (semantic tokens) the server sends, by index. The first six
+// (and two modifiers) are what every editor gets; the rest, Turtle's own
+// groups, go to an editor that lists them as ones it takes (VS Code's
+// Turtle extension from 0.1.7): imports (namespace), data structures
+// (struct), show (event), theories (macro), methods, and test functions.
+var tokenTypes = []string{"keyword", "string", "number", "comment", "function", "type",
+	"namespace", "struct", "event", "macro", "method"}
+var tokenModifiers = []string{"declaration", "defaultLibrary", "test"}
+
+const (
+	tokKeyword = iota
+	tokString
+	tokNumber
+	tokComment
+	tokFunction
+	tokType
+	tokNamespace
+	tokStruct
+	tokEvent
+	tokMacro
+	tokMethod
+)
+
+const (
+	modDeclaration = 1 << iota
+	modDefaultLibrary
+	modTest
+)

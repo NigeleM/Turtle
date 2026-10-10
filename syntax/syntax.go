@@ -15,14 +15,21 @@ import (
 type Class int
 
 const (
-	Plain      Class = iota
-	Keyword          // if, def, show, import, ... and a library's words (random, check, log)
-	Constant         // numbers, true, false, none
-	String           // "text"
-	Comment          // // ... and //* ... *//
-	Definition       // the name after def or assemble
-	Call             // name[ ... ]: a function call
-	Builtin          // a library function: sql_open[ ... ], min_sort[ ... ]
+	Plain          Class = iota
+	Keyword              // if, loop, def, return, ... and a library's words (random, check, log)
+	Constant             // numbers, true, false, none
+	String               // "text"
+	Comment              // // ... and //* ... *//
+	Definition           // the name after def
+	Call                 // name[ ... ]: a function call
+	Builtin              // a library function: sql_open[ ... ], min_sort[ ... ]
+	Import               // an import line, all of it: import time [now]
+	Show                 // show, warn: where a program speaks
+	Data                 // list, set, map, matrix, assemble, and assembled types: Order
+	DataDefinition       // the name after assemble
+	Method               // the name after at: x at upper
+	Theory               // theory, its sections, its [end], and a theory's word where it's used
+	TestDefinition       // the name after def of a test: test_total
 )
 
 // Span is a colored stretch of the source, [Start, End) in bytes.
@@ -34,9 +41,15 @@ type Span struct {
 // Words are the names colored specially: the words of the libraries
 // imported (random, check, log ...) and the library functions.
 type Words struct {
-	Context map[string]bool
-	Builtin map[string]bool
+	Context  map[string]bool
+	Builtin  map[string]bool
+	Theories map[string]bool // the theories' words: tally
+	Types    map[string]bool // the assembled types: Order
 }
+
+// theorySections are a theory's section words, special at a line's start
+// inside a theory.
+var theorySections = map[string]bool{"abstract": true, "notation": true, "definition": true, "theorem": true, "proof": true}
 
 // LibraryWords are the words a library's import turns on.
 var LibraryWords = map[string][]string{
@@ -59,11 +72,33 @@ func Highlight(src string, w Words) []Span {
 	}
 	var out []Span
 	prevEnd := 0
+	inTheory := false
+	inAbstract := false // a theory's abstract is prose, not code
+	importLine := 0     // the line of an import being colored, all of it
 	for i, t := range toks {
 		out = append(out, comments(src, prevEnd, t.Pos)...)
 		prevEnd = t.End
+		next := token.Token{}
+		if i+1 < len(toks) {
+			next = toks[i+1]
+		}
+		prev := token.Token{}
+		if i > 0 {
+			prev = toks[i-1]
+		}
+		lineStart := i == 0 || prev.Line < t.Line
+		if inAbstract && lineStart && (theorySections[t.Literal] || t.Literal == "theory") {
+			inAbstract = false
+		}
+		if inAbstract {
+			continue
+		}
 		c := Plain
 		switch {
+		case importLine == t.Line:
+			c = Import
+		case t.Type == token.IMPORT:
+			c, importLine = Import, t.Line
 		case t.Type == token.STRING || t.Type == token.RAWSTRING:
 			c = String
 		case t.Type == token.INT || t.Type == token.FLOAT || t.Type == token.TRUE || t.Type == token.FALSE || t.Type == token.NONE:
@@ -76,22 +111,52 @@ func Highlight(src string, w Words) []Span {
 				out = append(out, Span{t.Pos + start, t.Pos + start + 3, Keyword})
 			}
 			continue
+		case t.Type == token.SHOW || t.Type == token.WARN:
+			c = Show
+		case t.Type == token.LIST || t.Type == token.SET || t.Type == token.MAP || t.Type == token.ASSEMBLE:
+			c = Data
+		case t.Type == token.END && prev.Type == token.LBRACKET && i >= 2 && toks[i-2].Type == token.IDENT && toks[i-2].Literal == "theory" && toks[i-2].Line == t.Line:
+			// theory [end]: one span, from theory to the ].
+			inTheory = false
+			if n := len(out); n > 0 && out[n-1].Class == Theory && out[n-1].Start == toks[i-2].Pos {
+				end := t.End
+				if next.Type == token.RBRACKET && next.Line == t.Line {
+					end = next.End
+				}
+				out[n-1].End = end
+			}
+			continue
 		case token.IsKeyword(t.Type):
 			c = Keyword
 		case t.Type == token.IDENT:
-			next := token.Token{}
-			if i+1 < len(toks) {
-				next = toks[i+1]
-			}
-			prev := token.Token{}
-			if i > 0 {
-				prev = toks[i-1]
-			}
 			switch {
-			case prev.Type == token.DEF || prev.Type == token.ASSEMBLE:
+			case t.Literal == "theory" && lineStart && next.Line == t.Line && (next.Type == token.IDENT || next.Type == token.LBRACKET):
+				c = Theory
+				if next.Type == token.IDENT {
+					inTheory = true
+				}
+			case prev.Type == token.IDENT && prev.Literal == "theory" && prev.Line == t.Line && (i < 2 || toks[i-2].Line < prev.Line):
+				c = Theory // the theory's name
+			case inTheory && lineStart && theorySections[t.Literal]:
+				c = Theory
+				inAbstract = t.Literal == "abstract" && next.Line > t.Line
+			case prev.Type == token.DEF:
 				c = Definition
+				if strings.HasPrefix(t.Literal, "test_") {
+					c = TestDefinition
+				}
+			case prev.Type == token.ASSEMBLE:
+				c = DataDefinition
+			case w.Theories[t.Literal]:
+				c = Theory
+			case w.Types[t.Literal]:
+				c = Data
+			case t.Literal == "matrix" && w.Context[t.Literal]:
+				c = Data
 			case w.Context[t.Literal]:
 				c = Keyword
+			case prev.Type == token.AT && prev.Line == t.Line:
+				c = Method
 			case next.Type == token.LBRACKET && next.Pos == t.End:
 				c = Call
 				if w.Builtin[t.Literal] {

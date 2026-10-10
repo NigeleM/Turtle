@@ -5,6 +5,7 @@
 var print = typeof print === "function" ? print : console.log;
 // Stand-ins for VS Code, Node's child_process and Buffer, to run extension.js.
 var warnings = [], registered = [], procs = [], commands = {}, terminals = [], sent = [];
+var settings = { editor: {}, turtle: {} }, writes = 0;
 function FakeBuf(s) { this.s = s; this.length = s.length; }
 FakeBuf.prototype.indexOf = function (x) { return this.s.indexOf(x); };
 FakeBuf.prototype.slice = function (a, b) { return new FakeBuf(this.s.slice(a, b)); };
@@ -25,6 +26,8 @@ var fakeVscode = {
     createOutputChannel: function () { return { append: function () {}, appendLine: function () {}, show: function () {}, dispose: function () {} }; },
     showWarningMessage: function (m) { warnings.push(m); return { then: function () {} }; },
     activeTextEditor: undefined,
+    activeColorTheme: { kind: 2 },
+    onDidChangeActiveColorTheme: Disposable,
     terminals: terminals,
     createTerminal: function (o) {
       var t = { name: o.name, exitStatus: undefined, show: function () {}, sendText: function (s) { sent.push(s); } };
@@ -32,7 +35,11 @@ var fakeVscode = {
     },
   },
   env: { shell: "/bin/zsh" },
-  workspace: { getConfiguration: function () { return { get: function (k, d) { return d; } }; },
+  workspace: { getConfiguration: function (section) {
+      if (section === "editor") return { inspect: function (k) { return { globalValue: settings.editor[k] }; },
+        update: function (k, v) { if (v === undefined) delete settings.editor[k]; else settings.editor[k] = JSON.parse(JSON.stringify(v)); writes++; return Promise.resolve(); } };
+      return { get: function (k, d) { return k in settings.turtle ? settings.turtle[k] : d; } }; },
+    onDidChangeConfiguration: Disposable,
     textDocuments: [], workspaceFolders: null,
     onDidOpenTextDocument: Disposable, onDidChangeTextDocument: Disposable, onDidCloseTextDocument: Disposable },
   languages: { createDiagnosticCollection: function () { return { set: function () {}, dispose: function () {} }; },
@@ -44,6 +51,7 @@ var fakeVscode = {
     registerDocumentSemanticTokensProvider: function () { registered.push("tokens"); return Disposable(); } },
   commands: { registerCommand: function (name, f) { commands[name] = f; return Disposable(); } },
   SemanticTokensLegend: function () {}, Position: function () {}, Range: function () {},
+  ConfigurationTarget: { Global: 1 },
 };
 var process = { pid: 1 };
 function require(name) {

@@ -14,7 +14,8 @@ func noWords() Words {
 
 // colored names each colored piece of src: "def:keyword double:definition ...".
 func colored(src string, w Words) string {
-	names := map[Class]string{Keyword: "keyword", Constant: "constant", String: "string", Comment: "comment", Definition: "definition", Call: "call", Builtin: "builtin"}
+	names := map[Class]string{Keyword: "keyword", Constant: "constant", String: "string", Comment: "comment", Definition: "definition", Call: "call", Builtin: "builtin",
+		Import: "import", Show: "show", Data: "data", DataDefinition: "datadef", Method: "method", Theory: "theory", TestDefinition: "testdef"}
 	var parts []string
 	for _, s := range Highlight(src, w) {
 		parts = append(parts, src[s.Start:s.End]+":"+names[s.Class])
@@ -25,18 +26,22 @@ func colored(src string, w Words) string {
 func TestHighlight(t *testing.T) {
 	cases := map[string]string{
 		`def double[x]`:                    "def:keyword double:definition",
-		`show "hi", 42, 2.5, true, none .`: `show:keyword "hi":string 42:constant 2.5:constant true:constant none:constant`,
+		`show "hi", 42, 2.5, true, none .`: `show:show "hi":string 42:constant 2.5:constant true:constant none:constant`,
 		`x = 1 // note`:                    "1:constant // note:comment",
 		`//* block *// y = 2`:              "//* block *//:comment 2:constant",
 		`total = add_tax[5]`:               "add_tax:call 5:constant",
 		`db = sql_open["a.db"]`:            `sql_open:builtin "a.db":string`,
 		`if ] x > 1 [`:                     "if:keyword 1:constant",
-		`assemble Order [item]`:            "assemble:keyword Order:definition",
-		`nums at get[0]`:                   "at:keyword get:call 0:constant",
+		`assemble Order [item]`:            "assemble:data Order:datadef",
+		`nums at get[0]`:                   "at:keyword get:method 0:constant",
 		`sys ls -la`:                       "sys:keyword",
 		`7 div 2`:                          "7:constant div:keyword 2:constant",
 		`s = "unfinished`:                  `"unfinished:string`,
-		`show "a // not a comment" .`:      `show:keyword "a // not a comment":string`,
+		`show "a // not a comment" .`:      `show:show "a // not a comment":string`,
+		`warn "careful" .`:                 `warn:show "careful":string`,
+		`import time [now] // clock`:       "import:import time:import [:import now:import ]:import // clock:comment",
+		`m = map ["a": list [1]]`:          `map:data "a":string list:data 1:constant`,
+		`def test_total[]`:                 "def:keyword test_total:testdef",
 	}
 	for src, want := range cases {
 		if got := colored(src, noWords()); got != want {
@@ -50,7 +55,7 @@ func TestHighlight(t *testing.T) {
 		"a process x give x + 1": "process:builtin give:keyword 1:constant",
 		"b = a process x give x": "process:builtin give:keyword",
 		"process = 2":            "2:constant",
-		"show process .":         "show:keyword",
+		"show process .":         "show:show",
 		"p = `\\d{3}`":           "`\\d{3}`:string",
 	}
 	for src, want := range sentences {
@@ -164,5 +169,26 @@ func TestKeywordsAreDocumented(t *testing.T) {
 				t.Errorf("%q (import %s) isn't in the Keywords section", w, lib)
 			}
 		}
+	}
+}
+
+// A theory: its head, sections and [end] are theory-colored, its abstract
+// is prose and stays plain, and its word is theory-colored where used.
+func TestHighlightTheories(t *testing.T) {
+	src := "theory tally\n    abstract\n        tally is how many b are in a.\n    notation tally b in a .\n    definition\n        return 0\ntheory [end]\nn = tally 1 in nums ."
+	w := noWords()
+	w.Theories = map[string]bool{"tally": true}
+	want := "theory:theory tally:theory abstract:theory notation:theory tally:theory in:keyword definition:theory return:keyword 0:constant theory [end]:theory tally:theory 1:constant in:keyword"
+	if got := colored(src, w); got != want {
+		t.Errorf("\n got  %s\n want %s", got, want)
+	}
+	// Without the theory known (another file's, not yet read), its word is plain.
+	if got := colored("n = tally 1 in nums .", noWords()); got != "1:constant in:keyword" {
+		t.Errorf("unknown theory: %s", got)
+	}
+	// An assembled type where it's used.
+	w.Types = map[string]bool{"Order": true}
+	if got := colored(`o = Order["tea"]`, w); got != `Order:data "tea":string` {
+		t.Errorf("type: %s", got)
 	}
 }

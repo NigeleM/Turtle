@@ -369,6 +369,50 @@ func TestSemanticTokens(t *testing.T) {
 	}
 }
 
+// An editor that lists Turtle's own groups gets them; one that doesn't
+// gets the six every editor takes, as before.
+func TestSemanticTokenGroups(t *testing.T) {
+	src := "import data\nassemble Sale [item]\ntheory twice\n    abstract\n        twice doubles n.\n    notation twice n .\n    definition\n        return n * 2\ntheory [end]\ndef test_x[]\n    show twice 2 . at len\ndef [end]\n"
+	kinds := func(groups bool) []string {
+		_, uri := folder(t)
+		s := newSession(t)
+		caps := map[string]any{}
+		if groups {
+			caps["textDocument"] = map[string]any{"semanticTokens": map[string]any{"tokenTypes": tokenTypes, "tokenModifiers": tokenModifiers}}
+		}
+		s.request("initialize", map[string]any{"capabilities": caps})
+		s.notify("initialized", map[string]any{})
+		s.open(uri, src)
+		id := s.request("textDocument/semanticTokens/full", map[string]any{"textDocument": map[string]any{"uri": uri}})
+		s.end()
+		var r struct{ Data []int }
+		s.result(id, &r)
+		var out []string
+		for i := 0; i+5 <= len(r.Data); i += 5 {
+			k := tokenTypes[r.Data[i+3]]
+			for b, m := range tokenModifiers {
+				if r.Data[i+4]&(1<<b) != 0 {
+					k += "." + m
+				}
+			}
+			out = append(out, k)
+		}
+		return out
+	}
+	with := strings.Join(kinds(true), " ")
+	for _, want := range []string{"namespace namespace", "struct struct.declaration", "macro macro macro", "function.declaration.test", "event macro", "method"} {
+		if !strings.Contains(with, want) {
+			t.Errorf("with groups: missing %q in %s", want, with)
+		}
+	}
+	for _, k := range kinds(false) {
+		base, _, _ := strings.Cut(k, ".")
+		if base != "keyword" && base != "string" && base != "number" && base != "comment" && base != "function" && base != "type" || strings.Contains(k, "test") {
+			t.Errorf("without groups: an editor got %q", k)
+		}
+	}
+}
+
 func TestPositions(t *testing.T) {
 	src := "aé𝄞b\nxy"
 	u16 := newText(src, false)

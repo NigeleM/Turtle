@@ -32,6 +32,9 @@
       "include": "#library"
     },
     {
+      "include": "#methods"
+    },
+    {
       "include": "#calls"
     },
     {
@@ -123,13 +126,25 @@
     "definitions": {
       "patterns": [
         {
+          "comment": "a test: def test_total[]",
+          "match": "\\b(def)\\s+(test_[A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "keyword.other.turtle"
+            },
+            "2": {
+              "name": "entity.name.function.test.turtle"
+            }
+          }
+        },
+        {
           "match": "\\b(def)\\s+(~?[A-Za-z_][A-Za-z0-9_]*)",
           "captures": {
             "1": {
               "name": "keyword.other.turtle"
             },
             "2": {
-              "name": "entity.name.function.turtle"
+              "name": "entity.name.function.definition.turtle"
             }
           }
         },
@@ -137,10 +152,10 @@
           "match": "\\b(assemble)\\s+([A-Za-z_][A-Za-z0-9_]*)",
           "captures": {
             "1": {
-              "name": "keyword.other.turtle"
+              "name": "storage.type.data.turtle"
             },
             "2": {
-              "name": "entity.name.type.turtle"
+              "name": "entity.name.type.definition.turtle"
             }
           }
         }
@@ -149,12 +164,34 @@
     "keywords": {
       "patterns": [
         {
+          "comment": "an import line, all of it: import time [now, today]",
+          "match": "^\\s*(import)\\b([^/\\n]*)",
+          "captures": {
+            "1": {
+              "name": "keyword.other.import.turtle"
+            },
+            "2": {
+              "name": "keyword.other.import.turtle"
+            }
+          }
+        },
+        {
+          "comment": "where a program speaks",
+          "name": "keyword.other.show.turtle",
+          "match": "\\b(show|warn)\\b"
+        },
+        {
+          "comment": "data structures",
+          "name": "storage.type.data.turtle",
+          "match": "\\b(list|set|map|assemble)\\b"
+        },
+        {
           "name": "keyword.control.turtle",
-          "match": "\\b(if|else|loop|end|return|break|continue|safe|handle|fail|import)\\b"
+          "match": "\\b(if|else|loop|end|return|break|continue|safe|handle|fail)\\b"
         },
         {
           "name": "keyword.other.turtle",
-          "match": "\\b(add|append|assemble|at|change|def|delete|directory|div|from|give|in|insert|is|length|list|map|max|min|of|read|remove|reverse|scroll|set|show|sort|sys|to|warn|write)\\b"
+          "match": "\\b(add|append|at|change|def|delete|directory|div|from|give|in|insert|is|length|max|min|of|read|remove|reverse|scroll|sort|sys|to|write)\\b"
         }
       ]
     },
@@ -175,8 +212,16 @@
       "match": "~?\\b[A-Za-z_][A-Za-z0-9_]*(?=\\[)"
     },
     "libraryWords": {
-      "name": "keyword.other.library.turtle",
-      "match": "^\\s*(check|verify|validate|log)\\b|\\brandom(?=\\s+(integer|float|string|digits?|letter|boolean|date|time|list|set|map|[A-Z]))|(?<=[\\w\\]\\)\"] )type(?=\\s+[A-Za-z])|\\bmatrix(?=\\s*\\[)|\\bhypothesis(?=\\[)"
+      "patterns": [
+        {
+          "name": "keyword.other.library.turtle",
+          "match": "^\\s*(check|verify|validate|log)\\b|\\brandom(?=\\s+(integer|float|string|digits?|letter|boolean|date|time|list|set|map|[A-Z]))|(?<=[\\w\\]\\)\"] )type(?=\\s+[A-Za-z])"
+        },
+        {
+          "name": "storage.type.data.turtle",
+          "match": "\\bmatrix(?=\\s*\\[)"
+        }
+      ]
     },
     "sentences": {
       "name": "support.function.turtle",
@@ -189,10 +234,10 @@
           "match": "^\\s*(theory)\\s+(~?[A-Za-z_][A-Za-z0-9_]*)\\s*$",
           "captures": {
             "1": {
-              "name": "keyword.control.turtle"
+              "name": "keyword.other.theory.turtle"
             },
             "2": {
-              "name": "entity.name.function.turtle"
+              "name": "keyword.other.theory.turtle"
             }
           }
         },
@@ -200,10 +245,10 @@
           "match": "^\\s*(theory)\\s*(\\[end\\])",
           "captures": {
             "1": {
-              "name": "keyword.control.turtle"
+              "name": "keyword.other.theory.turtle"
             },
             "2": {
-              "name": "keyword.control.turtle"
+              "name": "keyword.other.theory.turtle"
             }
           }
         },
@@ -212,11 +257,16 @@
           "match": "^\\s*(abstract|notation|definition|theorem|proof)\\b(?!\\s*(=|is\\b|at\\b|of\\b|\\[))",
           "captures": {
             "1": {
-              "name": "keyword.control.turtle"
+              "name": "keyword.other.theory.turtle"
             }
           }
         }
       ]
+    },
+    "methods": {
+      "comment": "a method, after at: x at upper",
+      "name": "entity.name.function.method.turtle",
+      "match": "(?<=\\bat\\s)[A-Za-z_][A-Za-z0-9_]*"
     }
   }
 }

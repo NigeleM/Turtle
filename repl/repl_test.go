@@ -66,8 +66,8 @@ func TestNeedsMore(t *testing.T) {
 		"theory ~twice // mine":                                true,
 		"theory twice\n    notation twice n .\n    definition\n        return n * 2":               true,
 		"theory twice\n    notation twice n .\n    definition\n        return n * 2\ntheory [end]": false,
-		"theory":      false,
-		"x = theory":  false,
+		"theory":     false,
+		"x = theory": false,
 	}
 	for src, want := range cases {
 		if got := needsMore(src); got != want {

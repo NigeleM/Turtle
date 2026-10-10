@@ -52,4 +52,37 @@ async function runCases() {
   module.exports.deactivate();
 }
 
-main().then(runCases).catch(function (e) { print("ERROR " + e + "\n" + e.stack); });
+// 5. Color schemes: written for Turtle only, in the theme's shades,
+// replacing only their own rules; the user's own colors win.
+async function colorCases() {
+  var X = module.exports;
+  settings.editor = { tokenColorCustomizations: { textMateRules: [{ scope: "comment", settings: { foreground: "#888888" } }], comments: "#777777" },
+    semanticTokenColorCustomizations: { rules: { "variable:python": "#ff0000", "macro:turtle": "#123456" } } };
+  settings.turtle = {};
+  fakeVscode.window.activeColorTheme = { kind: 2 };
+  await X.applyColors();
+  var tm = settings.editor.tokenColorCustomizations, sem = settings.editor.semanticTokenColorCustomizations.rules;
+  var kw = tm.textMateRules.filter(function (r) { return r.name === "Turtle: keywords"; })[0];
+  print("dark:     rules=" + tm.textMateRules.length + " keywords=" + kw.settings.foreground + " theory=" + JSON.stringify(sem["macro:turtle"]) + " kept=" + (tm.comments === "#777777" && tm.textMateRules[0].scope === "comment" && sem["variable:python"] === "#ff0000"));
+  fakeVscode.window.activeColorTheme = { kind: 1 };
+  await X.applyColors();
+  tm = settings.editor.tokenColorCustomizations;
+  kw = tm.textMateRules.filter(function (r) { return r.name === "Turtle: keywords"; })[0];
+  print("light:    rules=" + tm.textMateRules.length + " keywords=" + kw.settings.foreground);
+  writes = 0;
+  await X.applyColors();
+  print("again:    writes=" + writes);
+  settings.turtle = { colorScheme: "Okabe-Ito", colors: { theories: "#e5484d" } };
+  fakeVscode.window.activeColorTheme = { kind: 2 };
+  await X.applyColors();
+  sem = settings.editor.semanticTokenColorCustomizations.rules;
+  print("okabe:    keyword=" + sem["keyword:turtle"].foreground + " show=" + JSON.stringify(sem["event:turtle"]) + " theory=" + sem["macro:turtle"].foreground + " test=" + JSON.stringify(sem["function.declaration.test:turtle"]));
+  settings.turtle = { colorScheme: "Theme colors" };
+  await X.applyColors();
+  tm = settings.editor.tokenColorCustomizations;
+  sem = settings.editor.semanticTokenColorCustomizations.rules;
+  print("off:      rules=" + tm.textMateRules.length + " semantic=" + Object.keys(sem).join(","));
+  print("schemes:  " + Object.keys(X.SCHEMES).length);
+}
+
+main().then(runCases).then(colorCases).catch(function (e) { print("ERROR " + e + "\n" + e.stack); });

@@ -59,7 +59,7 @@ type Session struct {
 func NewSession(dir string, out io.Writer, color bool) *Session {
 	s := &Session{it: evaluator.New(dir), out: out, color: color, libs: map[string]bool{}, dir: dir}
 	s.it.Script = ""
-	s.words = syntax.Words{Context: map[string]bool{}, Builtin: map[string]bool{}}
+	s.words = syntax.Words{Context: map[string]bool{}, Builtin: map[string]bool{}, Theories: map[string]bool{}, Types: map[string]bool{}}
 	for _, f := range evaluator.LibraryFunctions() {
 		s.words.Builtin[f] = true
 	}
@@ -137,6 +137,14 @@ func (s *Session) parse(src string) (*ast.Program, []string) {
 		return nil, errs
 	}
 	s.theories = p.Theories() // the theories entered so far, for the next entry
+	for name := range s.theories {
+		s.words.Theories[name] = true // their words color from now on
+	}
+	for _, st := range program.Statements {
+		if a, ok := st.(*ast.AssembleStatement); ok {
+			s.words.Types[a.Name] = true
+		}
+	}
 	return program, nil
 }
 
