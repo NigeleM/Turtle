@@ -97,11 +97,20 @@ func TestCommand(paths []string, cwd string, out io.Writer) int {
 	if total.skipped > 0 {
 		summary += fmt.Sprintf(", %d skipped", total.skipped)
 	}
+	if n := total.theoriesProven; n > 0 {
+		summary += fmt.Sprintf(", %d %s proven", n, theoriesWord(n))
+	}
+	if n := total.theoriesFailed; n > 0 {
+		summary += fmt.Sprintf(", %d %s failed", n, theoriesWord(n))
+	}
+	if n := total.theoryWarnings; n > 0 {
+		summary += fmt.Sprintf(", %d %s", n, plural(n, "warning"))
+	}
 	if total.broken > 0 {
 		summary += fmt.Sprintf(", %d %s couldn't run", total.broken, plural(total.broken, "file"))
 	}
 	summary += fmt.Sprintf(" (%d %s, %s)", len(files), plural(len(files), "file"), fmtDuration(time.Since(start)))
-	if total.failed > 0 || total.broken > 0 {
+	if total.failed > 0 || total.broken > 0 || total.theoriesFailed > 0 {
 		fmt.Fprintln(out, "FAILED: "+summary)
 		return 1
 	}
@@ -113,13 +122,19 @@ func isTestFile(name string) bool {
 	return strings.HasPrefix(name, "test_") && syntax.IsTurtleFile(name)
 }
 
-type testCounts struct{ passed, failed, skipped, broken int }
+type testCounts struct {
+	passed, failed, skipped, broken                int
+	theoriesProven, theoriesFailed, theoryWarnings int
+}
 
 func (c *testCounts) add(o testCounts) {
 	c.passed += o.passed
 	c.failed += o.failed
 	c.skipped += o.skipped
 	c.broken += o.broken
+	c.theoriesProven += o.theoriesProven
+	c.theoriesFailed += o.theoriesFailed
+	c.theoryWarnings += o.theoryWarnings
 }
 
 // testOutcome is one test's result.
@@ -198,8 +213,11 @@ func runTestFile(path, name string, out io.Writer) testCounts {
 	}
 	fmt.Fprintln(out, header)
 	if len(tests) == 0 {
-		fmt.Fprintln(out, "  no test_ functions")
-		return testCounts{}
+		theories := it.writeTheories(out, name, it.Global)
+		if theories.theoriesProven+theories.theoriesFailed == 0 {
+			fmt.Fprintln(out, "  no test_ functions")
+		}
+		return theories
 	}
 	width := 0
 	for _, t := range tests {
@@ -251,6 +269,7 @@ func runTestFile(path, name string, out io.Writer) testCounts {
 			writeFailure(out, name, o, "      ")
 		}
 	}
+	counts.add(it.writeTheories(out, name, it.Global))
 	return counts
 }
 
@@ -428,4 +447,11 @@ func fmtDuration(d time.Duration) string {
 		return fmt.Sprintf("%.1fms", float64(d)/float64(time.Millisecond))
 	}
 	return fmt.Sprintf("%.2fs", d.Seconds())
+}
+
+func theoriesWord(n int) string {
+	if n == 1 {
+		return "theory"
+	}
+	return "theories"
 }

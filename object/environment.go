@@ -314,3 +314,13 @@ func (e *Environment) Names() (vars, funcs []string) {
 	sort.Strings(funcs)
 	return vars, funcs
 }
+
+// Functions are the top-level functions of e's file.
+func (e *Environment) Functions() []*Function {
+	r := e.root()
+	out := make([]*Function, 0, len(r.functions))
+	for _, fn := range r.functions {
+		out = append(out, fn)
+	}
+	return out
+}

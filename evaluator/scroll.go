@@ -437,6 +437,13 @@ func (it *Interpreter) evalDiagnose(ce *ast.CallExpression, env *object.Environm
 	if se, ok := ce.Arguments[0].(*ast.ScrollExpression); ok && se.Start != nil && len(ce.Arguments) == 1 {
 		return it.diagnoseScroll("diagnose scroll", se.Steps, env, it.evalExpression(se.Start, env))
 	}
+	// diagnose[discount]: a theory, this file's or an imported one.
+	if id, ok := ce.Arguments[0].(*ast.Identifier); ok && id.Module == "" && len(ce.Arguments) == 1 {
+		if fn := theoryIn(id.Value, env); fn != nil {
+			fmt.Println(it.proveTheory(fn, theorySeed(it.Global)).report())
+			return fn
+		}
+	}
 	// diagnose[load, text]: a library function, by name.
 	if id, ok := ce.Arguments[0].(*ast.Identifier); ok {
 		_, isVar := env.Get(id.Value)
@@ -485,6 +492,10 @@ func (it *Interpreter) diagnoseValues(args []object.Object) object.Object {
 		fmt.Println(out)
 		return v
 	case *object.Function:
+		if v.Theory != nil && len(args) == 1 {
+			fmt.Println(it.proveTheory(v, theorySeed(it.Global)).report())
+			return v
+		}
 		if v.Scroll != nil {
 			if len(args) != 2 {
 				fatalf("diagnose of a scroll takes the scroll and the value to run it on: diagnose[%s, value], got %d values", scrollName(v), len(args))

@@ -203,3 +203,110 @@ show total, " ", typeof[discount] .`, "")
 		}
 	}
 }
+
+// turtle test checks the theories of a test file and the files it
+// imports: each proof case, each theorem on the proof cases and on random
+// inputs (shrunk to the smallest that breaks it), and warns about a theory
+// with no proof or an abstract that doesn't name its word.
+func TestProvingTheories(t *testing.T) {
+	shop := `theory discount
+    abstract
+        discount takes p percent off an amount c.
+    notation discount p off c .
+    definition
+        if ] p < 0 || p > 100 || c < 0 [
+            fail "discount: p is a percent and c an amount"
+        if [end]
+        return c - c * p div 100
+    theorem result <= c
+    theorem result >= 0
+    proof
+        discount 10 off 2000 . is 1800
+        discount 0 off 5 . is 5
+theory [end]
+`
+	broken := `theory keep_off
+    abstract
+        keep_off is meant to take p percent off c.
+    notation keep_off p off c .
+    definition
+        return c * p div 100
+    theorem result <= c
+    proof
+        keep_off 10 off 2000 . is 1800
+theory [end]
+
+theory loose
+    abstract
+        loose takes p percent off c, for any numbers at all.
+    notation loose p off c .
+    definition
+        return c - c * p div 100
+    theorem result <= c
+    proof
+        loose 10 off 2000 . is 1800
+theory [end]
+
+theory twice
+    abstract
+        Doubles a number.
+    notation twice n .
+    definition
+        return n * 2
+theory [end]
+`
+	out, code := testRun(t, map[string]string{
+		"lib/shop.turtle":    shop,
+		"lib/broken.turtle":  broken,
+		"test_shop.turtle":   "import test\nimport lib/shop\ndef test_use[]\n    check discount 50 off 10 == 5 .\ndef [end]\n",
+		"test_broken.turtle": "import test\nimport lib/broken\nseed = 1\n",
+	})
+	if code != 1 {
+		t.Errorf("exit %d, want 1", code)
+	}
+	for _, want := range []string{
+		"  PASS  theory discount   proof 2 of 2, 2 theorems hold on 100 random inputs",
+		"  FAIL  theory keep_off\n        lib/broken.turtle line 9: proof: keep_off 10 off 2000 . gave 200, expected 1800",
+		"  FAIL  theory loose\n        lib/broken.turtle line 18: theorem result <= c fails on p = ",
+		"  PASS  theory twice      no proof\n  WARN  theory twice      unproven: it has no proof\n  WARN  theory twice      its abstract doesn't say what twice is: name twice in it",
+		"FAILED: 1 passed, 0 failed, 2 theories proven, 2 theories failed, 2 warnings (2 files,",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q in:\n%s", want, out)
+		}
+	}
+}
+
+// diagnose[theory] runs its proof and checks its theorems, and shows
+// where it fails, without stopping the program.
+func TestDiagnoseTheory(t *testing.T) {
+	src := `theory keep_off
+    abstract
+        keep_off is meant to take p percent off c.
+    notation keep_off p off c .
+    definition
+        return c * p div 100
+    theorem result <= c
+    proof
+        keep_off 10 off 2000 . is 1800
+        keep_off 50 off 10 . is 5
+theory [end]
+seed = 3
+x is diagnose[keep_off] .
+show typeof[x], " still running" .`
+	got, err := run(t, src, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"diagnose theory keep_off (line 1)\n  notation  keep_off p off c .\n  proof\n",
+		"keep_off 10 off 2000 . is 1800  ✗ gave 200, expected 1800",
+		"keep_off 50 off 10 . is 5       ✓",
+		"theorems, on the proof cases and 100 random inputs (seed 3)",
+		"theory still running",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %q in:\n%s", want, got)
+		}
+	}
+}

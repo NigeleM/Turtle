@@ -71,13 +71,8 @@ func (it *Interpreter) evalTheoryCall(tc *ast.TheoryCall, env *object.Environmen
 
 // theoryNamed finds the theory word stands for.
 func (it *Interpreter) theoryNamed(word string, env *object.Environment) *object.Function {
-	if fn, ok := env.GetFunction(word); ok && fn.Theory != nil {
+	if fn := theoryIn(word, env); fn != nil {
 		return fn
-	}
-	if im := resolveImported(env, word); im != nil {
-		if fn, ok := im.Module.Function(word); ok && fn.Theory != nil {
-			return fn
-		}
 	}
 	fatalKind(kindName, "%s is a theory's word, but its theory isn't defined here", word)
 	return nil
@@ -177,4 +172,18 @@ func theoryHelp(ts *ast.TheoryStatement) string {
 		b.WriteString("  Theorem: " + th.Text + "\n")
 	}
 	return strings.TrimRight(b.String(), "\n")
+}
+
+// theoryIn is the theory word names here, this file's or an imported
+// one, or nil.
+func theoryIn(word string, env *object.Environment) *object.Function {
+	if fn, ok := env.GetFunction(word); ok && fn.Theory != nil {
+		return fn
+	}
+	if im := resolveImported(env, word); im != nil {
+		if fn, ok := im.Module.Function(word); ok && fn.Theory != nil {
+			return fn
+		}
+	}
+	return nil
 }
