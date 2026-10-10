@@ -559,11 +559,7 @@ func fileURI(path string) string {
 // whole text. Code that doesn't parse yet is left alone (no edits); its
 // error is already showing.
 func (s *Server) formatting(d *document) any {
-	dir := ""
-	if d.path != "" {
-		dir = filepath.Dir(d.path)
-	}
-	formatted, err := format.FormatIn(d.text.src, dir)
+	formatted, err := format.FormatFile(d.text.src, d.path)
 	if err != nil || formatted == d.text.src {
 		return []any{}
 	}

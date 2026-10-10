@@ -107,7 +107,7 @@ func TestFormatEveryFile(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		once, err := FormatIn(string(data), filepath.Dir(f))
+		once, err := FormatFile(string(data), f)
 		if err != nil {
 			if strings.Contains(f, "parse_error") || strings.Contains(f, "bad") {
 				continue
@@ -115,7 +115,7 @@ func TestFormatEveryFile(t *testing.T) {
 			t.Errorf("%s: %v", f, err)
 			continue
 		}
-		if twice, _ := FormatIn(once, filepath.Dir(f)); twice != once {
+		if twice, _ := FormatFile(once, f); twice != once {
 			t.Errorf("%s: formatting twice changed it again", f)
 		}
 	}

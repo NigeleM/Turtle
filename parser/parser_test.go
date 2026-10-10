@@ -439,3 +439,25 @@ func TestPrivateNames(t *testing.T) {
 		}
 	}
 }
+
+// A theory's slots are the names its definition uses, however it uses
+// them: as a value, a sentence's subject, a statement's target.
+func TestTheorySlots(t *testing.T) {
+	for def, want := range map[string]string{
+		"return a + b":                             "a b",
+		"return a process n give n + b":            "a b",
+		"add b to a .\n        return a":           "a b",
+		"x is a at get[0] .\n        return x + b": "a b",
+	} {
+		src := "theory joined\n    abstract\n        joined is a test.\n    notation joined a with b .\n    definition\n        " + def + "\ntheory [end]\n"
+		p := New(lexer.New(src))
+		p.ParseProgram()
+		if errs := p.Errors(); len(errs) > 0 {
+			t.Errorf("%s: %v", def, errs)
+			continue
+		}
+		if got := strings.Join(p.theories["joined"].slots, " "); got != want {
+			t.Errorf("%s: slots %q, want %q", def, got, want)
+		}
+	}
+}

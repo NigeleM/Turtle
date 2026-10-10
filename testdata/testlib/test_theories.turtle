@@ -25,6 +25,13 @@ def [end]
 
 def test_refused_inputs[]
     check discount 101 off 5 fails [custom] .
+    check price Item["Half", 0.5, 100] fails [custom] .
+def [end]
+
+def test_a_private_theory_can_be_tested[]
+    check ~whole 4 .
+    is_whole = ~whole 2.5
+    check !is_whole .
 def [end]
 
 def test_a_theory_is_a_value[]

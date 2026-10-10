@@ -137,9 +137,6 @@ func (p *Parser) parseTheoryStatement() ast.Statement {
 	tok := p.curToken
 	p.nextToken() // -> the word
 	name := p.curToken.Literal
-	if len(name) > 1 && name[0] == '~' {
-		p.errorAt(p.curToken.Line, p.curToken.Pos, "theory %s: private theories aren't part of Turtle yet", name)
-	}
 	if other, ok := p.theories[name]; ok {
 		if other.from != "" {
 			p.errorAt(p.curToken.Line, p.curToken.Pos, "theory %s: %s is already a theory, imported from %s", name, name, other.from)
@@ -394,12 +391,22 @@ func namesUsed(node any) map[string]bool {
 			if v.IsNil() {
 				return
 			}
-			if id, ok := v.Interface().(*ast.Identifier); ok {
-				out[id.Value] = true
-				if id.Module != "" {
-					out[id.Module] = true
+			switch x := v.Interface().(type) {
+			case *ast.Identifier:
+				out[x.Value] = true
+				if x.Module != "" {
+					out[x.Module] = true
 				}
 				return
+			case *ast.CallExpression:
+				// "nums process f": the subject is kept as its name.
+				if x.Module != "" {
+					out[x.Module] = true
+				}
+			case *ast.DataOpStatement:
+				out[x.Target] = true // "add 4 to nums"
+			case *ast.AssignStatement:
+				out[x.Name] = true
 			}
 			walk(v.Elem())
 		case reflect.Struct:
@@ -442,6 +449,10 @@ func (p *Parser) startsPhrase() bool {
 // usedBeforeTheory reports a theory's word used above its theory, or one
 // its file's import list leaves out.
 func (p *Parser) usedBeforeTheory() bool {
+	if path, ok := p.private[p.curToken.Literal]; ok && p.theories[p.curToken.Literal] == nil {
+		p.errorAt(p.curToken.Line, p.curToken.Pos, "%s is private to %s: a ~ theory is for its own file", p.curToken.Literal, pathBase(path))
+		return true
+	}
 	if path, ok := p.unlisted[p.curToken.Literal]; ok && p.theories[p.curToken.Literal] == nil && p.peekToken.Line == p.curToken.Line && p.argumentStartsAt(1) {
 		p.errorAt(p.curToken.Line, p.curToken.Pos, "%q isn't imported: add it to \"import %s [...]\"", p.curToken.Literal, path)
 		return true
@@ -563,7 +574,20 @@ func (p *Parser) parseProofCase(spec *theorySpec) *ast.ProofCase {
 // read from here on. A file that can't be found or read is the import's
 // own error, when the program runs.
 func (p *Parser) importTheories(tok token.Token, path string, names []string) {
-	if p.ModuleDir == "" || p.importing[path] {
+	if p.importing[path] || path == p.SelfLibrary {
+		return
+	}
+	// A library of the standard library: its theories are in turtle.
+	if BuiltinLibrary != nil {
+		if src, ok := BuiltinLibrary(path); ok {
+			sub := New(lexer.New(src))
+			sub.Enable(path)
+			sub.SelfLibrary = path
+			p.learnImported(tok, path, names, sub)
+			return
+		}
+	}
+	if p.ModuleDir == "" {
 		return
 	}
 	full := filepath.Join(p.ModuleDir, filepath.FromSlash(path))
@@ -584,9 +608,24 @@ func (p *Parser) importTheories(tok token.Token, path string, names []string) {
 	for k := range p.importing {
 		sub.importing[k] = true
 	}
+	p.learnImported(tok, path, names, sub)
+}
+
+// learnImported reads an imported file (sub, not yet read) and learns its
+// own theories.
+func (p *Parser) learnImported(tok token.Token, path string, names []string, sub *Parser) {
 	sub.ParseProgram()
 	for word, spec := range sub.theories {
 		if spec.from != "" {
+			continue
+		}
+		// A private (~) theory is for its own file, and for a test file,
+		// which may test it; elsewhere its word says so when it's used.
+		if isPrivateName(word) && !p.TestFile {
+			if p.private == nil {
+				p.private = map[string]string{}
+			}
+			p.private[word] = path
 			continue
 		}
 		if names != nil && !containsString(names, word) {
@@ -612,3 +651,13 @@ func (p *Parser) importTheories(tok token.Token, path string, names []string) {
 		p.theories[word] = &mine
 	}
 }
+
+func isPrivateName(name string) bool { return len(name) > 1 && name[0] == '~' }
+
+// pathBase is a module's name from its path: shop for lib/shop.
+func pathBase(path string) string { return path[strings.LastIndex(path, "/")+1:] }
+
+// BuiltinLibrary gives the Turtle code of a library of the standard library
+// (lib/<name>.turtle, built into turtle), so its theories' phrases can be
+// read where it's imported. The evaluator sets it.
+var BuiltinLibrary func(name string) (string, bool)

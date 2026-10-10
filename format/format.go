@@ -5,6 +5,7 @@ package format
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"Turtle/lexer"
@@ -22,13 +23,19 @@ import (
 // Lines inside a `raw string` or a //* *// comment are left exactly as
 // they are. Code that doesn't parse isn't formatted: fix it first.
 func Format(src string) (string, error) {
-	return FormatIn(src, "")
+	return FormatFile(src, "")
 }
 
-// FormatIn is Format for a file in folder dir, where its imports are:
-// the phrases of an imported file's theories are read as phrases.
-func FormatIn(src, dir string) (string, error) {
+// FormatFile is Format for the file at path, so its imports are found: the
+// phrases of an imported file's theories are read as phrases, private ones
+// too in a test file (test_*.turtle), which may test them.
+func FormatFile(src, path string) (string, error) {
 	p := parser.New(lexer.New(src))
+	dir := ""
+	if path != "" {
+		dir = filepath.Dir(path)
+		p.TestFile = strings.HasPrefix(filepath.Base(path), "test_")
+	}
 	p.ModuleDir = dir
 	p.ParseProgram()
 	if len(p.ErrorList()) > 0 {
@@ -36,6 +43,7 @@ func FormatIn(src, dir string) (string, error) {
 		// itself.
 		lib := parser.New(lexer.New(src))
 		lib.ModuleDir = dir
+		lib.TestFile = p.TestFile
 		for _, name := range []string{"random", "test", "log", "linear"} {
 			lib.Enable(name)
 		}

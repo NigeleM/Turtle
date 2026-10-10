@@ -3,13 +3,24 @@
 
 assemble Item [name, qty, cents]
 
+theory ~whole
+    abstract
+        ~whole says whether n is a whole number of 0 or more.
+    notation ~whole n .
+    definition
+        return n type integer && n >= 0
+    proof
+        ~whole 3 . is true
+        ~whole -1 . is false
+theory [end]
+
 theory price
     abstract
         price is what an item costs, in cents: its quantity times its price,
         with every twelfth one free.
     notation price i .
     definition
-        if ] qty of i < 0 || cents of i < 0 [
+        if ] !~whole qty of i || cents of i < 0 [
             fail "price: an item's quantity and price can't be negative"
         if [end]
         free = qty of i div 12

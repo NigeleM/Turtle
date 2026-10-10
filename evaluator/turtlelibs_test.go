@@ -7,7 +7,9 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"Turtle/lexer"
 	"Turtle/object"
+	"Turtle/parser"
 )
 
 // A standard library written only in Turtle, and Turtle added to a
@@ -183,6 +185,19 @@ func TestShippedStdlibInTurtle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Their theories are proven: every proof case and theorem holds.
+	it := New(".")
+	for name := range turtleLibs {
+		mod := it.loadTurtleLib(builtinModules[name])
+		for _, fn := range mod.Env.Functions() {
+			if fn.Theory == nil {
+				continue
+			}
+			if p := it.proveTheory(fn, 1); p.failed() {
+				t.Errorf("%s's theory %s isn't proven:\n%s", name, fn.Name, p.report())
+			}
+		}
+	}
 	for name := range turtleLibs {
 		for _, f := range builtinModules[name].Funcs {
 			if strings.Contains(moduleDocs[name], "### "+f+"[") {
@@ -190,5 +205,95 @@ func TestShippedStdlibInTurtle(t *testing.T) {
 			}
 			t.Errorf("%s's %s has no documentation", name, f)
 		}
+	}
+}
+
+// Theories in the standard library: a new library made of them (units), and
+// one added to data, a library written in Go, using data's own process.
+var theoryLibs = fstest.MapFS{
+	"lib/units.turtle": {Data: []byte(`// Units of measure, as phrases.
+import math
+
+theory celsius
+    abstract
+        celsius is a temperature f in Fahrenheit, in Celsius.
+    notation celsius f from fahrenheit .
+    definition
+        above = f - 32
+        return ~tenths[above * 5 / 9]
+    theorem result <= f || f < -40
+    proof
+        celsius 212 from fahrenheit . is 100.0
+theory [end]
+
+def ~tenths[x]
+    return x at round[1]
+def [end]
+
+theory ~secret
+    abstract
+        ~secret is private to units.
+    notation ~secret n .
+    definition
+        return n
+theory [end]
+`)},
+	"lib/data.turtle": {Data: []byte(`import data
+
+theory clampall
+    abstract
+        clampall keeps every number in nums between low and high.
+    notation clampall nums from low to high .
+    definition
+        return nums process n give min of list [max of list [n, low], high]
+    proof
+        clampall list [3, 15, -2] from 0 to 10 . is list [3, 10, 0]
+theory [end]
+`)},
+}
+
+func TestStdlibTheories(t *testing.T) {
+	if err := withLibs(t, theoryLibs); err != nil {
+		t.Fatal(err)
+	}
+	cases := []struct{ src, want string }{
+		{"import units\nshow celsius 212 from fahrenheit .", "100.0"},
+		{"import units\nc is celsius 50 from fahrenheit .\nshow c .", "10.0"},
+		{"import data\nshow clampall list [3, 15, -2] from 0 to 10, \" \", mean[list [2, 4]] .", "[ 3, 10, 0 ] 3.0"},
+		{"import data [clampall]\nshow clampall list [50] from 0 to 9 .", "[ 9 ]"},
+		{"import units\nshow typeof[celsius] .", "theory"},
+	}
+	for _, c := range cases {
+		got, err := run(t, c.src, "")
+		if err != nil {
+			t.Errorf("%s: %v", c.src, err)
+		} else if strings.TrimSpace(got) != c.want {
+			t.Errorf("%s:\n got  %q\n want %q", c.src, strings.TrimSpace(got), c.want)
+		}
+	}
+	// A private theory stays in its library.
+	p := parser.New(lexer.New("import units\nx = ~secret 1"))
+	p.ParseProgram()
+	if errs := strings.Join(p.Errors(), "; "); !strings.Contains(errs, "~secret is private to units") {
+		t.Errorf("private theory: %s", errs)
+	}
+	// Docs from the abstract, for turtle doc, help and the editor.
+	for topic, want := range map[string]string{
+		"units":    "import units\n\nUnits of measure, as phrases.",
+		"celsius":  "celsius f from fahrenheit        (import units)\n  celsius is a temperature f in Fahrenheit, in Celsius.\n  Written: celsius f from fahrenheit .\n  Theorem: result <= f || f < -40",
+		"clampall": "clampall nums from low to high        (import data)",
+	} {
+		got, err := Doc(topic, ".")
+		if err != nil || !strings.Contains(got, want) {
+			t.Errorf("turtle doc %s: %v\n%s\nwant %q", topic, err, got, want)
+		}
+	}
+	if _, err := Doc("~secret", "."); err == nil {
+		t.Error("a private theory has no documentation")
+	}
+	// Proven like any theory: diagnose shows its proof.
+	got, err := run(t, "import units\nseed = 1\nx is diagnose[celsius] .", "")
+	if err != nil || !strings.Contains(got, "celsius 212 from fahrenheit . is 100.0") || !strings.Contains(got, "diagnose theory celsius (the units library, line 4)") || !strings.Contains(got, "holds") {
+		t.Errorf("diagnose: %v\n%s", err, got)
 	}
 }

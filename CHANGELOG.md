@@ -2,6 +2,11 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## Unreleased
+
+- Private theories: `theory ~name` is for its own file (and its tests).
+- The standard library can have theories, giving any library new phrases.
+
 ## 0.9.181 (2026-10-10)
 
 - Theories: new words and phrases written in Turtle, with an abstract,

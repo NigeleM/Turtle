@@ -99,8 +99,13 @@ def ~limit[n, low, high]
 def [end]
 ```
 
-- **What's exported:** the file's top-level `def`s and `assemble`
-  types. A `~` function is a private helper.
+- **What's exported:** the file's top-level `def`s, `assemble` types
+  and theories. A `~` function or theory is a private helper.
+- **Theories:** a theory in the file gives the library a new phrase,
+  whether the library is written in Go, in Turtle or both; its abstract,
+  notations and theorems are its documentation.
+  `TestShippedStdlibInTurtle` proves each one: its proof cases and
+  theorems must hold.
 - **Documentation:** each function's `turtle doc`, `help` and editor
   hover is the comment above its `def` (`//` lines or a `//* *//`
   block); a new library is described by the comment at the top of its

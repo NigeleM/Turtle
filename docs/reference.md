@@ -1023,6 +1023,11 @@ show "ones: ", tally 1 in nums .   // inside other sentences
 - `import shapes` brings in that file's theories with its functions;
   `import shapes [tally]` names the ones to bring. Two imports with the
   same word is an error.
+- `theory ~name` is a private theory, for its own file, like a `~`
+  function: a file that imports it can't use its word, except a test
+  file, which can test it.
+- A library of the standard library can have theories too (written in
+  Turtle, in `evaluator/lib/`): `import data` brings them in.
 - A value reaches as a sentence call's does: through arithmetic, not past
   a comparison, `&&` or `||` (`tally 1 in nums == 2` compares the
   result). A fixed word ends the value before it.

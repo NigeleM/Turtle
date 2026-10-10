@@ -42,6 +42,14 @@ var libFiles fs.FS = turtleLibFiles
 var turtleLibs = map[string]bool{}
 
 func init() {
+	// The parser reads an imported library's theories from its Turtle code.
+	parser.BuiltinLibrary = func(name string) (string, bool) {
+		if !turtleLibs[name] {
+			return "", false
+		}
+		src, err := fs.ReadFile(libFiles, "lib/"+name+".turtle")
+		return string(src), err == nil
+	}
 	if err := registerTurtleLibs(libFiles, builtinModules, moduleDocs, turtleLibs); err != nil {
 		panic(err)
 	}
@@ -65,6 +73,7 @@ func registerTurtleLibs(files fs.FS, modules map[string]*object.Module, docs map
 		src := strings.ReplaceAll(string(data), "\r\n", "\n")
 		p := parser.New(lexer.New(src))
 		p.Enable(name)
+		p.SelfLibrary = name
 		program := p.ParseProgram()
 		if errs := p.Errors(); len(errs) > 0 {
 			return fmt.Errorf("builtin library %s: %s", file, strings.Join(errs, "; "))
@@ -90,6 +99,19 @@ func registerTurtleLibs(files fs.FS, modules map[string]*object.Module, docs map
 			case *ast.AssembleStatement:
 				fn, call = d.Name, d.Name+"["+strings.Join(d.Fields, ", ")+"]"
 				doc = syntax.CommentAbove(lines, d.Token.Line-1)
+			case *ast.TheoryStatement:
+				// A theory: its words are written as its notation says.
+				if object.IsPrivate(d.Name) || len(d.Notations) == 0 {
+					continue
+				}
+				fn, call = d.Name, strings.TrimSuffix(d.Notations[0].Text(), " .")
+				doc = d.Abstract
+				for _, n := range d.Notations {
+					doc += "\nWritten: " + n.Text()
+				}
+				for _, th := range d.Theorems {
+					doc += "\nTheorem: " + th.Text
+				}
 			default:
 				continue
 			}
@@ -155,6 +177,7 @@ func (it *Interpreter) loadTurtleLib(base *object.Module) *object.Module {
 	}
 	p := parser.New(lexer.New(string(src)))
 	p.Enable(base.Name) // its own sentences, without importing itself
+	p.SelfLibrary = base.Name
 	program := p.ParseProgram()
 	if errs := p.Errors(); len(errs) > 0 {
 		panic(fmt.Sprintf("builtin library %s.turtle: %s", base.Name, strings.Join(errs, "; ")))

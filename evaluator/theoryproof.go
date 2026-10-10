@@ -228,7 +228,9 @@ func theoriesToProve(env *object.Environment) []*object.Function {
 func (p theoryProof) report() string {
 	var b strings.Builder
 	where := fmt.Sprintf("line %d", p.ts.Token.Line)
-	if p.file != "" {
+	if lib, ok := strings.CutPrefix(p.file, builtinFilePrefix); ok {
+		where = "the " + strings.TrimSuffix(lib, ".turtle") + " library, " + where
+	} else if p.file != "" {
 		where = p.file + " " + where
 	}
 	fmt.Fprintf(&b, "diagnose theory %s (%s)\n", p.ts.Name, where)

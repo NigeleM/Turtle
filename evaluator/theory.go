@@ -33,6 +33,9 @@ func (it *Interpreter) defineTheory(s *ast.TheoryStatement, env *object.Environm
 // existingWord says what name already is, or "" if it's new.
 func existingWord(name string, env *object.Environment) string {
 	for _, m := range builtinModules {
+		if env.File() == builtinFilePrefix+m.Name+".turtle" && slices.Contains(m.Funcs, name) {
+			continue // the library's own theory, which made the name its word
+		}
 		if slices.Contains(m.Funcs, name) || slices.Contains(m.Methods, name) {
 			return "a function of the " + m.Name + " library"
 		}

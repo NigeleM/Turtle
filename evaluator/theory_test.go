@@ -126,7 +126,6 @@ func TestTheoryMistakes(t *testing.T) {
 		{"theory twice\n    notation twice n .\n    definition\n        return n\ntheory [end]\n", "theory twice needs an abstract"},
 		{"theory twice\n    abstract\n        twice.\n    notation twice n .\ntheory [end]\n", "theory twice needs a definition"},
 		{"theory twice\n    abstract\n        twice.\n    notation twice n .\n    definition\n        return n\n", "theory twice is never closed"},
-		{"theory ~twice\n    abstract\n        twice.\n    notation ~twice n .\n    definition\n        return n\ntheory [end]\n", "private theories aren't part of Turtle yet"},
 		{"theory twice\n    abstract\n        twice.\n    notation twice n .\n    definition\n        return n\n    lemma\n        x\ntheory [end]\n", "expected abstract, notation, definition, theorem or proof, found"},
 		{theory("twice", "twice n by m .", "return n * m") + "x = twice 3 with 4\n", "this isn't how twice is written: twice n by m ."},
 	}
@@ -308,5 +307,49 @@ show typeof[x], " still running" .`
 		if !strings.Contains(got, want) {
 			t.Errorf("missing %q in:\n%s", want, got)
 		}
+	}
+}
+
+// A private theory works in its own file; another file can't use it,
+// except a test file, which can test it.
+func TestPrivateTheories(t *testing.T) {
+	dir := t.TempDir()
+	lib := `import math
+theory ~cents_of
+    abstract
+        ~cents_of turns dollars d into whole cents.
+    notation ~cents_of d .
+    definition
+        hundred = d * 100
+        return hundred at round
+theory [end]
+
+theory owed
+    abstract
+        owed is what n items cost at d dollars each, in cents.
+    notation owed n at_price d .
+    definition
+        return n * ~cents_of d
+theory [end]
+`
+	if err := os.WriteFile(filepath.Join(dir, "shop.turtle"), []byte(lib), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got, err := runIn(t, dir, "import shop\nshow owed 3 at_price 1.25 .", "")
+	if err != nil || strings.TrimSpace(got) != "375" {
+		t.Errorf("a public theory using a private one: %q, %v", got, err)
+	}
+	p := parser.New(lexer.New("import shop\nx = ~cents_of 3"))
+	p.ModuleDir = dir
+	p.ParseProgram()
+	if errs := strings.Join(p.Errors(), "; "); !strings.Contains(errs, "~cents_of is private to shop: a ~ theory is for its own file") {
+		t.Errorf("from another file: %s", errs)
+	}
+	out, code := testRun(t, map[string]string{
+		"shop.turtle":      lib,
+		"test_shop.turtle": "import test\nimport shop\ndef test_both[]\n    check ~cents_of 0.1 == 10 .\n    check owed 2 at_price 0.5 == 100 .\ndef [end]\n",
+	})
+	if code != 0 || !strings.Contains(out, "PASS  test_both") || !strings.Contains(out, "theory ~cents_of") {
+		t.Errorf("a test file: exit %d\n%s", code, out)
 	}
 }

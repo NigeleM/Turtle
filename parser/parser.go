@@ -124,9 +124,16 @@ type Parser struct {
 	// an imported file's theories are known and their phrases read; ""
 	// when there's no file to look in. importing is the files being read
 	// for their theories, so two files importing each other end.
-	ModuleDir     string
-	importing     map[string]bool
-	unlisted      map[string]string // theories an import list leaves out, and the file they're in
+	ModuleDir string
+	importing map[string]bool
+	unlisted  map[string]string // theories an import list leaves out, and the file they're in
+	private   map[string]string // imported files' private (~) theories, and the file they're in
+	// TestFile is set for a test file run by turtle test: it reads the
+	// private (~) theories of the files it imports too, to test them.
+	TestFile bool
+	// SelfLibrary is the library a standard-library file belongs to:
+	// its own "import data" is data's Go half, not its theories again.
+	SelfLibrary   string
 	inVerifyValue int
 
 	// lines is the source split into lines, for statements' text.

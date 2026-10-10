@@ -61,6 +61,7 @@ func analyze(uri, path, src string, t *text) *analysis {
 	p := parser.New(lexer.New(src))
 	if path != "" {
 		p.ModuleDir = filepath.Dir(path)
+		p.TestFile = strings.HasPrefix(filepath.Base(path), "test_")
 	}
 	program := p.ParseProgram()
 	if errs := p.ErrorList(); len(errs) > 0 {
@@ -149,7 +150,7 @@ var (
 	defLine      = regexp.MustCompile(`^(\s*)def\s+(~?[A-Za-z_][A-Za-z0-9_]*)\s*\[([^\]]*)\]`)
 	assembleLine = regexp.MustCompile(`^(\s*)assemble\s+([A-Za-z_][A-Za-z0-9_]*)\s*\[([^\]]*)\]`)
 	assignLine   = regexp.MustCompile(`^([A-Za-z_][A-Za-z0-9_]*)\s*(=|is\s)`)
-	theoryHead   = regexp.MustCompile(`^(\s*)theory\s+([A-Za-z_][A-Za-z0-9_]*)\s*$`)
+	theoryHead   = regexp.MustCompile(`^(\s*)theory\s+(~?[A-Za-z_][A-Za-z0-9_]*)\s*$`)
 )
 
 // definitions finds the top-level functions and assembled types in src
