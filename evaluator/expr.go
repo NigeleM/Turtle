@@ -48,6 +48,9 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 	case *ast.NoneLiteral:
 		return object.NoneValue
 
+	case *ast.TheoryCall:
+		return it.evalTheoryCall(e, env)
+
 	case *ast.Identifier:
 		// A variable, or failing that a function by name — so "f = add"
 		// or "apply[mylib binary, 3]" passes the function itself.

@@ -114,7 +114,12 @@ type Parser struct {
 	// stopWords end the value being parsed (see pushStops), and
 	// inVerifyValue keeps "at least" / "at most" from being read as a
 	// method call on the values being verified.
-	stopWords     map[string]int
+	stopWords map[string]int
+	// theories are the theories read so far, by word: from then on their
+	// phrases are read (see theory.go); laterTheories is where each theory
+	// in the file is, so a use above its theory can say so.
+	theories      map[string]*theorySpec
+	laterTheories map[string]int
 	inVerifyValue int
 
 	// lines is the source split into lines, for statements' text.
@@ -327,6 +332,7 @@ func (p *Parser) requirePeriod() bool {
 
 func (p *Parser) ParseProgram() *ast.Program {
 	program := &ast.Program{}
+	p.scanTheories()
 	for !p.curTokenIs(token.EOF) {
 		before := p.curToken
 		stmt := p.parseStatement()
@@ -482,6 +488,32 @@ func (p *Parser) parseBracketStatement() ast.Statement {
 // ---- assignment / input / is / bare call --------------------------------
 
 func (p *Parser) parseIdentifierLeadStatement() ast.Statement {
+	if p.startsTheory() {
+		return p.parseTheoryStatement()
+	}
+	if p.theoryOnKeyword() {
+		p.skipToTheoryEnd()
+		return nil
+	}
+	if p.atTheoryEnd() {
+		p.errorf("theory [end] without a theory to end")
+		p.skipLine()
+		return nil
+	}
+	// A phrase on its own line: "tally 1 in nums ."
+	if p.startsPhrase() && !p.peekTokenIs(token.ASSIGN) && !p.peekTokenIs(token.IS) {
+		tok := p.curToken
+		call := p.parseTheoryCall()
+		p.nextToken()
+		if p.curTokenIs(token.PERIOD) && p.curToken.Line == tok.Line {
+			p.nextToken()
+		}
+		return &ast.ExpressionStatement{Token: tok, Expression: call}
+	}
+	if p.usedBeforeTheory() {
+		p.skipLine()
+		return nil
+	}
 	if p.curToken.Literal == "diagnose" && (p.peekTokenIs(token.EOF) || p.peekToken.Line != p.curToken.Line) {
 		return p.parseDiagnoseBlock()
 	}
@@ -1576,6 +1608,10 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 // "x give ..." is a one-parameter anonymous function.
 func (p *Parser) parseIdentifier() ast.Expression {
 	tok := p.curToken
+	if p.startsPhrase() {
+		return p.parseTheoryCall()
+	}
+	p.usedBeforeTheory()
 	if p.startsRandom() {
 		return p.parseRandomExpression()
 	}

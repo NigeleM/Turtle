@@ -500,6 +500,10 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		}
 		return noneResult
 
+	case *ast.TheoryStatement:
+		it.defineTheory(s, env)
+		return noneResult
+
 	case *ast.AssembleStatement:
 		// Like a def: the constructor goes in the file's function table at
 		// top level (so it's exported and importable), or is a local

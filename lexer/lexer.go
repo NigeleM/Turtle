@@ -398,3 +398,24 @@ func (l *Lexer) readRawString() string {
 	}
 	return text
 }
+
+// SeekLine moves the lexer to the start of line n (from 1), as if the
+// lines before it had been read: a theory's abstract is free text, taken
+// from the source as it is, and lexing goes on after it.
+func (l *Lexer) SeekLine(n int) {
+	off := 0
+	for line := 1; line < n && off < len(l.input); line++ {
+		i := strings.IndexByte(l.input[off:], '\n')
+		if i < 0 {
+			off = len(l.input)
+			break
+		}
+		off += i + 1
+	}
+	l.readPos = off
+	l.line = n
+	l.atLineStart = true
+	l.inBlockComment = false
+	l.unclosed = false
+	l.readChar()
+}

@@ -186,14 +186,17 @@ func (it *Interpreter) isKind(v object.Object, kind string, env *object.Environm
 		return ok
 	case "function":
 		f, ok := v.(*object.Function)
-		return ok && f.Shape == nil
+		return ok && f.Shape == nil && f.Theory == nil
+	case "theory":
+		f, ok := v.(*object.Function)
+		return ok && f.Theory != nil
 	case "empty":
 		n, ok := lengthOf(v)
 		return ok && n == 0
 	}
 	shape := findShape(env, kind)
 	if shape == nil {
-		fatalKind(kindName, "%s isn't a kind (integer, float, number, string, boolean, list, set, map, date, none, function, empty) or an assembled type", kind)
+		fatalKind(kindName, "%s isn't a kind (integer, float, number, string, boolean, list, set, map, date, none, function, theory, empty) or an assembled type", kind)
 	}
 	a, ok := v.(*object.Assembly)
 	return ok && a.Shape == shape
@@ -820,6 +823,9 @@ func typeName(v object.Object) string {
 	case *object.Function:
 		if x.Shape != nil {
 			return "assembled type"
+		}
+		if x.Theory != nil {
+			return "theory"
 		}
 		return "function"
 	case *object.Assembly:

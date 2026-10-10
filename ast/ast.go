@@ -745,3 +745,83 @@ type DiagnoseStatement struct {
 func (ds *DiagnoseStatement) statementNode()       {}
 func (ds *DiagnoseStatement) TokenLiteral() string { return ds.Token.Literal }
 func (ds *DiagnoseStatement) Line() int            { return ds.Token.Line }
+
+// ---- theories ----------------------------------------------------------
+
+// TheoryStatement is a theory: a new word, the phrases it's written in,
+// and what it means.
+//
+//	theory tally
+//	    abstract
+//	        tally says how many times b appears in the list a.
+//	    notation tally b in a .
+//	    definition
+//	        ...
+//	    theorem result >= 0
+//	    proof
+//	        tally 1 in list [1, 1, 0] . is 2
+//	theory [end]
+type TheoryStatement struct {
+	Token      token.Token // "theory"
+	Name       string
+	Abstract   string
+	Notations  []*Notation
+	Slots      []string // the values a use passes in, in the order of the first notation
+	Definition *BlockStatement
+	Theorems   []*Theorem
+	Proofs     []*ProofCase
+}
+
+func (ts *TheoryStatement) statementNode()       {}
+func (ts *TheoryStatement) TokenLiteral() string { return ts.Token.Literal }
+func (ts *TheoryStatement) Line() int            { return ts.Token.Line }
+func (ts *TheoryStatement) String() string       { return "theory " + ts.Name }
+
+// Notation is one way a theory's word is written: its words, each fixed
+// or a slot ("tally b in a .": tally fixed, b a slot, in fixed, a a slot).
+type Notation struct {
+	Line  int
+	Parts []NotationPart
+}
+
+// NotationPart is one word of a notation.
+type NotationPart struct {
+	Word string
+	Slot bool
+}
+
+// Text is the notation as written: "tally b in a .".
+func (n *Notation) Text() string {
+	words := make([]string, len(n.Parts))
+	for i, p := range n.Parts {
+		words[i] = p.Word
+	}
+	return strings.ReplaceAll(strings.Join(words, " "), " ,", ",") + " ."
+}
+
+// Theorem is one theorem: a statement every result must satisfy.
+type Theorem struct {
+	Line int
+	Text string // as written: "result <= length of a"
+	Expr Expression
+}
+
+// ProofCase is one line of a proof: a use and what it must give.
+type ProofCase struct {
+	Line int
+	Text string // as written: "tally 1 in list [1, 1, 0] . is 2"
+	Use  *TheoryCall
+	Want Expression
+}
+
+// TheoryCall is a use of a theory's word: "tally 1 in nums". Args are in
+// the order of the theory's Slots (nil for a slot this notation hasn't).
+type TheoryCall struct {
+	Token token.Token // the word
+	Word  string
+	Args  []Expression
+}
+
+func (tc *TheoryCall) expressionNode()      {}
+func (tc *TheoryCall) TokenLiteral() string { return tc.Token.Literal }
+func (tc *TheoryCall) String() string       { return tc.Word + " ..." }

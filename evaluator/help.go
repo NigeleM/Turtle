@@ -185,6 +185,8 @@ func valueHelp(v object.Object, name string) string {
 	switch x := v.(type) {
 	case *object.Function:
 		switch {
+		case x.Theory != nil:
+			return theoryHelp(x.Theory)
 		case x.Shape != nil:
 			fmt.Fprintf(&sb, "Make one: %s[%s]. Read a field: %s of value.\n",
 				x.Shape.Name, strings.Join(x.Shape.Fields, ", "), x.Shape.Fields[0])
@@ -327,6 +329,10 @@ func (it *Interpreter) callHelp(args []object.Object, env *object.Environment) o
 		text = helpOverview()
 	default:
 		if s, ok := args[0].(*object.String); ok {
+			if fn, ok := env.GetFunction(s.Value); ok && fn.Theory != nil {
+				text = theoryHelp(fn.Theory)
+				break
+			}
 			// Text names what to look up; help["string"] is about text.
 			t, found := helpTopic(s.Value)
 			if !found {

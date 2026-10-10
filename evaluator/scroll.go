@@ -431,6 +431,9 @@ func (it *Interpreter) evalDiagnose(ce *ast.CallExpression, env *object.Environm
 	if len(ce.Arguments) == 0 {
 		fatalf("diagnose needs a scroll and a value, a scroll written in it, a function and its values, or an error")
 	}
+	if tc, ok := ce.Arguments[0].(*ast.TheoryCall); ok && len(ce.Arguments) == 1 {
+		return it.diagnoseTheoryUse(tc, env)
+	}
 	if se, ok := ce.Arguments[0].(*ast.ScrollExpression); ok && se.Start != nil && len(ce.Arguments) == 1 {
 		return it.diagnoseScroll("diagnose scroll", se.Steps, env, it.evalExpression(se.Start, env))
 	}

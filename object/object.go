@@ -359,6 +359,9 @@ type Function struct {
 	// Scroll is set for a saved scroll ("s = scroll a, b ."): called on
 	// one value, it runs the steps in order.
 	Scroll *ast.ScrollExpression
+	// Theory is set for a theory's word: its phrases call it, with the
+	// notation's values as its parameters.
+	Theory *ast.TheoryStatement
 }
 
 func (f *Function) Type() Type { return FUNCTION }
