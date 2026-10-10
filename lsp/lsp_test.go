@@ -413,6 +413,44 @@ func TestSemanticTokenGroups(t *testing.T) {
 	}
 }
 
+// testdata/colors/colors.turtle has every color group, and the server
+// finds each one in it.
+func TestColorsFileHasEveryGroup(t *testing.T) {
+	path, err := filepath.Abs("../testdata/colors/colors.turtle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := newSession(t)
+	s.request("initialize", map[string]any{"capabilities": map[string]any{"textDocument": map[string]any{"semanticTokens": map[string]any{"tokenTypes": tokenTypes, "tokenModifiers": tokenModifiers}}}})
+	s.notify("initialized", map[string]any{})
+	uri := fileURI(path)
+	s.open(uri, strings.ReplaceAll(string(data), "\r\n", "\n"))
+	id := s.request("textDocument/semanticTokens/full", map[string]any{"textDocument": map[string]any{"uri": uri}})
+	s.end()
+	var r struct{ Data []int }
+	s.result(id, &r)
+	seen := map[string]bool{}
+	for i := 0; i+5 <= len(r.Data); i += 5 {
+		k := tokenTypes[r.Data[i+3]]
+		seen[k] = true
+		for b, m := range tokenModifiers {
+			if r.Data[i+4]&(1<<b) != 0 {
+				seen[k+"."+m] = true
+			}
+		}
+	}
+	for _, want := range []string{"keyword", "string", "number", "comment", "function", "namespace", "struct", "event", "macro", "method",
+		"function.declaration", "function.defaultLibrary", "function.test", "struct.declaration"} {
+		if !seen[want] {
+			t.Errorf("colors.turtle: no %s token", want)
+		}
+	}
+}
+
 func TestPositions(t *testing.T) {
 	src := "aé𝄞b\nxy"
 	u16 := newText(src, false)

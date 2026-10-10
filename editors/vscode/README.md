@@ -84,6 +84,11 @@ To change one group, set it in `turtle.colors`:
 The groups are `keywords`, `imports`, `functions`, `data`, `show`,
 `text`, `numbers` and `theories`.
 
+To compare schemes, open
+[`testdata/colors/colors.turtle`](../../testdata/colors/colors.turtle):
+a real program with every group in it (it runs, and checks itself), and
+change the scheme while it's open.
+
 **Turtle: Restart Language Server** (in the command palette) restarts it
 after updating turtle. Messages from the server are in the Output panel,
 under Turtle.

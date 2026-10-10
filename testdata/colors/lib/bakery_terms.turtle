@@ -1,0 +1,22 @@
+// bakery_terms.turtle: a type, a theory and a helper that colors.turtle
+// imports, so imported words color too.
+
+assemble Loaf [name, grams, cents]
+
+theory per_gram
+    abstract
+        per_gram is what one gram of the loaf l costs, in cents.
+    notation per_gram of l .
+    definition
+        if ] grams of l <= 0 [
+            fail "per_gram: a loaf weighs something"
+        if [end]
+        return cents of l / grams of l
+    theorem result >= 0 || cents of l < 0
+    proof
+        per_gram of Loaf["rye", 500, 400] . is 0.8
+theory [end]
+
+def label[l]
+    return name of l + " (" + grams of l + " g)"
+def [end]

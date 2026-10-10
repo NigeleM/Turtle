@@ -2277,6 +2277,33 @@ d = json_get[map []]`, wantErr: "'json_get' expects a value and at least one key
 	}
 }
 
+// testdata/colors/colors.turtle uses every kind of word Turtle colors (it's
+// the file to look at each color scheme with), and checks its own results.
+func TestColorsProgram(t *testing.T) {
+	src, err := filepath.Abs("../testdata/colors")
+	if err != nil {
+		t.Fatal(err)
+	}
+	work := t.TempDir()
+	for _, f := range []string{"colors.turtle", "lib/bakery_terms.turtle"} {
+		data, err := os.ReadFile(filepath.Join(src, f))
+		if err != nil {
+			t.Fatal(err)
+		}
+		os.MkdirAll(filepath.Dir(filepath.Join(work, f)), 0o755)
+		if err := os.WriteFile(filepath.Join(work, f), data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	script, _ := os.ReadFile(filepath.Join(work, "colors.turtle"))
+	scriptName = "colors.turtle"
+	defer func() { scriptName = "" }()
+	out, err := runFull(t, work, string(script), "", nil)
+	if err != nil || !strings.Contains(out, "colors.turtle: 0 failures") {
+		t.Fatalf("colors.turtle failed (err %v):\n%s", err, out)
+	}
+}
+
 // testdata/shop is a whole program (main script, two modules in lib/,
 // JSON data in data/) that checks its own results; it runs in a copy so
 // the report and log it writes and erases never touch testdata.
