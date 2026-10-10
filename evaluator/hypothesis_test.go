@@ -290,7 +290,7 @@ func captureStdout(t *testing.T, f func()) string {
 
 // Theories on text, maps, sets, nested lists and assembled values are
 // proved like those on numbers, whatever the seed: a set's items and a
-// map's keys (all different) have room to be.
+// map's keys (all different) have room to be, and edges are tried.
 func TestTheoriesOfEveryKind(t *testing.T) {
 	defs := `assemble Pet [name, age]
 theory shout
@@ -356,9 +356,9 @@ theory [end]
 		src := "import data\nseed = " + strconv.Itoa(seed) + "\n" + defs +
 			"show hypothesis[shout], hypothesis[size_of], hypothesis[keysum], hypothesis[names_of], hypothesis[flat] .\n"
 		out, err := run(t, src, "")
-		// flat's theorem is false (an empty list in xs adds nothing), which
-		// most seeds find; either way it's tried without an error.
-		if err != nil || !strings.HasPrefix(out, "truetruetruetrue") {
+		// flat's theorem is false (an empty list in xs adds nothing): the
+		// edges (a list holding an empty list) find it on every seed.
+		if err != nil || out != "truetruetruetruefalse\n" {
 			t.Fatalf("seed %d: got %q, %v", seed, out, err)
 		}
 	}

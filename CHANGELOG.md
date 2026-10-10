@@ -2,6 +2,13 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## Unreleased
+
+- Theories: random inputs try edges of text, lists, sets and maps too
+  (empty ones, and ones holding a single edge), not only numbers'.
+- `turtle test` says when a theory's theorems could only be checked on its
+  proof cases.
+
 ## 0.9.186 (2026-10-10)
 
 - A function's own values are freed when it returns. A finished call used

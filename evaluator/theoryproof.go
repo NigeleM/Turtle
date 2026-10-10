@@ -108,7 +108,7 @@ func (it *Interpreter) proveTheory(fn *object.Function, seed int64) theoryProof 
 	// Then on random inputs, made like the proof cases' values.
 	inputs := theoryInputs(ts, examples, false)
 	within := theoryInputs(ts, examples, true)
-	edges := numberEdges(ts, examples)
+	edges := valueEdges(ts, examples)
 	if len(ts.Theorems) == 0 || inputs == nil {
 		return pr
 	}
@@ -124,10 +124,10 @@ func (it *Interpreter) proveTheory(fn *object.Function, seed int64) theoryProof 
 		vals := make([]object.Object, len(kinds))
 		for i, in := range kinds {
 			vals[i] = it.randomValue(in.Shape, fn.Env, rng)
-			// The first few in range try a number's edges: the proof
-			// cases' smallest and largest, and 0.
+			// The first few in range try the values' edges: a number's
+			// smallest, largest and 0, empty text, an empty list, ...
 			if n%2 == 1 && n < 2*edgeCases && len(edges[i]) > 0 {
-				vals[i] = edges[i][rng.Intn(len(edges[i]))]
+				vals[i] = deepCopy(edges[i][rng.Intn(len(edges[i]))])
 			}
 		}
 		pr.tried++
@@ -166,37 +166,126 @@ func (it *Interpreter) theoremOn(fn *object.Function, th *ast.Theorem, args []ob
 	return holds, why, true
 }
 
-// edgeCases is how many random inputs try numbers' edges.
+// edgeCases is how many random inputs try the values' edges.
 const edgeCases = 12
 
-// numberEdges are, for each value that's a number in every proof case,
-// its smallest and largest there, and 0.
-func numberEdges(ts *ast.TheoryStatement, examples [][]object.Object) [][]object.Object {
+// valueEdges are, for each value, the edges worth trying on purpose,
+// learned from the proof cases (see edgesOf); nil for a value whose
+// proof cases aren't all one kind.
+func valueEdges(ts *ast.TheoryStatement, examples [][]object.Object) [][]object.Object {
 	out := make([][]object.Object, len(ts.Slots))
 	for i := range ts.Slots {
+		vals := make([]object.Object, len(examples))
+		for k, args := range examples {
+			vals[k] = args[i]
+		}
+		out[i] = edgesOf(vals)
+	}
+	return out
+}
+
+// edgesOf are the edges of values all of one kind: for numbers the
+// smallest, the largest and 0; for text, empty text; for a list or set,
+// an empty one and ones of a single item at its items' edges (a list
+// holding an empty list); for a map, an empty one and one entry whose
+// value is at an edge.
+func edgesOf(vals []object.Object) []object.Object {
+	if len(vals) == 0 {
+		return nil
+	}
+	switch vals[0].(type) {
+	case *object.Integer, *object.Float:
 		var lo, hi object.Object
 		zero := object.Object(object.Int(0))
-		for _, args := range examples {
-			f, isInt, ok := numeric(args[i])
+		for _, v := range vals {
+			f, isInt, ok := numeric(v)
 			if !ok {
-				lo = nil
-				break
+				return nil
 			}
 			if !isInt {
 				zero = &object.Float{Value: 0}
 			}
 			if lo == nil || f < mustNumber(lo) {
-				lo = args[i]
+				lo = v
 			}
 			if hi == nil || f > mustNumber(hi) {
-				hi = args[i]
+				hi = v
 			}
 		}
-		if lo != nil {
-			out[i] = []object.Object{lo, zero, hi}
+		return []object.Object{lo, zero, hi}
+	case *object.String:
+		for _, v := range vals {
+			if _, ok := v.(*object.String); !ok {
+				return nil
+			}
 		}
+		return []object.Object{&object.String{Value: ""}}
+	case *object.List:
+		var items []object.Object
+		for _, v := range vals {
+			l, ok := v.(*object.List)
+			if !ok {
+				return nil
+			}
+			items = append(items, l.Elements...)
+		}
+		out := []object.Object{&object.List{}}
+		for _, e := range oneEach(items) {
+			out = append(out, &object.List{Elements: []object.Object{e}})
+		}
+		return out
+	case *object.Set:
+		var items []object.Object
+		for _, v := range vals {
+			st, ok := v.(*object.Set)
+			if !ok {
+				return nil
+			}
+			items = append(items, st.Elements...)
+		}
+		out := []object.Object{&object.Set{}}
+		for _, e := range oneEach(items) {
+			out = append(out, &object.Set{Elements: []object.Object{e}})
+		}
+		return out
+	case *object.Map:
+		var key object.Object
+		var values []object.Object
+		for _, v := range vals {
+			m, ok := v.(*object.Map)
+			if !ok {
+				return nil
+			}
+			for _, e := range m.Entries() {
+				if key == nil {
+					key = e.Key
+				}
+				values = append(values, e.Val)
+			}
+		}
+		out := []object.Object{object.NewMap()}
+		if key != nil {
+			for _, e := range oneEach(values) {
+				m := object.NewMap()
+				m.Put(key, e)
+				out = append(out, m)
+			}
+		}
+		return out
 	}
-	return out
+	return nil
+}
+
+// oneEach is the edges of a collection's items (at most 3), or one of the
+// items itself when they have none: what a single-item collection holds.
+func oneEach(items []object.Object) []object.Object {
+	if len(items) == 0 {
+		return nil
+	}
+	if e := edgesOf(items); len(e) > 0 {
+		return e[:min(len(e), 3)]
+	}
+	return items[:1]
 }
 
 func mustNumber(v object.Object) float64 {
@@ -386,9 +475,12 @@ func (it *Interpreter) writeTheories(out io.Writer, name string, env *object.Env
 			}
 			if len(p.theorems) > 0 {
 				summary += fmt.Sprintf(", %d %s", len(p.theorems), verbFor(len(p.theorems), "theorem holds", "theorems hold"))
-				if p.tried > 0 {
+				switch {
+				case p.tried > 0:
 					summary += fmt.Sprintf(" on %d random inputs", p.tried)
-				} else {
+				case len(p.cases) > 0:
+					summary += " on the proof cases only (no random inputs: a value's proof cases aren't all one kind)"
+				default:
 					summary += " on the proof cases"
 				}
 			}

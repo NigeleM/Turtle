@@ -598,14 +598,17 @@ FAILED: 1 passed, 0 failed, 3 theories proven, 1 theory failed, 1 warning (1 fil
   random inputs made like their values (an `Item` with text and two whole
   numbers, ...). Half the numbers reach past the largest in the proof
   cases, on both sides of 0; the other half stay between the proof
-  cases' smallest and largest (and 0), starting with those edges
-  themselves. Proof cases are where to put the edges a theory must get
-  right (an empty list, empty text, one item): they're checked every run. A theory that doesn't take negative numbers says so in
-  its definition (`fail "a quantity can't be negative"`), and an input it
-  refuses doesn't count against a theorem. The definition may refuse an input with `fail`; that
-  input then doesn't count against a theorem. When a theorem breaks, the
-  report shows the smallest input that breaks it and the seed to repeat
-  the run (`seed = 7` sets it).
+  cases' smallest and largest (and 0). The first of those try edges on
+  purpose: a number's smallest, largest and 0; empty text; an empty
+  list, set or map, and one holding a single edge (a list holding an
+  empty list). Edges you write in the proof are checked on every run.
+- When a value's proof cases aren't all one kind, there are no random
+  inputs, and `turtle test` says the theorems held "on the proof cases
+  only".
+- The definition may refuse an input with `fail` (`fail "a quantity
+  can't be negative"`); that input then doesn't count against a theorem.
+  When a theorem breaks, the report shows the smallest input that breaks
+  it and the seed to repeat the run (`seed = 7` sets it).
 - A theory with **no proof**, or whose **abstract doesn't name its
   word**, gets a warning; warnings don't fail the run.
 - `diagnose[discount]` shows the same checks for one theory, anywhere.
