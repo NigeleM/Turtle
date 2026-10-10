@@ -3575,3 +3575,68 @@ func TestDocCommentsInsideFunctions(t *testing.T) {
 		t.Errorf("bare: %s", text)
 	}
 }
+
+// A file statement's path can be any expression that builds one, as well
+// as a quoted string, a variable or a bare name.
+func TestFilePathsAreExpressions(t *testing.T) {
+	dir := t.TempDir()
+	src := `folder = "out"
+name = "day"
+names = list ["a.txt"]
+assemble Doc [path]
+d = Doc["out/doc.txt"]
+def file_for[n]
+    return folder + "/" + n + ".log"
+def [end]
+[write] folder + "/" + name + ".txt"
+"one"
+[end]
+[append] folder + "/" + name + ".txt"
+"two"
+[end]
+[read] folder + "/" + name + ".txt" to a [end]
+[write] folder + "/" + names at get[0]
+"at"
+[end]
+[read] folder + "/" + names at get[0] to b [end]
+[write] path of d
+"of"
+[end]
+[read] path of d to c [end]
+[write] file_for["x"]
+"call"
+[end]
+[read] file_for["x"] to e [end]
+[write] notes.txt
+"bare"
+[end]
+[read] notes.txt to f [end]
+[directory] folder + "/" to g [end]
+show a, b, c, e, f, g .`
+	if err := os.MkdirAll(filepath.Join(dir, "out"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	got, err := runIn(t, dir, src, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `[ "one", "two" ][ "at" ][ "of" ][ "call" ][ "bare" ][ "a.txt", "day.txt", "doc.txt", "x.log" ]`
+	if strings.TrimSpace(got) != want {
+		t.Errorf("got  %s\nwant %s", got, want)
+	}
+}
+
+func TestMakeDateForms(t *testing.T) {
+	src := `import time
+show make_date[2026, 10, 9], "|", make_date[2026, 10, 9, 6, 30], "|", make_date[2026, 10, 9, 6, 30, 15], "|", make_date[2026, 10, 9, 6, 30, "UTC"] .`
+	got, err := run(t, src, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.TrimSpace(got) != "2026-10-09 00:00:00|2026-10-09 06:30:00|2026-10-09 06:30:15|2026-10-09 06:30:00 UTC" {
+		t.Errorf("got %s", got)
+	}
+	if _, err := run(t, "import time\nx = make_date[2026, 10, 9, 6]", ""); err == nil || !strings.Contains(err.Error(), "5 (and hour, minute)") {
+		t.Errorf("4 values: %v", err)
+	}
+}

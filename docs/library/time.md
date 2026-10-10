@@ -14,7 +14,7 @@ The clock, dates and time zones, date arithmetic and formatting, and waiting or 
 | `today[]` or `today[zone]` | optional time zone | the date and time now, in local time or in that zone |
 | `today_utc[]` | — | the same moment, shown in UTC (`today["UTC"]`) |
 | `to_zone[date, zone]` | date, time zone | the same moment on that zone's clock |
-| `make_date[y, m, d]` or `[y, m, d, h, mi, s]` | whole numbers, and optionally a time zone last | that date and time, local or in the zone; one that doesn't exist (Feb 30) is a `date` error |
+| `make_date[y, m, d]`, `[y, m, d, h, mi]` or `[y, m, d, h, mi, s]` | whole numbers, and optionally a time zone last | that date and time, local or in the zone; one that doesn't exist (Feb 30) is a `date` error |
 | `to_date[text [, zone]]` | `"YYYY-MM-DD"`, optionally with ` hh:mm` or ` hh:mm:ss`, or ISO 8601 (`2026-10-03T14:05:00Z`, `...-04:00`); optionally the zone for text that names none | the date; other text is a `date` error |
 | `add_time[date, amount, unit]` | date, whole number, unit | a new date; a negative amount goes back |
 | `time_between[a, b, unit]` | two dates, unit | how many whole units from `a` to `b` (negative if `b` is earlier) |

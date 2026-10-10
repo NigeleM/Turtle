@@ -321,6 +321,7 @@ check["add a month clamps", add_time[start_day, 1, "months"], make_date[2026, 2,
 check["days between", time_between[start_day, due_day, "days"], 30]
 check["date part", weekday of start_day, "Saturday"]
 check["format", format_date[due_day, "DD/MM/YYYY"], "02/03/2026"]
+check["make_date with minutes", format_date[make_date[2026, 1, 31, 9, 45], "hh:mm"], "09:45"]
 check["compare dates", today[] > start_day, true]
 show "dates ok" .
 
@@ -361,6 +362,13 @@ out = "everything_out.txt"
 [end]
 [read] out to lines [end]
 check["file round trip", lines, list ["first", "second"]]
+part = "everything_out"
+[write] part + "_built.txt"
+"built path"
+[end]
+[read] part + "_built.txt" to built [end]
+check["path from an expression", built, list ["built path"]]
+erase[part + "_built.txt"]
 check["exists", out exists, true]
 check["isfile", isfile[out], true]
 check["contents", contents[] at find["everything.turtle"], true]

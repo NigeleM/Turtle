@@ -203,9 +203,16 @@ type fatalError struct {
 	// the main script, no safe block handles it.
 	parse bool
 	// steps is what each step did, for an error inside a scroll (for
-	// diagnose[e]); scrolled is set once the message names the step.
+	// diagnose[e]); scrolled is set once the message names the step, and
+	// scrollAt is that step's number ("2.2"), so each scroll around it
+	// adds where it sits.
 	steps    *object.List
 	scrolled bool
+	scrollAt string
+	// scrollWhere and scrollBase are the message's two halves, "scroll step
+	// 2 of 2 (b), in step 1 of 1 (s)" and "division by zero"; none for a
+	// scroll's own error, which outer steps add to at the end.
+	scrollWhere, scrollBase string
 }
 
 func (e fatalError) Error() string { return e.msg }

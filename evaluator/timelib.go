@@ -122,14 +122,18 @@ func asUnitArg(fn string, obj object.Object) string {
 // makeDate is make_date[year, month, day] or [year, month, day, hour,
 // minute, second], in local time, or with a time zone last. A date that
 // doesn't exist is an error, not quietly moved to the next month.
+// makeDate is make_date[year, month, day], with hour and minute, or hour,
+// minute and second, after them, and a time zone (text) last if wanted.
 func makeDate(args []object.Object) object.Object {
 	loc := time.Local
-	if n := len(args); n == 4 || n == 7 {
-		loc = zoneArg("make_date", args[n-1])
-		args = args[:n-1]
+	if n := len(args); n > 0 {
+		if _, isText := args[n-1].(*object.String); isText {
+			loc = zoneArg("make_date", args[n-1])
+			args = args[:n-1]
+		}
 	}
-	if len(args) != 3 && len(args) != 6 {
-		fatalf("'make_date' expects 3 arguments (year, month, day) or 6 (and hour, minute, second), and optionally a time zone last, got %d", len(args))
+	if len(args) != 3 && len(args) != 5 && len(args) != 6 {
+		fatalf("'make_date' expects 3 arguments (year, month, day), 5 (and hour, minute) or 6 (and second), and optionally a time zone last, got %d", len(args))
 	}
 	names := []string{"year", "month", "day", "hour", "minute", "second"}
 	v := make([]int, 6)

@@ -2,6 +2,16 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## Unreleased
+
+- `[read]`, `[write]`, `[append]` and `[directory]` take any expression
+  for the path: `[read] folder + "/" + name + ".txt" to lines [end]`.
+- `make_date` also takes year, month, day, hour and minute.
+- `diagnose` shows each step's value as it was then, with what's inside.
+- A failed step in a saved scroll says which step it sits in.
+- `turtle fmt` keeps maps and lists written over several lines indented,
+  and a one-line scroll inside brackets no longer indents what follows.
+
 ## 0.9.178 (2026-10-09)
 
 - Linux: downloads for ARM too, and a `.tar.gz` for any Linux. The `.deb`

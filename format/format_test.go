@@ -152,3 +152,25 @@ func TestFormatMatrix(t *testing.T) {
 		t.Errorf("got\n%s\nwant\n%s", got, want)
 	}
 }
+
+// Maps, lists and calls left open over several lines: what's inside goes
+// one step in, whatever the bracket, and however many open on one line.
+func TestFormatOpenBrackets(t *testing.T) {
+	src := "routes = map [\n\"GET /\": home,\n\"nested\": map [\n\"a\": 1\n],\n\"GET /health\": \"ok\"\n]\n" +
+		"def f[]\nrows = list [\n1, 2,\n3]\nx = sum[list [\n1, 2\n]]\nreturn x\ndef [end]\n"
+	want := "routes = map [\n    \"GET /\": home,\n    \"nested\": map [\n        \"a\": 1\n    ],\n    \"GET /health\": \"ok\"\n]\n" +
+		"def f[]\n    rows = list [\n        1, 2,\n        3]\n    x = sum[list [\n        1, 2\n    ]]\n    return x\ndef [end]\n"
+	got, err := Format(src)
+	if err != nil || got != want {
+		t.Errorf("got %q, %v\nwant %q", got, err, want)
+	}
+}
+
+// A scroll finished on its own line, inside brackets, isn't one going on
+// to the next lines.
+func TestFormatScrollOnOneLine(t *testing.T) {
+	src := "res = diagnose[scroll 3 into add1, here * 2 .]\nshow res .\n"
+	if got, err := Format(src); err != nil || got != src {
+		t.Errorf("got %q, %v", got, err)
+	}
+}

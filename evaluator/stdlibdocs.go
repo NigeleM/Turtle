@@ -268,12 +268,13 @@ moments, whatever their zones.
   Gives back: a date.
 
 ### make_date[year, month, day, hour, minute, second, zone]
-  A date from its parts. Hour, minute and second are optional (all three,
-  or none); a time zone can go last. A date that doesn't exist, like
+  A date from its parts. Hour and minute, or hour, minute and second, are
+  optional; a time zone can go last. A date that doesn't exist, like
   February 30, is a date error.
   Gives back: a date, in local time or in the zone.
   Example:
     d = make_date[2026, 12, 25]
+    d = make_date[2026, 12, 25, 9, 30]
     d = make_date[2026, 12, 25, 9, 0, 0, "Europe/London"]
 
 ### to_date[text, zone]

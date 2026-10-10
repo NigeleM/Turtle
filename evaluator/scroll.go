@@ -44,6 +44,10 @@ type stepRecord struct {
 type scrollRun struct {
 	records []stepRecord
 	from    string // what made the value the next step gets: "the start", or a step's number
+	// snapshot keeps a copy of each step's value as it returned, for
+	// diagnose: a later step that changes a list or map in place would
+	// otherwise change what an earlier step shows.
+	snapshot bool
 }
 
 const (
@@ -97,6 +101,9 @@ func (it *Interpreter) runSteps(run *scrollRun, steps []*ast.ScrollStep, env *ob
 		value = it.runStep(run, st, env, value, num, len(steps), depth, at, steps[i+1:])
 		run.from = "step " + num
 		run.records[at].status, run.records[at].value = stepReturned, value
+		if run.snapshot {
+			run.records[at].value = deepCopy(value)
+		}
 		if _, none := value.(*object.None); none {
 			run.records[at].status = stepNone
 		}
@@ -127,11 +134,27 @@ func (it *Interpreter) runStep(run *scrollRun, st *ast.ScrollStep, env *object.E
 			prefix = num[:i+1]
 		}
 		run.notReached(rest, prefix, count-len(rest)+1, depth)
-		if !fe.scrolled {
-			fe.text = fmt.Sprintf("scroll step %s of %d (%s): %s", num, count, st.Label, fe.text)
-			fe.scrolled = true
-			fe.msg = place(fe.file, fe.line) + fe.text
+		last := num[len(prefix):]
+		switch {
+		case !fe.scrolled:
+			fe.scrollWhere = fmt.Sprintf("scroll step %s of %d (%s)", last, count, st.Label)
+			fe.scrollBase = fe.text
+			fe.text = fe.scrollWhere + ": " + fe.scrollBase
+			fe.scrolled, fe.scrollAt = true, num
+		case fe.scrollAt == "":
+			fe.scrollAt = num // scrollFail named this step already
+		case strings.HasPrefix(fe.scrollAt, num+"."):
+			// A step of a saved scroll failed: say which step it sits in.
+			in := fmt.Sprintf(", in step %s of %d (%s)", last, count, st.Label)
+			if fe.scrollWhere != "" {
+				fe.scrollWhere += in
+				fe.text = fe.scrollWhere + ": " + fe.scrollBase
+			} else {
+				fe.text += in
+			}
+			fe.scrollAt = num
 		}
+		fe.msg = place(fe.file, fe.line) + fe.text
 		panic(fe)
 	}()
 
@@ -150,14 +173,14 @@ func (it *Interpreter) runStep(run *scrollRun, st *ast.ScrollStep, env *object.E
 				return it.applyStepValue(run, v, st, value, num, depth)
 			}
 			if _, def := env.GetFunction(call.Name); !def {
-				scrollFail("scroll step %s (%s) is %s, not a function or scroll", num, st.Label, aValue(v))
+				scrollFail("scroll step %s (%s) is %s, not a function or scroll", lastStep(num), st.Label, aValue(v))
 			}
 		}
 	}
 	if call.Module == "" && len(call.Arguments) == 0 {
 		if fn, ok := env.GetFunction(call.Name); ok && fn.Shape == nil && len(fn.Parameters) != 1 {
 			if _, isVar := env.Get(call.Name); !isVar {
-				scrollFail("scroll step %s (%s) is a function of %d values; a step gets one (the value): write it with brackets and here, like %s[here, ...]", num, st.Label, len(fn.Parameters), call.Name)
+				scrollFail("scroll step %s (%s) is a function of %d values; a step gets one (the value): write it with brackets and here, like %s[here, ...]", lastStep(num), st.Label, len(fn.Parameters), call.Name)
 			}
 		}
 	}
@@ -308,15 +331,21 @@ func briefValue(v object.Object) string {
 		}
 		return fmt.Sprintf("%q... (%d characters)", string(r), n)
 	case *object.List:
-		return fmt.Sprintf("list of %d", len(x.Elements))
+		return fmt.Sprintf("list of %d: %s", len(x.Elements), preview(x))
 	case *object.Set:
-		return fmt.Sprintf("set of %d", len(x.Elements))
+		return fmt.Sprintf("set of %d: %s", len(x.Elements), preview(x))
 	case *object.Map:
-		return fmt.Sprintf("map of %d", x.Len())
+		return fmt.Sprintf("map of %d: %s", x.Len(), preview(x))
 	}
-	s := v.Inspect()
-	if r := []rune(s); len(r) > 50 {
-		s = string(r[:47]) + "..."
+	return preview(v)
+}
+
+// preview is a value as it shows, on one line, cut short past 60
+// characters.
+func preview(v object.Object) string {
+	s := strings.Join(strings.Fields(v.Inspect()), " ")
+	if r := []rune(s); len(r) > 60 {
+		s = string(r[:57]) + "..."
 	}
 	return s
 }
@@ -481,18 +510,19 @@ func scrollShown(fn *object.Function) string {
 // result, or the error.
 func (it *Interpreter) diagnoseScroll(heading string, steps []*ast.ScrollStep, env *object.Environment, value object.Object) (result object.Object) {
 	heading = fmt.Sprintf("%s (line %d)", heading, currentLine)
-	run := &scrollRun{from: "the start"}
+	run := &scrollRun{from: "the start", snapshot: true}
+	start := deepCopy(value) // as it was, before any step changes it
 	defer func() {
 		if r := recover(); r != nil {
 			fe, ok := r.(fatalError)
 			if !ok || fe.parse {
 				panic(r)
 			}
-			fmt.Println(run.report(heading, value, nil, false))
+			fmt.Println(run.report(heading, start, nil, false))
 			result = it.errorValue(fe)
 			return
 		}
-		fmt.Println(run.report(heading, value, result, true))
+		fmt.Println(run.report(heading, start, result, true))
 	}()
 	return it.runScroll(run, steps, env, value)
 }
@@ -526,6 +556,11 @@ func (it *Interpreter) diagnoseCall(name string, args []object.Object, call func
 		fmt.Println(b.String())
 	}()
 	return call()
+}
+
+// lastStep is a step's own number: "2" in "1.2".
+func lastStep(num string) string {
+	return num[strings.LastIndex(num, ".")+1:]
 }
 
 // scrollFail stops the program with a scroll's own error (kind scroll),

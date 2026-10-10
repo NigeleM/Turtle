@@ -69,7 +69,7 @@ func Format(src string) (string, error) {
 		}
 	}
 
-	var stack []string // the blocks open: def, if, nestedif, loop, safe, give, block, scroll
+	var stack []string // the blocks open: def, if, nestedif, loop, safe, give, block, scroll, bracket
 	var out []string
 	blank := 0
 	for i, line := range lines {
@@ -173,29 +173,32 @@ func lineDepth(t []token.Token, stack []string) (int, []string, error) {
 		}
 		return len(stack), stack, nil
 	}
-	// A matrix over several lines: its rows one step in, its closing ]
-	// back at the depth of the line that opened it.
-	//     m = matrix [
-	//         1, 2
-	//         3, 4
+	// Brackets left open over several lines (a map, a list, a matrix, a
+	// call's values): what's inside goes one step in, and a line starting
+	// with the closing ] goes back to the depth of the line that opened it.
+	//     routes = map [
+	//         "GET /": home,
+	//         "GET /health": "ok"
 	//     ]
-	if len(stack) > 0 && stack[len(stack)-1] == "matrix" {
-		if bracketBalance(t) < 0 {
-			if t[0].Type == token.RBRACKET {
-				return len(stack) - 1, stack[:len(stack)-1], nil
-			}
-			return len(stack), stack[:len(stack)-1], nil
+	// A line opening more than one ([list [ ...) goes one step in, not two:
+	// the brackets after the first are "bracket+", which add no depth.
+	if len(stack) > 0 && strings.HasPrefix(stack[len(stack)-1], "bracket") {
+		depth := visibleDepth(stack)
+		if t[0].Type == token.RBRACKET {
+			depth--
 		}
-		return len(stack), stack, nil
-	}
-	for i := 0; i+1 < len(t); i++ {
-		if t[i].Type == token.IDENT && t[i].Literal == "matrix" && t[i+1].Type == token.LBRACKET && bracketBalance(t[i+1:]) > 0 {
-			return len(stack), append(append([]string{}, stack...), "matrix"), nil
+		next := append([]string{}, stack...)
+		n := bracketBalance(t)
+		for ; n < 0 && len(next) > 0 && strings.HasPrefix(next[len(next)-1], "bracket"); n++ {
+			next = next[:len(next)-1]
 		}
+		return depth, openBrackets(next, n), nil
 	}
+	// A scroll goes on to the next lines only if its period isn't on this
+	// one: diagnose[scroll 3 into add1 .] is whole.
 	if last.Type != token.PERIOD && last.Type != token.GIVES {
-		for _, tok := range t {
-			if tok.Type == token.SCROLL {
+		for i, tok := range t {
+			if tok.Type == token.SCROLL && !hasPeriod(t[i+1:]) {
 				return len(stack), append(append([]string{}, stack...), "scroll"), nil
 			}
 		}
@@ -244,7 +247,42 @@ func lineDepth(t []token.Token, stack []string) (int, []string, error) {
 	case last.Type == token.GIVES:
 		return open("give")
 	}
+	if n := bracketBalance(t); n > 0 {
+		return len(stack), openBrackets(append([]string{}, stack...), n), nil
+	}
 	return len(stack), stack, nil
+}
+
+func hasPeriod(t []token.Token) bool {
+	for _, tok := range t {
+		if tok.Type == token.PERIOD {
+			return true
+		}
+	}
+	return false
+}
+
+// openBrackets adds n brackets left open by one line: one step of depth.
+func openBrackets(stack []string, n int) []string {
+	for i := 0; i < n; i++ {
+		if i == 0 {
+			stack = append(stack, "bracket")
+		} else {
+			stack = append(stack, "bracket+")
+		}
+	}
+	return stack
+}
+
+// visibleDepth is how many steps in the blocks open put a line.
+func visibleDepth(stack []string) int {
+	n := 0
+	for _, s := range stack {
+		if s != "bracket+" {
+			n++
+		}
+	}
+	return n
 }
 
 // popNested drops the nested ifs ([if ] ...) above the nearest block of

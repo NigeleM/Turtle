@@ -88,8 +88,10 @@ func TestScrollErrors(t *testing.T) {
 		{"x is scroll 3 into between .", "scroll", "a function of 3 values"},
 		{"s = scroll add1 .\nt = scroll s, add1 .\ns = scroll t .\nx is scroll 1 into s .", "scroll", "contains itself"},
 		{"x is scroll 1 into nothing_here .", "name", `undefined function "nothing_here"`},
-		// Inside a saved scroll used as a step: the inner step's number.
-		{"s = scroll add1, here / 0 .\nx is scroll 1 into double, s .", "math", "scroll step 2.2 of 2 (here / 0): division by zero"},
+		// Inside a saved scroll used as a step: the step, and the step it's in.
+		{"s = scroll add1, here / 0 .\nx is scroll 1 into double, s .", "math", "scroll step 2 of 2 (here / 0), in step 2 of 2 (s): division by zero"},
+		{"s = scroll add1, here / 0 .\nt = scroll s .\nx is scroll 1 into double, t .", "math", "scroll step 2 of 2 (here / 0), in step 1 of 1 (s), in step 2 of 2 (t): division by zero"},
+		{"total = 5\ns = scroll add1, total .\nx is scroll 1 into s .", "scroll", "scroll step 2 (total) is a number, not a function or scroll, in step 1 of 1 (s)"},
 	}
 	for _, c := range cases {
 		src := scrollDefs + "safe\n    " + strings.ReplaceAll(c.src, "\n", "\n    ") + "\nhandle [] e .\n    show kind of e, \"|\", message of e .\nsafe [end]"
@@ -378,5 +380,43 @@ func TestSortExact(t *testing.T) {
 	want := "[ 3, 9007199254740992, 9007199254740993 ]\n[ \"Apple\", \"apple\", \"pear\" ]\n[ 1, 1.5, 2 ]\n"
 	if err != nil || got != want {
 		t.Errorf("got %q, %v", got, err)
+	}
+}
+
+// diagnose shows each step's value as it was when the step returned, even
+// when a later step changes the same map or list in place, and shows what
+// is inside.
+func TestDiagnoseShowsEachStepAsItWas(t *testing.T) {
+	src := `def add_fee[m]
+    m at add "fee", 50 .
+    return m
+def [end]
+def add_tax[m]
+    m at add "tax", 8 .
+    return m
+def [end]
+price = scroll add_fee, add_tax .
+bill = map ["total": 100]
+done is diagnose[price, bill] .
+nums = list [3, 1, 2]
+def sorted_copy[xs]
+    xs at sort
+    return xs
+def [end]
+x is diagnose[sorted_copy, nums] .`
+	got, err := run(t, src, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"start       map of 1: { \"total\": 100 }",
+		"1 add_fee → returned map of 2: { \"total\": 100, \"fee\": 50 }",
+		"2 add_tax → returned map of 3: { \"total\": 100, \"fee\": 50, \"tax\": 8 }",
+		"given     list of 3: [ 3, 1, 2 ]",
+		"returned  list of 3: [ 1, 2, 3 ]",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %q in:\n%s", want, got)
+		}
 	}
 }

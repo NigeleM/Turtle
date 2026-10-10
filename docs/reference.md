@@ -894,11 +894,16 @@ diagnose s (line 2)
 
 **Each line** is a step's number (`2`, or `2.1` for a step inside a
 saved scroll used as step 2), the step as written, and what it did:
-- `→ returned` and the value, shortened (`list of 3`, `"text"... (82 characters)`);
+- `→ returned` and the value as it was when that step returned, even if a
+  later step changes the same list or map: its size and what's in it,
+  cut short past 60 characters (`map of 2: { "total": 100, "fee": 50 }`,
+  `"text"... (82 characters)`);
 - `→ returned nothing (none)   is none expected!?`: a `none` went on to the next step.
   Was it meant? If not, that step is where to look (a forgotten
   `return`, nothing found);
-- `✗ failed:` and the error: the scroll ended here. When the step was
+- `✗ failed:` and the error: the scroll ended here. A step inside a saved
+  scroll says where it sits: `scroll step 2 of 2 (here / 0), in step 1
+  of 1 (s)`. When the step was
   given `none`, a line under it says where that came from:
   `(it was given none, from step 2)`, or `from the start`;
 - `not reached`: the steps after a failure.
@@ -1250,10 +1255,23 @@ give back the list.
 [directory] <path> to <ident> [end]
 ```
 
-`<path>` is a quoted string or a bareword like `file.txt` / `data/in.csv`.
-A bareword that's a single name with no `.` or `/` (`[read] name to
-lines`) uses the variable of that name if one exists, so a path from
-`args[]` or built at runtime works; otherwise it's that literal filename.
+`<path>` is any of:
+
+- an expression that builds it: `folder + "/" + name + ".txt"`,
+  `names at get[0]`, `path of doc`, `file_for[id]` (a word or string
+  followed by `+`, `[`, `at` or `of`)
+- a quoted string, with values inside it: `"{folder}/{name}.txt"`
+- a variable: `[read] name to lines` uses the variable `name` if there is
+  one, else the file called `name`
+- a bareword like `file.txt` or `data/in-1.csv`, the file of that name
+
+```
+[read] folder + "/" + day + ".csv" to rows [end]
+[write] receipts at get[0]
+"paid"
+[end]
+```
+
 Relative paths resolve from the folder `turtle` was run in (see
 [the `system` docs](library/system.md)).
 `[write]`/`[append]` body lines are one item each: a quoted string is

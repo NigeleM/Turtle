@@ -1370,12 +1370,17 @@ func (p *Parser) parsePostClause() ast.Statement {
 
 // ---- files --------------------------------------------------------------
 
-// parsePathExpression parses a file path starting at curToken: either a
-// quoted string, or a bareword like "file.txt" / "data/in.csv"
-// reconstructed from the IDENT/PERIOD/SLASH/MINUS/INT tokens the lexer
-// split it into (or just "." on its own, for [directory]).
+// parsePathExpression parses a file path starting at curToken: any
+// expression that builds one (folder + "/" + name + ".txt", names at
+// get[0], a call), a quoted string, a variable, or a bareword like
+// "file.txt" / "data/in.csv" reconstructed from the IDENT/PERIOD/SLASH/
+// MINUS/INT tokens the lexer split it into (or just "." on its own, for
+// [directory]).
 func (p *Parser) parsePathExpression() ast.Expression {
 	tok := p.curToken
+	if p.pathIsExpression() {
+		return p.parseExpression(LOWEST)
+	}
 	if p.curTokenIs(token.STRING) {
 		return p.stringExpression(tok)
 	}
@@ -1398,6 +1403,23 @@ func (p *Parser) parsePathExpression() ast.Expression {
 		}
 	}
 	return &ast.StringLiteral{Token: tok, Value: sb.String()}
+}
+
+// pathIsExpression reports whether the path at curToken is an expression:
+// a word or string followed, on its line, by +, [, at or of. Anything else
+// reads as before, so data/out-1.csv is still a file name, not a sum.
+func (p *Parser) pathIsExpression() bool {
+	if !p.curTokenIs(token.IDENT) && !p.curTokenIs(token.STRING) && !p.curTokenIs(token.RAWSTRING) {
+		return false
+	}
+	if p.peekToken.Line != p.curToken.Line {
+		return false
+	}
+	switch p.peekToken.Type {
+	case token.PLUS, token.LBRACKET, token.AT, token.OF:
+		return true
+	}
+	return false
 }
 
 func (p *Parser) parseFileReadStatement() ast.Statement {
