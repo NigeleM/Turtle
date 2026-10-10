@@ -515,18 +515,18 @@ func (it *Interpreter) evalDiagnose(ce *ast.CallExpression, env *object.Environm
 				args[i] = it.evalExpression(a, env)
 			}
 			call := &ast.CallExpression{Token: ce.Token, Module: id.Module, Name: id.Value}
-			return it.diagnoseCall(id.Value, args, func() object.Object { return it.applyCall(call, args, env) })
+			return it.diagnoseCall(env, id.Value, args, func() object.Object { return it.applyCall(call, args, env) })
 		}
 	}
 	args := make([]object.Object, len(ce.Arguments))
 	for i, a := range ce.Arguments {
 		args[i] = it.evalExpression(a, env)
 	}
-	return it.diagnoseValues(args)
+	return it.diagnoseValues(env, args)
 }
 
 // diagnoseValues is diagnose on values already worked out.
-func (it *Interpreter) diagnoseValues(args []object.Object) object.Object {
+func (it *Interpreter) diagnoseValues(env *object.Environment, args []object.Object) object.Object {
 	if len(args) == 0 {
 		fatalf("diagnose needs a scroll and a value, a scroll written in it, a function and its values, or an error")
 	}
@@ -550,11 +550,11 @@ func (it *Interpreter) diagnoseValues(args []object.Object) object.Object {
 			}
 			out += "\n" + strings.SplitN(run.report("", nil, nil, false), "\n", 3)[2]
 		}
-		it.showReport(nil, out)
+		it.showReport(env, out)
 		return v
 	case *object.Function:
 		if v.Theory != nil && len(args) == 1 {
-			it.showReport(nil, it.proveTheory(v, theorySeed(it.Global)).report())
+			it.showReport(env, it.proveTheory(v, theorySeed(it.Global)).report())
 			return v
 		}
 		if v.Scroll != nil {
@@ -567,7 +567,7 @@ func (it *Interpreter) diagnoseValues(args []object.Object) object.Object {
 		if name == "" {
 			name = "function"
 		}
-		return it.diagnoseCall(name, args[1:], func() object.Object { return it.callFunction(v, name, args[1:]) })
+		return it.diagnoseCall(env, name, args[1:], func() object.Object { return it.callFunction(v, name, args[1:]) })
 	}
 	fatalf("diagnose needs a scroll, a function or an error, got %s", aValue(args[0]))
 	return nil
@@ -606,7 +606,7 @@ func (it *Interpreter) diagnoseScroll(heading string, steps []*ast.ScrollStep, e
 
 // diagnoseCall runs a function, then shows what it was given, what it
 // gave back, and how long it took.
-func (it *Interpreter) diagnoseCall(name string, args []object.Object, call func() object.Object) (result object.Object) {
+func (it *Interpreter) diagnoseCall(env *object.Environment, name string, args []object.Object, call func() object.Object) (result object.Object) {
 	var b strings.Builder
 	fmt.Fprintf(&b, "diagnose %s (line %d)\n", name, currentLine)
 	for i, a := range args {
@@ -625,12 +625,12 @@ func (it *Interpreter) diagnoseCall(name string, args []object.Object, call func
 				panic(r)
 			}
 			fmt.Fprintf(&b, "  %-9s ✗ %s error: %s\n%s", "failed", fe.kind, fe.text, took)
-			it.showReport(nil, b.String())
+			it.showReport(env, b.String())
 			result = it.errorValue(fe)
 			return
 		}
 		fmt.Fprintf(&b, "  %-9s %s\n%s", "returned", briefValue(result), took)
-		it.showReport(nil, b.String())
+		it.showReport(env, b.String())
 	}()
 	return call()
 }

@@ -131,7 +131,10 @@ func (it *Interpreter) proveTheory(fn *object.Function, seed int64) theoryProof 
 			}
 		}
 		pr.tried++
-		if it.protect(func() { it.callFunction(fn, ts.Name, copies(vals)) }) != nil {
+		// The theory runs once on the input; each theorem is checked on
+		// that one result.
+		var result object.Object
+		if it.protect(func() { result = it.callFunction(fn, ts.Name, copies(vals)) }) != nil {
 			pr.refused++ // an input it doesn't take is no counterexample
 			continue
 		}
@@ -139,16 +142,16 @@ func (it *Interpreter) proveTheory(fn *object.Function, seed int64) theoryProof 
 			if !pr.theorems[k].holds {
 				continue
 			}
+			if holds, _ := it.checkTheorem(th, theoremEnv(fn, vals, result)); holds {
+				continue
+			}
 			fails := func(try []object.Object) bool {
 				holds, _, ran := it.theoremOn(fn, th, try)
 				return ran && !holds
 			}
-			if !fails(vals) {
-				continue
-			}
-			vals = it.shrink(inputs, vals, fn.Env, fails)
-			_, why, _ := it.theoremOn(fn, th, vals)
-			pr.theorems[k].holds, pr.theorems[k].why = false, "on "+describeArgs(ts, vals)+": "+why
+			smallest := it.shrink(inputs, vals, fn.Env, fails)
+			_, why, _ := it.theoremOn(fn, th, smallest)
+			pr.theorems[k].holds, pr.theorems[k].why = false, "on "+describeArgs(ts, smallest)+": "+why
 		}
 	}
 	return pr

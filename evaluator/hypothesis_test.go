@@ -363,3 +363,48 @@ theory [end]
 		}
 	}
 }
+
+// A theory runs once per random input, its theorems all checked on that
+// one result: the proof case plus 100 inputs is 101 runs.
+func TestTheoryRunsOncePerInput(t *testing.T) {
+	src := `theory twice
+    abstract
+        twice doubles n.
+    notation twice n .
+    definition
+        show "ran" .
+        return n * 2
+    theorem result == n + n
+    theorem result * 2 == n * 4
+    proof
+        twice 2 . is 4
+theory [end]
+x = hypothesis[twice]
+show x .`
+	out, err := run(t, src, "")
+	if err != nil || strings.Count(out, "ran\n") != 101 || !strings.HasSuffix(out, "true\n") {
+		t.Errorf("want 101 runs, got %d (%v):\n%s", strings.Count(out, "ran\n"), err, out[max(0, len(out)-200):])
+	}
+}
+
+// reportfile set inside a function counts for the reports made there.
+func TestReportFileInAFunction(t *testing.T) {
+	dir := t.TempDir()
+	src := `def double[n]
+    return n * 2
+def [end]
+def check_it[]
+    reportfile = "inside.txt"
+    d is diagnose[double, 4] .
+    s = scroll double .
+    e is s diagnose 5 .
+def [end]
+check_it[]`
+	if _, err := runIn(t, dir, src, ""); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "inside.txt"))
+	if err != nil || !strings.Contains(string(data), "diagnose double") || !strings.Contains(string(data), "diagnose s") {
+		t.Errorf("want both reports in the file, got %q, %v", data, err)
+	}
+}

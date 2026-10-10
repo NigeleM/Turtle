@@ -646,7 +646,7 @@ func (it *Interpreter) callByName(name string, args []object.Object, env *object
 		return it.callImported(im, name, args, env)
 	}
 	if name == "diagnose" { // core: "s diagnose 3"
-		return it.diagnoseValues(args)
+		return it.diagnoseValues(env, args)
 	}
 	if name == "typeof" { // core: no import
 		requireFuncArgs(name, args, 1)

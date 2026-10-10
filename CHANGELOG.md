@@ -2,6 +2,13 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## Unreleased
+
+- Theories: each random input runs the theory once, with every theorem
+  checked on that result (it ran once more per theorem: three times as
+  often for two theorems).
+- `reportfile` set inside a function counts for `diagnose[...]` there.
+
 ## 0.9.187 (2026-10-10)
 
 - Theories: random inputs try edges of text, lists, sets and maps too
