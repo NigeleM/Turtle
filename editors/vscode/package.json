@@ -2,7 +2,7 @@
   "name": "turtle",
   "displayName": "Turtle",
   "description": "The Turtle programming language: run files, colors, errors as you type, completion, hover help and go to definition (through turtle lsp).",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "publisher": "turtle-lang",
   "license": "Apache-2.0",
   "repository": {
