@@ -461,3 +461,25 @@ func TestTheorySlots(t *testing.T) {
 		}
 	}
 }
+
+// An imported file is read for its theories only when it has some, and
+// only once for the same text.
+func TestOwnTheoriesAreReadOnce(t *testing.T) {
+	reads := 0
+	reader := func(src string) func() *Parser {
+		return func() *Parser { reads++; return New(lexer.New(src)) }
+	}
+	plain := "def f[n]\n    return n\ndef [end]\n"
+	if specs := ownTheories(plain, reader(plain)); specs != nil || reads != 0 {
+		t.Errorf("a file with no theories was read (%d)", reads)
+	}
+	src := "theory twice\n    abstract\n        twice doubles n.\n    notation twice n .\n    definition\n        return n * 2\ntheory [end]\n"
+	for i := 0; i < 3; i++ {
+		if specs := ownTheories(src, reader(src)); len(specs) != 1 || specs[0].name != "twice" {
+			t.Fatalf("got %v", specs)
+		}
+	}
+	if reads != 1 {
+		t.Errorf("the same file was read %d times, want 1", reads)
+	}
+}

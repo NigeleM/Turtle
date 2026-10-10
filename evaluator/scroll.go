@@ -29,6 +29,7 @@ import (
 
 // stepRecord is what one step did.
 type stepRecord struct {
+	shown  string // with snapshot: the value as it showed when the step returned
 	num    string // "2", or "3.1" inside a saved scroll used as step 3
 	label  string // the step as written: "splitby \",\""
 	status string // returned, returned none, failed, not reached
@@ -44,10 +45,12 @@ type stepRecord struct {
 type scrollRun struct {
 	records []stepRecord
 	from    string // what made the value the next step gets: "the start", or a step's number
-	// snapshot keeps a copy of each step's value as it returned, for
+	// snapshot notes how each step's value showed as it returned, for
 	// diagnose: a later step that changes a list or map in place would
-	// otherwise change what an earlier step shows.
-	snapshot bool
+	// otherwise change what an earlier step shows. startShown is the
+	// starting value, likewise.
+	snapshot   bool
+	startShown string
 }
 
 const (
@@ -102,7 +105,7 @@ func (it *Interpreter) runSteps(run *scrollRun, steps []*ast.ScrollStep, env *ob
 		run.from = "step " + num
 		run.records[at].status, run.records[at].value = stepReturned, value
 		if run.snapshot {
-			run.records[at].value = deepCopy(value)
+			run.records[at].shown = briefValue(value)
 		}
 		if _, none := value.(*object.None); none {
 			run.records[at].status = stepNone
@@ -343,11 +346,55 @@ func briefValue(v object.Object) string {
 // preview is a value as it shows, on one line, cut short past 60
 // characters.
 func preview(v object.Object) string {
-	s := strings.Join(strings.Fields(v.Inspect()), " ")
+	s := strings.Join(strings.Fields(shortInspect(v, 80)), " ")
 	if r := []rune(s); len(r) > 60 {
 		s = string(r[:57]) + "..."
 	}
 	return s
+}
+
+// shortInspect is v as it shows, but for a list, set or map only as many
+// items as fit in about limit characters: a preview of a big one costs
+// little.
+func shortInspect(v object.Object, limit int) string {
+	var items []object.Object
+	open, close := "[ ", " ]"
+	switch x := v.(type) {
+	case *object.List:
+		items = x.Elements
+	case *object.Set:
+		items, open, close = x.Elements, "{ ", " }"
+	case *object.Map:
+		var b strings.Builder
+		b.WriteString("{ ")
+		for i, e := range x.Entries() {
+			if i > 0 {
+				b.WriteString(", ")
+			}
+			b.WriteString(shortInspect(e.Key, limit) + ": " + shortInspect(e.Val, limit))
+			if b.Len() > limit {
+				return b.String() + ", ..."
+			}
+		}
+		return b.String() + " }"
+	default:
+		return object.Shown(v) // text quoted, as inside a list
+	}
+	if len(items) == 0 {
+		return v.Inspect()
+	}
+	var b strings.Builder
+	b.WriteString(open)
+	for i, e := range items {
+		if i > 0 {
+			b.WriteString(", ")
+		}
+		b.WriteString(shortInspect(e, limit))
+		if b.Len() > limit && i < len(items)-1 {
+			return b.String() + ", ..."
+		}
+	}
+	return b.String() + close
 }
 
 // report writes the steps' record as a table, under a heading.
@@ -360,12 +407,20 @@ func (run *scrollRun) report(heading string, start object.Object, result object.
 			width = w
 		}
 	}
-	fmt.Fprintf(&b, "  %-*s   %s\n", width, "start", briefValue(start))
+	startText := run.startShown
+	if startText == "" {
+		startText = briefValue(start)
+	}
+	fmt.Fprintf(&b, "  %-*s   %s\n", width, "start", startText)
 	for _, r := range run.records {
 		name := strings.Repeat("  ", r.depth) + r.num + " " + shortLabel(r.label)
 		switch r.status {
 		case stepReturned:
-			fmt.Fprintf(&b, "  %-*s → returned %s\n", width, name, briefValue(r.value))
+			shown := r.shown
+			if shown == "" {
+				shown = briefValue(r.value)
+			}
+			fmt.Fprintf(&b, "  %-*s → returned %s\n", width, name, shown)
 		case stepNone:
 			fmt.Fprintf(&b, "  %-*s → returned nothing (none)   is none expected!?\n", width, name)
 		case stepNotReached:
@@ -525,7 +580,8 @@ func scrollShown(fn *object.Function) string {
 func (it *Interpreter) diagnoseScroll(heading string, steps []*ast.ScrollStep, env *object.Environment, value object.Object) (result object.Object) {
 	heading = fmt.Sprintf("%s (line %d)", heading, currentLine)
 	run := &scrollRun{from: "the start", snapshot: true}
-	start := deepCopy(value) // as it was, before any step changes it
+	run.startShown = briefValue(value) // as it was, before any step changes it
+	start := value
 	defer func() {
 		if r := recover(); r != nil {
 			fe, ok := r.(fatalError)

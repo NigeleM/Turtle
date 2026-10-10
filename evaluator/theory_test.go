@@ -64,6 +64,11 @@ func TestTheories(t *testing.T) {
 		// A phrase inside a phrase.
 		{"show discount 10 off price Item[\"Cookie\", 12, 150] .", "1485"},
 		{"basket = list [Item[\"Cookie\", 12, 150], Item[\"Loaf\", 2, 650]]\ns = 0\n[loop][i in basket]\n    s = s + price i\n[loop][end]\nshow discount 10 off s .", "2655"},
+		// Text that matches a fixed word is a value, not the word.
+		{"show tally \"in\" in list [\"in\", \"out\", \"in\"] .", "2"},
+		// Where the notation wants a value, a word that's fixed elsewhere
+		// is the value: a variable called off.
+		{"off = 2000\nshow discount 10 off off .", "1800"},
 		// The word alone is the theory, a value.
 		{"show typeof[tally], \" \", tally type theory .", "theory true"},
 	}
@@ -244,6 +249,7 @@ theory loose
     theorem result <= c
     proof
         loose 10 off 2000 . is 1800
+        loose -10 off 2000 . is 2200
 theory [end]
 
 theory twice
@@ -266,7 +272,7 @@ theory [end]
 	for _, want := range []string{
 		"  PASS  theory discount   proof 2 of 2, 2 theorems hold on 100 random inputs",
 		"  FAIL  theory keep_off\n        lib/broken.turtle line 9: proof: keep_off 10 off 2000 . gave 200, expected 1800",
-		"  FAIL  theory loose\n        lib/broken.turtle line 18: theorem result <= c fails on p = ",
+		"  FAIL  theory loose\n        lib/broken.turtle line 18: theorem result <= c fails on p = -",
 		"  PASS  theory twice      no proof\n  WARN  theory twice      unproven: it has no proof\n  WARN  theory twice      its abstract doesn't say what twice is: name twice in it",
 		"FAILED: 1 passed, 0 failed, 2 theories proven, 2 theories failed, 2 warnings (2 files,",
 	} {
@@ -351,5 +357,55 @@ theory [end]
 	})
 	if code != 0 || !strings.Contains(out, "PASS  test_both") || !strings.Contains(out, "theory ~cents_of") {
 		t.Errorf("a test file: exit %d\n%s", code, out)
+	}
+}
+
+// Random inputs keep to the proof cases' ranges: numbers 0 or more stay 0
+// or more; a proof with a negative number gets negative ones too. A failed
+// theorem's reason is one tidy line.
+func TestTheoryInputsLearnRanges(t *testing.T) {
+	out, code := testRun(t, map[string]string{
+		"lib.turtle": `assemble Sale [qty, cents]
+theory revenue
+    abstract
+        revenue is what the sales s brought in.
+    notation revenue of_sales s .
+    definition
+        t = 0
+        [loop][x in s]
+            t = t + qty of x * cents of x
+        [loop][end]
+        return t
+    theorem result >= 0
+    proof
+        revenue of_sales list [Sale[2, 300]] . is 600
+theory [end]
+
+theory shift
+    abstract
+        shift adds 5 to n.
+    notation shift n .
+    definition
+        return n + 5
+    theorem result > 100 || result < -100
+    proof
+        shift -300 . is -295
+theory [end]
+`,
+		"test_lib.turtle": "import test\nimport lib\nseed = 3\n",
+	})
+	if code != 1 || !strings.Contains(out, "PASS  theory revenue") {
+		t.Errorf("exit %d\n%s", code, out)
+	}
+	if !strings.Contains(out, "theorem result > 100 || result < -100 fails on n = ") || strings.Contains(out, ";  ") {
+		t.Errorf("the shift theorem's failure:\n%s", out)
+	}
+}
+
+// diagnose shows a big list's start without copying it all.
+func TestDiagnosePreviewsBigValues(t *testing.T) {
+	got, err := run(t, "import data\nnums = range[100000]\nx is diagnose[scroll nums into here .] .", "")
+	if err != nil || !strings.Contains(got, "list of 100000: [ 0, 1, 2, 3, 4,") || strings.Contains(got, "99999") {
+		t.Errorf("%v\n%s", err, got)
 	}
 }

@@ -3,6 +3,7 @@ package evaluator
 import (
 	"fmt"
 	"io"
+	"math"
 	"math/rand"
 	"regexp"
 	"sort"
@@ -162,6 +163,7 @@ func theoryInputs(ts *ast.TheoryStatement, examples [][]object.Object) []*ast.Va
 		if shape == nil {
 			return nil
 		}
+		learnRanges(shape, vals)
 		inputs = append(inputs, &ast.ValidateInput{Name: name, Shape: shape})
 	}
 	return inputs
@@ -340,4 +342,78 @@ func (it *Interpreter) writeTheories(out io.Writer, name string, env *object.Env
 		}
 	}
 	return counts
+}
+
+// learnRanges sets the numbers' ranges in shape from the proof cases'
+// values: when they're all 0 or more, so are the random ones (a quantity,
+// a price, a count), and the range reaches past the largest seen. Inside
+// lists, sets, maps and assembled values too.
+func learnRanges(shape *ast.Shape, vals []object.Object) {
+	switch shape.Kind {
+	case "integer", "float":
+		lowest, largest := math.Inf(1), 0.0
+		for _, v := range vals {
+			if f, _, ok := numeric(v); ok {
+				lowest = math.Min(lowest, f)
+				largest = math.Max(largest, math.Abs(f))
+			}
+		}
+		if math.IsInf(lowest, 1) {
+			return
+		}
+		if shape.Kind == "integer" {
+			hi := int64(math.Max(1000, 2*largest))
+			lo := -hi
+			if lowest >= 0 {
+				lo = 0
+			}
+			shape.From, shape.To = &ast.IntegerLiteral{Value: lo}, &ast.IntegerLiteral{Value: hi}
+			return
+		}
+		hi := math.Max(1, 2*largest)
+		lo := -hi
+		if lowest >= 0 {
+			lo = 0
+		}
+		shape.From, shape.To = &ast.FloatLiteral{Value: lo}, &ast.FloatLiteral{Value: hi}
+	case "list", "set":
+		var items []object.Object
+		for _, v := range vals {
+			switch x := v.(type) {
+			case *object.List:
+				items = append(items, x.Elements...)
+			case *object.Set:
+				items = append(items, x.Elements...)
+			}
+		}
+		if shape.Item != nil {
+			learnRanges(shape.Item, items)
+		}
+	case "map":
+		var keys, values []object.Object
+		for _, v := range vals {
+			if m, ok := v.(*object.Map); ok {
+				for _, e := range m.Entries() {
+					keys = append(keys, e.Key)
+					values = append(values, e.Val)
+				}
+			}
+		}
+		if shape.Key != nil {
+			learnRanges(shape.Key, keys)
+		}
+		if shape.Item != nil {
+			learnRanges(shape.Item, values)
+		}
+	case "assembled":
+		for i, f := range shape.Fields {
+			var fields []object.Object
+			for _, v := range vals {
+				if a, ok := v.(*object.Assembly); ok && i < len(a.Values) {
+					fields = append(fields, a.Values[i])
+				}
+			}
+			learnRanges(f, fields)
+		}
+	}
 }

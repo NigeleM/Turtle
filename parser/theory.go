@@ -1,11 +1,13 @@
 package parser
 
 import (
+	"hash/fnv"
 	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
 	"strings"
+	"sync"
 
 	"Turtle/ast"
 	"Turtle/lexer"
@@ -443,7 +445,7 @@ func (p *Parser) startsPhrase() bool {
 	if !ok || p.peekToken.Line != p.curToken.Line || p.typeCheckAhead() {
 		return false
 	}
-	return spec.fixed[p.peekToken.Literal] || p.argumentStartsAt(1)
+	return spec.fixedAt(nil, p.peekToken) || p.argumentStartsAt(1)
 }
 
 // usedBeforeTheory reports a theory's word used above its theory, or one
@@ -484,7 +486,7 @@ func (p *Parser) parseTheoryCall() *ast.TheoryCall {
 	var values []ast.Expression
 	for p.peekToken.Line == tok.Line {
 		next := p.peekToken
-		if spec.fixed[next.Literal] && (next.Type == token.IDENT || next.Type == token.COMMA || token.LookupIdent(next.Literal) != token.IDENT) && (next.Type != token.COMMA || spec.fixed[","]) {
+		if spec.fixedAt(shape, next) {
 			shape = append(shape, next.Literal)
 			p.nextToken()
 			continue
@@ -580,10 +582,12 @@ func (p *Parser) importTheories(tok token.Token, path string, names []string) {
 	// A library of the standard library: its theories are in turtle.
 	if BuiltinLibrary != nil {
 		if src, ok := BuiltinLibrary(path); ok {
-			sub := New(lexer.New(src))
-			sub.Enable(path)
-			sub.SelfLibrary = path
-			p.learnImported(tok, path, names, sub)
+			p.learnImported(tok, path, names, ownTheories(src, func() *Parser {
+				sub := New(lexer.New(src))
+				sub.Enable(path)
+				sub.SelfLibrary = path
+				return sub
+			}))
 			return
 		}
 	}
@@ -602,23 +606,58 @@ func (p *Parser) importTheories(tok token.Token, path string, names []string) {
 	if err != nil {
 		return
 	}
-	sub := New(lexer.New(strings.ReplaceAll(string(data), "\r\n", "\n")))
-	sub.ModuleDir = p.ModuleDir
-	sub.importing = map[string]bool{path: true}
-	for k := range p.importing {
-		sub.importing[k] = true
-	}
-	p.learnImported(tok, path, names, sub)
+	src := strings.ReplaceAll(string(data), "\r\n", "\n")
+	p.learnImported(tok, path, names, ownTheories(src, func() *Parser {
+		sub := New(lexer.New(src))
+		sub.ModuleDir = p.ModuleDir
+		sub.importing = map[string]bool{path: true}
+		for k := range p.importing {
+			sub.importing[k] = true
+		}
+		return sub
+	}))
 }
 
-// learnImported reads an imported file (sub, not yet read) and learns its
-// own theories.
-func (p *Parser) learnImported(tok token.Token, path string, names []string, sub *Parser) {
+// theoryCache keeps each file's own theories by its text, so a file
+// imported many times, or at the end of a long chain of imports, is read
+// for its theories once.
+var (
+	theoryCacheMu sync.Mutex
+	theoryCache   = map[uint64][]*theorySpec{}
+)
+
+// ownTheories are the theories a file's text defines (not its imports'):
+// none, without reading it, when no line starts a theory.
+func ownTheories(src string, reader func() *Parser) []*theorySpec {
+	if !theoryLine.MatchString(src) {
+		return nil
+	}
+	h := fnv.New64a()
+	h.Write([]byte(src))
+	key := h.Sum64()
+	theoryCacheMu.Lock()
+	specs, ok := theoryCache[key]
+	theoryCacheMu.Unlock()
+	if ok {
+		return specs
+	}
+	sub := reader()
 	sub.ParseProgram()
-	for word, spec := range sub.theories {
-		if spec.from != "" {
-			continue
+	for _, spec := range sub.theories {
+		if spec.from == "" {
+			specs = append(specs, spec)
 		}
+	}
+	theoryCacheMu.Lock()
+	theoryCache[key] = specs
+	theoryCacheMu.Unlock()
+	return specs
+}
+
+// learnImported learns an imported file's own theories (specs).
+func (p *Parser) learnImported(tok token.Token, path string, names []string, specs []*theorySpec) {
+	for _, spec := range specs {
+		word := spec.name
 		// A private (~) theory is for its own file, and for a test file,
 		// which may test it; elsewhere its word says so when it's used.
 		if isPrivateName(word) && !p.TestFile {
@@ -661,3 +700,50 @@ func pathBase(path string) string { return path[strings.LastIndex(path, "/")+1:]
 // (lib/<name>.turtle, built into turtle), so its theories' phrases can be
 // read where it's imported. The evaluator sets it.
 var BuiltinLibrary func(name string) (string, bool)
+
+// isWordToken: tok is a word (a name or a keyword) or a comma, which can
+// be a notation's fixed word; text, numbers and the rest are values.
+func isWordToken(tok token.Token) bool {
+	switch tok.Type {
+	case token.IDENT, token.COMMA:
+		return true
+	}
+	return token.LookupIdent(tok.Literal) == tok.Type && tok.Type != token.IDENT
+}
+
+// fixedAt reports whether tok, coming after a phrase's shape so far (fixed
+// words, and "\x00" for each value), is a fixed word there: a word that a
+// notation going this way has next. Where the notations want a value
+// instead, the same word is a value ("discount 10 off off", with a
+// variable called off).
+func (spec *theorySpec) fixedAt(shape []string, tok token.Token) bool {
+	if !isWordToken(tok) || !spec.fixed[tok.Literal] {
+		return false
+	}
+	wantsValue := false
+	for _, n := range spec.notations {
+		parts := n.Parts[1:]
+		if len(parts) <= len(shape) || !prefixMatches(parts, shape) {
+			continue
+		}
+		next := parts[len(shape)]
+		if !next.Slot && next.Word == tok.Literal {
+			return true
+		}
+		if next.Slot {
+			wantsValue = true
+		}
+	}
+	return !wantsValue
+}
+
+// prefixMatches reports whether a phrase's shape so far fits the start of
+// a notation's parts.
+func prefixMatches(parts []ast.NotationPart, shape []string) bool {
+	for i, s := range shape {
+		if parts[i].Slot != (s == "\x00") || !parts[i].Slot && parts[i].Word != s {
+			return false
+		}
+	}
+	return true
+}

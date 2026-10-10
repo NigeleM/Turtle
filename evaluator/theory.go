@@ -99,6 +99,10 @@ func (it *Interpreter) checkTheorem(th *ast.Theorem, env *object.Environment) (h
 	if fe := it.protect(func() { holds, details = it.explainTruth(th.Expr, env) }); fe != nil {
 		return false, "it stopped with " + aKind(fe.kind) + " error: " + fe.text
 	}
+	// On one line: the explainer's indents (for its own lines) go.
+	for i, d := range details {
+		details[i] = strings.TrimSpace(d)
+	}
 	return holds, strings.Join(details, "; ")
 }
 
@@ -126,7 +130,7 @@ func (it *Interpreter) diagnoseTheoryUse(tc *ast.TheoryCall, env *object.Environ
 	fmt.Fprintf(&b, "diagnose theory %s (line %d)\n", ts.Name, currentLine)
 	fmt.Fprintf(&b, "  %-9s %s\n", "notation", ts.Notations[0].Text())
 	for i, name := range ts.Slots {
-		fmt.Fprintf(&b, "  %-9s %s\n", name, briefValue(deepCopy(args[i])))
+		fmt.Fprintf(&b, "  %-9s %s\n", name, briefValue(args[i]))
 	}
 	start := time.Now()
 	defer func() {
