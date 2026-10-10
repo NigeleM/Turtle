@@ -2,7 +2,7 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
-## Unreleased
+## 0.9.186 (2026-10-10)
 
 - A function's own values are freed when it returns. A finished call used
   to keep them until the next call, so a big list made inside a function
