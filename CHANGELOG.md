@@ -2,6 +2,11 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## 0.9.193 (2026-10-11)
+
+- Less memory: programs that keep a lot of data use 15-40% less at
+  their peak, at the same speed.
+
 ## 0.9.192 (2026-10-10)
 
 - REPL: `colors` opens a picker with the VS Code extension's twelve

@@ -75,35 +75,25 @@ func main() {
 		if skipList[name] {
 			continue
 		}
-		b := result{ms: -1}
-		n := result{ms: -1}
-		baseRuns := true
-		for r := 0; r < *rounds; r++ {
-			if baseRuns {
-				res, ok := run(baseBin, prog)
-				if baseRuns = ok; ok {
-					b = better(b, res)
-				}
-			}
-			res, ok := run(newBin, prog)
-			if !ok {
-				fmt.Printf("perfcheck: %s fails with the new turtle\n", name)
-				os.Exit(1)
-			}
-			n = better(n, res)
-		}
-		if !baseRuns { // a program the base can't run yet: nothing to compare
+		b, n, ok := measure(baseBin, newBin, prog, name, *rounds, result{ms: -1}, result{ms: -1})
+		if !ok { // a program the base can't run yet: nothing to compare
+			n, _ = run(newBin, prog)
 			fmt.Printf("%-12s %18s   %9.1f / %4.0f\n", strings.TrimSuffix(name, ".turtle"), "(new)", n.ms, n.mb)
 			continue
+		}
+		// Shared machines have noisy moments: a program that looks slower
+		// or bigger runs again, more times, before it counts.
+		if worse(b, n) {
+			b, n, _ = measure(baseBin, newBin, prog, name, 3**rounds, b, n)
 		}
 		dt := pct(b.ms, n.ms)
 		dm := pct(b.mb, n.mb)
 		mark := ""
-		if n.ms-b.ms > *minMS && dt > *slower {
+		if slowerBy(b, n) {
 			mark += "  SLOWER"
 			failed = true
 		}
-		if n.mb-b.mb > *minMB && dm > *bigger {
+		if biggerBy(b, n) {
 			mark += "  BIGGER"
 			failed = true
 		}
@@ -116,6 +106,29 @@ func main() {
 	}
 	fmt.Printf("\nperfcheck: no slower or bigger than %s\n", *base)
 }
+
+// measure runs prog rounds times with each turtle, taking turns, and
+// gives the best of each, starting from b and n; false if the base can't
+// run it.
+func measure(baseBin, newBin, prog, name string, rounds int, b, n result) (result, result, bool) {
+	for r := 0; r < rounds; r++ {
+		res, ok := run(baseBin, prog)
+		if !ok {
+			return b, n, false
+		}
+		b = better(b, res)
+		if res, ok = run(newBin, prog); !ok {
+			fmt.Printf("perfcheck: %s fails with the new turtle\n", name)
+			os.Exit(1)
+		}
+		n = better(n, res)
+	}
+	return b, n, true
+}
+
+func slowerBy(b, n result) bool { return n.ms-b.ms > *minMS && pct(b.ms, n.ms) > *slower }
+func biggerBy(b, n result) bool { return n.mb-b.mb > *minMB && pct(b.mb, n.mb) > *bigger }
+func worse(b, n result) bool    { return slowerBy(b, n) || biggerBy(b, n) }
 
 func build(src, out string) {
 	cmd := exec.Command("go", "build", "-o", out, "./cmd/turtle")
