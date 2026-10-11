@@ -198,3 +198,28 @@ func TestScientificNotation(t *testing.T) {
 		}
 	}
 }
+
+// Names may use letters past ASCII, as Python's may; other characters
+// outside text are one ILLEGAL token each, the whole character.
+func TestWideLetterNames(t *testing.T) {
+	cases := map[string][]string{
+		"café = 3":    {"café", "="},
+		"naïve_2 = x": {"naïve_2", "="},
+		"名前":          {"名前"},
+		"größe[x]":    {"größe", "["},
+		"x = 🐢":       {"x", "=", "🐢"},
+		"é1 é":        {"é1", "é"},
+	}
+	for src, want := range cases {
+		l := New(src)
+		for i, w := range want {
+			tok := l.NextToken()
+			if tok.Literal != w {
+				t.Errorf("%q token %d: got %q, want %q", src, i, tok.Literal, w)
+			}
+		}
+	}
+	if tok := New("🐢").NextToken(); tok.Type != token.ILLEGAL {
+		t.Errorf("an emoji outside text should be ILLEGAL, got %v", tok.Type)
+	}
+}

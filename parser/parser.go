@@ -509,6 +509,10 @@ func (p *Parser) parseBracketStatement() ast.Statement {
 		return p.parseDirectoryStatement()
 	case token.IF:
 		return p.parseNestedIfStatement()
+	case token.END:
+		p.errorf("this [end] closes nothing: is it one too many, or is the block it ends written another way (def [end], if [end], [loop][end])?")
+		p.nextToken()
+		return nil
 	default:
 		p.errorf("a line can't start with '[' followed by %s; blocks start [loop][, [read], [write], [append] or [directory]", describe(p.peekToken))
 		p.nextToken()

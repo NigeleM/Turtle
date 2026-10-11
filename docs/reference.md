@@ -18,7 +18,8 @@ non-terminal; `[x]` is optional; `{x}` is zero-or-more; `|` is alternation.
   files as well.
 - **Comments**: `// ...` runs to end of line. `//* ... *//` is a block
   comment that may span multiple lines. Both are stripped by the lexer.
-- **Identifiers**: `<letter|_> {letter|digit|_}`. Turtle's own names are
+- **Identifiers**: `<letter|_> {letter|digit|_}`, where a letter may be
+  any language's (`café`, `größe`, `名前`), as in Python. Turtle's own names are
   all lowercase (`isempty`, `scriptfolder`, `sql_open`).
 - **Numbers**: `<digits>` (integer) or `<digits>.<digits>` (float), and
   scientific notation, always a float: `1e-18`, `2.5e6`, `6.02E+23`.

@@ -7,6 +7,8 @@ package lexer
 
 import (
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"Turtle/token"
 )
@@ -181,7 +183,7 @@ func (l *Lexer) nextToken() token.Token {
 		tok.Type, tok.Literal = token.PERIOD, "."
 	default:
 		// ~ before a name makes it a private function's: ~limit.
-		if isLetter(l.ch) || l.ch == '~' && isLetter(l.peekChar()) {
+		if isLetter(l.ch) || l.ch == '~' && isLetter(l.peekChar()) || l.wideLetter(l.pos, true) > 0 || l.ch == '~' && l.wideLetter(l.pos+1, true) > 0 {
 			tok.Literal = l.readIdentifier()
 			// `sys` is only ever a leading statement keyword: when it starts a line, the rest of that line is
 			// captured raw as an arbitrary shell command rather than
@@ -199,6 +201,15 @@ func (l *Lexer) nextToken() token.Token {
 			return tok
 		}
 		tok.Type, tok.Literal = token.ILLEGAL, string(l.ch)
+		if l.ch >= utf8.RuneSelf { // the whole character, not its first byte: 🐢
+			r, n := utf8.DecodeRuneInString(l.input[l.pos:])
+			if r != utf8.RuneError {
+				tok.Literal = string(r)
+				for range n - 1 {
+					l.readChar()
+				}
+			}
+		}
 	}
 
 	l.readChar()
@@ -276,8 +287,16 @@ func (l *Lexer) readIdentifier() string {
 	if l.ch == '~' {
 		l.readChar()
 	}
-	for isLetter(l.ch) || isDigit(l.ch) {
-		l.readChar()
+	for {
+		if isLetter(l.ch) || isDigit(l.ch) {
+			l.readChar()
+		} else if n := l.wideLetter(l.pos, false); n > 0 {
+			for range n {
+				l.readChar()
+			}
+		} else {
+			break
+		}
 	}
 	// Every use of a name shares one string, so the interpreter, matching
 	// a name against a scope's names, finds it by its first byte's address
@@ -374,6 +393,25 @@ func (l *Lexer) readString(quote byte) string {
 	l.unclosed = l.ch == 0
 	l.readChar() // skip closing quote
 	return sb.String()
+}
+
+// wideLetter is the size in bytes of a letter past ASCII at input[off]
+// (é, ñ, 名), which names may use as Python's do; or, unless first, a
+// digit or a combining mark. 0 for anything else, emoji included.
+func (l *Lexer) wideLetter(off int, first bool) int {
+	if off >= len(l.input) || l.input[off] < utf8.RuneSelf {
+		return 0
+	}
+	r, n := utf8.DecodeRuneInString(l.input[off:])
+	switch {
+	case r == utf8.RuneError:
+		return 0
+	case unicode.IsLetter(r):
+		return n
+	case !first && (unicode.IsDigit(r) || unicode.Is(unicode.Mn, r) || unicode.Is(unicode.Mc, r)):
+		return n
+	}
+	return 0
 }
 
 func isLetter(ch byte) bool {

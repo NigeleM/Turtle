@@ -21,6 +21,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"Turtle/evaluator"
@@ -180,6 +181,13 @@ func runWatched(src, dir, script string, args []string, mode string) int {
 			return ex.Code
 		}
 		fmt.Fprintln(os.Stderr, "turtle:", err)
+		// The line it happened on, as a parse error shows it.
+		if file, line, ok := evaluator.ErrorPlace(err); ok && file == "" {
+			if lines := strings.Split(strings.ReplaceAll(src, "\r\n", "\n"), "\n"); line <= len(lines) {
+				n := strconv.Itoa(line)
+				fmt.Fprintf(os.Stderr, "  %s | %s\n", n, lines[line-1])
+			}
+		}
 		return 1
 	}
 	return 0

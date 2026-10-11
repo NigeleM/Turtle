@@ -197,6 +197,16 @@ var currentFile string
 //
 // Every fatalError also has a kind (file, number, math, ...), which is
 // what lets a safe block handle some errors and let others through.
+// ErrorPlace is where a Run error happened: its line, and its file ("" for
+// the main script); ok is false for an error with no line.
+func ErrorPlace(err error) (file string, line int, ok bool) {
+	fe, isFatal := err.(fatalError)
+	if !isFatal || fe.line < 1 {
+		return "", 0, false
+	}
+	return fe.file, fe.line, true
+}
+
 type fatalError struct {
 	msg  string // the full message, "line 3: division by zero"
 	text string // the message without its line, "division by zero"

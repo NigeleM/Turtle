@@ -142,6 +142,8 @@ func (p *Parser) statementStartError() {
 		p.errorAt(cur.Line, cur.Pos, "a line can't start with %q here: did you mean %s = ..., %s[...], or show %s .?", cur.Literal, cur.Literal, cur.Literal, cur.Literal)
 	case cur.Type == token.ELSE:
 		p.errorAt(cur.Line, cur.Pos, "else with no if ] condition [ above it")
+	case cur.Type == token.RBRACKET && prev.Type == token.RBRACKET && prev.Line == cur.Line:
+		p.errorAt(cur.Line, cur.Pos, "this ']' has no '[' to close: one too many?")
 	case cur.Type == token.RBRACKET || cur.Type == token.LBRACKET:
 		p.errorAt(cur.Line, cur.Pos, "a line can't start with %s here", describe(cur))
 	default:
