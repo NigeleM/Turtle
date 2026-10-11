@@ -347,3 +347,8 @@ sql_close[db]
 
 **Errors** are kind `sql` (`sql_query: no such table: shelves`); a missing
 file is kind `file`.
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).

@@ -1,3 +1,7 @@
+// Copyright 2017-2026 Nigele McCoy
+// Licensed under the Apache License, Version 2.0;
+// see LICENSE and NOTICE.
+
 // Package syntax colors Turtle code from its real tokens, for the REPL
 // (terminal colors) and the language server (an editor's colors): what
 // each stretch of source is, so the colors always match what the parser

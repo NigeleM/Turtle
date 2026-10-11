@@ -199,3 +199,8 @@ cd testdata\linear; ..\..\turtle.exe housing.turtle
 (The bookshop program ends by calling its own web API with a Unix shell
 command, which `cmd` on Windows doesn't run, so that last part is for
 macOS and Linux.)
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../LICENSE); see [NOTICE](../NOTICE).

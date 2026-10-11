@@ -24,3 +24,8 @@ def [end]
 ```sh
 turtle test
 ```
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).

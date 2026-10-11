@@ -62,3 +62,7 @@ show replaceall["ann lee", `(?P<first>\w+) (?P<last>\w+)`, `$last, $first`] .   
 Write the replacement in backticks too: inside `"..."`, `{1}` is
 interpolation, so `"${1}"` is `"$1"`.
 
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).

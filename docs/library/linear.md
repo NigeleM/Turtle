@@ -634,3 +634,8 @@ with `safe ... handle [linear] e .`.
 
 A worked example that uses most of the library:
 [`testdata/linear/housing.turtle`](../../testdata/linear/housing.turtle).
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).

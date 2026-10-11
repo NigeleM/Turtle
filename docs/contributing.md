@@ -241,3 +241,8 @@ run it with `go run ./cmd/turtle testdata/yourscript.turtle`, and check the
 output by hand against what you expect. Building a real
 expected-output-diffing harness is on the list; volunteering to build one
 is very welcome.
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../LICENSE); see [NOTICE](../NOTICE).

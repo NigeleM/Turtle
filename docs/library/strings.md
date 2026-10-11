@@ -31,3 +31,8 @@ show words join ", " .           // hello, world
 
 `isinstring` takes the part first, so it reads as a sentence with the
 literal on the left: `"wor" isinstring line`.
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).

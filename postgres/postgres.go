@@ -1,3 +1,7 @@
+// Copyright 2017-2026 Nigele McCoy
+// Licensed under the Apache License, Version 2.0;
+// see LICENSE and NOTICE.
+
 // Package postgres talks to a PostgreSQL server, written from scratch on
 // the standard library: the frontend/backend protocol (version 3), TLS,
 // and SCRAM-SHA-256, MD5 and cleartext logins. It runs statements with ?

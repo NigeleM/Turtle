@@ -54,3 +54,8 @@ name = "Ann"
   format can't hold is an error of kind `config`, naming the line:
   `config_read app.toml line 3: "Shop" isn't a value: text needs quotes`.
   A missing file is a `file` error.
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).

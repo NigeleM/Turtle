@@ -40,3 +40,8 @@ if ] r at get["status"] != 204 [
     show "delete failed: ", r at get["body"] .
 if [end]
 ```
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).

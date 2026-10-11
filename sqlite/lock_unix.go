@@ -1,3 +1,7 @@
+// Copyright 2017-2026 Nigele McCoy
+// Licensed under the Apache License, Version 2.0;
+// see LICENSE and NOTICE.
+
 //go:build darwin || linux || freebsd || netbsd || openbsd || dragonfly
 
 package sqlite

@@ -1,3 +1,7 @@
+// Copyright 2017-2026 Nigele McCoy
+// Licensed under the Apache License, Version 2.0;
+// see LICENSE and NOTICE.
+
 // Package format lays Turtle code out one way: turtle fmt and an
 // editor's Format Document.
 package format

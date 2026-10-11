@@ -38,3 +38,8 @@ pos = insert_position[by_price, 800, "price"]               // 1
 `binary_search` takes about 20 steps for a million items where
 `linear_search` may take a million, but it needs the collection sorted
 first, by the same key.
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).

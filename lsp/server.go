@@ -1,3 +1,7 @@
+// Copyright 2017-2026 Nigele McCoy
+// Licensed under the Apache License, Version 2.0;
+// see LICENSE and NOTICE.
+
 // Package lsp is turtle lsp: a language server, so editors that speak the
 // Language Server Protocol (VS Code, Neovim, Helix, Zed, Sublime ...) know
 // Turtle: errors as you type, colors, completion, hover help, go to

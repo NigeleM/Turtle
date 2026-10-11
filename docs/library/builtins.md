@@ -176,3 +176,8 @@ first5 is s at slice 0, 5 .    // "Hello"
 last5 is s at slice -5 .       // "World"
 tail is s at slice 7 .         // "World" (index 7 to the end)
 ```
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).

@@ -1,3 +1,7 @@
+// Copyright 2017-2026 Nigele McCoy
+// Licensed under the Apache License, Version 2.0;
+// see LICENSE and NOTICE.
+
 // Package toml reads and writes TOML 1.0 (https://toml.io), written from
 // scratch on the standard library, for Turtle's config library.
 //

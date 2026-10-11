@@ -105,3 +105,8 @@ That's fine for tools, dashboards and small sites.
 - **On the internet, put a web server in front.** Turtle speaks plain
   HTTP. For a public site, run it behind one that handles HTTPS
   certificates (Caddy, nginx), with `serverhost` left as `localhost`.
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).

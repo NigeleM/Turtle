@@ -44,3 +44,8 @@ n is 10 at random .      // some integer in [0, 10)
 
 `%` (modulo) is a core operator, not a method, so it needs no import — see
 [`reference.md`](../reference.md#expressions).
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).

@@ -1856,3 +1856,8 @@ A comment after the first line of code is an ordinary comment, not the
 description. Comments in both places are shown together, the one above
 first. Editors show the description on hover (see
 [`editors.md`](editors.md)).
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../LICENSE); see [NOTICE](../NOTICE).

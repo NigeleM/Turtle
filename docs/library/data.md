@@ -309,3 +309,8 @@ show rows at get[0] .
   object in a `text` column becomes its JSON text.
 
 For `sql_load`, see [Files: CSV in and out](sql.md#files-csv-in-and-out).
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).

@@ -755,3 +755,8 @@ safe [end]
   file can still be used as `mylib check[...]`.
 - `test_` functions take no arguments.
 - Without `import test`, the three are ordinary names.
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../LICENSE); see [NOTICE](../NOTICE).

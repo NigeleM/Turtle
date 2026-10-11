@@ -24,3 +24,8 @@ it's for: **[docs/library/](library/index.md)**.
 - [crypt](library/crypt.md)
 - [test](library/test.md)
 - [log](library/log.md)
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../LICENSE); see [NOTICE](../NOTICE).

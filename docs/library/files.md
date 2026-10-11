@@ -81,3 +81,8 @@ variables stay private to it. When two imports export the same function
 name, call it qualified by module, as in `mylib now[]` or `time now[]`.
 An unqualified call to a name that clashes is a fatal error. Full rules
 are in [`reference.md`](../reference.md#modules).
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).

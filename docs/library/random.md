@@ -94,3 +94,8 @@ a = random list of 3 integers
 seed = 42
 b = random list of 3 integers      // the same as a
 ```
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).

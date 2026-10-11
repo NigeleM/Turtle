@@ -79,3 +79,8 @@ what each argument is, what it gives back, and an example.
 |---|---|
 | [`test`](test.md) | `check`, `verify`, `validate`, `turtle test` (guide: [testing](../testing.md)) |
 | [`log`](log.md) | log lines with levels, to the screen or a file |
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).

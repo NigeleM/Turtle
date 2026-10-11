@@ -126,7 +126,3 @@ counts, but in short:
   version needs its own name.
 - **Contributions** are made under the same license, and what goes into
   official Turtle is the creator's decision.
-
-## Credits
-
-Written by Nigele McCoy, Claude-assisted.

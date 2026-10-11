@@ -1,3 +1,7 @@
+// Copyright 2017-2026 Nigele McCoy
+// Licensed under the Apache License, Version 2.0;
+// see LICENSE and NOTICE.
+
 // Package mysql talks to a MySQL (or MariaDB) server, written from
 // scratch on the standard library: the client/server protocol, TLS, and
 // the caching_sha2_password and mysql_native_password logins. Statements

@@ -275,3 +275,8 @@ naming the operation and the value involved.
   need real servers: they run when `TURTLE_PG_URL` / `TURTLE_MYSQL_URL`
   are set (CI starts both as service containers) and skip otherwise.
 - The scripts in `testdata/` should keep producing the same output.
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../LICENSE); see [NOTICE](../NOTICE).

@@ -1,3 +1,7 @@
+// Copyright 2017-2026 Nigele McCoy
+// Licensed under the Apache License, Version 2.0;
+// see LICENSE and NOTICE.
+
 // Package parser turns a token stream into a Turtle AST.
 //
 // Convention used throughout this file: every parseXStatement function

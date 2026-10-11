@@ -66,3 +66,8 @@ outputfile = "run.txt"                 // show still prints; run.txt keeps a cop
   an ordinary name, and `log = 5` still assigns.
 - A log file or `outputfile` that can't be written is an error of kind
   `file`; a setting of the wrong kind is a `type` error naming it.
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).

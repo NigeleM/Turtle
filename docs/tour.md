@@ -524,3 +524,8 @@ x = sum[nums]                  // "sum" needs "import data" first
 
 Every library, grouped by what it's for: [the library docs](library/index.md).
 Every keyword in one table: [Keywords](reference.md#keywords).
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../LICENSE); see [NOTICE](../NOTICE).

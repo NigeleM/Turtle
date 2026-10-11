@@ -52,3 +52,8 @@ or without a key: `none`, then `true`/`false` (false first), numbers
 sets (item by item, shorter first), assembled values (type name, then
 field by field), maps (entry by entry). A function value can't be put
 in order (an error of kind `type`).
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).

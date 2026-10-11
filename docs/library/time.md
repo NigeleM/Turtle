@@ -121,3 +121,8 @@ of that name exists.
 
 Plain `<result> is <receiver> .` (no `at`) is just assignment/aliasing —
 `<result>` becomes another reference to the same underlying value.
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).

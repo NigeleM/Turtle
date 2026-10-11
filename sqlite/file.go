@@ -1,3 +1,7 @@
+// Copyright 2017-2026 Nigele McCoy
+// Licensed under the Apache License, Version 2.0;
+// see LICENSE and NOTICE.
+
 // Package sqlite reads and writes SQLite database files, written from
 // scratch on the standard library (no cgo, no third-party code). It
 // follows the file format documented at https://www.sqlite.org/fileformat2.html:

@@ -64,3 +64,8 @@ pages = fetchall[urls, map ["limit": 10, "skip_errors": true]]
 - A bad setting (`schedulelimit = 0`, an unknown key in the map), a
   command that can't start, or `queryall` on SQLite is an error of kind
   `schedule`.
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).

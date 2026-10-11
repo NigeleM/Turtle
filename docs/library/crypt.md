@@ -53,3 +53,8 @@ Passwords: store only what `passwordhash` gives, and check with
 `passwordcheck`; a plain `hash` of a password is easy to crack. `md5`
 and `sha1` are broken for security; use them only to match an existing
 system's checksums.
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).

@@ -1,3 +1,7 @@
+// Copyright 2017-2026 Nigele McCoy
+// Licensed under the Apache License, Version 2.0;
+// see LICENSE and NOTICE.
+
 package sqlite
 
 // WITHOUT ROWID tables are stored as an index on their primary key: each

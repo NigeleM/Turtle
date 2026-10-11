@@ -63,3 +63,8 @@ safe [end]
 
 JSON typed into Turtle code reads best in single quotes, where `"` needs
 no escape and braces before a quote are plain: `'{"a": [1, 2]}'`.
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).
