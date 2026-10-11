@@ -88,21 +88,23 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 		return evalPrefix(e.Operator, right)
 
 	case *ast.InfixExpression:
-		left := it.evalExpression(e.Left, env)
-		// && and || stop as soon as the answer is known, as in other
-		// languages: "x != none && x > 5" never compares none.
-		switch e.Operator {
-		case "&&":
-			if !isTruthy(left) {
+		switch e.Kind {
+		case ast.InfixNumeric:
+			return it.evalNumericValue(e, env)
+		case ast.InfixAnd:
+			// && and || stop as soon as the answer is known, as in other
+			// languages: "x != none && x > 5" never compares none.
+			if !isTruthy(it.evalExpression(e.Left, env)) {
 				return object.Bool(false)
 			}
 			return object.Bool(isTruthy(it.evalExpression(e.Right, env)))
-		case "||":
-			if isTruthy(left) {
+		case ast.InfixOr:
+			if isTruthy(it.evalExpression(e.Left, env)) {
 				return object.Bool(true)
 			}
 			return object.Bool(isTruthy(it.evalExpression(e.Right, env)))
 		}
+		left := it.evalExpression(e.Left, env)
 		right := it.evalExpression(e.Right, env)
 		return evalInfix(e.Operator, left, right)
 
@@ -394,6 +396,165 @@ func evalInfix(op string, left, right object.Object) object.Object {
 	}
 	fatalf("unknown infix operator %q", op)
 	return nil
+}
+
+// ---- arithmetic on plain numbers ----
+
+// num is a plain number, a whole one or not, worked on without making a
+// Turtle value for it.
+type num struct {
+	isInt bool
+	i     int64
+	f     float64
+}
+
+func (n num) float() float64 {
+	if n.isInt {
+		return float64(n.i)
+	}
+	return n.f
+}
+
+func (n num) box() object.Object {
+	if n.isInt {
+		return object.Int(n.i)
+	}
+	return &object.Float{Value: n.f}
+}
+
+// asNum is v as a plain number, if it's one.
+func asNum(v object.Object) (num, bool) {
+	switch x := v.(type) {
+	case *object.Integer:
+		return num{isInt: true, i: x.Value}, true
+	case *object.Float:
+		return num{f: x.Value}, true
+	}
+	return num{}, false
+}
+
+// numArith is +, -, *, /, div or % on two numbers: the one place their
+// rules live, for evalInfix and evalNumeric alike. Whole numbers stay
+// whole (overflow is an error); / is always the exact answer, a float;
+// div keeps the whole part, toward zero.
+func numArith(op string, a, b num) num {
+	both := a.isInt && b.isInt
+	switch op {
+	case "+":
+		if both {
+			return num{isInt: true, i: addInt(a.i, b.i)}
+		}
+		return num{f: a.float() + b.float()}
+	case "-":
+		if both {
+			return num{isInt: true, i: subInt(a.i, b.i)}
+		}
+		return num{f: a.float() - b.float()}
+	case "*":
+		if both {
+			return num{isInt: true, i: mulInt(a.i, b.i)}
+		}
+		return num{f: a.float() * b.float()}
+	case "/":
+		if b.float() == 0 {
+			fatalKind(kindMath, "division by zero")
+		}
+		return num{f: a.float() / b.float()}
+	case "div":
+		if both {
+			if b.i == 0 {
+				fatalKind(kindMath, "division by zero")
+			}
+			if b.i == -1 && a.i == math.MinInt64 {
+				overflow("div", math.MinInt64, -1)
+			}
+			return num{isInt: true, i: a.i / b.i}
+		}
+		if b.float() == 0 {
+			fatalKind(kindMath, "division by zero")
+		}
+		q := math.Trunc(a.float() / b.float())
+		if math.IsNaN(q) || q >= 1<<63 || q < -(1<<63) {
+			fatalKind(kindMath, "%s div %s is too big for an integer", a.box().Inspect(), b.box().Inspect())
+		}
+		return num{isInt: true, i: int64(q)}
+	case "%":
+		if both {
+			if b.i == 0 {
+				fatalKind(kindMath, "modulo by zero")
+			}
+			return num{isInt: true, i: a.i % b.i}
+		}
+		if b.float() == 0 {
+			fatalKind(kindMath, "modulo by zero")
+		}
+		return num{f: math.Mod(a.float(), b.float())}
+	}
+	panic("numArith: " + op)
+}
+
+// numericPaths turns evalNumeric on; tests turn it off to compare.
+var numericPaths = true
+
+
+// evalNumericValue is evalNumeric's answer as a value. A function of its
+// own keeps evalExpression's frame, which every expression passes
+// through, as small as it was.
+//
+//go:noinline
+func (it *Interpreter) evalNumericValue(e *ast.InfixExpression, env *object.Environment) object.Object {
+	if !numericPaths { // tests: the general path, to compare
+		return evalInfix(e.Operator, it.evalExpression(e.Left, env), it.evalExpression(e.Right, env))
+	}
+	n, v := it.evalNumeric(e, env)
+	if v != nil {
+		return v
+	}
+	return n.box()
+}
+
+// evalNumeric works out arithmetic e: a plain number while every part is
+// one, else (text, a matrix ...) the value evalInfix makes, v. Each part
+// is worked out once, left first, as evalExpression would.
+func (it *Interpreter) evalNumeric(e ast.Expression, env *object.Environment) (num, object.Object) {
+	in, ok := e.(*ast.InfixExpression)
+	if !ok || in.Kind != ast.InfixNumeric && in.Kind != ast.InfixArith {
+		// The usual parts, read straight: a whole number, a variable.
+		switch x := e.(type) {
+		case *ast.IntegerLiteral:
+			return num{isInt: true, i: x.Value}, nil
+		case *ast.Identifier:
+			if x.Module == "" {
+				if v, ok := env.Get(x.Value); ok {
+					if n, ok := asNum(v); ok {
+						return n, nil
+					}
+					return num{}, v
+				}
+			}
+		}
+		v := it.evalExpression(e, env)
+		if n, ok := asNum(v); ok {
+			return n, nil
+		}
+		return num{}, v
+	}
+	ln, lv := it.evalNumeric(in.Left, env)
+	rn, rv := it.evalNumeric(in.Right, env)
+	if lv == nil && rv == nil {
+		return numArith(in.Operator, ln, rn), nil
+	}
+	if lv == nil {
+		lv = ln.box()
+	}
+	if rv == nil {
+		rv = rn.box()
+	}
+	v := evalInfix(in.Operator, lv, rv)
+	if n, ok := asNum(v); ok {
+		return n, nil
+	}
+	return num{}, v
 }
 
 func compareNum(op string, l, r float64) bool {

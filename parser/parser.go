@@ -2101,7 +2101,32 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	p.nextToken()
 	right := p.parseExpression(prec)
 	p.checkMethodOnRight(tok, left, right)
-	return &ast.InfixExpression{Token: tok, Left: left, Operator: tok.Literal, Right: right}
+	e := &ast.InfixExpression{Token: tok, Left: left, Operator: tok.Literal, Right: right}
+	switch {
+	case tok.Literal == "&&":
+		e.Kind = ast.InfixAnd
+	case tok.Literal == "||":
+		e.Kind = ast.InfixOr
+	case arithmetic(tok.Literal) && (arithmeticExpr(left) || arithmeticExpr(right)):
+		e.Kind = ast.InfixNumeric
+	case arithmetic(tok.Literal):
+		e.Kind = ast.InfixArith
+	}
+	return e
+}
+
+// arithmetic is whether op makes a number from two.
+func arithmetic(op string) bool {
+	switch op {
+	case "+", "-", "*", "/", "div", "%":
+		return true
+	}
+	return false
+}
+
+func arithmeticExpr(e ast.Expression) bool {
+	in, ok := e.(*ast.InfixExpression)
+	return ok && (in.Kind == ast.InfixNumeric || in.Kind == ast.InfixArith)
 }
 
 func (p *Parser) parseGroupedExpression() ast.Expression {

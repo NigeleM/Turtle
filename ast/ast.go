@@ -390,8 +390,22 @@ type InfixExpression struct {
 	Left     Expression
 	Operator string
 	Right    Expression
-	Grouped  bool // written in ( ): a statement's "at" doesn't reach inside
+	Grouped  bool      // written in ( ): a statement's "at" doesn't reach inside
+	Kind     InfixKind // set by the parser: how the interpreter works it out
 }
+
+// InfixKind is how an infix expression is worked out.
+type InfixKind uint8
+
+const (
+	InfixGeneral InfixKind = iota // both sides, then the operator
+	// InfixNumeric is arithmetic with more arithmetic inside (total + i *
+	// i): worked out as plain numbers, a value made only for the answer.
+	InfixNumeric
+	InfixAnd   // &&: the right side only if the left is true
+	InfixOr    // ||: the right side only if the left is false
+	InfixArith // arithmetic with none inside: as InfixGeneral on its own, plain numbers inside an InfixNumeric
+)
 
 func (ie *InfixExpression) expressionNode()      {}
 func (ie *InfixExpression) TokenLiteral() string { return ie.Token.Literal }

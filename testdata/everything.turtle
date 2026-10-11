@@ -248,6 +248,16 @@ check["unicode names", größe, 6]
 check["unicode text name", 名前, "turtle"]
 show "names ok" .
 
+// ---------- arithmetic inside arithmetic ----------
+// Worked out as plain numbers in between, with the same rules: whole
+// numbers stay whole, / is exact, and text still joins.
+big = 3000000
+check["nested whole", big * big % 1000000007 + 1, 999937008]
+check["nested exact /", big / 4 * 2 + 0.5, 1500000.5]
+check["nested div", big * 3 div 7 - 1, 1285713]
+check["nested with text", "n=" + big * 2 + 1, "n=60000001"]
+show "arithmetic ok" .
+
 // ---------- strings ----------
 // Inside another call's [...], a sentence-style call takes one argument,
 // so the outer commas stay the outer call's; use the bracket form for
