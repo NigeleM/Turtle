@@ -2,6 +2,18 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## 0.9.192 (2026-10-10)
+
+- REPL: `colors` opens a picker with the VS Code extension's twelve
+  schemes, color for color: Up/Down the scheme (a short program recolors
+  as you go), Left/Right the shade (auto, dark, light), Enter keeps it,
+  Esc leaves it. `colors okabe-ito` picks one by name. Kept in
+  `~/.config/turtle/repl`; `auto` asks the terminal whether its background
+  is light or dark. Exact colors on 24-bit terminals, the nearest of 256
+  elsewhere.
+- Copyright headers in the source files, and a copyright line at the end
+  of each documentation page.
+
 ## 0.9.191 (2026-10-10)
 
 - `import system [warn]`: `warn` can be listed with system's other names.
