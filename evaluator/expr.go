@@ -617,7 +617,37 @@ func (it *Interpreter) applyCall(ce *ast.CallExpression, args []object.Object, e
 		}
 		return it.callImported(qualifiedImport(env, ce.Module, ce.Name), ce.Name, args, env)
 	}
+	if fn := knownFunction(ce, env); fn != nil {
+		return it.callFunction(fn, ce.Name, args)
+	}
 	return it.callByName(ce.Name, args, env)
+}
+
+// callCache is what a call by name remembers: the function it reached,
+// in which module, and as of which object.FuncEpoch.
+type callCache struct {
+	epoch uint64
+	root  *object.Environment
+	fn    *object.Function
+}
+
+// knownFunction is the module function ce reaches by name, without
+// looking the name up again while nothing could have changed it (see
+// object.FuncEpoch); nil when it isn't one, or might be a variable's.
+func knownFunction(ce *ast.CallExpression, env *object.Environment) *object.Function {
+	epoch, root := object.FuncEpoch(), env.Root()
+	if c, ok := ce.Cache.(*callCache); ok && c.epoch == epoch && c.root == root {
+		return c.fn
+	}
+	if object.MayBeFuncVar(ce.Name) {
+		return nil
+	}
+	fn, ok := env.GetFunction(ce.Name)
+	if !ok {
+		return nil
+	}
+	ce.Cache = &callCache{epoch: epoch, root: root, fn: fn}
+	return fn
 }
 
 // sentenceSubject reports whether name, in front of a function name, is
@@ -716,11 +746,6 @@ func (it *Interpreter) callFunction(fn *object.Function, name string, args []obj
 		fatalf("function %q expects %d argument(s), got %d", name, len(fn.Parameters), len(args))
 	}
 	it.inPlace = false // only data's process / keep take it, right away
-	it.depth++
-	defer func() { it.depth-- }()
-	if it.depth > maxCallDepth {
-		fatalf("recursion too deep: more than %d calls in progress (in %q) — is a recursive function missing its stopping case?", maxCallDepth, name)
-	}
 	defEnv := fn.Env
 	if defEnv == nil {
 		defEnv = it.Global
@@ -728,13 +753,18 @@ func (it *Interpreter) callFunction(fn *object.Function, name string, args []obj
 	// The body's errors name the file it was written in, and once it
 	// returns, errors name the caller's line again, not the body's last.
 	prevFile, prevLine, prevBuiltin, prevFunc := currentFile, currentLine, it.inBuiltin, it.funcName
+	it.depth++
+	defer func() {
+		it.depth--
+		currentFile, currentLine, it.inBuiltin, it.funcName = prevFile, prevLine, prevBuiltin, prevFunc
+	}()
+	if it.depth > maxCallDepth {
+		fatalf("recursion too deep: more than %d calls in progress (in %q) — is a recursive function missing its stopping case?", maxCallDepth, name)
+	}
 	if it.inBuiltin = isBuiltinEnv(defEnv); !it.inBuiltin {
 		currentFile = defEnv.File()
 	}
 	it.funcName = name
-	defer func() {
-		currentFile, currentLine, it.inBuiltin, it.funcName = prevFile, prevLine, prevBuiltin, prevFunc
-	}()
 	if it.debug != nil && !it.inBuiltin {
 		it.debug.frames = append(it.debug.frames, debugFrame{name: name, file: prevFile, line: prevLine})
 		defer it.debugLeave()
@@ -745,7 +775,7 @@ func (it *Interpreter) callFunction(fn *object.Function, name string, args []obj
 	if n := len(it.freeScopes); n > 0 {
 		callEnv = it.freeScopes[n-1]
 		it.freeScopes = it.freeScopes[:n-1]
-		callEnv.Reuse(defEnv)
+		callEnv.Adopt(defEnv) // emptied by Release when it was put aside
 	} else {
 		callEnv = object.NewEnclosedEnvironment(defEnv)
 	}

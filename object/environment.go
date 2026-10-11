@@ -6,6 +6,8 @@ package object
 
 import (
 	"sort"
+	"sync"
+	"sync/atomic"
 	"unsafe"
 )
 
@@ -65,6 +67,10 @@ func (e *Environment) Reuse(outer *Environment) {
 	e.outer = outer
 }
 
+// Adopt makes a scope that Release emptied the scope of a new call
+// inside outer: it's empty already, so only its outer changes.
+func (e *Environment) Adopt(outer *Environment) { e.outer = outer }
+
 // Release empties a finished call's scope as it's put aside for reuse,
 // so the values its call made can be collected now, not when the next
 // call takes the scope.
@@ -116,8 +122,41 @@ func (e *Environment) find(name string) int {
 	return -1
 }
 
+// Which function a call by name reaches changes only when a function is
+// defined or when a variable of that name holds a function; funcEpoch
+// counts those changes, so a call can keep the function it found until
+// the count moves. funcVars are the names that have ever held a function
+// as a variable: a call by any other name can't reach a variable.
+var (
+	funcEpoch  atomic.Uint64
+	funcVarsMu sync.Mutex
+	funcVars   = map[string]bool{}
+)
+
+// FuncEpoch is the count of changes to which function a name reaches.
+func FuncEpoch() uint64 { return funcEpoch.Load() }
+
+// MayBeFuncVar is whether name has ever held a function as a variable.
+func MayBeFuncVar(name string) bool {
+	funcVarsMu.Lock()
+	defer funcVarsMu.Unlock()
+	return funcVars[name]
+}
+
+func noteFuncVar(name string) {
+	funcVarsMu.Lock()
+	if !funcVars[name] {
+		funcVars[name] = true
+		funcEpoch.Add(1)
+	}
+	funcVarsMu.Unlock()
+}
+
 // put sets name in this exact scope.
 func (e *Environment) put(name string, val Object) {
+	if _, ok := val.(*Function); ok {
+		noteFuncVar(name)
+	}
 	if i := e.find(name); i >= 0 {
 		e.vars[i].val = val
 		return
@@ -268,7 +307,11 @@ func (e *Environment) GetFunction(name string) (*Function, bool) {
 
 func (e *Environment) DefineFunction(fn *Function) {
 	e.root().functions[fn.Name] = fn
+	funcEpoch.Add(1)
 }
+
+// Root is the module's global scope, at the top of e's chain.
+func (e *Environment) Root() *Environment { return e.root() }
 
 // AddImport records that this file imported mod — the whole module when
 // names is nil, otherwise just those names. Importing the same module

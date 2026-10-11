@@ -406,6 +406,7 @@ type CallExpression struct {
 	Module    string
 	Name      string
 	Arguments []Expression
+	Cache     any // the interpreter's: the function this call found last
 }
 
 func (ce *CallExpression) expressionNode()      {}
