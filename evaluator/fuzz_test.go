@@ -37,6 +37,7 @@ func FuzzRun(f *testing.F) {
 	f.Add("def f[x]\n    return x * 2\ndef [end]\nshow f[21] .")
 	f.Add("nums = list [3, 1, 2]\nsort nums .\nshow nums at get 0 .")
 	f.Add("m = map [\"a\": 1]\nshow m at get[\"a\"] .")
+	f.Add("def f[a, b]\n    return a + b\ndef [end]\nx = list [\n    f[\n        1,\n        2,\n    ],\n    map [\"k\": set [1,],],\n]\nshow x .")
 	f.Add("safe\n    x = 1 div 0\nhandle [] e .\n    show message of e .\nsafe [end]")
 
 	devnull, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0)

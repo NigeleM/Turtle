@@ -188,6 +188,38 @@ total_age = 0
 check["for-each map", total_age, 65]
 show "collections ok" .
 
+// ---------- brackets over lines ----------
+// Lists, maps, calls and assembled values may take a line per item, with
+// a comma before the closing bracket.
+spread = list [
+    map [
+        "name": "pen",
+        "tags": set [
+            "blue", "office",
+        ],
+    ],
+    list [
+        1,
+        2,
+    ],
+]
+check["spread list", length of spread, 2]
+check["spread map", spread at get 0, map ["name": "pen", "tags": set ["blue", "office"]]]
+def add_three[a, b, c]
+    return a + b + c
+def [end]
+summed = add_three[
+    1,
+    2,
+    3,
+]
+check["spread call", summed, 6]
+ready = summed == 6
+if ] ready [
+    check["if header still opens", true, true]
+if [end]
+show "brackets ok" .
+
 // ---------- strings ----------
 // Inside another call's [...], a sentence-style call takes one argument,
 // so the outer commas stay the outer call's; use the bracket form for

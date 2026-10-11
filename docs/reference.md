@@ -43,12 +43,37 @@ non-terminal; `[x]` is optional; `{x}` is zero-or-more; `|` is alternation.
   like method names (`get`, `union`, ...) they're plain identifiers whose
   meaning is only special right after `to`.
 
-One statement per source line, except explicit multi-line blocks with their
-own begin/end markers (function/if/loop bodies, `[write]`/`[append]`/
-`[read]`/`[directory]` blocks), and text, which may go over several lines.
-Otherwise expressions never span multiple lines — an
-operator at the start of a new line is never treated as a continuation of
-the expression on the previous line.
+One statement per source line, except:
+
+- **Blocks** with their own begin/end markers: function, if and loop
+  bodies, `[write]`/`[append]`/`[read]`/`[directory]` blocks.
+- **Anything in brackets** may go over as many lines as it likes: lists,
+  sets, maps, matrices, a call's or a method's arguments, an import's
+  names, a function's parameters, an assembled type's fields. A comma
+  before the closing `]` is allowed, so each item can have a line of its
+  own:
+
+  ```
+  import time [
+      now,
+      today,
+  ]
+  order = Order[
+      "pen",
+      3,
+  ]
+  prices = map [
+      "pen": 150,
+      "ink": 400,
+  ]
+  ```
+
+  In an if-header, a `[` that ends its line opens the body (`if ] ready [`),
+  so a call there starts its arguments on the `[` line: `if ] ok[x] [`.
+- **An operator at the end of a line** carries the expression on to the
+  next: `total = a +` then `b` on the next line. An operator at the start
+  of a line is never a continuation of the line before.
+- **Text**, which may go over several lines.
 
 ## Keywords
 

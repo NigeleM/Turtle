@@ -98,6 +98,12 @@ type Parser struct {
 	// where only get[...] and slice[...] reach into it (methodPrecedence).
 	inFieldObject bool
 
+	// inIfHeader is true while parsing the condition in "if ] cond [",
+	// where a '[' that ends its line opens the body ("if ] ready ["), so
+	// a call's arguments must start on its '[' line. Elsewhere they may
+	// start on the next line (argsMayFollow).
+	inIfHeader bool
+
 	// randomImported is set by "import random": from then on, "random"
 	// followed by a kind of value (random list of 5 integers) is a
 	// random-value sentence (see random.go). Elsewhere random is an
@@ -907,7 +913,7 @@ func (p *Parser) parseImportStatement() ast.Statement {
 				return nil
 			}
 			names = append(names, p.curToken.Literal)
-			if !p.peekTokenIs(token.COMMA) {
+			if p.trailingComma() || !p.peekTokenIs(token.COMMA) {
 				break
 			}
 			p.nextToken()
@@ -1203,7 +1209,10 @@ func (p *Parser) parseIfHeaderAndBody() *ast.IfClause {
 		return nil
 	}
 	p.nextToken()
+	was := p.inIfHeader
+	p.inIfHeader = true
 	cond := p.parseExpression(LOWEST)
+	p.inIfHeader = was
 	if !p.expectPeek(token.LBRACKET) {
 		return nil
 	}
@@ -1676,7 +1685,7 @@ func (p *Parser) parseIdentifier() ast.Expression {
 		p.nextToken()
 	}
 	name := p.curToken
-	if p.peekTokenIs(token.LBRACKET) && p.peekToken.Line == name.Line && !p.bracketStartsFunction(1) && p.peekN(2).Line == p.peekToken.Line {
+	if p.peekTokenIs(token.LBRACKET) && p.peekToken.Line == name.Line && !p.bracketStartsFunction(1) && p.argsMayFollow() {
 		p.nextToken()
 		args := p.parseCallArguments()
 		return p.maybeSentence(&ast.CallExpression{Token: tok, Module: module, Name: name.Literal, Arguments: args})
@@ -1808,9 +1817,9 @@ func (p *Parser) parseMethodCallExpression(receiver ast.Expression) ast.Expressi
 	p.nextToken()
 	method := p.curToken.Literal
 	mc := &ast.MethodCallExpression{Token: tok, Receiver: receiver, Method: method}
-	// Same rule as function calls: real arguments start on the '[' line;
-	// a '[' that ends its line closes an if-header ("if ] x at isempty [").
-	if p.peekTokenIs(token.LBRACKET) && p.peekToken.Line == p.curToken.Line && p.peekN(2).Line == p.peekToken.Line {
+	// Same rule as function calls (argsMayFollow): in an if-header a '['
+	// that ends its line opens the body ("if ] x at isempty [").
+	if p.peekTokenIs(token.LBRACKET) && p.peekToken.Line == p.curToken.Line && p.argsMayFollow() {
 		p.nextToken()
 		mc.Arguments = p.parseExpressionList(token.RBRACKET)
 		mc.Bracketed = true
@@ -2109,6 +2118,24 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 	return expr
 }
 
+// argsMayFollow is whether the '[' after a function or method name (the
+// peek token, on the name's line) starts its arguments: always, except in
+// an if-header, where a '[' that ends its line opens the body instead.
+func (p *Parser) argsMayFollow() bool {
+	return !p.inIfHeader || p.peekN(2).Line == p.peekToken.Line
+}
+
+// trailingComma is whether the peek token is a comma that only ends the
+// list (a comma before its closing ']', as when each item is on a line of
+// its own); it's then skipped.
+func (p *Parser) trailingComma() bool {
+	if p.peekTokenIs(token.COMMA) && p.peekN(2).Type == token.RBRACKET {
+		p.nextToken()
+		return true
+	}
+	return false
+}
+
 func (p *Parser) parseExpressionList(end token.Type) []ast.Expression {
 	defer func(was bool) { p.inBrackets = was }(p.inBrackets)
 	p.inBrackets = true
@@ -2119,7 +2146,7 @@ func (p *Parser) parseExpressionList(end token.Type) []ast.Expression {
 	}
 	p.nextToken()
 	list = append(list, p.parseExpression(LOWEST))
-	for p.peekTokenIs(token.COMMA) {
+	for !p.trailingComma() && p.peekTokenIs(token.COMMA) {
 		p.nextToken()
 		p.nextToken()
 		list = append(list, p.parseExpression(LOWEST))
@@ -2144,7 +2171,7 @@ func (p *Parser) parseCallArguments() []ast.Expression {
 	first := p.parseExpression(LOWEST)
 	if !p.peekTokenIs(token.COLON) {
 		list := []ast.Expression{first}
-		for p.peekTokenIs(token.COMMA) {
+		for !p.trailingComma() && p.peekTokenIs(token.COMMA) {
 			p.nextToken()
 			p.nextToken()
 			list = append(list, p.parseExpression(LOWEST))
@@ -2163,7 +2190,7 @@ func (p *Parser) parseCallArguments() []ast.Expression {
 		p.nextToken()
 		m.Keys = append(m.Keys, k)
 		m.Values = append(m.Values, p.parseExpression(LOWEST))
-		if !p.peekTokenIs(token.COMMA) {
+		if p.trailingComma() || !p.peekTokenIs(token.COMMA) {
 			break
 		}
 		p.nextToken()
@@ -2216,7 +2243,7 @@ func (p *Parser) parseMapLiteral() ast.Expression {
 		v := p.parseExpression(LOWEST)
 		m.Keys = append(m.Keys, k)
 		m.Values = append(m.Values, v)
-		if p.peekTokenIs(token.COMMA) {
+		if !p.trailingComma() && p.peekTokenIs(token.COMMA) {
 			p.nextToken()
 			p.nextToken()
 			continue
