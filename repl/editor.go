@@ -1,3 +1,7 @@
+// Copyright 2017-2026 Nigele McCoy
+// Licensed under the Apache License, Version 2.0;
+// see LICENSE and NOTICE.
+
 package repl
 
 import (
@@ -33,6 +37,7 @@ const (
 	keyKillEnd   // Ctrl-K
 	keyKillStart // Ctrl-U
 	keyKillWord  // Ctrl-W
+	keyEscape    // Esc alone
 	keyIgnored
 )
 
@@ -106,7 +111,7 @@ func decodeKeys(b []byte) []key {
 // decodeEscape reads one escape sequence at the start of b.
 func decodeEscape(b []byte) (key, int) {
 	if len(b) == 1 {
-		return key{kind: keyIgnored}, 1
+		return key{kind: keyEscape}, 1
 	}
 	switch b[1] {
 	case 'b':

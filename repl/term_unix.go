@@ -1,9 +1,15 @@
+// Copyright 2017-2026 Nigele McCoy
+// Licensed under the Apache License, Version 2.0;
+// see LICENSE and NOTICE.
+
 //go:build darwin || linux
 
 package repl
 
 import (
+	"os"
 	"syscall"
+	"time"
 	"unsafe"
 )
 
@@ -61,3 +67,37 @@ func termWidth(fd int) int {
 
 // enableColors: macOS and Linux terminals understand color codes as is.
 func enableColors(fd int) bool { return true }
+
+// backgroundIsLight asks the terminal for its background color (OSC 11),
+// then what it is (DA1), which every terminal answers, so one that
+// doesn't know OSC 11 doesn't keep us waiting. ok is false without an
+// answer; typed is what was typed meanwhile, for the prompt.
+func backgroundIsLight(fd int) (light, ok bool, typed []byte) {
+	var old syscall.Termios
+	if ioctl(uintptr(fd), ioctlGetTermios, unsafe.Pointer(&old)) != nil {
+		return false, false, nil
+	}
+	t := old
+	t.Lflag &^= syscall.ECHO | syscall.ICANON
+	t.Cc[syscall.VMIN] = 0
+	t.Cc[syscall.VTIME] = 2 // a read gives up after 0.2 seconds
+	if ioctl(uintptr(fd), ioctlSetTermios, unsafe.Pointer(&t)) != nil {
+		return false, false, nil
+	}
+	defer ioctl(uintptr(fd), ioctlSetTermios, unsafe.Pointer(&old))
+	os.Stdout.WriteString("\x1b]11;?\x1b\\\x1b[c")
+	var got []byte
+	buf := make([]byte, 256)
+	for deadline := time.Now().Add(time.Second); time.Now().Before(deadline); {
+		n, err := syscall.Read(fd, buf)
+		if n <= 0 || err != nil {
+			break
+		}
+		got = append(got, buf[:n]...)
+		if da1Reply.Match(got) {
+			break
+		}
+	}
+	light, ok = lightFromReply(string(got))
+	return light, ok, withoutReplies(got)
+}

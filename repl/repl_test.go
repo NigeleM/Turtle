@@ -1,3 +1,7 @@
+// Copyright 2017-2026 Nigele McCoy
+// Licensed under the Apache License, Version 2.0;
+// see LICENSE and NOTICE.
+
 package repl
 
 import (
@@ -19,9 +23,10 @@ func noWords() syntax.Words {
 func TestColorizeKeepsTheText(t *testing.T) {
 	src := `def f[x] // add one
     return x + 1 . "s"`
-	out := colorize(src, noWords())
+	codes, _ := palette(schemes[0], false, true)
+	out := colorize(src, noWords(), codes)
 	plain := strings.NewReplacer("\x1b[0m", "").Replace(out)
-	for _, code := range colorCodes {
+	for _, code := range codes {
 		plain = strings.ReplaceAll(plain, code, "")
 	}
 	if plain != src {

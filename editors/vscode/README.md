@@ -70,6 +70,10 @@ and every color has 4.5:1 contrast or more on its background.
   underline, so no group depends on color alone.
 - **Theme colors:** your theme's own colors, nothing from Turtle.
 
+The REPL (`turtle` in a terminal) has the same schemes: type `colors`
+there to pick one with the arrow keys, or `colors okabe-ito` (the names in
+lowercase, a dash for spaces and `&`). See [the REPL's colors](../../docs/repl.md#picking-a-scheme).
+
 The scheme colors Turtle files only: other languages keep your theme. It's
 written into your user settings (`editor.tokenColorCustomizations` and
 `editor.semanticTokenColorCustomizations`), as rules for Turtle alone;

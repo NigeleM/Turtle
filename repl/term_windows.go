@@ -1,3 +1,7 @@
+// Copyright 2017-2026 Nigele McCoy
+// Licensed under the Apache License, Version 2.0;
+// see LICENSE and NOTICE.
+
 package repl
 
 import (
@@ -97,3 +101,7 @@ func enableColors(fd int) bool {
 	}
 	return setMode(h, mode|enableProcessedOutput|enableVirtualTerminalProcessing)
 }
+
+// backgroundIsLight: not asked on Windows; COLORFGBG, or light/dark on
+// the colors command, says.
+func backgroundIsLight(fd int) (light, ok bool, typed []byte) { return false, false, nil }

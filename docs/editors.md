@@ -6,7 +6,7 @@ Protocol get Turtle support from it.
 | What you get | |
 |---|---|
 | Errors as you type | the parser's own messages, under the spot; imports of missing files, as warnings |
-| Colors | keywords, strings, numbers, comments, definitions, calls, library functions, from Turtle's lexer (the same as the REPL) |
+| Colors | keywords, strings, numbers, comments, definitions, calls, library functions, from Turtle's lexer, in twelve schemes; the REPL has the same ones (`colors` there) |
 | Completion | keywords, your functions, assembled types and variables, functions from your imported files, library functions (an imported library's first), methods after `at`, libraries and your files after `import`, kinds of value after `random` |
 | Hover | your function's description (comments above its `def` or first in its body, `//` lines or a `//* *//` block), a library function's `turtle doc` text, a keyword's meaning |
 | Go to definition | your functions and assembled types, also in imported files |
@@ -85,3 +85,8 @@ Any editor with an LSP client works: run `turtle lsp` for files ending in
 `.turtle`. It talks on stdin and stdout, sends whole-file sync, and answers
 initialize, didOpen / didChange / didClose, completion, hover, definition,
 documentSymbol and semanticTokens/full.
+
+---
+
+Copyright 2017-2026 Nigele McCoy. Licensed under the
+[Apache License 2.0](../LICENSE); see [NOTICE](../NOTICE).

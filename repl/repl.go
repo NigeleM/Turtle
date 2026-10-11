@@ -1,3 +1,7 @@
+// Copyright 2017-2026 Nigele McCoy
+// Licensed under the Apache License, Version 2.0;
+// see LICENSE and NOTICE.
+
 // Package repl is Turtle's interactive prompt: type Turtle a line at a
 // time, see results at once, with the code colored as it's typed.
 //
@@ -17,6 +21,7 @@ package repl
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -53,6 +58,19 @@ type Session struct {
 	// theories are the theories entered (or imported) so far: later
 	// entries read their phrases.
 	theories parser.Theories
+
+	// colors: the scheme (colors.go) and shade (auto, light, dark), the
+	// codes they make, and where they're kept (none in tests)
+	scheme, shade string
+	light         bool
+	truecolor     bool
+	codes         map[syntax.Class]string
+	resultColor   string
+	settings      string
+	detectLight   func() bool // asks the terminal whether it's light
+	detected      bool
+	detectedLight bool
+	in            *bufio.Reader // the keys, for the colors picker (none in tests)
 }
 
 // NewSession makes a session whose files and imports resolve from dir.
@@ -63,6 +81,7 @@ func NewSession(dir string, out io.Writer, color bool) *Session {
 	for _, f := range evaluator.LibraryFunctions() {
 		s.words.Builtin[f] = true
 	}
+	s.setColors(defaultScheme, "auto")
 	return s
 }
 
@@ -170,7 +189,7 @@ func (s *Session) show(v object.Object) {
 	if m, ok := v.(*object.Matrix); ok {
 		text = m.Inspect() // a matrix on its own shows as a grid, as show prints it
 	}
-	fmt.Fprintln(s.out, s.paint(resultColor, text))
+	fmt.Fprintln(s.out, s.paint(s.resultColor, text))
 }
 
 // report writes an error, if there is one, and reports whether the entry
@@ -242,6 +261,8 @@ Commands (a line with just the word):
   names             your variables and functions
   load file.turtle     run a file into this session
   save file.turtle     write what you've run in this session to a file
+  colors            pick a color scheme: ↑↓ scheme, ←→ shade, Enter keeps it
+  colors okabe-ito  use one by name (add light, dark or auto for the shade)
 
 Keys: arrows move and go through history, Home/End (Ctrl-A/Ctrl-E),
 Ctrl-K/Ctrl-U cut to the end/start, Ctrl-W cuts a word, Tab indents,
@@ -264,6 +285,7 @@ func (s *Session) command(line string) bool {
 	case (word == "help" || word == "quit" || word == "exit" || word == "clear" || word == "names") && arg == "":
 	case (word == "load" || word == "save") && arg != "" && !strings.ContainsAny(arg, "[]=\""):
 	case word == "help" && arg != "" && !strings.ContainsAny(arg, "[]=\" "):
+	case word == "colors" && !strings.ContainsAny(arg, "[]=\""):
 	default:
 		return false
 	}
@@ -279,6 +301,8 @@ func (s *Session) command(line string) bool {
 			return true
 		}
 		fmt.Fprintln(s.out, text)
+	case "colors":
+		s.colorsCommand(arg)
 	case "quit", "exit":
 		s.quit = true
 	case "clear":
@@ -337,6 +361,20 @@ func Run(version string) int {
 	dir, _ := os.Getwd()
 	color := os.Getenv("NO_COLOR") == "" && os.Getenv("TERM") != "dumb" && enableColors(1)
 	s := NewSession(dir, os.Stdout, color)
+	s.truecolor = hasTrueColor()
+	s.settings = settingsPath()
+	// Light or dark, found out once now, before anything is read: keys
+	// typed while the terminal answers go on to the prompt. Dark, when
+	// there's no telling.
+	var typed []byte
+	light, ok := lightFromColorFGBG(os.Getenv("COLORFGBG"))
+	if !ok && color && isTerminal(0) && isTerminal(1) {
+		light, _, typed = backgroundIsLight(0)
+	}
+	s.detectLight = func() bool { return light }
+	if color {
+		s.setColors(readSetting(s.settings))
+	}
 	defer s.Close()
 	fmt.Printf("Turtle %s — type help for help, quit to leave\n", version)
 
@@ -353,7 +391,8 @@ func Run(version string) int {
 		}
 	}()
 
-	in := bufio.NewReader(os.Stdin)
+	in := bufio.NewReader(io.MultiReader(bytes.NewReader(typed), os.Stdin))
+	s.in = in
 	for !s.quit {
 		entry, ok := s.readEntry(in, &history)
 		if !ok {
@@ -427,7 +466,7 @@ func (s *Session) readLine(in *bufio.Reader, p, start string, history *[]string)
 	redraw := func() {
 		colored := l.String()
 		if s.color {
-			colored = colorize(colored, s.words)
+			colored = colorize(colored, s.words, s.codes)
 		}
 		out, r := render(shownPrompt, len(p), l.String(), colored, l.pos, width, row)
 		row = r
