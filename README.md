@@ -1,9 +1,6 @@
 # The Turtle Programming Language ⓒ 2017
 
-Turtle was my side project during community college and undergrad.
-It is copyrighted by Nigele McCoy. My goal was to make a very simple language with a paradigm shift.
-Philosophy of Turtle coming soon. 
-
+Turtle is copyrighted by Nigele McCoy. My goal was to make a very simple language with a paradigm shift.
 
 ## Status
 
@@ -11,12 +8,6 @@ Turtle 0.9 is usable today: the full language, a standard library (data,
 linear algebra, SQL, HTTP, servers, JSON, files and more), a REPL, a
 formatter, a debugger, editor support, and `turtle build` for single-file
 programs on Mac, Windows and Linux.
-
-## Roadmap
-
-- Macros: define your own words and phrases
-- More of the standard library written in Turtle
-- 1.0
 
 ## Quick start
 
@@ -122,7 +113,5 @@ counts, but in short:
 - **Programs you write in Turtle are yours.**
 - **No warranty.** Turtle is provided as is; its authors aren't liable for
   any damage or loss from using it (sections 7 and 8 of the license).
-- **The Turtle name and logo aren't licensed** (section 6): a changed
-  version needs its own name.
 - **Contributions** are made under the same license, and what goes into
   official Turtle is the creator's decision.
