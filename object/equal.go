@@ -60,7 +60,7 @@ func Equal(a, b Object) bool {
 			return false
 		}
 		for _, e := range av.entries {
-			v, ok := bv.GetK(e.K)
+			v, ok := bv.Get(e.Key)
 			if !ok || !Equal(e.Val, v) {
 				return false
 			}
@@ -89,6 +89,33 @@ func Equal(a, b Object) bool {
 		return true
 	}
 	return a.Type() == b.Type() && a.Inspect() == b.Inspect()
+}
+
+// entryKey is a map's or set's index key for obj: one key exactly when
+// Key says so, without making anything for the usual key, text. Text is
+// itself; anything else is a NUL and its Key, which no text starts with
+// (text that does start with a NUL gets the same treatment).
+func entryKey(obj Object) string {
+	if s, ok := obj.(*String); ok && (s.Value == "" || s.Value[0] != 0) {
+		return s.Value
+	}
+	return "\x00" + Key(obj)
+}
+
+// sameKey is whether a and b are one key, as Key(a) == Key(b) says (2
+// and 2.0 are; "1" and 1 aren't), with nothing made for text or whole
+// numbers.
+func sameKey(a, b Object) bool {
+	switch x := a.(type) {
+	case *String:
+		y, ok := b.(*String)
+		return ok && x.Value == y.Value
+	case *Integer:
+		if y, ok := b.(*Integer); ok {
+			return x.Value == y.Value
+		}
+	}
+	return Key(a) == Key(b)
 }
 
 // Key is the internal string a value is stored under as a map key (and
@@ -127,7 +154,7 @@ func Key(obj Object) string {
 	case *Map:
 		parts := make([]string, len(v.entries))
 		for i, e := range v.entries {
-			parts[i] = e.K + ":" + Key(e.Val)
+			parts[i] = Key(e.Key) + ":" + Key(e.Val)
 		}
 		sort.Strings(parts)
 		return "map{" + strings.Join(parts, ",") + "}"

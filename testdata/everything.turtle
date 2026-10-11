@@ -220,6 +220,26 @@ if ] ready [
 if [end]
 show "brackets ok" .
 
+// ---------- maps small and large ----------
+// A map searches in order up to 32 entries and keeps an index past that;
+// either way 1 and "1" are two keys, and 2 and 2.0 are one.
+row = map ["id": 7, "name": "pen", 1: "one", "1": "text one", 2: "two"]
+row is row at add 2.0, "two again" .
+check["row keys", length of row, 5]
+check["1 and \"1\"", row at get[1] + row at get["1"], "onetext one"]
+check["2 and 2.0", row at get[2], "two again"]
+wide = map []
+[loop][i = 0; i < 40; i++]
+    wide is wide at add "k{i}", i .
+[loop][end]
+wide is wide at add 5, "five" .
+check["wide map", length of wide, 41]
+check["wide get", wide at get["k39"] + wide at get["k0"], 39]
+check["wide number key", wide at get[5], "five"]
+delete "k10" from wide .
+check["wide delete", length of wide, 40]
+show "maps ok" .
+
 // ---------- strings ----------
 // Inside another call's [...], a sentence-style call takes one argument,
 // so the outer commas stay the outer call's; use the bracket form for

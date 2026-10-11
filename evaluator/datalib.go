@@ -70,7 +70,7 @@ func (it *Interpreter) dataKeep(args []object.Object) object.Object {
 	case *object.Map:
 		for _, e := range slices.Clone(c.Entries()) {
 			if !isTruthy(it.callFunction(fn, "keep", mapFunctionArgs("keep", fn, e.Key, e.Val))) {
-				c.DeleteKey(e.K)
+				c.Delete(e.Key)
 			}
 		}
 	}
@@ -210,13 +210,13 @@ func collectionOp(op string, left, right object.Object) (object.Object, bool) {
 		}
 		out := object.NewMap()
 		for _, e := range l.Entries() {
-			if _, inRight := r.GetK(e.K); op == "+" || !inRight {
+			if _, inRight := r.Get(e.Key); op == "+" || !inRight {
 				out.Put(e.Key, e.Val)
 			}
 		}
 		if op == "+" {
 			for _, e := range r.Entries() {
-				if _, inLeft := l.GetK(e.K); !inLeft {
+				if _, inLeft := l.Get(e.Key); !inLeft {
 					out.Put(e.Key, e.Val)
 				}
 			}

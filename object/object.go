@@ -163,11 +163,11 @@ func (s *Set) Contains(v Object) bool {
 	if s.index == nil {
 		s.index = map[string][]Object{}
 		for _, e := range s.Elements {
-			k := Key(e)
+			k := entryKey(e)
 			s.index[k] = append(s.index[k], e)
 		}
 	}
-	for _, e := range s.index[Key(v)] {
+	for _, e := range s.index[entryKey(v)] {
 		if Equal(e, v) {
 			return true
 		}
@@ -182,7 +182,7 @@ func (s *Set) Add(v Object) bool {
 		return false
 	}
 	s.Elements = append(s.Elements, v)
-	k := Key(v)
+	k := entryKey(v)
 	s.index[k] = append(s.index[k], v)
 	return true
 }
@@ -193,24 +193,22 @@ func (s *Set) Changed() { s.index = nil }
 
 // Map is Turtle's `map [...]`, insertion-ordered. Keys can be any value
 // and keep their type: map [1: "a"] has the integer key 1, distinct from
-// the string "1". Each entry holds its Key string (how keys are compared),
-// the original key value, and the value, in one list in order; a map of
-// more than smallMap entries also keeps an index from Key string to
-// position. (Most maps are small records, which a short scan finds
-// fastest, without a hash table each.)
+// the string "1"; keys are one key when Key says so (2 and 2.0 are). The
+// entries are one list in order; a map of more than smallMap entries also
+// keeps an index from entryKey to position. Most maps are records and
+// rows, which a short scan finds as fast, without a hash table each.
 type Map struct {
 	entries []MapEntry
 	index   map[string]int
 }
 
-// MapEntry is one key and its value. K is the key's Key string.
+// MapEntry is one key and its value.
 type MapEntry struct {
-	K   string
 	Key Object
 	Val Object
 }
 
-const smallMap = 8
+const smallMap = 32
 
 func NewMap() *Map { return &Map{} }
 
@@ -230,16 +228,24 @@ func (m *Map) Len() int { return len(m.entries) }
 // SetAt, and keys only with Put and Delete.
 func (m *Map) Entries() []MapEntry { return m.entries }
 
-// find is where Key string k is, or -1.
-func (m *Map) find(k string) int {
+// find is where key is, or -1.
+func (m *Map) find(key Object) int {
 	if m.index != nil {
-		if i, ok := m.index[k]; ok {
+		if i, ok := m.index[entryKey(key)]; ok {
 			return i
 		}
 		return -1
 	}
+	if ks, ok := key.(*String); ok { // the usual key: text against text
+		for i := range m.entries {
+			if s, ok := m.entries[i].Key.(*String); ok && s.Value == ks.Value {
+				return i
+			}
+		}
+		return -1
+	}
 	for i := range m.entries {
-		if m.entries[i].K == k {
+		if sameKey(m.entries[i].Key, key) {
 			return i
 		}
 	}
@@ -248,15 +254,14 @@ func (m *Map) find(k string) int {
 
 // Put sets key to val, adding key at the end if it's new.
 func (m *Map) Put(key, val Object) {
-	k := Key(key)
-	if i := m.find(k); i >= 0 {
+	if i := m.find(key); i >= 0 {
 		m.entries[i].Val = val
 		return
 	}
-	m.entries = append(m.entries, MapEntry{K: k, Key: key, Val: val})
+	m.entries = append(m.entries, MapEntry{Key: key, Val: val})
 	switch {
 	case m.index != nil:
-		m.index[k] = len(m.entries) - 1
+		m.index[entryKey(key)] = len(m.entries) - 1
 	case len(m.entries) > smallMap:
 		m.reindex()
 	}
@@ -265,7 +270,7 @@ func (m *Map) Put(key, val Object) {
 func (m *Map) reindex() {
 	m.index = make(map[string]int, len(m.entries)*2)
 	for i, e := range m.entries {
-		m.index[e.K] = i
+		m.index[entryKey(e.Key)] = i
 	}
 }
 
@@ -274,23 +279,10 @@ func (m *Map) SetAt(i int, val Object) { m.entries[i].Val = val }
 
 // Get returns the value stored for key.
 func (m *Map) Get(key Object) (Object, bool) {
-	return m.GetK(Key(key))
-}
-
-// GetK returns the value stored under Key string k.
-func (m *Map) GetK(k string) (Object, bool) {
-	if i := m.find(k); i >= 0 {
+	if i := m.find(key); i >= 0 {
 		return m.entries[i].Val, true
 	}
 	return nil, false
-}
-
-// KeyOf returns the original key value for an internal key string.
-func (m *Map) KeyOf(k string) Object {
-	if i := m.find(k); i >= 0 {
-		return m.entries[i].Key
-	}
-	return &String{Value: k}
 }
 
 // KeyList is the keys in order, as a new list of values.
@@ -313,11 +305,6 @@ func (m *Map) ValueList() []Object {
 
 // Delete removes key, reporting whether it was there.
 func (m *Map) Delete(key Object) bool {
-	return m.DeleteKey(Key(key))
-}
-
-// DeleteKey removes the entry stored under internal key string key.
-func (m *Map) DeleteKey(key string) bool {
 	i := m.find(key)
 	if i < 0 {
 		return false
