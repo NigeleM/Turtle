@@ -2,6 +2,12 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## 0.9.196 (2026-10-11)
+
+- Arithmetic inside arithmetic (`total + i * i % m`) is worked out
+  without making a value for each step in between: loops doing sums are
+  about 10% faster, and lists built from them use less memory.
+
 ## 0.9.195 (2026-10-11)
 
 - Smaller maps: a 12-field row (a CSV, JSON or database row) takes about
