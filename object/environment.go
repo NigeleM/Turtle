@@ -265,6 +265,31 @@ func (e *Environment) Set(name string, val Object) {
 	e.put(name, val)
 }
 
+// SetUnlessShadows is Set, except when it would make a new local that
+// hides a variable of an enclosing scope: then it sets nothing and says
+// so (and whether that variable is a global), for the caller to decide.
+// One walk, where Shadows and then Set would take two.
+func (e *Environment) SetUnlessShadows(name string, val Object) (shadows, global bool) {
+	for e.loop {
+		if e.find(name) >= 0 {
+			e.put(name, val)
+			return false, false
+		}
+		e = e.outer
+	}
+	if e.outer == nil || e.find(name) >= 0 {
+		e.put(name, val)
+		return false, false
+	}
+	for s := e.outer; s != nil; s = s.outer {
+		if s.find(name) >= 0 {
+			return true, s.outer == nil
+		}
+	}
+	e.put(name, val)
+	return false, false
+}
+
 // Shadows reports whether a plain assignment to name here would make a
 // new local that hides a variable of an enclosing scope, and whether that
 // variable is a global (else it's an enclosing function's).

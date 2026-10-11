@@ -423,10 +423,12 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		if s.Name == seedName {
 			it.rng = nil // seed = 7 again starts the same values again
 		}
-		if shadows, global := env.Shadows(s.Name); shadows && mentionsName(s.Value, s.Name) {
-			outerAssignError(s.Name, it.funcName, global)
+		if shadows, global := env.SetUnlessShadows(s.Name, v); shadows {
+			if mentionsName(s.Value, s.Name) {
+				outerAssignError(s.Name, it.funcName, global)
+			}
+			env.Set(s.Name, v)
 		}
-		env.Set(s.Name, v)
 		if trace != nil {
 			it.traceAssign(trace, s.Name, v.Inspect())
 		}
