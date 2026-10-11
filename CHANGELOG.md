@@ -2,6 +2,14 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## 0.9.194 (2026-10-11)
+
+- Anything in brackets can go over several lines: a call's or a method's
+  arguments (`f[` with the arguments on the lines after), assembled
+  values, as lists, sets, maps and imports already could.
+- A comma before the closing `]` is allowed: `list [1, 2,]`, and one item
+  per line, each with its comma.
+
 ## 0.9.193 (2026-10-11)
 
 - Less memory: programs that keep a lot of data use 15-40% less at
