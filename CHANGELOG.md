@@ -2,6 +2,15 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## 0.9.195 (2026-10-11)
+
+- Smaller maps: a 12-field row (a CSV, JSON or database row) takes about
+  a quarter of the memory it did, and maps and JSON are 15-20% faster.
+- Function calls about 20% faster.
+- Names may use any language's letters: `café`, `größe`, `名前`.
+- A runtime error shows the line it happened on; clearer messages for an
+  extra `]`, a stray `[end]`, and a character Turtle doesn't know.
+
 ## 0.9.194 (2026-10-11)
 
 - Anything in brackets can go over several lines: a call's or a method's
