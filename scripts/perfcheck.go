@@ -14,7 +14,8 @@
 //	go run scripts/perfcheck.go -base v0.9.192  base: any commit
 //
 // Times are each program's own (its ms= line, best of its runs); memory
-// is the peak the system reports for the process. macOS and Linux.
+// is the peak the system reports for the process, the middle of its runs.
+// macOS and Linux.
 package main
 
 import (
@@ -42,7 +43,14 @@ var (
 	skipList = map[string]bool{"run.turtle": true, "hello.turtle": true, "linear.turtle": true} // no single ms= line
 )
 
-type result struct{ ms, mb float64 }
+// result is a program's runs with one turtle: the fastest time, and the
+// middle memory peak (a garbage collector makes peaks vary from run to
+// run, so the lowest would flatter whichever turtle got lucky).
+type result struct {
+	ms  float64
+	mbs []float64
+	mb  float64
+}
 
 func main() {
 	flag.Parse()
@@ -157,16 +165,19 @@ func run(bin, prog string) (result, bool) {
 			mb /= 1024 // bytes on macOS
 		}
 	}
-	return result{ms, mb}, true
+	return result{ms: ms, mb: mb}, true
 }
 
-// better keeps the fastest time and the smallest memory seen; a is
-// result{ms: -1} before the first run.
+// better adds run b to a (result{ms: -1} before the first run).
 func better(a, b result) result {
-	if a.ms < 0 {
-		return b
+	if a.ms < 0 || b.ms < a.ms {
+		a.ms = b.ms
 	}
-	return result{min(a.ms, b.ms), min(a.mb, b.mb)}
+	a.mbs = append(a.mbs, b.mb)
+	sorted := append([]float64(nil), a.mbs...)
+	sort.Float64s(sorted)
+	a.mb = sorted[len(sorted)/2]
+	return a
 }
 
 func pct(from, to float64) float64 {
