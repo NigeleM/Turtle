@@ -120,3 +120,44 @@ jobs:
           choco install innosetup -y --no-progress
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /Q "/DOutputDir=$env:RUNNER_TEMP" installer\turtle.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  # No change may make Turtle slower or hungrier: bench/ run with the
+  # commit before and with this one, taking turns on the same machine
+  # (scripts/perfcheck.go).
+  performance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Compare with the commit before
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
+        run: go run scripts/perfcheck.go -base "$BASE" -rounds 5
+
+  # Random and mangled programs for a minute each: the parser and the
+  # interpreter must give errors, never crash or hang. (go test above runs
+  # the fuzz tests' seed programs every time.)
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Fuzz the parser
+        run: go test ./parser -run '^$' -fuzz FuzzParse -fuzztime 60s
+
+      - name: Fuzz the interpreter
+        run: go test ./evaluator -run '^$' -fuzz FuzzRun -fuzztime 60s

@@ -1,7 +1,8 @@
 #!/bin/sh
 # check-all.sh: the checks CI runs, on this computer, before a push.
 #
-#   scripts/check-all.sh          macOS (or this system), Windows build, Linux in Docker
+#   scripts/check-all.sh          macOS (or this system), Windows build, Linux in Docker,
+#                                 and bench/ against origin/main
 #   scripts/check-all.sh --quick  skip Docker
 #
 # It tests what's committed (HEAD), not the working folder, so a new file
@@ -13,6 +14,7 @@ QUICK=0
 [ "${1:-}" = "--quick" ] && QUICK=1
 
 cd "$(git rev-parse --show-toplevel)"
+repo=$(pwd)
 fail=0
 step() { printf '\n== %s\n' "$1"; }
 
@@ -75,6 +77,9 @@ if [ "$QUICK" = 0 ]; then
 		step "linux: skipped, Docker isn't running"
 	fi
 fi
+
+step "performance against origin/main (no slower, no bigger)"
+if (cd "$repo" && go run scripts/perfcheck.go -base origin/main); then :; else fail=1; fi
 
 echo
 if [ "$fail" = 0 ]; then

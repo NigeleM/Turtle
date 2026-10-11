@@ -235,12 +235,20 @@ one more case.
 
 ## Testing
 
-There's no automated test runner yet (see `architecture.md`'s Testing
-section) — add a `.turtle` script under `testdata/` exercising the new feature,
-run it with `go run ./cmd/turtle testdata/yourscript.turtle`, and check the
-output by hand against what you expect. Building a real
-expected-output-diffing harness is on the list; volunteering to build one
-is very welcome.
+- **Go tests:** `go test ./...` style, over the packages CI lists. Each
+  feature gets tests next to its code.
+- **Programs that check themselves:** `testdata/everything.turtle` and
+  the others under `testdata/` run in CI and fail on any wrong answer.
+  Add your feature to one of them.
+- **Fuzzing:** `FuzzParse` (parser) and `FuzzRun` (interpreter) give
+  random and mangled programs; any crash or hang fails. `go test` runs
+  their seeds; `go test ./parser -run '^$' -fuzz FuzzParse -fuzztime 60s`
+  fuzzes for real, as CI does.
+- **Performance:** `go run scripts/perfcheck.go` runs `bench/` with
+  `origin/main`'s turtle and with yours, taking turns, and fails if
+  anything is more than 15% slower or bigger. CI runs it on every push.
+- **Before a push:** `scripts/check-all.sh` runs all of the above on
+  macOS, the Windows build, and Linux in Docker.
 
 ---
 
