@@ -15,8 +15,8 @@ func TestGCPercentFor(t *testing.T) {
 	cases := map[uint64]int{
 		0:         gcMaxPercent,
 		1 << 20:   gcMaxPercent, // 1 MB kept: collect rarely
-		8 << 20:   400,
-		16 << 20:  200,
+		8 << 20:   150,
+		16 << 20:  100,
 		32 << 20:  100,
 		512 << 20: gcMinPercent, // never under Go's default
 	}

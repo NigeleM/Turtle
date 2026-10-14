@@ -19,9 +19,9 @@ import (
 // that's small, less as it grows, so the garbage allowed stays near
 // gcAllowance, and never under gcMinPercent (Go's own default).
 const (
-	gcMaxPercent = 400
+	gcMaxPercent = 150
 	gcMinPercent = 100
-	gcAllowance  = 32 << 20 // bytes
+	gcAllowance  = 16 << 20 // bytes
 )
 
 // gcMark is the value that marks a collection: big enough not to share
@@ -47,7 +47,10 @@ func adaptGC() {
 		}
 		p := gcPercentFor(sample[0].Value.Uint64())
 		// Only a real change: setting it stops the program for a moment.
-		if p > current+current/4 || p < current-current/4 {
+		// The two ends are always taken, or a program that keeps a lot would
+		// stop short of the floor: 110 is inside the band that a change must
+		// pass to count.
+		if p == gcMinPercent || p == gcMaxPercent || p > current+current/4 || p < current-current/4 {
 			debug.SetGCPercent(p)
 			current = p
 		}
