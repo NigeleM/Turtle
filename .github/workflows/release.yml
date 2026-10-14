@@ -131,9 +131,9 @@ jobs:
     needs: [build-mac, build-linux, build-windows]
     runs-on: ubuntu-latest
     steps:
-    - name: Delete releases past the newest 5
+    - name: Delete releases past the newest 10
       run: |
-        for tag in $(gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 --json tagName --jq '.[5:][].tagName'); do
+        for tag in $(gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 --json tagName --jq '.[10:][].tagName'); do
           echo "deleting release $tag (the tag stays)"
           gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes
         done
