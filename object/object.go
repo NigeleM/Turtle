@@ -587,3 +587,43 @@ func Bool(b bool) *Boolean {
 	}
 	return falseValue
 }
+
+// NewAssembly makes an assembled value of shape holding a copy of values.
+// Small ones are made in one allocation, with their values inside them.
+func NewAssembly(shape *Shape, values []Object) *Assembly {
+	switch len(values) {
+	case 1:
+		s := &struct {
+			a Assembly
+			v [1]Object
+		}{}
+		copy(s.v[:], values)
+		s.a = Assembly{Shape: shape, Values: s.v[:]}
+		return &s.a
+	case 2:
+		s := &struct {
+			a Assembly
+			v [2]Object
+		}{}
+		copy(s.v[:], values)
+		s.a = Assembly{Shape: shape, Values: s.v[:]}
+		return &s.a
+	case 3:
+		s := &struct {
+			a Assembly
+			v [3]Object
+		}{}
+		copy(s.v[:], values)
+		s.a = Assembly{Shape: shape, Values: s.v[:]}
+		return &s.a
+	case 4:
+		s := &struct {
+			a Assembly
+			v [4]Object
+		}{}
+		copy(s.v[:], values)
+		s.a = Assembly{Shape: shape, Values: s.v[:]}
+		return &s.a
+	}
+	return &Assembly{Shape: shape, Values: append([]Object{}, values...)}
+}

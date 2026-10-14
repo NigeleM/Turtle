@@ -896,7 +896,7 @@ func (it *Interpreter) callFunction(fn *object.Function, name string, args []obj
 			fatalf("%s needs %d value(s), one per field (%s), got %d",
 				name, len(fn.Shape.Fields), strings.Join(fn.Shape.Fields, ", "), len(args))
 		}
-		return &object.Assembly{Shape: fn.Shape, Values: append([]object.Object{}, args...)}
+		return object.NewAssembly(fn.Shape, args)
 	}
 	if fn.Scroll != nil {
 		if len(args) != 1 {
