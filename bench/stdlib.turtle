@@ -1,0 +1,198 @@
+import time
+// stdlib: each library function timed on the same data, best of 3. Sorting
+// uses 200,000 numbers (insertion_sort 3,000: it's quadratic); statistics
+// use 200,000; matrices are 150 x 150.
+import linear
+import data
+import sort
+import search
+def make[n]
+    out = list []
+    x = 1
+    [loop][i = 0; i < n; i++]
+        x = x * 75 + 74
+        x = x % 65537
+        add x to out .
+    [loop][end]
+    return out
+def [end]
+nums = make[200000]
+small = make[3000]
+sorted_nums = quick_sort[nums]
+mat = zeros[150, 150]
+x = 1
+[loop][r = 0; r < 150; r++]
+    [loop][c = 0; c < 150; c++]
+        x = x * 75 + 74
+        x = x % 65537
+        mat at put[x, r, c] .
+    [loop][end]
+[loop][end]
+show "stdlib (ms, best of 3)" .
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    quick_sort[nums]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "quick_sort", best .
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    merge_sort[nums]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "merge_sort", best .
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    heap_sort[nums]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "heap_sort", best .
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    shell_sort[nums]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "shell_sort", best .
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    insertion_sort[small]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "insertion_sort 3k", best .
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    sort_copy = copy[nums]
+    sort sort_copy .
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "sort built-in", best .
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    mean[nums]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "mean", best .
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    median[nums]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "median", best .
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    stdev[nums]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "stdev", best .
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    percentile[nums, 90]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "percentile 90", best .
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    describe[nums]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "describe", best .
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    binary_search[sorted_nums, 4000]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "binary_search", best .
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    linear_search[nums, 4000]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "linear_search", best .
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    [loop][k = 0; k < 50; k++]
+        prod = mat * mat
+    [loop][end]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "matrix multiply 150 (50 runs)", best .
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    [loop][k = 0; k < 50; k++]
+        tr = transpose[mat]
+    [loop][end]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "matrix transpose 150 (50 runs)", best .
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    [loop][k = 0; k < 50; k++]
+        det = determinant[mat]
+    [loop][end]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "matrix determinant 150 (50 runs)", best .
