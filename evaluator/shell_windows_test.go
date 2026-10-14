@@ -28,7 +28,7 @@ sys echo "from sys"`
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "hi||0\n|oops|3\nhere.txt||0\n\"two words\"||0\n\"from sys\""
+	want := "hi | | 0\n| oops | 3\nhere.txt | | 0\n\"two words\" | | 0\n\"from sys\""
 	if got = strings.TrimSpace(strings.ReplaceAll(got, "\r\n", "\n")); got != want {
 		t.Errorf("got %q, want %q", got, want)
 	}
