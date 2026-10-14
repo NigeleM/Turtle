@@ -25,11 +25,11 @@ func TestCrypt(t *testing.T) {
 		{`show encode["hi there"] .`, "aGkgdGhlcmU="},
 		{`show decode["aGkgdGhlcmU="] .`, "hi there"},
 		{`show encode["??>", "base64url"] .`, "Pz8-"},
-		{`show decode["Pz8-", "base64url"], decode["Pz8-", "base64url"] .`, "??>??>"},
-		{`show encode["hi", "hex"], decode["6869", "HEX"] .`, "6869hi"},
-		{`id = uuid[]` + "\nshow id at len, id at get[14], id at get[8] .", "364-"},
+		{`show decode["Pz8-", "base64url"], decode["Pz8-", "base64url"] .`, "??> ??>"},
+		{`show encode["hi", "hex"], decode["6869", "HEX"] .`, "6869 hi"},
+		{`id = uuid[]` + "\nshow id at len, id at get[14], id at get[8] .", "36 4 -"},
 		{`show token[] at len, " ", token[5] at len .`, "32 5"},
-		{`s = passwordhash["pw"]` + "\nshow passwordcheck[\"pw\", s], passwordcheck[\"pW\", s], s at slice[0, 13] .", "truefalsepbkdf2-sha256"},
+		{`s = passwordhash["pw"]` + "\nshow passwordcheck[\"pw\", s], passwordcheck[\"pW\", s], s at slice[0, 13] .", "true false pbkdf2-sha256"},
 		{`b = encrypt["meet at 9", "phrase"]` + "\nshow decrypt[b, \"phrase\"], \" \", b at slice[0, 8] .", "meet at 9 turtle1:"},
 	}
 	for _, c := range cases {
@@ -42,7 +42,7 @@ func TestCrypt(t *testing.T) {
 	}
 	// Random each time.
 	got, _ := run(t, "import crypt\nshow uuid[] == uuid[], token[] == token[], passwordhash[\"a\"] == passwordhash[\"a\"], encrypt[\"a\", \"k\"] == encrypt[\"a\", \"k\"] .", "")
-	if strings.TrimSpace(got) != "falsefalsefalsefalse" {
+	if strings.TrimSpace(got) != "false false false false" {
 		t.Errorf("not random: %s", got)
 	}
 }
@@ -72,7 +72,7 @@ func TestCryptMisuse(t *testing.T) {
 			t.Errorf("%s: %v", c.src, err)
 			continue
 		}
-		if !strings.HasPrefix(got, c.kind+"|") || !strings.Contains(got, c.want) {
+		if !strings.HasPrefix(got, c.kind+" | ") || !strings.Contains(got, c.want) {
 			t.Errorf("%s: got %q, want kind %s and %q", c.src, got, c.kind, c.want)
 		}
 	}
@@ -87,7 +87,7 @@ func TestFilehash(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.TrimSpace(got) != "true5d41402abc4b2a76b9719d911017c592" {
+	if strings.TrimSpace(got) != "true 5d41402abc4b2a76b9719d911017c592" {
 		t.Errorf("got %q", got)
 	}
 }

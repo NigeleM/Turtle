@@ -191,3 +191,58 @@ func TestFormatTheory(t *testing.T) {
 		t.Errorf("formatting twice changed it:\n%s", again)
 	}
 }
+
+// A theory's sentence theorems and proof setup lay out like the rest, and an
+// apostrophe in an abstract's prose doesn't stop the layout.
+func TestFormatTheoryPartsAndProse(t *testing.T) {
+	src := "theory squares\n" +
+		"abstract\n" +
+		"squares says the list of each item of a, and that's all.\n" +
+		"notation squares a .\n" +
+		"definition\n" +
+		"out = list []\n" +
+		"[loop][x in a]\n" +
+		"add x * x to out .\n" +
+		"[loop][end]\n" +
+		"return out\n" +
+		"theorem result each x give x >= 0\n" +
+		"proof\n" +
+		"nums = list [-3, 0, 2]\n" +
+		"squares nums . is list [9, 0, 4]\n" +
+		"theory [end]\n" +
+		"\n" +
+		"x = 1\n"
+	want := "theory squares\n" +
+		"    abstract\n" +
+		"        squares says the list of each item of a, and that's all.\n" +
+		"    notation squares a .\n" +
+		"    definition\n" +
+		"        out = list []\n" +
+		"        [loop][x in a]\n" +
+		"            add x * x to out .\n" +
+		"        [loop][end]\n" +
+		"        return out\n" +
+		"    theorem result each x give x >= 0\n" +
+		"    proof\n" +
+		"        nums = list [-3, 0, 2]\n" +
+		"        squares nums . is list [9, 0, 4]\n" +
+		"theory [end]\n" +
+		"\n" +
+		"x = 1\n"
+	got, err := Format(src)
+	if err != nil {
+		t.Fatalf("Format: %v", err)
+	}
+	if got != want {
+		t.Errorf("layout:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+// Import aliases lay out as written.
+func TestFormatImportAliases(t *testing.T) {
+	src := "import data as d\nimport data [mean as average, sum]\n\nshow average[nums] .\n"
+	got, err := Format(src)
+	if err != nil || got != src {
+		t.Errorf("Format changed the import aliases:\n%s\nerr %v", got, err)
+	}
+}

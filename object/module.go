@@ -93,12 +93,34 @@ func (m *Module) Function(name string) (*Function, bool) {
 // module (Names nil) or only the names listed in "import m [a, b]".
 type Import struct {
 	Module *Module
-	Names  map[string]bool
+	// Name is what this file calls the module: its alias ("import data as
+	// d"), or the module's own name.
+	Name  string
+	Names map[string]bool // the names this file can use, as it spells them (nil: all)
+	// Aliases maps a name this file uses to the module's own name, for
+	// "import data [mean as average]": average is mean here.
+	Aliases map[string]string
 }
 
-// Allows reports whether this import makes name available.
+// Allows reports whether this import makes name available, as this file
+// spells it.
 func (im *Import) Allows(name string) bool {
 	return im.Names == nil || im.Names[im.Module.Canonical(name)]
+}
+
+// Qualified reports whether this file reaches the module only through its
+// alias ("import data as d"): its names are d sum[...], never bare sum[...].
+func (im *Import) Qualified() bool {
+	return im.Name != im.Module.Name
+}
+
+// Library is the module's own name for what this file calls name: mean for
+// average in "import data [mean as average]", otherwise name itself.
+func (im *Import) Library(name string) string {
+	if lib, ok := im.Aliases[name]; ok {
+		return lib
+	}
+	return im.Module.Canonical(name)
 }
 
 func contains(list []string, s string) bool {

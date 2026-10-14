@@ -208,12 +208,12 @@ func TestServerMisuse(t *testing.T) {
 			t.Errorf("%s: %v", c.src, err)
 			continue
 		}
-		if !strings.HasPrefix(got, c.kind+"|") || !strings.Contains(got, c.want) {
+		if !strings.HasPrefix(got, c.kind+" | ") || !strings.Contains(got, c.want) {
 			t.Errorf("%s: got %q, want kind %s and %q", c.src, got, c.kind, c.want)
 		}
 	}
 	got, _ := run(t, "import server\nr = reply[404, \"gone\"]\nshow r, \"|\", status of r, \"|\", typeof[r], \"|\", serverlog, \"|\", serverhost .", "")
-	if want := `Reply { status: 404, body: "gone", headers: {  } }|404|Reply|true|localhost`; strings.TrimSpace(got) != want {
+	if want := `Reply { status: 404, body: "gone", headers: {  } } | 404 | Reply | true | localhost`; strings.TrimSpace(got) != want {
 		t.Errorf("got %q, want %q", got, want)
 	}
 }

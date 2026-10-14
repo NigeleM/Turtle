@@ -123,7 +123,7 @@ func TestTheoryMistakes(t *testing.T) {
 	}
 	cases := []struct{ src, want string }{
 		{theory("count", "count b in a .", "return 1"), "count is already a word in Turtle (a method): a theory needs a new word"},
-		{theory("mean", "mean a .", "return a"), "mean is already a word in Turtle (a function of the data library)"},
+		{"import data\n" + theory("mean", "mean a .", "return a"), "mean is already a word in Turtle (a function of the data library)"},
 		{"def f[]\n    return 1\ndef [end]\n" + theory("f", "f n .", "return n"), "f is already a word in Turtle (a function in this file)"},
 		{theory("list", "list a .", "return a"), "list is already a word in Turtle (a keyword)"},
 		{theory("swap", "swap a b .", "return list [b, a]"), "swap a b .: two values (a, b) need a word or a comma between them"},
@@ -485,5 +485,14 @@ theory [end]
 		if errs := strings.Join(p.Errors(), "; "); !strings.Contains(errs, want) {
 			t.Errorf("%s\n got  %s\n want %q", src, errs, want)
 		}
+	}
+}
+
+// A library's word is a conflict only in a file that imports that library.
+func TestLibraryWordNeedsItsImport(t *testing.T) {
+	theory := "theory mean\n    abstract\n        mean is a test.\n    notation mean a .\n    definition\n        return a\ntheory [end]\n"
+	got, err := run(t, theory+"show mean list [1] .\n", "")
+	if err != nil || strings.TrimSpace(got) != "[ 1 ]" {
+		t.Errorf("without import data: got %q, err %v", got, err)
 	}
 }

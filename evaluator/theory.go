@@ -36,11 +36,16 @@ func (it *Interpreter) defineTheory(s *ast.TheoryStatement, env *object.Environm
 
 // existingWord says what name already is, or "" if it's new.
 func existingWord(name string, env *object.Environment) string {
-	for _, m := range builtinModules {
-		if env.File() == builtinFilePrefix+m.Name+".turtle" && slices.Contains(m.Funcs, name) {
+	for _, im := range env.Imports() {
+		m := im.Module
+		if im.Qualified() {
+			continue // an alias's names are reached through the alias, not bare
+		}
+		lib := im.Library(name)
+		if env.File() == builtinFilePrefix+m.Name+".turtle" && m.ExportsFunction(lib) {
 			continue // the library's own theory, which made the name its word
 		}
-		if slices.Contains(m.Funcs, name) || slices.Contains(m.Methods, name) {
+		if im.Allows(name) && (m.ExportsFunction(lib) || slices.Contains(m.Methods, lib)) {
 			return "a function of the " + m.Name + " library"
 		}
 	}
@@ -120,7 +125,32 @@ func theoremEnv(fn *object.Function, args []object.Object, result object.Object)
 
 // checkTheorem works out a theorem for one use: whether it holds, and if
 // not, why ("result is 5, which isn't <= 4"). An error in it is a fail.
+// Where its "if" condition is false, the theorem says nothing: it holds.
 func (it *Interpreter) checkTheorem(th *ast.Theorem, env *object.Environment) (holds bool, why string) {
+	if th.Given != nil {
+		var given object.Object
+		if fe := it.protect(func() { given = it.evalExpression(th.Given, env) }); fe != nil {
+			return false, "its condition stopped with " + aKind(fe.kind) + " error: " + fe.text
+		}
+		if !isTruthy(given) {
+			return true, ""
+		}
+	}
+	if th.Rule != nil {
+		// A sentence: its rule over the collection, with the same details
+		// verify gives when it breaks.
+		var details []string
+		if fe := it.protect(func() {
+			coll := it.evalExpression(th.Collection, env)
+			holds, details = it.checkRule(th.Rule, coll, env)
+		}); fe != nil {
+			return false, "it stopped with " + aKind(fe.kind) + " error: " + fe.text
+		}
+		for i, d := range details {
+			details[i] = strings.TrimSpace(d)
+		}
+		return holds, strings.Join(details, " ")
+	}
 	var details []string
 	if fe := it.protect(func() { holds, details = it.explainTruth(th.Expr, env) }); fe != nil {
 		return false, "it stopped with " + aKind(fe.kind) + " error: " + fe.text

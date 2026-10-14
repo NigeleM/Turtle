@@ -158,8 +158,16 @@ func (it *Interpreter) evalImport(s *ast.ImportStatement, env *object.Environmen
 	} else {
 		mod = it.loadModule(s.Path)
 	}
-	if other, ok := env.FindImport(mod.Name); ok && other.Module != mod {
-		fatalKind(kindName, "import %s: this file already imports another module called %q — rename one of the files", s.Path, mod.Name)
+	// The name this file calls the module: its alias, or its own name.
+	bound := mod.Name
+	if s.Alias != "" {
+		bound = s.Alias
+	}
+	if other, ok := env.FindImport(bound); ok && other.Module != mod {
+		fatalKind(kindName, "import %s: this file already imports another module called %q — rename one of the files", s.Path, bound)
+	}
+	if other, ok := env.ImportOf(mod.Name); ok && other.Name != bound {
+		fatalKind(kindName, "import %s: this file already imports %s as %q — use that name", s.Path, mod.Name, other.Name)
 	}
 	for _, n := range s.Names {
 		if !mod.Exports(n) && !mod.Reachable(n, env.IsTestFile()) {
@@ -169,8 +177,8 @@ func (it *Interpreter) evalImport(s *ast.ImportStatement, env *object.Environmen
 			fatalKind(kindName, "import %s: module %q has no %q", s.Path, s.Path, n)
 		}
 	}
-	env.AddImport(mod, s.Names)
-	if im, _ := env.FindImport("data"); im != nil && im.Module == builtinModules["data"] && im.Allows("table") {
+	env.AddImport(mod, bound, s.Names, s.Aliases)
+	if im, _ := env.ImportOf("data"); im != nil && im.Module == builtinModules["data"] && im.Allows("table") {
 		defineTableRows(env)
 	}
 	if isBuiltin(mod, "random") {

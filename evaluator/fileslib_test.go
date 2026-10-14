@@ -144,7 +144,7 @@ show env["TT_KEY"], "|", env["TT_SET"] .`, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := `{ "TT_KEY": "abc123", "TT_NAME": "Ann \"L\"", "TT_RAW": "a $b # c", "TT_COUNT": "5", "TT_SET": "from file" }` + "\nabc123|from outside\n"
+	want := `{ "TT_KEY": "abc123", "TT_NAME": "Ann \"L\"", "TT_RAW": "a $b # c", "TT_COUNT": "5", "TT_SET": "from file" }` + "\nabc123 | from outside\n"
 	if got != want {
 		t.Errorf("got  %q\nwant %q", got, want)
 	}

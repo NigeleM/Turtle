@@ -76,16 +76,26 @@ func (it *Interpreter) proveTheory(fn *object.Function, seed int64) theoryProof 
 	// The proof cases: each gives what it says.
 	var examples [][]object.Object // each case's values, for the theorems and for the random inputs' kinds
 	var results []object.Object
+	// The proof's lines share one scope, so a check can use what an earlier
+	// line set up. It's the theory's file's scope, so nothing else sees it.
+	scope := object.NewEnclosedEnvironment(fn.Env)
 	for _, pc := range ts.Proofs {
 		c := caseCheck{pc: pc, ok: true}
 		var args []object.Object
 		var got, want object.Object
 		fe := it.protect(func() {
-			args = it.theoryArgs(pc.Use, fn.Env)
+			it.evalStatements(pc.Setup, scope)
+			args = it.theoryArgs(pc.Use, scope)
 			got = it.callFunction(fn, ts.Name, copies(args))
-			want = it.evalExpression(pc.Want, fn.Env)
+			if !pc.Fails {
+				want = it.evalExpression(pc.Want, scope)
+			}
 		})
 		switch {
+		case pc.Fails && fe == nil:
+			c.ok, c.what = false, fmt.Sprintf("gave %s, expected an error", object.Shown(got))
+		case pc.Fails:
+			// the use stopped with an error, as it should
 		case fe != nil:
 			c.ok, c.what = false, "stopped with "+aKind(fe.kind)+" error: "+fe.text
 		case !valuesEqual(got, want):

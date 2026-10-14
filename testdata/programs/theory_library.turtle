@@ -1,0 +1,114 @@
+// theory_library.turtle: a shop's rules written as theories, and used as a
+// library of checks on real data. Each theory has a notation, a definition,
+// theorems and proof cases; the program then asks hypothesis whether the
+// rules hold for the orders it has. Run from this folder:
+// turtle theory_library.turtle
+
+import data [sum]
+import system
+
+failures = list []
+
+def expect[label, got, want]
+    if ] got != want [
+        add label to failures .
+        show "  FAIL ", label, ": got ", got, ", want ", want .
+    if [end]
+def [end]
+
+theory discount
+    abstract
+        discount takes p percent off an amount c, never below zero.
+    notation discount p off c .
+    definition
+        if ] p < 0 || p > 100 [
+            fail "discount: a percent is from 0 to 100"
+        if [end]
+        cut = c * p div 100
+        return c - cut
+    theorem result >= 0 if c >= 0 && p >= 0 && p <= 100
+    theorem result <= c if c >= 0 && p >= 0 && p <= 100
+    proof
+        discount 10 off 2000 . is 1800
+        discount 0 off 5 . is 5
+        discount 100 off 5 . is 0
+        discount 150 off 5 . fails
+theory [end]
+
+theory order_total
+    abstract
+        order_total is the price of one line times its quantity, summed over the lines of an order.
+    notation order_total prices .
+    definition
+        total = 0
+        [loop][price in prices]
+            total = total + price
+        [loop][end]
+        return total
+    theorem result == sum[prices]
+    proof
+        order_total list [2, 3] . is 5
+        order_total list [] . is 0
+theory [end]
+
+theory shipped
+    abstract
+        shipped says whether an order is ready to ship: paid, with stock for every line.
+    notation shipped order .
+    definition
+        if ] order at get "paid" == false [
+            return false
+        if [end]
+        return order at get "stock" >= order at get "qty"
+    theorem result == true if order at get "paid" == true
+    proof
+        shipped map ["paid": true, "stock": 5, "qty": 2] . is true
+        shipped map ["paid": false, "stock": 5, "qty": 2] . is false
+        shipped map ["paid": true, "stock": 1, "qty": 2] . is false
+theory [end]
+
+// ---------- the shop's orders ----------
+orders = list [
+    map ["paid": true, "stock": 5, "qty": 2, "price": 40],
+    map ["paid": false, "stock": 9, "qty": 1, "price": 20],
+    map ["paid": true, "stock": 0, "qty": 3, "price": 10],
+    map ["paid": true, "stock": 4, "qty": 4, "price": 25],
+]
+
+// Each order's line total, with a 10 percent discount where the order is
+// paid for.
+prices = list []
+[loop][o in orders]
+    line = o at get "price" * o at get "qty"
+    if ] o at get "paid" [
+        line = discount 10 off line
+    if [end]
+    add line to prices .
+[loop][end]
+expect["line totals with discount", prices, list [72, 20, 27, 90]]
+
+expect["the discount rule holds on this data", hypothesis[discount], true]
+expect["the total rule holds on this data", hypothesis[order_total], true]
+total_all = order_total prices .
+expect["the order total", total_all, 209]
+
+ready = 0
+[loop][o in orders]
+    if ] shipped o [
+        ready = ready + 1
+    if [end]
+[loop][end]
+expect["orders ready to ship", ready, 2]
+
+safe
+    x = discount 150 off 5
+    expect["a percent over 100 is refused", true, false]
+handle [custom] err .
+    expect["the refusal is the discount's own", message of err, "discount: a percent is from 0 to 100"]
+safe [end]
+
+show "shop rules ok" .
+show "failures: ", length of failures .
+if ] length of failures > 0 [
+    exit[1]
+if [end]

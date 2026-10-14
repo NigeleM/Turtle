@@ -626,3 +626,20 @@ func TestStandardLibraryFiles(t *testing.T) {
 		t.Errorf("an ordinary file without import random: want an error")
 	}
 }
+
+// A file's import aliases are completions: the module as d, and a listed
+// name as average.
+func TestImportAliasCompletion(t *testing.T) {
+	_, uri := folder(t)
+	s := newSession(t)
+	s.start(false)
+	s.open(uri, "import data as d\nimport data [mean as average]\nx = \n")
+	comp := s.request("textDocument/completion", at(uri, 2, 4))
+	s.end()
+	var items []completionItem
+	s.result(comp, &items)
+	got := labels(items)
+	if got["d"].Kind != completionModule || got["average"].Kind != completionFunction {
+		t.Errorf("aliases: d %+v, average %+v", got["d"], got["average"])
+	}
+}

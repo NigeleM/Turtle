@@ -106,6 +106,20 @@ func asIntArg(fn, what string, obj object.Object) int {
 	return int(n.Value)
 }
 
+// everySteps are the fixed units every takes below a second.
+var everySteps = map[string]time.Duration{"ns": time.Nanosecond, "ms": time.Millisecond}
+
+// isCalendarUnit reports whether s is one of the calendar units (a plural,
+// or a singular accepted by asUnitArg).
+func isCalendarUnit(s string) bool {
+	for _, u := range timeUnits {
+		if s == u || s+"s" == u {
+			return true
+		}
+	}
+	return false
+}
+
 // The units add_time, time_between and every take. A singular ("day") is
 // accepted too.
 var timeUnits = []string{"seconds", "minutes", "hours", "days", "weeks", "months", "years"}
@@ -343,7 +357,17 @@ func (it *Interpreter) every(args []object.Object) {
 	if n <= 0 {
 		fatalf("'every' amount must be at least 1, got %d", n)
 	}
-	unit := asUnitArg("every", args[1])
+	// every also takes fixed steps of a millisecond or a nanosecond; the
+	// calendar units (seconds and up) are added to the start as dates.
+	var step time.Duration
+	unit := ""
+	if s, ok := args[1].(*object.String); ok && everySteps[s.Value] != 0 {
+		step = everySteps[s.Value]
+	} else if ok && !isCalendarUnit(s.Value) {
+		fatalf("'every' unit must be one of ns, ms, %s, got %s", strings.Join(timeUnits, ", "), object.Shown(args[1]))
+	} else {
+		unit = asUnitArg("every", args[1])
+	}
 	fn, ok := args[2].(*object.Function)
 	if !ok {
 		fatalf("'every' needs a function to run (e.g. backup, or [] give ...), got %s", typeName(args[2]))
@@ -356,7 +380,10 @@ func (it *Interpreter) every(args []object.Object) {
 		if res, ok := it.callFunction(fn, "every", nil).(*object.Boolean); ok && !res.Value {
 			return
 		}
-		next := addTime(start, n*k, unit)
+		next := start.Add(time.Duration(n*k) * step)
+		if step == 0 {
+			next = addTime(start, n*k, unit)
+		}
 		if d := time.Until(next); d > 0 {
 			time.Sleep(d)
 		}

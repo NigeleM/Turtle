@@ -123,7 +123,7 @@ show h[1] .
 [loop][x in range[5, 5]]
     show "never" .
 [loop][end]`, "")
-	if err != nil || out != "10\n0:10\n1:7\n2:4\n3:1\n21\n" {
+	if err != nil || out != "10\n0: 10\n1: 7\n2: 4\n3: 1\n21\n" {
 		t.Errorf("got %q, %v", out, err)
 	}
 	out, err = run(t, "def range[n]\n    return list [\"mine\"]\ndef [end]\n[loop][x in range[3]]\n    show x .\n[loop][end]", "")

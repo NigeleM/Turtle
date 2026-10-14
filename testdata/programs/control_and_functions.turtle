@@ -1,0 +1,162 @@
+// control_and_functions.turtle: conditionals, every kind of loop, break and
+// continue, functions, recursion, closures, give, and scrolls. Run from this
+// folder: turtle control_and_functions.turtle
+//
+// Prints one line per section, then the failure count; exits 1 on a failure.
+
+import system
+import data [range, process]
+
+failures = list []
+
+def check[label, got, want]
+    if ] got != want [
+        add label to failures .
+        show "  FAIL ", label, ": got ", got, ", want ", want .
+    if [end]
+def [end]
+
+// ---------- conditionals ----------
+def grade[score]
+    if ] score >= 90 [
+        return "A"
+    else if ] score >= 80 [
+        return "B"
+    else ]
+        return "C"
+    if [end]
+def [end]
+check["if and else", grade[95] + grade[85] + grade[10], "ABC"]
+
+def sign[n]
+    if ] n < 0 [
+        return -1
+    if [end]
+    if ] n == 0 [
+        return 0
+    if [end]
+    return 1
+def [end]
+check["sign", sign[-4] + sign[0] * 10 + sign[9] * 100, 99]
+check["and/or in a condition", grade[50] == "C" || grade[50] == "A", true]
+
+// ---------- loops ----------
+total = 0
+[loop][x in list [1, 2, 3, 4]]
+    total = total + x
+[loop][end]
+check["loop over a list", total, 10]
+
+seen = list []
+[loop][i = 0; i < 5; i++]
+    add i to seen .
+[loop][end]
+check["counting loop", seen, list [0, 1, 2, 3, 4]]
+
+pairs = list []
+ages = map ["ann": 30]
+add "bob" to ages at "bob" .
+[loop][k in ages]
+    add length of k to pairs .
+[loop][end]
+check["loop over a map's keys", length of pairs, 2]
+
+evens = list []
+[loop][n in range[0, 10]]
+    if ] n % 2 == 1 [
+        continue
+    if [end]
+    add n to evens .
+[loop][end]
+check["continue skips odd numbers", evens, list [0, 2, 4, 6, 8]]
+
+first_big = 0
+[loop][n in list [3, 8, 12, 20]]
+    if ] n > 10 [
+        first_big = n
+        break
+    if [end]
+[loop][end]
+check["break stops at the first match", first_big, 12]
+
+// Nested loops, with break only leaving the inner loop.
+rows = 0
+[loop][r in list [1, 2, 3]]
+    [loop][c in list [1, 2, 3]]
+        if ] c == 2 [
+            break
+        if [end]
+        rows = rows + 1
+    [loop][end]
+[loop][end]
+check["break leaves only the inner loop", rows, 3]
+
+// ---------- functions and recursion ----------
+def fib[n]
+    if ] n < 2 [
+        return n
+    if [end]
+    return fib[n - 1] + fib[n - 2]
+def [end]
+check["recursion", fib[15], 610]
+
+def fact[n]
+    if ] n <= 1 [
+        return 1
+    if [end]
+    return n * fact[n - 1]
+def [end]
+check["big recursion result", fact[20], 2432902008176640000]
+
+def divmod[a, b]
+    return list [a div b, a % b]
+def [end]
+q = divmod[17, 5]
+check["several results as a list", q, list [3, 2]]
+
+def nothing[]
+    x = 1
+def [end]
+check["a function with no return gives none", nothing[], none]
+
+// ---------- closures and give ----------
+def make_counter[]
+    box = list [0]
+    def inc[]
+        v is box at pop .
+        add v + 1 to box .
+        return v + 1
+    def [end]
+    return inc
+def [end]
+tick = make_counter[]
+tick[]
+tick[]
+check["closure keeps its state", tick[], 3]
+other = make_counter[]
+check["two closures keep separate state", other[], 1]
+
+double = x give x * 2
+check["give makes a function value", double[21], 42]
+three = list [1, 2, 3]
+doubled = three process x give x * 2
+check["give in process", doubled, list [2, 4, 6]]
+
+def apply_twice[f, v]
+    return f[f[v]]
+def [end]
+check["functions as values", apply_twice[double, 5], 20]
+
+// ---------- scrolls ----------
+def add1[n]
+    return n + 1
+def [end]
+result = scroll 3 into add1, double .
+check["scroll: each step feeds the next", result, 8]
+show "control and functions done" .
+
+// ---------- done ----------
+show "failures: ", length of failures .
+if ] length of failures > 0 [
+    exit[1]
+if [end]

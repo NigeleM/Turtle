@@ -48,7 +48,7 @@ Turtle colors words by what they do, in eight groups:
 | Group | Words |
 |---|---|
 | keywords | `if`, `loop`, `def`, `return`, `safe`, `give`, `is`, `of`, `at`, ... |
-| imports | the whole `import` line: `import time [now, today]` |
+| imports | the whole `import` line: `import time [now, today]`, and the alias after `as`: `import data as d`, `import data [mean as average]` |
 | functions | function names (bold where defined; a `test_` function bold and italic), calls, methods after `at` |
 | data | `list`, `set`, `map`, `matrix`, `assemble` and your types (bold where made) |
 | show | `show` and `warn` |

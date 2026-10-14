@@ -1,0 +1,73 @@
+// data_formats.turtle: JSON, TOML, .env and config files. Writes each format,
+// reads it back, checks the round trip, and checks what a missing key or a
+// broken file gives. Files are removed at the end. Run from this folder:
+// turtle data_formats.turtle
+
+import json
+import config
+import system
+
+failures = list []
+
+def expect[label, got, want]
+    if ] got != want [
+        add label to failures .
+        show "  FAIL ", label, ": got ", got, ", want ", want .
+    if [end]
+def [end]
+
+settings = map ["name": "shop", "port": 8080, "debug": false, "tags": list ["a", "b"], "limits": map ["cart": 20]]
+
+// ---------- JSON ----------
+text = json_text[settings]
+expect["json text is one line", length of text > 0, true]
+back = load[text]
+expect["json round trip", back at get "name", "shop"]
+expect["json numbers stay numbers", back at get "port", 8080]
+expect["json booleans", back at get "debug", false]
+expect["json nested", back at get "limits" at get "cart", 20]
+expect["json lists", back at get "tags", list ["a", "b"]]
+
+json_write["settings.json", settings]
+from_file = json_read["settings.json"]
+expect["json file round trip", from_file at get "port", 8080]
+expect["json_get walks a path", json_get[from_file, "limits", "cart"], 20]
+expect["json_get of a missing step is none", json_get[from_file, "limits", "nope"], none]
+
+// ---------- TOML ----------
+config_write["app.toml", settings]
+toml_back = config_read["app.toml"]
+expect["toml round trip", toml_back at get "name", "shop"]
+expect["toml numbers", toml_back at get "port", 8080]
+expect["toml nested tables", toml_back at get "limits" at get "cart", 20]
+
+// ---------- .env ----------
+config_write["app.env", map ["HOST": "localhost", "PORT": "9000"]]
+env_back = config_read["app.env"]
+expect["env file", env_back at get "HOST", "localhost"]
+expect["env values are text", env_back at get "PORT", "9000"]
+
+// ---------- errors ----------
+safe
+    x = load[`{not json`]
+    expect["bad json stops", true, false]
+handle [] err .
+    expect["bad json is an error", true, true]
+safe [end]
+
+safe
+    x = config_read["no_such_settings.toml"]
+    expect["a missing config file stops", true, false]
+handle [file] err .
+    expect["a missing config file is a file error", kind of err, "file"]
+safe [end]
+
+erase["settings.json"]
+erase["app.toml"]
+erase["app.env"]
+
+show "data formats ok" .
+show "failures: ", length of failures .
+if ] length of failures > 0 [
+    exit[1]
+if [end]

@@ -1,0 +1,108 @@
+// csv_transform.turtle: a data job. Reads a sales file and a regions file,
+// cleans bad rows, groups the sales by region, joins the region names on,
+// writes the report, reads it back and checks it. Its files are removed at
+// the end. Run from this folder: turtle csv_transform.turtle
+
+import data [table_read, table_write]
+import system
+
+failures = list []
+
+def expect[label, got, want]
+    if ] got != want [
+        add label to failures .
+        show "  FAIL ", label, ": got ", got, ", want ", want .
+    if [end]
+def [end]
+
+// The raw sales file has two bad rows: a missing quantity and a price that
+// isn't a number.
+[write] "sales_raw.csv"
+    "region,item,qty,price"
+    "north,pen,3,1.5"
+    "south,mug,2,8.0"
+    "north,pad,,2.0"
+    "east,pen,10,1.5"
+    "south,ink,1,x"
+    "north,mug,4,8.0"
+[end]
+
+[write] "regions.csv"
+    "region,name"
+    "north,Northern"
+    "south,Southern"
+    "east,Eastern"
+[end]
+
+raw = table_read["sales_raw.csv"]
+expect["rows read", length of raw, 6]
+
+// Clean: keep rows with a quantity and a price that's a number.
+clean = list []
+[loop][row in raw]
+    if ] row at get "qty" == none [
+        continue
+    if [end]
+    price = 0.0
+    good = true
+    safe
+        price = change row at get "price" to float
+    handle [] err .
+        good = false
+    safe [end]
+    if ] !good [
+        continue
+    if [end]
+    add row to clean .
+[loop][end]
+expect["bad rows dropped", length of clean, 4]
+
+// Group: total revenue per region.
+totals = map []
+[loop][row in clean]
+    region = row at get "region"
+    qty = change row at get "qty" to integer
+    price = change row at get "price" to float
+    new_total = qty * price
+    if ] totals at contains region [
+        new_total = totals at get region + qty * price
+    if [end]
+    add new_total to totals at region .
+[loop][end]
+expect["north revenue", totals at get "north", 36.5]
+expect["south revenue", totals at get "south", 16.0]
+expect["east revenue", totals at get "east", 15.0]
+
+// Join the region names and write the report.
+names = table_read["regions.csv"]
+name_of = map []
+[loop][r in names]
+    code = r at get "region"
+    add r at get "name" to name_of at code .
+[loop][end]
+
+report = list []
+[loop][region in totals at getkeys]
+    add map ["region": region, "name": name_of at get region, "revenue": totals at get region] to report .
+[loop][end]
+expect["one report row per region", length of report, 3]
+
+table_write["report.csv", report]
+back = table_read["report.csv"]
+expect["report written and read back", length of back, 3]
+
+sum = 0.0
+[loop][row in back]
+    sum = sum + change row at get "revenue" to float
+[loop][end]
+expect["report revenue adds up to the cleaned total", sum, 67.5]
+
+erase["sales_raw.csv"]
+erase["regions.csv"]
+erase["report.csv"]
+expect["the files are gone", true, true]
+
+show "failures: ", length of failures .
+if ] length of failures > 0 [
+    exit[1]
+if [end]

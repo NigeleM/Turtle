@@ -1,0 +1,136 @@
+// multiline.turtle: every place a statement can run over several lines, and
+// the rules the reference gives for them. An operator at the end of a line
+// carries on to the next; an operator at the start is refused. Run from this
+// folder: turtle multiline.turtle
+
+import data [process]
+import system
+import test
+
+failures = list []
+
+def expect[label, got, want]
+    if ] got != want [
+        add label to failures .
+        show "  FAIL ", label, ": got ", got, ", want ", want .
+    if [end]
+def [end]
+
+def add1[n]
+    return n + 1
+def [end]
+
+def double[n]
+    return n * 2
+def [end]
+
+def plus[a, b]
+    return a + b
+def [end]
+
+// ---------- scrolls over several lines ----------
+pipeline = scroll
+    add1,
+    double,
+    add1 .
+piped = scroll 1 into pipeline .
+expect["saved scroll over lines", piped, 5]
+
+broken_into = scroll 3 into
+    add1,
+    double .
+expect["scroll broken after into", broken_into, 8]
+
+broken_comma = scroll 3 into add1,
+    double .
+expect["scroll broken after a comma", broken_comma, 8]
+
+def run_scroll[x]
+    return scroll x into
+        add1,
+        double .
+def [end]
+expect["scroll inside a function", run_scroll[10], 22]
+
+total = 0
+[loop][i in list [1, 2, 3]]
+    total = total + scroll i into
+        double .
+[loop][end]
+expect["scroll inside a loop", total, 12]
+
+here_value = scroll 5 into
+    plus[here, 2] .
+expect["here in a scroll over lines", here_value, 7]
+
+expect["typeof of a scroll in brackets", typeof[scroll 1 into add1 .], "integer"]
+
+// ---------- literals over several lines ----------
+nums = list [
+    1,
+    2,
+    3,
+]
+expect["list over lines, trailing comma", length of nums, 3]
+
+ages = map [
+    "ann": 30,
+    "bob": 25,
+]
+expect["map over lines, trailing comma", ages at get "bob", 25]
+
+expect["call over lines", plus[
+    5,
+    6
+], 11]
+
+expect["nested lists over lines", length of list [
+    list [1, 2],
+    list [
+        3
+    ]
+], 2]
+
+// ---------- text over several lines ----------
+note = "a long text
+    continues here"
+expect["double-quoted text keeps its line break and indent", length of note, 30]
+
+sql_like = `SELECT *
+    FROM items`
+expect["raw text over lines", length of sql_like, 23]
+
+// ---------- operators at the end of a line ----------
+sum = 1 +
+2 +
+3
+expect["operators at line ends", sum, 6]
+
+expect["operator then value on the next line", 10 >
+    3, true]
+
+if ] nums at get 0 == 1 &&
+    length of nums == 3 [
+        expect["condition over lines", true, true]
+        if [end]
+
+        def long_return[n]
+        return n *
+        2 +
+        1
+        def [end]
+        expect["return over lines", long_return[4], 9]
+
+        // ---------- checks and verifications over lines ----------
+        check nums at get 0 ==
+        1 .
+        verify nums
+        each x give x > 0 .
+        hypothesis[nums
+            each x give x > 0]
+
+        // ---------- done ----------
+        show "failures: ", length of failures .
+        if ] length of failures > 0 [
+        exit[1]
+        if [end]

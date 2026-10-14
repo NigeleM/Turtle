@@ -22,7 +22,7 @@ func TestCallsReachTheRightFunction(t *testing.T) {
 			"def,local,def,def\n"},
 		{"a function defined again",
 			"def g[]\n    return 1\ndef [end]\ndef use[]\n    return g[]\ndef [end]\na = use[]\ndef g[]\n    return 2\ndef [end]\nshow a, use[] .",
-			"12\n"},
+			"1 2\n"},
 		{"a parameter holding a function",
 			"def twice[f, x]\n    return f[f[x]]\ndef [end]\ndef inc[x]\n    return x + 1\ndef [end]\nshow twice[inc, 1], \" \", twice[x give x * 3, 1] .",
 			"3 9\n"},

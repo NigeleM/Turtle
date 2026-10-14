@@ -1,0 +1,84 @@
+// job_queue.turtle: a job system. Jobs are added, run by a worker, retried
+// when they fail, and finished. Checks that no job is lost, none runs twice
+// after it's done, and retries happen exactly where they should.
+// Run from this folder: turtle job_queue.turtle
+
+import system
+import data [range]
+
+failures = list []
+
+def check[label, got, want]
+    if ] got != want [
+        add label to failures .
+        show "  FAIL ", label, ": got ", got, ", want ", want .
+    if [end]
+def [end]
+
+assemble Job [id, attempts, state]
+
+// A job fails on its first attempt when its id is a multiple of 3.
+def runs_ok[job]
+    if ] id of job % 3 == 0 && attempts of job == 1 [
+        return false
+    if [end]
+    return true
+def [end]
+
+queue = list []
+all = list []
+[loop][i in range[1, 13]]
+    j = Job[i, 0, "waiting"]
+    add j to queue .
+    add j to all .
+[loop][end]
+check["jobs added", length of queue, 12]
+
+log = list []        // every run, in order: the job's id
+finished = list []   // ids of finished jobs
+failed = list []     // ids of jobs that gave up
+
+ticks = 0
+[loop][k in range[0, 200]]
+    if ] length of queue == 0 [
+        break
+    if [end]
+    job = queue at pop
+    ticks = ticks + 1
+    attempts of job = attempts of job + 1
+    add id of job to log .
+    ok = runs_ok[job]
+    if ] ok [
+        state of job = "done"
+        add id of job to finished .
+    if [end]
+    if ] !ok && attempts of job < 2 [
+        state of job = "retry"
+        add job to queue .
+    if [end]
+    if ] !ok && attempts of job >= 2 [
+        state of job = "failed"
+        add id of job to failed .
+    if [end]
+[loop][end]
+
+check["every job finished or gave up", length of finished + length of failed, 12]
+check["no job lost: all finished, none failed", length of failed, 0]
+check["runs: 12 first tries and 4 retries", length of log, 16]
+check["no id finished twice", length of change finished to set, 12]
+check["the ticks match the runs", ticks, 16]
+
+retried = 0
+[loop][j in all]
+    if ] attempts of j == 2 [
+        retried = retried + 1
+    if [end]
+[loop][end]
+check["exactly the multiples of 3 were retried", retried, 4]
+check["every job ends done", length of finished, 12]
+show "queue ok: ", length of finished, " done, ", length of failed, " failed in ", ticks, " ticks" .
+
+show "failures: ", length of failures .
+if ] length of failures > 0 [
+    exit[1]
+if [end]

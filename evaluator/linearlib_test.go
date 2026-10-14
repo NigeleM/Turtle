@@ -37,52 +37,52 @@ func TestLinear(t *testing.T) {
 		{"x = 2\nshow matrix [x, x * 2; -x, 0] .", "[  2  4 ]\n[ -2  0 ]"},
 		{"show typeof[matrix [1]] .", "matrix"},
 		{"a = matrix [1, 2; 3, 4]\nb = matrix [5, 6; 7, 8]\nshow a * b .", "[ 19  22 ]\n[ 43  50 ]"},
-		{"a = matrix [1, 2; 3, 4]\nshow a + a, a - a .", "[ 2  4 ]\n[ 6  8 ][ 0  0 ]\n        [ 0  0 ]"},
-		{"a = matrix [1, 2; 3, 4]\nshow 2 * a == a * 2, -a == a * -1 .", "truetrue"},
-		{"a = matrix [1, 2; 3, 4]\nshow a + 1, 10 - a, a - 0.5 .", "[ 2  3 ]\n[ 4  5 ][ 9  8 ]\n        [ 7  6 ][ 0.5  1.5 ]\n                [ 2.5  3.5 ]"},
+		{"a = matrix [1, 2; 3, 4]\nshow a + a, a - a .", "[ 2  4 ]\n[ 6  8 ] [ 0  0 ]\n         [ 0  0 ]"},
+		{"a = matrix [1, 2; 3, 4]\nshow 2 * a == a * 2, -a == a * -1 .", "true true"},
+		{"a = matrix [1, 2; 3, 4]\nshow a + 1, 10 - a, a - 0.5 .", "[ 2  3 ]\n[ 4  5 ] [ 9  8 ]\n         [ 7  6 ] [ 0.5  1.5 ]\n                  [ 2.5  3.5 ]"},
 		{"show matrix [1, 2; 3, 4] / 2 .", "[ 0.5  1.0 ]\n[ 1.5  2.0 ]"},
 		{"show matrix [1, 2; 3, 4] * list [1, 1] .", "[ 3, 7 ]"},
 		{"show list [1, 1] * matrix [1, 2; 3, 4] .", "[ 4, 6 ]"},
 		{"show matrix [1, 2, 3] * matrix [4; 5; 6] .", "[ 32 ]"},
-		{"show matrix [1, 2; 3, 4] == matrix [1.0, 2.0; 3.0, 4.0], matrix [1, 2] == matrix [1; 2] .", "truefalse"},
-		{"a = matrix [4, 7; 2, 6]\nshow a * inverse[a] == identity[2], inverse[a] * a .", "true[ 1.0  0.0 ]\n    [ 0.0  1.0 ]"},
+		{"show matrix [1, 2; 3, 4] == matrix [1.0, 2.0; 3.0, 4.0], matrix [1, 2] == matrix [1; 2] .", "true false"},
+		{"a = matrix [4, 7; 2, 6]\nshow a * inverse[a] == identity[2], inverse[a] * a .", "true [ 1.0  0.0 ]\n     [ 0.0  1.0 ]"},
 		{"show \"m: \" + matrix [1] .", "m: [ 1 ]"},
 		// Methods.
-		{"m = matrix [1, 2, 3; 4, 5, 6]\nshow m at rows, m at columns, m at get[1, 2] .", "236"},
-		{"m = matrix [1, 2, 3; 4, 5, 6]\nshow m at row[1], m at column[0] .", "[ 4, 5, 6 ][ 1, 4 ]"},
+		{"m = matrix [1, 2, 3; 4, 5, 6]\nshow m at rows, m at columns, m at get[1, 2] .", "2 3 6"},
+		{"m = matrix [1, 2, 3; 4, 5, 6]\nshow m at row[1], m at column[0] .", "[ 4, 5, 6 ] [ 1, 4 ]"},
 		{"m = zeros[2]\nm = m at put[7, 0, 1]\nshow m .", "[ 0  7 ]\n[ 0  0 ]"},
-		{"m = zeros[1, 2]\nm = m at put[0.5, 0, 0]\nshow m, m at get[0, 1] .", "[ 0.5  0.0 ]0.0"},
-		{"show matrix [1] at isempty, matrix [] at isempty .", "falsetrue"},
+		{"m = zeros[1, 2]\nm = m at put[0.5, 0, 0]\nshow m, m at get[0, 1] .", "[ 0.5  0.0 ] 0.0"},
+		{"show matrix [1] at isempty, matrix [] at isempty .", "false true"},
 		// Functions.
-		{"show identity[2], zeros[1, 3], ones[2, 1] .", "[ 1  0 ]\n[ 0  1 ][ 0  0  0 ][ 1 ]\n                   [ 1 ]"},
-		{"show diagonal[list [1, 2]], diagonal[matrix [1, 2; 3, 4]] .", "[ 1  0 ]\n[ 0  2 ][ 1, 4 ]"},
-		{"m = matrix [1, 2, 3; 4, 5, 6]\nshow shape[m], row[m, 0], column[m, 2] .", "[ 2, 3 ][ 1, 2, 3 ][ 3, 6 ]"},
-		{"m = matrix [1, 2, 3; 4, 5, 6]\nshow flatten[m], reshape[m, 3, 2] .", "[ 1  2  3  4  5  6 ][ 1  2 ]\n                    [ 3  4 ]\n                    [ 5  6 ]"},
-		{"m = matrix [1, 2; 3, 4]\nshow m at flatten, m at reshape[4, 1] at shape, m flatten, m reshape 1, 4 .", "[ 1  2  3  4 ][ 4, 1 ][ 1  2  3  4 ][ 1  2  3  4 ]"},
-		{"m = matrix [1.5, 2; 3, 4]\nr = reshape[m, 1, 4]\nshow r, m .", "[ 1.5  2.0  3.0  4.0 ][ 1.5  2.0 ]\n                      [ 3.0  4.0 ]"},
-		{"show reshape[matrix [], 0, 0] at isempty, flatten[zeros[0, 3]] at shape .", "true[ 1, 0 ]"},
+		{"show identity[2], zeros[1, 3], ones[2, 1] .", "[ 1  0 ]\n[ 0  1 ] [ 0  0  0 ] [ 1 ]\n                     [ 1 ]"},
+		{"show diagonal[list [1, 2]], diagonal[matrix [1, 2; 3, 4]] .", "[ 1  0 ]\n[ 0  2 ] [ 1, 4 ]"},
+		{"m = matrix [1, 2, 3; 4, 5, 6]\nshow shape[m], row[m, 0], column[m, 2] .", "[ 2, 3 ] [ 1, 2, 3 ] [ 3, 6 ]"},
+		{"m = matrix [1, 2, 3; 4, 5, 6]\nshow flatten[m], reshape[m, 3, 2] .", "[ 1  2  3  4  5  6 ] [ 1  2 ]\n                     [ 3  4 ]\n                     [ 5  6 ]"},
+		{"m = matrix [1, 2; 3, 4]\nshow m at flatten, m at reshape[4, 1] at shape, m flatten, m reshape 1, 4 .", "[ 1  2  3  4 ] [ 4, 1 ] [ 1  2  3  4 ] [ 1  2  3  4 ]"},
+		{"m = matrix [1.5, 2; 3, 4]\nr = reshape[m, 1, 4]\nshow r, m .", "[ 1.5  2.0  3.0  4.0 ] [ 1.5  2.0 ]\n                       [ 3.0  4.0 ]"},
+		{"show reshape[matrix [], 0, 0] at isempty, flatten[zeros[0, 3]] at shape .", "true [ 1, 0 ]"},
 		{"show transpose[matrix [1, 2, 3; 4, 5, 6]] .", "[ 1  4 ]\n[ 2  5 ]\n[ 3  6 ]"},
 		{"m = matrix [1, 2; 3, 4]\nshow m transpose .", "[ 1  3 ]\n[ 2  4 ]"},
-		{"show trace[matrix [1, 2; 3, 4]], determinant[matrix [1, 2; 3, 4]] .", "5-2"},
-		{"show determinant[matrix [2, 0, 1; 1, 3, 2; 1, 1, 2]], determinant[matrix [2, 0, 1; 1, 3, 2; 1, 1, 1]] .", "60"},
+		{"show trace[matrix [1, 2; 3, 4]], determinant[matrix [1, 2; 3, 4]] .", "5 -2"},
+		{"show determinant[matrix [2, 0, 1; 1, 3, 2; 1, 1, 2]], determinant[matrix [2, 0, 1; 1, 3, 2; 1, 1, 1]] .", "6 0"},
 		{"show determinant[matrix [0.5, 1; 1, 4]] .", "1.0"},
-		{"show determinant[matrix [1, 2; 2, 4]], determinant[matrix []] .", "01"},
+		{"show determinant[matrix [1, 2; 2, 4]], determinant[matrix []] .", "0 1"},
 		{"show inverse[matrix [4, 7; 2, 6]] .", "[  0.6  -0.7 ]\n[ -0.2   0.4 ]"},
-		{"show rank[matrix [1, 2; 2, 4]], rank[identity[3]], rank[zeros[2]] .", "130"},
+		{"show rank[matrix [1, 2; 2, 4]], rank[identity[3]], rank[zeros[2]] .", "1 3 0"},
 		{"show power[matrix [1, 1; 1, 0], 10] .", "[ 89  55 ]\n[ 55  34 ]"},
-		{"show power[matrix [2, 0; 0, 4], -1], power[matrix [5], 0] .", "[ 0.5  0.0  ]\n[ 0.0  0.25 ][ 1 ]"},
+		{"show power[matrix [2, 0; 0, 4], -1], power[matrix [5], 0] .", "[ 0.5  0.0  ]\n[ 0.0  0.25 ] [ 1 ]"},
 		{"show multiply_each[matrix [1, 2; 3, 4], matrix [5, 6; 7, 8]] .", "[  5  12 ]\n[ 21  32 ]"},
 		{"show solve[matrix [2, 1; 1, 3], list [3, 5]] .", "[ 0.8, 1.4 ]"},
 		{"a = matrix [2, 1; 1, 3]\nshow a solve list [3, 5] .", "[ 0.8, 1.4 ]"},
 		{"show solve[matrix [2, 0; 0, 4], matrix [2, 4; 8, 4]] .", "[ 1.0  2.0 ]\n[ 2.0  1.0 ]"},
 		{"show least_squares[matrix [1, 1; 1, 2; 1, 3], list [1, 2, 2]] .", "[ 0.666666666666667, 0.5 ]"},
-		{"show dot[list [1, 2, 3], list [4, 5, 6]], cross[list [1, 0, 0], list [0, 1, 0]] .", "32[ 0, 0, 1 ]"},
-		{"show norm[list [3, 4]], norm[matrix [1, 1; 1, 1]], unit[list [3, 4]] .", "5.02.0[ 0.6, 0.8 ]"},
+		{"show dot[list [1, 2, 3], list [4, 5, 6]], cross[list [1, 0, 0], list [0, 1, 0]] .", "32 [ 0, 0, 1 ]"},
+		{"show norm[list [3, 4]], norm[matrix [1, 1; 1, 1]], unit[list [3, 4]] .", "5.0 2.0 [ 0.6, 0.8 ]"},
 		// Decompositions: each gives back what it promises.
 		{"m = matrix [2, 1, 1; 4, -6, 0; -2, 7, 2]\nf = lu[m]\nshow f at get[\"p\"] * m == f at get[\"l\"] * f at get[\"u\"] .", "true"},
 		{"m = matrix [12, -51, 4; 6, 167, -68; -4, 24, -41]\nf = qr[m]\nshow f at get[\"q\"] * f at get[\"r\"] == m, f at get[\"r\"] .",
-			"true[ 14.0   21.0  -14.0 ]\n    [  0.0  175.0  -70.0 ]\n    [  0.0    0.0   35.0 ]"},
-		{"m = matrix [1, 2; 3, 4; 5, 6]\nf = qr[m]\nq = f at get[\"q\"]\nshow q * f at get[\"r\"] == m, transpose[q] * q == identity[2] .", "truetrue"},
+			"true [ 14.0   21.0  -14.0 ]\n     [  0.0  175.0  -70.0 ]\n     [  0.0    0.0   35.0 ]"},
+		{"m = matrix [1, 2; 3, 4; 5, 6]\nf = qr[m]\nq = f at get[\"q\"]\nshow q * f at get[\"r\"] == m, transpose[q] * q == identity[2] .", "true true"},
 		{"e = eigen[matrix [2, 1; 1, 2]]\nshow e at get[\"values\"] .", "[ 3.0, 1.0 ]"},
 		{"m = matrix [4, 1, 2; 1, 3, 0; 2, 0, 5]\ne = eigen[m]\nv = e at get[\"vectors\"]\nshow m * v == v * diagonal[e at get[\"values\"]] .", "true"},
 		{"m = matrix [1, 2; 3, 4; 5, 6]\nf = svd[m]\nshow f at get[\"u\"] * diagonal[f at get[\"s\"]] * transpose[f at get[\"v\"]] == m .", "true"},
@@ -92,7 +92,7 @@ func TestLinear(t *testing.T) {
 		{"m = change list [list [1, 2], list [3, 4]] to matrix\nshow m .", "[ 1  2 ]\n[ 3  4 ]"},
 		{"m = change list [map [\"a\": 1, \"b\": 2.5]] to matrix\nshow m .", "[ 1.0  2.5 ]"},
 		{"show change matrix [1, 2; 3, 4] to list .", "[ [ 1, 2 ], [ 3, 4 ] ]"},
-		{"import data\na = matrix [1, 2]\nb = copy[a]\nx = b at put[9, 0, 0]\nshow a, b .", "[ 1  2 ][ 9  2 ]"},
+		{"import data\na = matrix [1, 2]\nb = copy[a]\nx = b at put[9, 0, 0]\nshow a, b .", "[ 1  2 ] [ 9  2 ]"},
 		{"import data\nshow table[matrix [1, 20; 300, 4]] .", "0   1\n---  --\n  1  20\n300   4"},
 		// A matrix can be a qualified call's result, and linear's names
 		// can be named with the module.
@@ -181,7 +181,7 @@ func TestLinearMisuse(t *testing.T) {
 			t.Errorf("%s: %v", c.src, err)
 			continue
 		}
-		if !strings.HasPrefix(got, c.kind+"|") || !strings.Contains(got, c.want) {
+		if !strings.HasPrefix(got, c.kind+" | ") || !strings.Contains(got, c.want) {
 			t.Errorf("%s: got %q, want kind %s and %q", c.src, got, c.kind, c.want)
 		}
 	}
@@ -221,7 +221,7 @@ func TestStatistics(t *testing.T) {
 		{"p = list [950, 3000, 1225, 800]\nshow stdev[p], \" \", pstdev[p], \" \", pvariance[p] .", "1019.47188125356 882.888547609493 779492.1875"},
 		{"p = list [950, 3000, 1225, 800]\nshow percentile[p, 90], \" \", percentile[p, 0], \" \", percentile[p, 100] .", "2467.5 800.0 3000.0"},
 		{"show median[list [3, 1, 2]], \" \", median[list [1.5]] .", "2 1.5"},
-		{"show mode[list [\"a\", \"b\", \"b\", \"a\", \"c\"]], mode[list [1, 2, 2]] .", "a2"},
+		{"show mode[list [\"a\", \"b\", \"b\", \"a\", \"c\"]], mode[list [1, 2, 2]] .", "a 2"},
 		{"show zscores[list [1, 2, 3]] .", "[ -1.0, 0.0, 1.0 ]"},
 		{"show correlation[list [1, 2, 3, 4], list [2, 4, 6, 8]], \" \", correlation[list [1, 2, 3], list [3, 2, 1]] .", "1.0 -1.0"},
 		{"show covariance[list [1, 2, 3], list [1, 2, 4]] .", "1.5"},
@@ -262,7 +262,7 @@ func TestStatisticsMisuse(t *testing.T) {
 			t.Errorf("%s: %v", c.src, err)
 			continue
 		}
-		if !strings.HasPrefix(got, c.kind+"|") || !strings.Contains(got, c.want) {
+		if !strings.HasPrefix(got, c.kind+" | ") || !strings.Contains(got, c.want) {
 			t.Errorf("%s: got %q, want kind %s and %q", c.src, got, c.kind, c.want)
 		}
 	}
@@ -442,7 +442,7 @@ func TestFieldOfBareGet(t *testing.T) {
 // TestAssignmentMayEndInAPeriod: "x = ... ." is fine, as a call line is.
 func TestAssignmentMayEndInAPeriod(t *testing.T) {
 	got, err := run(t, "import data\nnums = list [1, 2, 3]\nbig = nums keep n give n > 1 .\nx = 5 .\nshow big, x .", "")
-	if err != nil || strings.TrimSpace(got) != "[ 2, 3 ]5" {
+	if err != nil || strings.TrimSpace(got) != "[ 2, 3 ] 5" {
 		t.Errorf("got %q, %v", got, err)
 	}
 }
@@ -677,7 +677,7 @@ func TestBothFileEndings(t *testing.T) {
 	write("newer.turtle", "// adds one\ndef addone[x]\n    return x + 1\ndef [end]\n")
 	write("lib/older.trt", "def double[x]\n    return x * 2\ndef [end]\n")
 	got, err := runIn(t, dir, "import newer\nimport lib/older\nshow addone[1], double[4] .", "")
-	if err != nil || strings.TrimSpace(got) != "28" {
+	if err != nil || strings.TrimSpace(got) != "2 8" {
 		t.Errorf("imports: %q %v", got, err)
 	}
 	write("twice.turtle", "def a[]\n    return 1\ndef [end]\n")

@@ -1,0 +1,81 @@
+// text_report.turtle: text processing over a sample document: word counts,
+// splitting, templates, and pattern matching, checked against what the
+// reference says each one does. Run from this folder:
+// turtle text_report.turtle
+
+import pattern
+import strings
+
+failures = list []
+
+def expect[label, got, want]
+    if ] got != want [
+        add label to failures .
+        show "  FAIL ", label, ": got ", got, ", want ", want .
+    if [end]
+def [end]
+
+doc = "The quick brown fox.
+The lazy dog sleeps; the fox runs.
+Order 1042 shipped on 2026-10-12, order 1043 is late."
+
+// ---------- splitting and counting ----------
+lines = splitby[doc, "\n"]
+expect["three lines", length of lines, 3]
+
+words = list []
+[loop][line in lines]
+    [loop][w in splitby[line, " "]]
+        clean = w at lower
+        clean = replaceall[clean, `[^a-z]`, ""]
+        if ] clean != "" [
+            add clean to words .
+        if [end]
+    [loop][end]
+[loop][end]
+expect["word count (numbers and dates are not words)", length of words, 17]
+
+counts = map []
+[loop][w in words]
+    n = 1
+    if ] counts at contains w [
+        n = counts at get w + 1
+    if [end]
+    add n to counts at w .
+[loop][end]
+expect["the is counted case-blind", counts at get "the", 3]
+expect["fox twice", counts at get "fox", 2]
+expect["distinct words", length of counts at getkeys, 13]
+
+// ---------- patterns ----------
+expect["matches finds a date", matches[doc, `\d{4}-\d{2}-\d{2}`], true]
+dates = findall[doc, `\d{4}-\d{2}-\d{2}`]
+expect["findall date", dates, list ["2026-10-12"]]
+orders = findall[doc, `order (\d+)`]
+expect["findall is case-sensitive: only the lowercase order", length of orders, 1]
+expect["replaceall with a group", matches[replaceall[doc, `order (\d+)`, "#$1"], `#1043`], true]
+expect["no match gives an empty list", findall[doc, `zebra`], list []]
+
+parts = groups["order 1042 on 2026-10-12", `order (\d+) on (\S+)`]
+expect["groups of a match", parts, list ["1042", "2026-10-12"]]
+expect["no groups when nothing matches", groups["nothing here", `order (\d+)`], none]
+
+// ---------- templates ----------
+name = "Ann"
+id = 1042
+when = "Monday"
+filled = "Dear {name}, your order {id} ships {when}."
+expect["interpolation", filled, "Dear Ann, your order 1042 ships Monday."]
+expect["braces stay text in a backtick pattern", length of `\{name\}`, 8]
+
+// ---------- text methods ----------
+expect["trim", "  x  " at trim, "x"]
+expect["upper and lower", "MiXed" at lower, "mixed"]
+expect["join", join[list ["a", "b", "c"], "-"], "a-b-c"]
+expect["replace", replaceall["a.b.c", `\.`, "/"], "a/b/c"]
+
+show "text report: ", length of words, " words, ", length of counts at getkeys, " distinct" .
+show "failures: ", length of failures .
+if ] length of failures > 0 [
+    exit[1]
+if [end]

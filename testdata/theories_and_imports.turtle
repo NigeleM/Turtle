@@ -1,0 +1,189 @@
+// theories_and_imports.turtle: theories in every form (notation, definition,
+// theorems, proofs with setup lines and fails, "if" conditions, sentence
+// theorems, theories inside theories), import aliases, and the features
+// they touch. Run from this folder:
+//
+//     turtle theories_and_imports.turtle
+//
+// Prints one line per section, then the failure count, and exits with
+// code 1 if any check failed.
+
+import data [mean as average, sum, keep]
+import strings
+import system as sy
+import math
+
+failures = list []
+
+// check compares got with want. failures is a list, so the function can
+// add to it (functions can read globals but not reassign them).
+def check[label, got, want]
+    if ] got != want [
+        add label to failures .
+        show "  FAIL ", label, ": got ", got, ", want ", want .
+    if [end]
+def [end]
+
+// ---------- theories ----------
+// The word of a theory is free here: mean is the library's, but the file
+// imports it as average, so mean can start a theory.
+
+theory tally
+    abstract
+        tally says how many times b appears in the list a.
+    notation tally b in a .
+    definition
+        n = 0
+        [loop][x in a]
+            if ] x == b [
+                n = n + 1
+            if [end]
+        [loop][end]
+        return n
+    theorem result >= 0
+    theorem result <= length of a
+    proof
+        tally 1 in list [1, 1, 0, 3] . is 2
+        tally 9 in list [] . is 0
+        tally 2 in list [2, 2, 2] . is 3
+theory [end]
+
+theory mean
+    abstract
+        mean says the average of the numbers in a list a.
+    notation mean a .
+    definition
+        if ] length of a == 0 [
+            fail "mean of an empty list"
+        if [end]
+        total = 0
+        [loop][x in a]
+            total = total + x
+        [loop][end]
+        return total / length of a
+    theorem result >= min of a
+    theorem result <= max of a
+    proof
+        mean list [2, 4, 6] . is 4
+        mean list [5] . is 5
+        mean list [] . fails
+theory [end]
+
+theory squares
+    abstract
+        squares says the list of each item of a multiplied by itself.
+    notation squares a .
+    definition
+        out = list []
+        [loop][x in a]
+            add x * x to out .
+        [loop][end]
+        return out
+    theorem result each x give x >= 0
+    theorem length of result == length of a
+    proof
+        nums = list [-3, 0, 2]
+        squares nums . is list [9, 0, 4]
+        big = list [10, 20]
+        squares big . is list [100, 400]
+theory [end]
+
+theory clamp
+    abstract
+        clamp says n kept between lo and hi.
+    notation clamp n between lo and hi .
+    definition
+        if ] n < lo [
+            return lo
+        if [end]
+        if ] n > hi [
+            return hi
+        if [end]
+        return n
+    theorem result >= lo if lo <= hi
+    theorem result <= hi if lo <= hi
+    proof
+        clamp 5 between 0 and 10 . is 5
+        clamp -4 between 0 and 10 . is 0
+        clamp 40 between 0 and 10 . is 10
+theory [end]
+
+theory double
+    abstract
+        double says twice the number n.
+    notation double n .
+    definition
+        return n * 2
+    theorem result >= 0 if n >= 0
+    proof
+        double 2 . is 4
+theory [end]
+
+theory quad
+    abstract
+        quad says four times the number n.
+    notation quad n .
+    definition
+        x = double n .
+        return x * 2
+    theorem result >= 0 if n >= 0
+    proof
+        quad 1 . is 4
+theory [end]
+
+theory share
+    abstract
+        share says how many items of a are b, as a fraction of all of them.
+    notation share b in a .
+    definition
+        if ] length of a == 0 [
+            return 0
+        if [end]
+        n = tally b in a .
+        return n / length of a
+    theorem result >= 0
+    theorem result <= 1
+    proof
+        share 1 in list [1, 1, 0, 3] . is 0.5
+        share 1 in list [] . is 0
+theory [end]
+
+// A theory whose proof is broken on purpose would fail the test run, so the
+// program keeps only the theories that hold.
+
+// ---------- checks ----------
+check["tally", tally 1 in list [1, 1, 0, 3], 2]
+check["mean (the freed word)", mean list [2, 4, 6], 4]
+check["listed alias", average[list [2, 4]], 3.0]
+check["listed sum", sum[list [1, 2]], 3]
+check["an alias's names are not bare", sy exists["no_such_file_here.txt"], false]
+check["nested theories", quad 3, 12]
+check["theory uses theory", share 1 in list [1, 1, 0, 3], 0.5]
+check["share of nothing", share 1 in list [], 0]
+check["clamp", clamp 5 between 0 and 10, 5]
+check["clamp low", clamp -4 between 0 and 10, 0]
+check["clamp high", clamp 40 between 0 and 10, 10]
+check["typeof a theory", typeof[tally], "theory"]
+check["hypothesis on a theory", hypothesis[tally], true]
+check["hypothesis on squares", hypothesis[squares], true]
+check["squares", squares list [-3, 0, 2], list [9, 0, 4]]
+check["theory in a list", length of list [tally 1 in list [1], quad 1] , 2]
+
+safe
+    x = mean list [] .
+    check["mean stopped", x, none]
+handle [custom] err .
+    check["mean fails on empty", message of err, "mean of an empty list"]
+safe [end]
+
+// ---------- import aliases and the libraries ----------
+check["listed keep", keep[list [1, 2, 3, 4], x give x > 2], list [3, 4]]
+check["strings", "abc" at upper, "ABC"]
+check["sqrt method", 16 at sqrt, 4]
+show "theories and imports ok" .
+
+// ---------- done ----------
+show "failures: ", length of failures .
+if ] length of failures > 0 [
+    exit[1]
+if [end]

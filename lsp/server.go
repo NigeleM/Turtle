@@ -324,6 +324,20 @@ func (s *Server) completion(d *document, offset int) any {
 			add(sym.name, completionVariable, "", "", "2")
 		}
 	}
+	// What this file calls its imports: a module's alias, and a listed name's
+	// new name (import data [mean as average]).
+	for alias, mod := range a.aliases {
+		if !seen[alias] {
+			seen[alias] = true
+			add(alias, completionModule, "import "+mod+" as "+alias, "", "1")
+		}
+	}
+	for local, from := range a.renamed {
+		if !seen[local] {
+			seen[local] = true
+			add(local, completionFunction, "import "+from, "", "1")
+		}
+	}
 	for name := range a.idents {
 		if !seen[name] && name != word {
 			seen[name] = true

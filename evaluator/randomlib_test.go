@@ -36,7 +36,7 @@ show length of random list of n booleans .`, want: "5\n8\n4\n3\n4\n6\n"},
 		{name: "count and length ranges", src: `import random
 l = length of random list of 2 to 4 floats
 t = length of random string of 3 to 5
-show l >= 2 && l <= 4, t >= 3 && t <= 5 .`, want: "truetrue\n"},
+show l >= 2 && l <= 4, t >= 3 && t <= 5 .`, want: "true true\n"},
 		{name: "text from characters", src: `import random
 show random string of 6 from "a" .
 show random digits of 3 at contains["x"] .`, want: "aaaaaa\nfalse\n"},
@@ -65,7 +65,7 @@ b = random string of 20
 seed = 8
 c = random list of 10 integers
 seed = 7
-show a == random list of 10 integers, b == random string of 20, a == c .`, want: "truetruefalse\n"},
+show a == random list of 10 integers, b == random string of 20, a == c .`, want: "true true false\n"},
 		{name: "seed inside a function is the file's", src: `import random
 seed = 3
 def roll[]
@@ -86,7 +86,7 @@ s = shuffle[list [1, 2, 3, 4]]
 show length of s, " ", min_or[s] .`, wantErr: "undefined function \"min_or\""},
 		{name: "shuffle keeps the items", src: `import random
 import sort [min_sort]
-show min_sort[shuffle[list [3, 1, 2, 3]]], shuffle["aaa"], length of sample[list [1, 2, 3], 2], chance[1], chance[0] .`, want: "[ 1, 2, 3, 3 ]aaa2truefalse\n"},
+show min_sort[shuffle[list [3, 1, 2, 3]]], shuffle["aaa"], length of sample[list [1, 2, 3], 2], chance[1], chance[0] .`, want: "[ 1, 2, 3, 3 ] aaa 2 true false\n"},
 		{name: "random qualified call", src: `import random
 show random pick[list [5]] .`, want: "5\n"},
 		{name: "without the import, random is a name", src: `random = 4
@@ -168,7 +168,7 @@ a = shuffle[list [1, 2, 3, 4, 5, 6, 7, 8]]
 b = pick["abcdefgh"]
 c = sample[list [1, 2, 3, 4, 5, 6], 3]
 seed = 5
-show a == shuffle[list [1, 2, 3, 4, 5, 6, 7, 8]], b == pick["abcdefgh"], c == sample[list [1, 2, 3, 4, 5, 6], 3] .`, want: "truetruetrue\n"},
+show a == shuffle[list [1, 2, 3, 4, 5, 6, 7, 8]], b == pick["abcdefgh"], c == sample[list [1, 2, 3, 4, 5, 6], 3] .`, want: "true true true\n"},
 		{name: "a string shuffles into a string", src: `import random
 import sort [min_sort]
 s = shuffle["banana"]

@@ -1,0 +1,152 @@
+// collections.turtle: every list, set and map method in the reference, the
+// conversions between them, copies, nesting, and the errors each one gives.
+// Run from this folder: turtle collections.turtle
+
+import system
+import data [copy]
+
+failures = list []
+
+def expect[label, got, want]
+    if ] got != want [
+        add label to failures .
+        show "  FAIL ", label, ": got ", got, ", want ", want .
+    if [end]
+def [end]
+
+// ---------- lists ----------
+nums = list [5, 3, 8, 3]
+expect["length", length of nums, 4]
+expect["get", nums at get 0, 5]
+expect["count of a value", nums at count[3], 2]
+expect["index of the first match", nums at index[3], 1]
+expect["index of nothing is -1", nums at index[9], -1]
+expect["contains", nums at contains[8], true]
+expect["find is the same as contains", nums at find[8], true]
+
+nums at insert[7, 1]
+expect["insert puts the value at an index", nums at get 1, 7]
+nums at put[99, 0]
+expect["put replaces the item there", nums at get 0, 99]
+expect["put keeps the length", length of nums, 5]
+
+expect["slice", nums at slice[1, 3], list [7, 3]]
+expect["slice from an index to the end", nums at slice[3], list [8, 3]]
+expect["slice with a negative start", nums at slice[-2], list [8, 3]]
+
+nums at remove 3
+expect["remove takes the first match", nums, list [99, 7, 8, 3]]
+last = nums at pop
+expect["pop gives the last element", last, 3]
+expect["pop removes it", length of nums, 3]
+
+sorted_copy = copy[nums]
+sorted_copy at sort
+expect["sort", sorted_copy, list [7, 8, 99]]
+sorted_copy at reverse
+expect["reverse", sorted_copy, list [99, 8, 7]]
+expect["a shallow copy is separate", nums at get 0, 99]
+
+nums at clear
+expect["clear empties the list", length of nums, 0]
+
+// ---------- lists of lists and deep copies ----------
+grid = list [list [1, 2], list [3, 4]]
+shallow = copy[grid]
+deep = copy[grid, true]
+grid at get[0] at put[10, 0]
+expect["a deep copy is not changed by its source", deep at get[0] at get[0], 1]
+expect["a shallow copy shares the inner lists", shallow at get[0] at get[0], 10]
+
+// ---------- method chains: each "at" step works on the one before ----------
+chain = list [list [1, 2], list [3, 4]]
+chain at get 0 at put[10, 0]
+expect["chain, statement form with brackets", chain at get[0] at get[0], 10]
+chain at get 1 at put 30, 0
+expect["chain, statement form with bare arguments", chain at get[1] at get[0], 30]
+expect["chain, expression form with brackets", chain at get[0] at get[1], 2]
+expect["chain, expression form with one bare argument", chain at get 0 at get 1, 2]
+nums_chain = list [3, 1, 2]
+nums_chain at sort at reverse
+expect["chain of three steps", nums_chain, list [3, 2, 1]]
+
+// ---------- sets ----------
+a = set [1, 2, 3, 4]
+b = set [3, 4, 5]
+expect["set makes no repeats", length of set [1, 1, 2], 2]
+expect["union", length of a at union[b], 5]
+expect["intersection", a at intersection[b], set [3, 4]]
+expect["difference", a at difference[b], set [1, 2]]
+expect["subset", set [3, 4] at subset[a], true]
+expect["superset", a at superset[set [1]], true]
+expect["not a subset", b at subset[a], false]
+expect["a set has no order to rely on, but contains works", a at contains[4], true]
+
+// conversions both ways
+dupes = list [3, 1, 3, 2, 1]
+expect["list to set drops repeats", length of change dupes to set, 3]
+expect["set to list keeps each once", length of change set [1, 2] to list, 2]
+
+// ---------- maps ----------
+ages = map ["ann": 30, "bob": 25]
+expect["map get", ages at get "ann", 30]
+expect["map length", length of ages, 2]
+expect["map contains a key", ages at contains["bob"], true]
+expect["map does not contain a missing key", ages at contains["cy"], false]
+expect["map isempty", ages at isempty, false]
+expect["empty map isempty", map [] at isempty, true]
+
+ages at add["cy", 41]
+expect["add sets a key", ages at get "cy", 41]
+expect["getkeys in order", ages at getkeys, list ["ann", "bob", "cy"]]
+expect["getvalues in order", ages at getvalues, list [30, 25, 41]]
+
+ages at delete "bob"
+expect["delete removes the key", ages at contains["bob"], false]
+
+names = map ["x": "a", "y": "b"]
+flipped = names at invert
+expect["invert swaps keys and values", flipped at get "b", "y"]
+
+// keys keep their type: 1 and "1" are different keys
+typed = map [1: "int", "1": "text"]
+expect["keys keep their type", typed at get 1, "int"]
+expect["a text key is not an integer key", typed at get "1", "text"]
+
+// A map of lists, changed through the list.
+groups = map ["a": list [1]]
+inner = groups at get "a"
+add 2 to inner .
+expect["a list in a map changes in place", groups at get "a", list [1, 2]]
+
+// ---------- nesting ----------
+inventory = map ["fruit": map ["apple": 3, "pear": 0]]
+expect["nested get", inventory at get "fruit" at get "apple", 3]
+
+// ---------- the errors ----------
+safe
+    x = list [] at pop
+    expect["pop of an empty list stops", true, false]
+handle [] err .
+    expect["pop of an empty list is an error", true, true]
+safe [end]
+
+safe
+    x = list [1] at get 5
+    expect["get out of range stops", true, false]
+handle [] err .
+    expect["get out of range is an error", true, true]
+safe [end]
+
+safe
+    x = ages at get "nobody"
+    expect["a missing map key stops", true, false]
+handle [] err .
+    expect["a missing map key is an error", true, true]
+safe [end]
+
+show "collections ok" .
+show "failures: ", length of failures .
+if ] length of failures > 0 [
+    exit[1]
+if [end]

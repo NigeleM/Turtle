@@ -93,6 +93,10 @@ type Parser struct {
 	// "r is x at m args ." at its top level, where the statement itself
 	// handles "at" and its unbracketed args.
 	inIsReceiver bool
+	// inBareArg is a method's one bare argument ("get 0" in "grid at get 0
+	// at put[10, 0]"): an "at" after it ends the argument, so the chain goes
+	// on from the method. Brackets and parentheses inside clear it.
+	inBareArg bool
 
 	// inFieldObject is true while parsing the value after "field of",
 	// where only get[...] and slice[...] reach into it (methodPrecedence).
@@ -293,6 +297,9 @@ func (p *Parser) peekPrecedence() int {
 	// a.invert(): "a at invert == b at invert" compares the two inverted
 	// maps, "a" + "b" at upper is "aB", and ("a" + "b") at upper is "AB".
 	if p.peekTokenIs(token.AT) {
+		if p.inBareArg {
+			return LOWEST
+		}
 		return p.methodPrecedence()
 	}
 	if p.typeCheckAhead() {
@@ -705,25 +712,35 @@ func (p *Parser) parseMethodStatementValue() ast.Expression {
 	p.inIsReceiver = true
 	receiver := p.parseExpression(METHOD)
 	p.inIsReceiver = false
-	if !p.peekTokenIs(token.AT) {
-		return receiver
-	}
-	p.nextToken() // -> AT
-	p.nextToken() // -> method name
-	method := p.curToken.Literal
-	var args []ast.Expression
-	if !p.peekTokenIs(token.PERIOD) && !p.peekTokenIs(token.EOF) && p.peekToken.Line == p.curToken.Line {
-		p.nextToken()
-		args = append(args, p.parseExpression(LOWEST))
-		for p.peekTokenIs(token.COMMA) {
+	// Each "at" step is one method call, and the next "at" chains onto it:
+	// grid at get 0 at put 10, 0 is put on (get 0 of grid). An argument
+	// stops before "at", so the chain is read left to right, as the
+	// bracketed form is (grid at get[0] at put[10, 0]).
+	var e ast.Expression = receiver
+	for p.peekTokenIs(token.AT) {
+		p.nextToken() // -> AT
+		p.nextToken() // -> method name
+		method := p.curToken.Literal
+		var args []ast.Expression
+		bracketed := false
+		if p.peekTokenIs(token.LBRACKET) && p.peekToken.Line == p.curToken.Line {
+			p.nextToken() // -> [
+			args = p.parseExpressionList(token.RBRACKET)
+			bracketed = true
+		} else if !p.peekTokenIs(token.PERIOD) && !p.peekTokenIs(token.EOF) && p.peekToken.Line == p.curToken.Line {
 			p.nextToken()
-			p.nextToken()
-			args = append(args, p.parseExpression(LOWEST))
+			args = append(args, p.parseBareArgument(METHOD))
+			for p.peekTokenIs(token.COMMA) {
+				p.nextToken()
+				p.nextToken()
+				args = append(args, p.parseBareArgument(METHOD))
+			}
 		}
+		e = attachMethod(e, func(x ast.Expression) ast.Expression {
+			return &ast.MethodCallExpression{Token: tok, Receiver: x, Method: method, Arguments: args, Bracketed: bracketed}
+		})
 	}
-	return attachMethod(receiver, func(e ast.Expression) ast.Expression {
-		return &ast.MethodCallExpression{Token: tok, Receiver: e, Method: method, Arguments: args}
-	})
+	return e
 }
 
 // logLevels are the words that can follow log.
@@ -899,7 +916,15 @@ func (p *Parser) parseImportStatement() ast.Statement {
 		}
 		path += "/" + p.curToken.Literal
 	}
+	// import data as d: the module is called d in this file.
+	alias := ""
+	if p.peekIsAs(tok) {
+		if alias = p.readAlias(); alias == "" {
+			return nil
+		}
+	}
 	var names []string
+	var aliases map[string]string
 	if p.peekTokenIs(token.LBRACKET) && p.peekToken.Line == p.curToken.Line {
 		p.nextToken() // -> '['
 		if p.peekTokenIs(token.RBRACKET) {
@@ -916,7 +941,19 @@ func (p *Parser) parseImportStatement() ast.Statement {
 			if !p.expectPeek(token.IDENT) {
 				return nil
 			}
-			names = append(names, p.curToken.Literal)
+			name := p.curToken.Literal
+			names = append(names, name)
+			// import data [mean as average]: the name is average in this file.
+			if p.peekIsAs(p.curToken) {
+				local := p.readAlias()
+				if local == "" {
+					return nil
+				}
+				if aliases == nil {
+					aliases = map[string]string{}
+				}
+				aliases[name] = local
+			}
 			if p.trailingComma() || !p.peekTokenIs(token.COMMA) {
 				break
 			}
@@ -928,7 +965,26 @@ func (p *Parser) parseImportStatement() ast.Statement {
 	}
 	p.importTheories(tok, path, names)
 	p.nextToken()
-	return &ast.ImportStatement{Token: tok, Path: path, Names: names}
+	return &ast.ImportStatement{Token: tok, Path: path, Alias: alias, Names: names, Aliases: aliases}
+}
+
+// peekIsAs: the next word on this line is "as" (after a module or a name).
+func (p *Parser) peekIsAs(after token.Token) bool {
+	return p.peekToken.Type == token.IDENT && p.peekToken.Literal == "as" && p.peekToken.Line == after.Line
+}
+
+// readAlias reads "as NAME": curToken is the word before "as". It returns
+// NAME, or "" after an error.
+func (p *Parser) readAlias() string {
+	p.nextToken() // -> as
+	if !p.expectPeek(token.IDENT) {
+		return ""
+	}
+	if p.isReservedWord(p.curToken) {
+		p.reservedNameError(p.curToken, "an import's alias")
+		return ""
+	}
+	return p.curToken.Literal
 }
 
 // parseSysStatement is trivial: the lexer already captured the entire
@@ -1836,9 +1892,18 @@ func (p *Parser) parseMethodCallExpression(receiver ast.Expression) ast.Expressi
 	// brackets (x at get[0, 1]). A test or scroll word isn't an argument.
 	if (p.curTokenIs(token.IDENT) || slices.Contains(syntax.Methods, method)) && p.argumentStartsAt(1) && !p.isStop(p.peekToken.Literal) && !p.inVerifyValueStop() && !p.typeCheckAhead() {
 		p.nextToken()
-		mc.Arguments = append(mc.Arguments, p.parseExpression(INDEX))
+		mc.Arguments = append(mc.Arguments, p.parseBareArgument(INDEX))
 	}
 	return mc
+}
+
+// parseBareArgument reads a method's unbracketed argument: an "at" right
+// after it starts the next step of the chain, not a method on the argument.
+func (p *Parser) parseBareArgument(level int) ast.Expression {
+	saved := p.inBareArg
+	p.inBareArg = true
+	defer func() { p.inBareArg = saved }()
+	return p.parseExpression(level)
 }
 
 // inVerifyValueStop keeps "at least" / "at most" in a verify sentence
@@ -2131,10 +2196,11 @@ func arithmeticExpr(e ast.Expression) bool {
 
 func (p *Parser) parseGroupedExpression() ast.Expression {
 	p.nextToken()
-	saved := p.inIsReceiver
+	saved, savedBare := p.inIsReceiver, p.inBareArg
 	p.inIsReceiver = false // inside ( ), every "at" is an ordinary method
+	p.inBareArg = false
 	expr := p.parseExpression(LOWEST)
-	p.inIsReceiver = saved
+	p.inIsReceiver, p.inBareArg = saved, savedBare
 	if !p.expectPeek(token.RPAREN) {
 		return nil
 	}
@@ -2167,7 +2233,8 @@ func (p *Parser) trailingComma() bool {
 
 func (p *Parser) parseExpressionList(end token.Type) []ast.Expression {
 	defer func(was bool) { p.inBrackets = was }(p.inBrackets)
-	p.inBrackets = true
+	defer func(was bool) { p.inBareArg = was }(p.inBareArg)
+	p.inBrackets, p.inBareArg = true, false
 	var list []ast.Expression
 	if p.peekTokenIs(end) {
 		p.nextToken()
@@ -2251,6 +2318,8 @@ func (p *Parser) parseSetLiteral() ast.Expression {
 }
 
 func (p *Parser) parseMapLiteral() ast.Expression {
+	defer func(was bool) { p.inBareArg = was }(p.inBareArg)
+	p.inBareArg = false
 	tok := p.curToken
 	if !p.expectPeek(token.LBRACKET) {
 		return nil

@@ -13,7 +13,7 @@ import (
 
 func TestHelp(t *testing.T) {
 	cases := []struct{ src, want string }{
-		{`show version, version[] .`, "devdev"},
+		{`show version, version[] .`, "dev dev\n"},
 		{`help[]`, "help[\"linear\"]     a library"},
 		{`help[]`, "  linear    Matrices and vectors."},
 		{`help["linear"]`, "  reshape[m, rows, columns]\n      The same numbers, in the same order, as a rows x columns matrix."},

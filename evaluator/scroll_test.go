@@ -39,7 +39,7 @@ func TestScroll(t *testing.T) {
 		{"x = scroll 3 into add1, double, half .\nshow x .", "4.0"},
 		{"show scroll 3 into add1, double .", "8"},
 		// Saved scrolls: values, named after their variable, run in place.
-		{"s = scroll add1, double, half .\nshow s, \"|\", typeof[s] .", "scroll s (3 steps)|scroll"},
+		{"s = scroll add1, double, half .\nshow s, \"|\", typeof[s] .", "scroll s (3 steps) | scroll"},
 		{"s = scroll add1, double, half .\nx is scroll 10 into s .\nshow x .", "11.0"},
 		{"s = scroll add1, double .\nt = scroll s, s .\nshow scroll 1 into t, add1 .", "11"},
 		{"s = scroll add1, double .\nshow s[4] .", "10"},
@@ -107,7 +107,7 @@ func TestScrollErrors(t *testing.T) {
 		}
 		lines := strings.Split(strings.TrimSpace(got), "\n")
 		last := lines[len(lines)-1]
-		if !strings.HasPrefix(last, c.kind+"|") || !strings.Contains(last, c.want) {
+		if !strings.HasPrefix(last, c.kind+" | ") || !strings.Contains(last, c.want) {
 			t.Errorf("%s: got %q, want kind %s and %q", c.src, last, c.kind, c.want)
 		}
 	}
@@ -207,7 +207,7 @@ show d .`
 	if err != nil {
 		t.Fatalf("diagnose stopped the program: %v", err)
 	}
-	for _, want := range []string{"1 add1       → returned 4", "2 shownumber → returned nothing (none)   is none expected!?", "3 double     ✗ failed:", "\n                 (it was given none, from step 2)\n", "error|type\nstill running"} {
+	for _, want := range []string{"1 add1       → returned 4", "2 shownumber → returned nothing (none)   is none expected!?", "3 double     ✗ failed:", "\n                 (it was given none, from step 2)\n", "error | type\nstill running"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing %q in:\n%s", want, got)
 		}
@@ -231,7 +231,7 @@ show d .`
 	if err != nil {
 		t.Fatalf("diagnose stopped the program: %v", err)
 	}
-	for _, want := range []string{"2 here / 0 ✗ failed: division by zero", "3 double     not reached", "error|math|scroll step 2 of 3 (here / 0): division by zero"} {
+	for _, want := range []string{"2 here / 0 ✗ failed: division by zero", "3 double     not reached", "error | math | scroll step 2 of 3 (here / 0): division by zero"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing %q in:\n%s", want, got)
 		}
@@ -337,11 +337,11 @@ func TestOperatorAfterMultilineText(t *testing.T) {
 // s at trim; the program's own and library functions keep their names.
 func TestMethodsAsFunctions(t *testing.T) {
 	cases := []struct{ src, want string }{
-		{"s = \"  Hi  \"\nshow trim[s], \"|\", upper[trim[s]] .", "Hi|HI"},
+		{"s = \"  Hi  \"\nshow trim[s], \"|\", upper[trim[s]] .", "Hi | HI"},
 		{"s = \"  Hi  \"\nt = s trim\nshow t .", "Hi"},
 		{"import math\nshow round[3.14159, 2] .", "3.14"},
 		{"import math\nx = 3.14159\nr = x round 2\nshow r .", "3.14"},
-		{"nums = list [3, 1, 2]\nshow get[nums, 0], len[nums], contains[nums, 2] .", "33true"},
+		{"nums = list [3, 1, 2]\nshow get[nums, 0], len[nums], contains[nums, 2] .", "3 3 true"},
 		{"m = map [\"a\": 1]\nshow getkeys[m] .", `[ "a" ]`},
 		{"def trim[x]\n    return \"mine\"\ndef [end]\nshow trim[\" a \"] .", "mine"},
 		{"show round[2.5] .", ""}, // needs import math, as x at round does
@@ -391,7 +391,7 @@ def [end]
 show false && boom[], true || boom[] .
 show true && boom[] .`
 	got, err := run(t, src, "")
-	if err != nil || got != "falsetrue\nfalsetrue\nran\ntrue\n" {
+	if err != nil || got != "false true\nfalse true\nran\ntrue\n" {
 		t.Errorf("got %q, %v", got, err)
 	}
 }

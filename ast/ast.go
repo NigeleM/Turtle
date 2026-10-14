@@ -240,7 +240,11 @@ func (dop *DataOpStatement) Line() int            { return dop.Token.Line }
 type ImportStatement struct {
 	Token token.Token
 	Path  string
+	Alias string // "import data as d": what this file calls the module ("" for its own name)
 	Names []string
+	// Aliases renames a listed name: "import data [mean as average]" maps
+	// mean to average.
+	Aliases map[string]string
 }
 
 func (is *ImportStatement) statementNode()       {}
@@ -821,16 +825,22 @@ func (n *Notation) Text() string {
 // Theorem is one theorem: a statement every result must satisfy.
 type Theorem struct {
 	Line int
-	Text string // as written: "result <= length of a"
-	Expr Expression
+	Text string     // as written: "result <= length of a"
+	Expr Expression // a claim: "result <= length of a" (nil for a sentence)
+	// A sentence, as in verify: "theorem result each x give x >= 0".
+	Collection Expression
+	Rule       *Rule
+	Given      Expression // "theorem result >= lo if lo <= hi": checked only where it's true; nil if none
 }
 
 // ProofCase is one line of a proof: a use and what it must give.
 type ProofCase struct {
-	Line int
-	Text string // as written: "tally 1 in list [1, 1, 0] . is 2"
-	Use  *TheoryCall
-	Want Expression
+	Line  int
+	Text  string      // as written: "tally 1 in list [1, 1, 0] . is 2"
+	Setup []Statement // the proof's lines before this check, run in its shared scope
+	Use   *TheoryCall
+	Want  Expression // nil when Fails
+	Fails bool       // "average list [] . fails": the use must stop with an error
 }
 
 // TheoryCall is a use of a theory's word: "tally 1 in nums". Args are in

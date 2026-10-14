@@ -81,8 +81,9 @@ func FormatFile(src, path string) (string, error) {
 			}
 		}
 	}
+	masked, prose := maskProse(text)
 	toks := make([][]token.Token, len(lines))
-	l := lexer.New(text)
+	l := lexer.New(masked)
 	for t := l.NextToken(); t.Type != token.EOF; t = l.NextToken() {
 		if n := t.Line - 1; n >= 0 && n < len(lines) {
 			toks[n] = append(toks[n], t)
@@ -92,6 +93,7 @@ func FormatFile(src, path string) (string, error) {
 	var stack []string // the blocks open: def, if, nestedif, loop, safe, give, block, scroll, bracket
 	var out []string
 	blank := 0
+	abstractDepth := 0 // the depth of the abstract the prose lines belong to
 	for i, line := range lines {
 		if verbatim[i] {
 			out = append(out, line)
@@ -107,11 +109,18 @@ func FormatFile(src, path string) (string, error) {
 			continue
 		}
 		blank = 0
+		if prose[i] {
+			out = append(out, strings.Repeat("    ", abstractDepth+1)+trimmed)
+			continue
+		}
 		depth, next, err := lineDepth(toks[i], stack)
 		if err != nil {
 			return "", fmt.Errorf("line %d: %v", i+1, err)
 		}
 		stack = next
+		if strings.HasPrefix(trimmed, "abstract") {
+			abstractDepth = depth
+		}
 		out = append(out, strings.Repeat("    ", depth)+trimmed)
 	}
 	for len(out) > 0 && out[len(out)-1] == "" {
@@ -332,7 +341,8 @@ func sameCode(a, b string) bool {
 
 func codeOf(src string) string {
 	var sb strings.Builder
-	l := lexer.New(src)
+	masked, _ := maskProse(src)
+	l := lexer.New(masked)
 	for t := l.NextToken(); t.Type != token.EOF; t = l.NextToken() {
 		fmt.Fprintf(&sb, "%s %q\n", t.Type, t.Literal)
 	}
@@ -346,6 +356,69 @@ func codeOf(src string) string {
 		}
 	}
 	return sb.String()
+}
+
+// maskProse blanks out the prose of theory abstracts (the text after
+// "abstract", up to the next section), keeping the lines, and says which
+// lines are prose. The lexer would read an apostrophe in prose ("that's")
+// as the start of a string, so the layout and the code comparison lex the
+// masked text instead.
+func maskProse(src string) (string, []bool) {
+	lines := strings.Split(src, "\n")
+	prose := make([]bool, len(lines))
+	inProse := false
+	for i, line := range lines {
+		t := strings.TrimSpace(line)
+		if inProse {
+			if startsTheoryPart(t) {
+				inProse = false
+			} else {
+				lines[i] = blankOut(line)
+				prose[i] = true
+				continue
+			}
+		}
+		word, rest, _ := strings.Cut(t, " ")
+		if word != "abstract" || startsCode(strings.TrimSpace(rest)) {
+			continue
+		}
+		// "abstract" alone opens prose on the lines after it; text after the
+		// word on the same line is prose too.
+		idx := strings.Index(line, "abstract") + len("abstract")
+		lines[i] = line[:idx] + blankOut(line[idx:])
+		inProse = true
+	}
+	return strings.Join(lines, "\n"), prose
+}
+
+// startsCode: the text after a section word is code, so the word is a name
+// (abstract = 3, abstract is x .), not a theory's abstract.
+func startsCode(rest string) bool {
+	for _, code := range []string{"=", "is ", "at ", "of "} {
+		if strings.HasPrefix(rest, code) {
+			return true
+		}
+	}
+	return false
+}
+
+// startsTheoryPart: a line starts a theory's next section, or ends it.
+func startsTheoryPart(t string) bool {
+	word, rest, _ := strings.Cut(t, " ")
+	if word == "theory" {
+		return strings.HasPrefix(strings.ReplaceAll(rest, " ", ""), "[end]")
+	}
+	return theorySections[word] && !startsCode(strings.TrimSpace(rest))
+}
+
+// blankOut replaces every character but newlines with a space.
+func blankOut(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r == '\n' {
+			return r
+		}
+		return ' '
+	}, s)
 }
 
 // theoryDepth lays out a theory: its sections one step in, what they hold

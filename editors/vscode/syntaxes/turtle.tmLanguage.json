@@ -164,14 +164,28 @@
     "keywords": {
       "patterns": [
         {
-          "comment": "an import line, all of it: import time [now, today]",
+          "comment": "an import line, all of it: import time [now, today], import data as d, import data [mean as average]",
           "match": "^\\s*(import)\\b([^/\\n]*)",
           "captures": {
             "1": {
               "name": "keyword.other.import.turtle"
             },
             "2": {
-              "name": "keyword.other.import.turtle"
+              "name": "keyword.other.import.turtle",
+              "patterns": [
+                {
+                  "comment": "as NAME: the name this file calls the module, or a listed name",
+                  "match": "\\b(as)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+                  "captures": {
+                    "1": {
+                      "name": "keyword.other.import.turtle"
+                    },
+                    "2": {
+                      "name": "entity.name.namespace.turtle"
+                    }
+                  }
+                }
+              ]
             }
           }
         },

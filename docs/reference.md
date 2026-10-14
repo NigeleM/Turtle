@@ -403,8 +403,26 @@ years = change ages to values   // [ 30, 25 ]
 show <expr> {, <expr>} .
 ```
 
-Each piece is evaluated and its display form concatenated, in order, with
-no separator inserted.
+Each piece is evaluated and written in order, with one space between two
+pieces. The space is left out where the text on either side already has
+whitespace, so text that ends in a space keeps its own:
+
+| Program | Shows |
+|---|---|
+| `show 3, 2 .` | `3 2` |
+| `show "total: ", n .` (with `n` = 3) | `total: 3` |
+| `show "a", "b", "c" .` | `a b c` |
+| `show name, "!" .` (with `name` = `Ann`) | `Ann!` |
+| `show n, "\|", name .` | `3 \| Ann` |
+| `show "", "empty first" .` | `empty first` |
+| `show list [1, 2], "items" .` | `[ 1, 2 ] items` |
+| `show 1 + 1, 2 + 2 .` | `2 4` |
+| `show "x is ", x, ", y is ", y .` (with `x` = 1, `y` = 2) | `x is 1, y is 2` |
+| `show "a", "(", x, ")" .` | `a (1)` |
+
+Punctuation is set against the value before it: no space goes before
+`, . ! ? : ; ) ] }` or after `( [ {`. To join pieces with no space at all,
+use `+` (`show "x="+n .` gives `x=3`).
 
 **Floats show to 15 significant digits**, as Excel and SQLite show them,
 so the leftovers of binary arithmetic don't: `0.1 + 0.2` shows `0.3`, and
@@ -1131,8 +1149,8 @@ show "ones: ", tally 1 in nums .   // inside other sentences
 | `abstract` | required | what the word means, in plain words; `help`, `turtle doc` and the editor show it. It should name the word. |
 | `notation` | required, one or more | how the word is written. The names the definition uses (`b`, `a`) are its **values**; every other word (`in`, `of`, `is` ...) is **fixed**. Two values need a word or a comma between them. Inside a phrase whose notation uses `of` or `is`, they're the phrase's words: name a value like `qty of item` first. |
 | `definition` | required | the code, with each value by its name; `return` gives the result |
-| `theorem` | optional, any number | something every result satisfies, written with `result` and the values |
-| `proof` | optional | worked cases: a use, `is`, what it gives |
+| `theorem` | optional, any number | something every result satisfies, written with `result` and the values: a claim (`result >= 0`), or a sentence as verify reads (`result each x give x >= 0`, `result at least 1 x give x >= 4`), with an optional `if` that says where it applies (`result >= lo if lo <= hi`) |
+| `proof` | optional | lines of setup (any statements, shared by the whole proof) and checks: a use with `is` and what it gives, or with `fails` (the use must stop with an error) |
 
 **Rules.**
 - The word follows `theory` and starts every notation. It must be new:
@@ -1154,6 +1172,28 @@ show "ones: ", tally 1 in nums .   // inside other sentences
   the start of a line before a name: elsewhere they're ordinary names.
 - The word alone is the theory itself, a value: `typeof[tally]` is
   `"theory"`, `tally type theory` is true, `help[tally]` describes it.
+
+A proof can set things up, and check them in turn:
+
+```
+proof
+    nums = list [1, 1, 0, 3]
+    tally 1 in nums . is 2
+    tally 0 in nums . is 1
+    tally 9 in list [] . is 0
+    average list [] . fails
+```
+
+A check must start its own line; setup lines run before the next check.
+A theorem can be a sentence and can have a condition:
+
+```
+theorem result each x give x >= 0
+theorem result >= lo if lo <= hi
+```
+
+Where the `if` condition is false, the theorem says nothing about that
+input.
 
 **Checking a theory.** `turtle test` proves the theories of each test
 file and of the files it imports: every proof case must give what it
@@ -1487,7 +1527,15 @@ current value; items are newline-joined.
 ```
 import <name>                  // everything the module exports
 import <name> [<f>, <g>, ...]  // only the listed names
+import <name> as <alias>       // the module is called <alias> in this file
+import <name> [<f> as <g>, ...] // the listed name <f> is <g> in this file
 ```
+
+An alias lets a file use a name that another import, or its own theory,
+already has. `import data as d` makes `d sum[nums]` and `d mean[nums]`;
+`import data [mean as average]` makes `average[nums]`, and `mean` isn't
+available under its own name in that file. A file can't import the same
+module under two names, and two modules can't share an alias.
 
 `<name>` is a builtin module (`math`, `time`, `data`, `strings`, `system`,
 `json`, `http`, `sql`, `sort`, `search`, `random`, `pattern`, `crypt`,

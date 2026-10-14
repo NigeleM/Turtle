@@ -1,0 +1,102 @@
+// math_random_matrix.turtle: number methods, seeded random values, and matrix
+// algebra checked against identities that must hold (A times its inverse is
+// the identity, solve gives a right answer, a determinant of a known matrix).
+// Run from this folder: turtle math_random_matrix.turtle
+
+import math
+import random
+import data [range]
+import linear
+import pattern
+import system
+
+failures = list []
+
+def expect[label, got, want]
+    if ] got != want [
+        add label to failures .
+        show "  FAIL ", label, ": got ", got, ", want ", want .
+    if [end]
+def [end]
+
+// ---------- number methods ----------
+expect["sqrt is a float", 16 at sqrt, 4.0]
+expect["abs keeps the type", -7 at abs, 7]
+expect["round to a whole number, half away from zero", 2.5 at round, 3]
+expect["round to places", 3.14159 at round[2], 3.14]
+expect["round to hundreds", 1234 at round[-2], 1200]
+expect["floor", -2.5 at floor, -3]
+expect["ceil", 2.1 at ceil, 3]
+expect["pow with whole numbers is whole", 2 at pow[10], 1024]
+expect["pow with a negative exponent is a float", 2 at pow[-1], 0.5]
+expect["fixed keeps trailing zeros as text", 3.5 at fixed[2], "3.50"]
+expect["commas", 1234567 at commas, "1,234,567"]
+expect["commas with places", 1250.5 at commas[2], "1,250.50"]
+
+// ---------- seeded random values ----------
+seed = 42
+first = random integer from 1 to 6
+second = random integer from 1 to 6
+seed = 42
+expect["the same seed gives the same first value", random integer from 1 to 6, first]
+expect["and the same second value", random integer from 1 to 6, second]
+
+in_range = true
+seed = 7
+[loop][k in range[0, 500]]
+    v = random integer from 1 to 6
+    if ] v < 1 || v > 6 [
+        in_range = false
+    if [end]
+[loop][end]
+expect["500 draws stay in range", in_range, true]
+
+seed = 7
+letters = random string of 8
+expect["a random string has the length asked for", length of letters, 8]
+expect["random string letters only", matches[letters, `^[A-Za-z]+$`], true]
+
+// ---------- matrices ----------
+a = matrix [2, 1; 1, 3]
+expect["shape", a at shape, list [2, 2]]
+expect["determinant", determinant[a], 5.0]
+expect["trace", trace[a], 5]
+expect["transpose of a symmetric matrix", transpose[a] == a, true]
+expect["the identity times a is a", identity[2] * a == a, true]
+
+inv = inverse[a]
+prod = a * inv
+expect["A times its inverse is the identity", round[prod at get[0, 0]] == 1 && round[prod at get[1, 1]] == 1, true]
+expect["off-diagonal of A times its inverse is zero", round[prod at get[0, 1]] == 0 && round[prod at get[1, 0]] == 0, true]
+
+x = solve[a, list [3, 5]]
+expect["solve: the first unknown", round[x at get 0 * 10], 8]
+expect["solve: the second unknown", round[x at get 1 * 10], 14]
+expect["the solution satisfies the system", round[(a * x) at get 0], 3]
+
+m = matrix [1, 2, 3; 4, 5, 6]
+expect["a 2 by 3 matrix times its transpose is 2 by 2", (m * transpose[m]) at shape, list [2, 2]]
+expect["row of a matrix", row[m, 1], list [4, 5, 6]]
+expect["column of a matrix", column[m, 2], list [3, 6]]
+expect["flatten then reshape", reshape[flatten[m], 3, 2] at shape, list [3, 2]]
+expect["element put", m at put[99, 0, 0] at get[0, 0], 99]
+
+expect["rank of a matrix with a repeated row", rank[matrix [1, 2; 2, 4]], 1]
+
+// Dot and cross products.
+expect["dot product", dot[list [1, 2, 3], list [4, 5, 6]], 32]
+expect["cross product", cross[list [1, 0, 0], list [0, 1, 0]], list [0, 0, 1]]
+
+// A matrix that can't be inverted gives an error.
+safe
+    z = inverse[matrix [1, 2; 2, 4]]
+    expect["a singular matrix stops", true, false]
+handle [] err .
+    expect["a singular matrix is an error", true, true]
+safe [end]
+
+show "math, random and matrices ok" .
+show "failures: ", length of failures .
+if ] length of failures > 0 [
+    exit[1]
+if [end]

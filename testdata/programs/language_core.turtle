@@ -1,0 +1,84 @@
+// language_core.turtle: literals, operators and precedence, conversions,
+// text, interpolation, none, input. Run from this folder:
+//
+//     echo 7 | turtle language_core.turtle
+//
+// Prints one line per section, then the failure count; exits 1 on a failure.
+
+import system
+
+failures = list []
+
+def check[label, got, want]
+    if ] got != want [
+        add label to failures .
+        show "  FAIL ", label, ": got ", got, ", want ", want .
+    if [end]
+def [end]
+
+// ---------- literals and arithmetic ----------
+check["int", 2 + 3 * 4, 14]
+check["grouping", (2 + 3) * 4, 20]
+check["negative literal", -5 + 2, -3]
+check["unary minus on a variable", -(3 - 10), 7]
+check["float", 1.5 * 2, 3.0]
+check["integer division keeps a float", 7 / 2, 3.5]
+check["div is whole", 7 div 2, 3]
+check["modulo", 10 % 3, 1]
+check["modulo with negative: the remainder goes with div", -7 % 3, -1]
+check["big int", 9000000000 * 2, 18000000000]
+check["precedence of / over +", 1 + 8 / 4, 3]
+check["arithmetic in arithmetic", 2 * (3 + (4 - 1)) - 1, 11]
+
+// ---------- comparison and logic ----------
+check["== on numbers", 2 == 2.0, true]
+check["!= ", 3 != 4, true]
+check["< and <=", 1 < 2 && 2 <= 2, true]
+check["|| short", true || 1 div 0 == 0, true]
+check["&& short", false && 1 div 0 == 0, false]
+check["! ", !(1 > 2), true]
+check["text ordering", "apple" < "banana", true]
+check["mixed concatenation", "a" + 1 + 2, "a12"]
+check["number then text", 1 + 2 + "a", "3a"]
+
+// ---------- text ----------
+name = "Ann"
+check["interpolation", "hi {name}!", "hi Ann!"]
+check["length of text", length of "héllo", 5]
+check["upper", "abc" at upper, "ABC"]
+check["trim", "  x  " at trim, "x"]
+check["escapes", length of "a\tb", 3]
+check["raw text keeps backslash", length of `a\nb`, 4]
+
+// ---------- conversion ----------
+check["to integer", change "42" to integer, 42]
+check["to float", change "2.5" to float, 2.5]
+check["to string", change 42 to string, "42"]
+check["to char", change 66 to char, "B"]
+check["to ascii", change "A" to ascii, 65]
+check["to hex", change 255 to hex, "ff"]
+
+// ---------- none ----------
+nothing = none
+check["none equals itself", nothing == none, true]
+check["none is falsy", !nothing, true]
+safe
+    x = none + 1
+    check["none plus a number stops", true, false]
+handle [type] err .
+    check["none plus a number is a type error", kind of err, "type"]
+safe [end]
+
+// ---------- input ----------
+answer = ? "number? "
+check["input read as an integer", change answer to integer, 7]
+check["input arrives as text", answer type string, true]
+
+// ---------- show ----------
+show "core: ", 1 + 1, " and ", "two" .
+
+// ---------- done ----------
+show "failures: ", length of failures .
+if ] length of failures > 0 [
+    exit[1]
+if [end]

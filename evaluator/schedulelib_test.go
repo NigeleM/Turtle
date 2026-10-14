@@ -88,7 +88,7 @@ func TestFetchallLimit(t *testing.T) {
 	// A call's own limit, and the sentence form.
 	srv, most, _ := slowServer(t)
 	got, err := run(t, "import schedule\n"+urlList(srv, 6)+"a = fetchall[urls, map [\"limit\": 1]]\nb = urls fetchall\nshow a == b, a at get[5] .", "")
-	if err != nil || strings.TrimSpace(got) != "truepage 5" {
+	if err != nil || strings.TrimSpace(got) != "true page 5" {
 		t.Errorf("got %q, %v", got, err)
 	}
 	if most.Load() != 5 {
@@ -105,7 +105,7 @@ func TestFetchallErrors(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasPrefix(got, "http|fetchall item 1: http_get "+srv.URL+"/fail/1: 404 Not Found") {
+	if !strings.HasPrefix(got, "http | fetchall item 1: http_get "+srv.URL+"/fail/1: 404 Not Found") {
 		t.Errorf("got %q", got)
 	}
 	if total.Load() != 2 {
@@ -154,7 +154,7 @@ outs = runall[list ["echo hi", "echo oops 1>&2; exit 3", "ls", "printf 'a\nb\n\n
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "hi||0\n|oops|3\nhere.txt||0\na\nb||0"
+	want := "hi | | 0\n| oops | 3\nhere.txt | | 0\na\nb | | 0"
 	if strings.TrimSpace(got) != want {
 		t.Errorf("got %q, want %q", got, want)
 	}
@@ -192,7 +192,7 @@ func TestScheduleMisuse(t *testing.T) {
 			t.Errorf("%s: %v", c.src, err)
 			continue
 		}
-		if !strings.HasPrefix(got, c.kind+"|") || !strings.Contains(got, c.want) {
+		if !strings.HasPrefix(got, c.kind+" | ") || !strings.Contains(got, c.want) {
 			t.Errorf("%s: got %q, want kind %s and %q", c.src, got, c.kind, c.want)
 		}
 	}

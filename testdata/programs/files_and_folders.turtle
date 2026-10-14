@@ -1,0 +1,107 @@
+// files_and_folders.turtle: writing, appending and reading files, folders,
+// copies, moves, packing and unpacking, walking a tree, and the errors for
+// missing paths. Everything happens in one scratch folder, removed at the end.
+// Run from this folder: turtle files_and_folders.turtle
+
+import system
+import data [table_read, table_write]
+import strings
+
+failures = list []
+
+def expect[label, got, want]
+    if ] got != want [
+        add label to failures .
+        show "  FAIL ", label, ": got ", got, ", want ", want .
+    if [end]
+def [end]
+
+makefolder["scratch_files/inner/deeper"]
+expect["makefolder makes missing folders", isfolder["scratch_files/inner/deeper"], true]
+makefolder["scratch_files/inner/deeper"]
+expect["makefolder is fine if it exists", isfolder["scratch_files/inner"], true]
+
+// ---------- writing and appending ----------
+note = "first line"
+[write] "scratch_files/notes.txt"
+    "hello"
+    note
+[end]
+[append] "scratch_files/notes.txt"
+    "one more"
+[end]
+expect["write then append", exists["scratch_files/notes.txt"], true]
+[read] "scratch_files/notes.txt" to lines [end]
+expect["read a file into lines", length of lines, 3]
+expect["the first line", lines at get 0, "hello"]
+expect["a variable written in a block", lines at get 1, "first line"]
+expect["the appended line", lines at get 2, "one more"]
+expect["a file is a file, not a folder", isfile["scratch_files/notes.txt"], true]
+expect["and not a folder", isfolder["scratch_files/notes.txt"], false]
+
+// ---------- a whole file into one variable ----------
+[read] "scratch_files/notes.txt" to whole [end]
+expect["read a whole file as text", whole at contains["one more"], true]
+
+// ---------- tables ----------
+rows = list [map ["name": "ann", "score": 9], map ["name": "bob", "score": 7]]
+table_write["scratch_files/scores.csv", rows]
+scores = table_read["scratch_files/scores.csv"]
+expect["table written and read back", length of scores, 2]
+expect["unquoted numbers come back as numbers", scores at get 0 at get "score", 9]
+
+// ---------- copies and moves ----------
+copyto["scratch_files/notes.txt", "scratch_files/inner/copied.txt"]
+expect["a copy exists", isfile["scratch_files/inner/copied.txt"], true]
+expect["the original is still there", isfile["scratch_files/notes.txt"], true]
+
+safe
+    copyto["scratch_files/notes.txt", "scratch_files/inner/copied.txt"]
+    expect["copying over an existing file stops without replace", true, false]
+handle [file] err .
+    expect["that is a file error", kind of err, "file"]
+safe [end]
+
+copyto["scratch_files/notes.txt", "scratch_files/inner/copied.txt", true]
+expect["replace copies over", isfile["scratch_files/inner/copied.txt"], true]
+
+moveto["scratch_files/inner/copied.txt", "scratch_files/moved.txt"]
+expect["a move removes the old path", exists["scratch_files/inner/copied.txt"], false]
+expect["and creates the new one", exists["scratch_files/moved.txt"], true]
+
+// ---------- walking a tree ----------
+files = walk["scratch_files"]
+expect["walk lists every file under the folder", length of files, 3]
+expect["contents lists the names in one folder", length of contents["scratch_files"], 4]
+
+// ---------- packing ----------
+pack["scratch_files", "scratch_archive.zip"]
+expect["an archive is written", isfile["scratch_archive.zip"], true]
+makefolder["scratch_unpacked"]
+unpack["scratch_archive.zip", "scratch_unpacked"]
+expect["unpacking restores the files", isfile["scratch_unpacked/scratch_files/notes.txt"], true]
+
+// ---------- environment and arguments ----------
+expect["args is a list", length of args[] >= 0, true]
+expect["an unset variable is none", env["SURELY_NOT_SET_ANYWHERE_123"], none]
+expect["the script folder exists", isfolder[scriptfolder[]], true]
+
+// ---------- errors ----------
+safe
+    [read] "scratch_files/no_such_file.txt" to nothing [end]
+    expect["reading a missing file stops", true, false]
+handle [file] err .
+    expect["a missing file is a file error", message of err != "", true]
+safe [end]
+
+// ---------- clean up ----------
+erase["scratch_files"]
+erase["scratch_unpacked"]
+erase["scratch_archive.zip"]
+expect["everything was removed", exists["scratch_files"], false]
+
+show "files and folders ok" .
+show "failures: ", length of failures .
+if ] length of failures > 0 [
+    exit[1]
+if [end]

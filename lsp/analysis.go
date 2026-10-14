@@ -46,8 +46,9 @@ type symbol struct {
 }
 
 type importInfo struct {
-	path string // as written: lib/utils, sql
-	line int    // from 0
+	path  string // as written: lib/utils, sql
+	line  int    // from 0
+	alias string // import data as d: what the file calls the module
 }
 
 type analysis struct {
@@ -56,12 +57,17 @@ type analysis struct {
 	imports []importInfo
 	libs    map[string]bool // builtin libraries imported
 	idents  map[string]bool // every name used in the file
+	// aliases are the modules this file calls by another name (import data
+	// as d: d -> data); renamed are the listed names it renames (import data
+	// [mean as average]: average -> "mean from data").
+	aliases map[string]string
+	renamed map[string]string
 }
 
 // analyze parses a file (at path, for its imports) and gathers what the
 // server needs.
 func analyze(uri, path, src string, t *text) *analysis {
-	a := &analysis{libs: map[string]bool{}, idents: map[string]bool{}}
+	a := &analysis{libs: map[string]bool{}, idents: map[string]bool{}, aliases: map[string]string{}, renamed: map[string]string{}}
 	p := parser.New(lexer.New(src))
 	if path != "" {
 		p.ModuleDir = filepath.Dir(path)
@@ -99,7 +105,13 @@ func analyze(uri, path, src string, t *text) *analysis {
 		switch s := st.(type) {
 		case *ast.ImportStatement:
 			line := s.Token.Line - 1
-			a.imports = append(a.imports, importInfo{path: s.Path, line: line})
+			a.imports = append(a.imports, importInfo{path: s.Path, line: line, alias: s.Alias})
+			if s.Alias != "" {
+				a.aliases[s.Alias] = s.Path
+			}
+			for name, local := range s.Aliases {
+				a.renamed[local] = name + " from " + s.Path
+			}
 			if builtins[s.Path] {
 				a.libs[s.Path] = true
 				continue

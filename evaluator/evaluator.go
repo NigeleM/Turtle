@@ -14,8 +14,11 @@ import (
 	"net/http"
 	"os"
 	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
+	"unicode"
+	"unicode/utf8"
 
 	"Turtle/ast"
 	"Turtle/object"
@@ -165,11 +168,16 @@ var builtinModules = map[string]*object.Module{
 // import is that the error tells you exactly what to add. Imports are
 // per file, so env is whichever file's code is running.
 func requireModule(env *object.Environment, module, what string) {
-	im, ok := env.FindImport(module)
+	im, ok := env.ImportOf(module)
 	if !ok {
 		fatalKind(kindName, "%q needs \"import %s\" first", what, module)
 	}
 	if !im.Allows(what) {
+		for local, lib := range im.Aliases {
+			if lib == what {
+				fatalKind(kindName, "%q is imported as %q — use that name", what, local)
+			}
+		}
 		fatalKind(kindName, "%q isn't imported — add it to \"import %s [...]\"", what, module)
 	}
 }
@@ -464,8 +472,12 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 			requireModule(env, "system", "warn")
 		}
 		out := ""
-		for _, e := range s.Expressions {
-			out = joinShown(out, it.evalExpression(e, env))
+		for i, e := range s.Expressions {
+			v := it.evalExpression(e, env)
+			if i > 0 && needsSpace(out, v) {
+				out += " "
+			}
+			out = joinShown(out, v)
 		}
 		if s.Stderr {
 			fmt.Fprintln(os.Stderr, out)
@@ -818,4 +830,22 @@ func isTruthy(obj object.Object) bool {
 	default:
 		return obj != nil
 	}
+}
+
+// needsSpace: show puts a space between two pieces, unless the text so far
+// or the next piece already begins or ends with whitespace ("total: ", n
+// gives "total: 3", not two spaces), the next piece is empty, or the pieces
+// read as one with punctuation ("Hi, ", name, "!" gives "Hi, Ann!", and
+// "(" + x + ")" gives "(1)").
+func needsSpace(text string, v object.Object) bool {
+	shown := v.Inspect()
+	if shown == "" || text == "" {
+		return false
+	}
+	last, _ := utf8.DecodeLastRuneInString(text)
+	first, _ := utf8.DecodeRuneInString(shown)
+	if unicode.IsSpace(last) || unicode.IsSpace(first) {
+		return false
+	}
+	return !strings.ContainsRune(",.!:;)]}", first) && !strings.ContainsRune("([{", last)
 }

@@ -1,0 +1,126 @@
+// pipeline_recovery.turtle: a publishing pipeline that can fail halfway. It
+// stages a file, validates every record, and publishes. A bad record stops
+// it: the staging file is removed, nothing is published, and a ledger shows
+// exactly what happened. Also covers per-item recovery in a loop and an error
+// that is caught, wrapped and passed on. Run from this folder:
+// turtle pipeline_recovery.turtle
+
+import system
+import strings
+
+failures = list []
+
+def expect[label, got, want]
+    if ] got != want [
+        add label to failures .
+        show "  FAIL ", label, ": got ", got, ", want ", want .
+    if [end]
+def [end]
+
+ledger = list []
+
+// check_record stops the pipeline on a bad record.
+def check_record[r]
+    if ] r == "bad" [
+        fail "bad record: " + r
+    if [end]
+    return length of r
+def [end]
+
+def publish[rows]
+    [loop][r in rows]
+        check_record[r]
+    [loop][end]
+    text = join[rows, "\n"]
+    [write] "final.txt"
+        text
+    [end]
+    return length of rows
+def [end]
+
+def stage[rows]
+    text = join[rows, "\n"]
+    [write] "staging.txt"
+        text
+    [end]
+def [end]
+
+// ---------- a run that fails halfway ----------
+rows = list ["alpha", "beta", "bad", "gamma"]
+safe
+    add "start" to ledger .
+    stage[rows]
+    add "staged" to ledger .
+    publish[rows]
+    add "published" to ledger .
+handle [custom] err .
+    add "failed" to ledger .
+    add "message: " + message of err to ledger .
+    erase["staging.txt"]
+    add "cleaned" to ledger .
+safe [end]
+
+expect["the ledger shows the failure and the cleanup", ledger, list ["start", "staged", "failed", "message: bad record: bad", "cleaned"]]
+expect["the staging file is removed", exists["staging.txt"], false]
+expect["nothing was published", exists["final.txt"], false]
+
+// ---------- a run that succeeds ----------
+ledger = list []
+good = list ["alpha", "beta", "gamma"]
+safe
+    add "start" to ledger .
+    stage[good]
+    add "staged" to ledger .
+    count = publish[good]
+    add "published" to ledger .
+    expect["published three records", count, 3]
+handle [] err .
+    add "failed" to ledger .
+safe [end]
+expect["a clean run publishes", ledger, list ["start", "staged", "published"]]
+expect["the published file exists", exists["final.txt"], true]
+expect["the published file has every record", length of join[list ["alpha", "beta", "gamma"], "\n"], 16]
+erase["final.txt"]
+erase["staging.txt"]
+
+// ---------- recovery per item: skip the bad ones, keep going ----------
+def parse_one[r]
+    safe
+        return check_record[r]
+    handle [custom] err .
+        return -1
+    safe [end]
+def [end]
+results = list []
+[loop][r in list ["x", "bad", "yz"]]
+    add parse_one[r] to results .
+[loop][end]
+expect["a bad item gives -1 and the rest go on", results, list [1, -1, 2]]
+
+// ---------- wrapping: a caught error is passed on with more context ----------
+def outer[r]
+    safe
+        check_record[r]
+    handle [custom] err .
+        fail "outer stage: " + message of err
+    safe [end]
+def [end]
+safe
+    outer["bad"]
+    expect["the wrapped error should have stopped", true, false]
+handle [custom] err .
+    expect["wrapped message", message of err, "outer stage: bad record: bad"]
+safe [end]
+
+// ---------- an error a function can't handle reaches the caller ----------
+safe
+    x = 10 div 0
+    expect["division by zero stops", true, false]
+handle [math] err .
+    expect["math error kind", kind of err, "math"]
+safe [end]
+
+show "failures: ", length of failures .
+if ] length of failures > 0 [
+    exit[1]
+if [end]

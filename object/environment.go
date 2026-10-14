@@ -338,32 +338,45 @@ func (e *Environment) DefineFunction(fn *Function) {
 // Root is the module's global scope, at the top of e's chain.
 func (e *Environment) Root() *Environment { return e.root() }
 
-// AddImport records that this file imported mod — the whole module when
-// names is nil, otherwise just those names. Importing the same module
-// again merges: a full import wins over any list, and lists accumulate.
-func (e *Environment) AddImport(mod *Module, names []string) {
+// AddImport records that this file imported mod under the name bound — the
+// whole module when names is nil, otherwise just those names. aliases gives
+// a list's renamed names ("mean as average": mean -> average). Importing the
+// same module under the same name again merges: a full import wins over any
+// list, and lists accumulate.
+func (e *Environment) AddImport(mod *Module, bound string, names []string, aliases map[string]string) {
 	r := e.root()
 	for _, im := range r.imports {
-		if im.Module != mod {
+		if im.Module != mod || im.Name != bound {
 			continue
 		}
 		if names == nil {
 			im.Names = nil
 		} else if im.Names != nil {
-			for _, n := range names {
-				im.Names[mod.Canonical(n)] = true
-			}
+			im.add(mod, names, aliases)
 		}
 		return
 	}
-	im := &Import{Module: mod}
+	im := &Import{Module: mod, Name: bound}
 	if names != nil {
 		im.Names = map[string]bool{}
-		for _, n := range names {
-			im.Names[mod.Canonical(n)] = true
-		}
+		im.add(mod, names, aliases)
 	}
 	r.imports = append(r.imports, im)
+}
+
+// add makes names available, each under its alias when it has one.
+func (im *Import) add(mod *Module, names []string, aliases map[string]string) {
+	for _, n := range names {
+		local := n
+		if alias, ok := aliases[n]; ok {
+			local = alias
+			if im.Aliases == nil {
+				im.Aliases = map[string]string{}
+			}
+			im.Aliases[local] = mod.Canonical(n)
+		}
+		im.Names[mod.Canonical(local)] = true
+	}
 }
 
 // Imports returns this file's imports, in import order.
@@ -371,8 +384,20 @@ func (e *Environment) Imports() []*Import {
 	return e.root().imports
 }
 
-// FindImport returns this file's import of the module named name.
+// FindImport returns the import this file calls name: a module's alias
+// (d in "import data as d"), or its own name.
 func (e *Environment) FindImport(name string) (*Import, bool) {
+	for _, im := range e.root().imports {
+		if im.Name == name {
+			return im, true
+		}
+	}
+	return nil, false
+}
+
+// ImportOf returns this file's import of the module whose own name is name,
+// however it's bound.
+func (e *Environment) ImportOf(name string) (*Import, bool) {
 	for _, im := range e.root().imports {
 		if im.Module.Name == name {
 			return im, true

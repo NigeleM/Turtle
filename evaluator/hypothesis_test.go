@@ -362,7 +362,7 @@ theory [end]
 		out, err := run(t, src, "")
 		// flat's theorem is false (an empty list in xs adds nothing): the
 		// edges (a list holding an empty list) find it on every seed.
-		if err != nil || out != "truetruetruetruefalse\n" {
+		if err != nil || out != "true true true true false\n" {
 			t.Fatalf("seed %d: got %q, %v", seed, out, err)
 		}
 	}

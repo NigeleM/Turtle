@@ -179,7 +179,7 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 		return it.evalMatrixLiteral(e, env)
 	case *ast.ChangeExpression:
 		if e.TypeName == "matrix" {
-			if _, ok := env.FindImport("linear"); !ok {
+			if _, ok := env.ImportOf("linear"); !ok {
 				fatalKind(kindName, "change ... to matrix needs \"import linear\" first")
 			}
 		}
@@ -955,7 +955,7 @@ func (it *Interpreter) callFunction(fn *object.Function, name string, args []obj
 }
 
 func (it *Interpreter) callImported(im *object.Import, name string, args []object.Object, env *object.Environment) object.Object {
-	name = im.Module.Canonical(name)
+	name = im.Library(name)
 	if isBuiltin(im.Module, "random") {
 		// The library's Turtle code has no seed of its own: the caller's
 		// seed decides its values.
@@ -973,7 +973,7 @@ func (it *Interpreter) callImported(im *object.Import, name string, args []objec
 func resolveImported(env *object.Environment, name string) *object.Import {
 	var found []*object.Import
 	for _, im := range env.Imports() {
-		if im.Allows(name) && im.Module.Reachable(name, env.IsTestFile()) {
+		if !im.Qualified() && im.Allows(name) && im.Module.Reachable(im.Library(name), env.IsTestFile()) {
 			found = append(found, im)
 		}
 	}
@@ -998,8 +998,8 @@ func qualifiedImport(env *object.Environment, module, name string) *object.Impor
 	if !ok {
 		fatalKind(kindName, "unknown module %q in \"%s %s\" — import it first", module, module, name)
 	}
-	if !im.Module.Reachable(name, env.IsTestFile()) {
-		if im.Module.HasPrivate(name) {
+	if lib := im.Library(name); !im.Module.Reachable(lib, env.IsTestFile()) {
+		if im.Module.HasPrivate(lib) {
 			fatalKind(kindName, "%s is private to %s: a ~ function is for its own file", name, module)
 		}
 		fatalKind(kindName, "module %q has no function %q", module, name)
@@ -1011,7 +1011,7 @@ func qualifiedImport(env *object.Environment, module, name string) *object.Impor
 }
 
 func importedFunctionValue(im *object.Import, name string) object.Object {
-	fn, ok := im.Module.Function(name)
+	fn, ok := im.Module.Function(im.Library(name))
 	if !ok {
 		fatalf("%q is a builtin of %q and can only be called, not used as a value", name, im.Module.Name)
 	}

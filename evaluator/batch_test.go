@@ -56,9 +56,9 @@ func TestNumberAndTextFormatting(t *testing.T) {
 		{"x = -1234.5\nshow x at commas .", "-1,234.5\n"},
 		{"x = 999\nshow x at commas .", "999\n"},
 		{"s = \"7\"\nshow s at padleft[3, \"0\"] .", "007\n"},
-		{"s = \"ab\"\nshow s at padright[5, \".\"], \"|\" .", "ab...|\n"},
-		{"s = \"abc\"\nshow s at padleft[2], \"|\" .", "abc|\n"},
-		{"s = \"ab\"\nshow s at padleft[4], \"|\" .", "  ab|\n"},
+		{"s = \"ab\"\nshow s at padright[5, \".\"], \"|\" .", "ab... |\n"},
+		{"s = \"abc\"\nshow s at padleft[2], \"|\" .", "abc |\n"},
+		{"s = \"ab\"\nshow s at padleft[4], \"|\" .", "  ab |\n"},
 	}
 	for _, c := range cases {
 		got, err := run(t, c.src, "")
@@ -79,7 +79,7 @@ func TestRangeReduceSum(t *testing.T) {
 		{"import data\nshow range[0, 9, 3] .", "[ 0, 3, 6 ]\n"},
 		{"import data\nshow range[5, 0, -1] .", "[ 5, 4, 3, 2, 1 ]\n"},
 		{"import data\nshow range[10, 0, -3] .", "[ 10, 7, 4, 1 ]\n"},
-		{"import data\nshow range[5, 1], range[0], range[3, 3] .", "[  ][  ][  ]\n"},
+		{"import data\nshow range[5, 1], range[0], range[3, 3] .", "[  ] [  ] [  ]\n"},
 		{"import data\nshow range[-2, 2] .", "[ -2, -1, 0, 1 ]\n"},
 		{"import data\n[loop][i in 1 range 4]\n    show i .\n[loop][end]", "1\n2\n3\n"},
 		{"import data\nnums = list [1, 2, 3]\nshow reduce[nums, 0, [t, x] give t + x] .", "6\n"},
@@ -260,7 +260,7 @@ show 9007199254740993 == 9007199254740992 .`
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "truefalsefalsetruefalsetrue\ntruetruetrue\n2\na\ntrue2\ntrue\nfalse\n"
+	want := "true false false true false true\ntrue true true\n2\na\ntrue 2\ntrue\nfalse\n"
 	if got != want {
 		t.Errorf("got %q\nwant %q", got, want)
 	}

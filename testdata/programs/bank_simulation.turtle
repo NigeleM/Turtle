@@ -1,0 +1,87 @@
+// bank_simulation.turtle: a bank branch with a queue of customers, two
+// tellers, random arrivals and random amounts on a fixed seed. Checks the
+// things that must always balance: money in and out, served and waiting
+// customers, and that a fixed seed gives the same day twice.
+// Run from this folder: turtle bank_simulation.turtle
+
+import random
+import data [range]
+import system
+
+failures = list []
+
+def expect[label, got, want]
+    if ] got != want [
+        add label to failures .
+        show "  FAIL ", label, ": got ", got, ", want ", want .
+    if [end]
+def [end]
+
+// run_day plays one day of minutes and gives back a map of its totals.
+def run_day[minutes]
+    seed = 42
+    queue = list []
+    balance = 0
+    money_in = 0
+    money_out = 0
+    rejected = 0
+    arrivals = 0
+    served = 0
+    balance_ok = true
+    [loop][minute in range[0, minutes]]
+        // arrivals this minute: 0, 1 or 2 customers
+        count = random integer from 0 to 2
+        [loop][c in range[1, count + 1]]
+            arrivals = arrivals + 1
+            amount = random integer from 1 to 100
+            deposit = random integer from 0 to 1 == 1
+            add map ["amount": amount, "deposit": deposit] to queue .
+        [loop][end]
+        // two tellers each serve one customer a minute
+        [loop][t in range[0, 2]]
+            if ] length of queue == 0 [
+                break
+            if [end]
+            job = queue at pop
+            served = served + 1
+            if ] job at get "deposit" [
+                balance = balance + job at get "amount"
+                money_in = money_in + job at get "amount"
+            if [end]
+            if ] !(job at get "deposit") [
+                if ] job at get "amount" <= balance [
+                    balance = balance - job at get "amount"
+                    money_out = money_out + job at get "amount"
+                if [end]
+                if ] job at get "amount" > balance [
+                    rejected = rejected + 1
+                if [end]
+            if [end]
+        [loop][end]
+        if ] balance != money_in - money_out [
+            balance_ok = false
+        if [end]
+    [loop][end]
+    result = map ["arrivals": arrivals, "served": served, "waiting": length of queue, "rejected": rejected, "balance": balance, "in": money_in, "out": money_out, "balanced": balance_ok]
+    return result
+def [end]
+
+day = run_day[480]
+expect["money balances every minute", day at get "balanced", true]
+expect["balance is money in less money out", day at get "balance", day at get "in" - day at get "out"]
+expect["every arrival is served or waiting", day at get "served" + day at get "waiting", day at get "arrivals"]
+expect["nothing goes below zero", day at get "balance" >= 0, true]
+expect["the day had customers", day at get "arrivals" > 100, true]
+
+// The same seed gives the same day, every time.
+again = run_day[480]
+expect["same seed, same day", again at get "balance", day at get "balance"]
+expect["same seed, same arrivals", again at get "arrivals", day at get "arrivals"]
+expect["same seed, same rejections", again at get "rejected", day at get "rejected"]
+
+show "day: ", day at get "arrivals", " arrivals, ", day at get "served", " served, ", day at get "rejected", " rejected, balance ", day at get "balance" .
+
+show "failures: ", length of failures .
+if ] length of failures > 0 [
+    exit[1]
+if [end]

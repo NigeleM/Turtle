@@ -1,0 +1,95 @@
+// assembled_types.turtle: named types with fields (assemble): making them,
+// reading and changing fields, nesting, equality, copies, typeof, and what
+// goes wrong with the wrong field. Run from this folder:
+// turtle assembled_types.turtle
+
+import system
+import data [copy]
+
+failures = list []
+
+def expect[label, got, want]
+    if ] got != want [
+        add label to failures .
+        show "  FAIL ", label, ": got ", got, ", want ", want .
+    if [end]
+def [end]
+
+assemble Point [x, y]
+assemble Segment [start, finish]
+assemble Order [item, qty, price]
+
+p = Point[3, 4]
+expect["field read with of", x of p, 3]
+expect["field read, second", y of p, 4]
+x of p = 10
+expect["field change", x of p, 10]
+expect["the value kind is the declared name", typeof[p], "Point"]
+expect["the type is a kind of value", p type Point, true]
+expect["a Point is not an Order", p type Order, false]
+
+// Equality is by field, and a copy is a separate value.
+expect["equal by fields", Point[1, 2] == Point[1, 2], true]
+expect["different fields are not equal", Point[1, 2] == Point[1, 3], false]
+q = p
+x of q = 99
+expect["an assignment shares the value", x of p, 99]
+r = copy[p]
+x of r = 5
+expect["a copy does not share", x of p, 99]
+
+// Nesting.
+seg = Segment[Point[0, 0], Point[3, 4]]
+expect["nested read", x of finish of seg, 3]
+y of finish of seg = 9
+expect["nested change", y of finish of seg, 9]
+
+// Lists of assembled values, with sums over the fields.
+lines = list [Order["pen", 3, 1.5], Order["mug", 2, 8.0], Order["ink", 1, 4.0]]
+total = 0.0
+[loop][o in lines]
+    total = total + qty of o * price of o
+[loop][end]
+expect["sum over fields", total, 24.5]
+
+sorted_items = list []
+[loop][o in lines]
+    add item of o to sorted_items .
+[loop][end]
+sorted_items at sort
+expect["fields as list items", sorted_items, list ["ink", "mug", "pen"]]
+
+// Assembled values as map values and as keys of a set-like list.
+by_item = map []
+[loop][o in lines]
+    add o to by_item at item of o .
+[loop][end]
+expect["map of assembled values", qty of by_item at get "mug", 2]
+
+// Missing and wrong fields are errors.
+safe
+    z = z_missing_field_read
+    expect["an unknown variable stops", true, false]
+handle [] err .
+    expect["an unknown name is an error", true, true]
+safe [end]
+
+safe
+    v = qty of p
+    expect["a Point has no qty", true, false]
+handle [] err .
+    expect["a missing field is an error", true, true]
+safe [end]
+
+safe
+    bad = Point[1]
+    expect["too few fields stop", true, false]
+handle [] err .
+    expect["too few fields is an error", true, true]
+safe [end]
+
+show "assembled types ok" .
+show "failures: ", length of failures .
+if ] length of failures > 0 [
+    exit[1]
+if [end]

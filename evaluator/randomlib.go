@@ -257,7 +257,7 @@ func assembledShape(env *object.Environment, name string) *object.Shape {
 	}
 	if fn == nil {
 		if im := resolveImported(env, name); im != nil {
-			fn, _ = im.Module.Function(name)
+			fn, _ = im.Module.Function(im.Library(name))
 		}
 	}
 	if fn == nil {

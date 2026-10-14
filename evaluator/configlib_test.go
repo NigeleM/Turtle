@@ -55,10 +55,10 @@ show config_read["out.toml"] == s, "|", port of server of config_read["out.json"
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := `Shop|8080|date|0.5|Bo
+	want := `Shop | 8080 | date | 0.5 | Bo
 8080
 { "API_KEY": "abc123", "NAME": "Ann Lee" }
-true|9090|{ "KEY": "a b", "N": "5" }`
+true | 9090 | { "KEY": "a b", "N": "5" }`
 	if strings.TrimSpace(got) != want {
 		t.Errorf("got\n%s\nwant\n%s", got, want)
 	}
@@ -103,7 +103,7 @@ func TestConfigErrors(t *testing.T) {
 			t.Errorf("%s: %v", c.src, err)
 			continue
 		}
-		if !strings.HasPrefix(got, c.kind+"|") || !strings.Contains(got, c.want) {
+		if !strings.HasPrefix(got, c.kind+" | ") || !strings.Contains(got, c.want) {
 			t.Errorf("%s: got %q, want kind %s and %q", c.src, got, c.kind, c.want)
 		}
 	}

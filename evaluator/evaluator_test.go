@@ -395,8 +395,8 @@ func TestAssigningAnOuterVariable(t *testing.T) {
 	}
 	good := []struct{ src, want string }{
 		{"count = 0\ndef bump[n]\n    return n + 1\ndef [end]\ncount = bump[count]\nshow count .", "1"},
-		{"count = 9\ndef f[]\n    count = 1\n    count = count + 1\n    return count\ndef [end]\nshow f[], count .", "29"},
-		{"count = 9\ndef f[count]\n    count = count + 1\n    return count\ndef [end]\nshow f[1], count .", "29"},
+		{"count = 9\ndef f[]\n    count = 1\n    count = count + 1\n    return count\ndef [end]\nshow f[], count .", "2 9"},
+		{"count = 9\ndef f[count]\n    count = count + 1\n    return count\ndef [end]\nshow f[1], count .", "2 9"},
 		{"stats = map [\"n\": 0]\ndef tally[]\n    n of stats = n of stats + 1\ndef [end]\ntally[]\nshow n of stats .", "1"},
 		{"x = 1\ndef f[]\n    y = x + 1\n    return y\ndef [end]\nshow f[] .", "2"},
 		{"total = 0\n[loop][x in list [1, 2]]\n    total = total + x\n[loop][end]\nshow total .", "3"},
@@ -970,14 +970,14 @@ func TestForEachLoop(t *testing.T) {
 [loop][end]`, "1\n3\n4\n"},
 		{"index and element", `[loop][i, w in list ["a", "b"]]
     show i, w .
-[loop][end]`, "0a\n1b\n"},
+[loop][end]`, "0 a\n1 b\n"},
 		{"map keys, then key and value", `m = map ["x": 1, "y": 2]
 [loop][k in m]
     show k .
 [loop][end]
 [loop][k, v in m]
     show k, "=", v .
-[loop][end]`, "x\ny\nx=1\ny=2\n"},
+[loop][end]`, "x\ny\nx = 1\ny = 2\n"},
 		{"string characters", `[loop][c in "hi"]
     show c .
 [loop][end]`, "h\ni\n"},
@@ -1070,7 +1070,7 @@ show length of args[] .`, want: "0\n"},
 show exists["notes.txt"], isfile["notes.txt"], isfolder["notes.txt"] .
 show exists["sub"], isfile["sub"], isfolder["sub"] .
 show exists["missing.txt"], isfile["missing.txt"], isfolder["missing.txt"] .`,
-			want: "truetruefalse\ntruefalsetrue\nfalsefalsefalse\n"},
+			want: "true true false\ntrue false true\nfalse false false\n"},
 		{name: "sentence style", src: `import system
 p = "notes.txt"
 if ] p exists [
@@ -1119,7 +1119,7 @@ b = a
 v of b = 2
 c = copy[a]
 v of c = 3
-show v of a, v of b, v of c .`, want: "223\n"},
+show v of a, v of b, v of c .`, want: "2 2 3\n"},
 		{name: "equality is structural within one type", src: `assemble P [v]
 assemble Q [v]
 show P[1] == P[1] .
@@ -1362,7 +1362,7 @@ def [end]
 fs = make[]
 a is fs at get 0 .
 c is fs at get 2 .
-show a[], c[] .`, want: "13\n"},
+show a[], c[] .`, want: "1 3\n"},
 		{name: "closure made in c-style loop survives the loop", src: `fs = list []
 [loop][i = 0 ; i < 3 ; i++]
     add [] give i to fs .
@@ -1374,14 +1374,14 @@ show f[] .`, want: "3\n"},
     t = t + x
     last = x
 [loop][end]
-show t, last .`, want: "63\n"},
+show t, last .`, want: "6 3\n"},
 		{name: "loop names don't touch outside names", src: `x = "outer"
 i = "outer"
 [loop][x in list [1]]
 [loop][end]
 [loop][i = 0 ; i < 2 ; i++]
 [loop][end]
-show x, i .`, want: "outerouter\n"},
+show x, i .`, want: "outer outer\n"},
 		{name: "def inside a top-level loop is still top-level", src: `[loop][x in list [1]]
     def f[]
         return 5
@@ -1397,7 +1397,7 @@ a is l at get -1 .`, wantErr: "index -1 out of range for list (length 3)"},
 		{name: "slice still counts from the end", src: `l = list [1, 2, 3, 4]
 a is l at slice -2 .
 s is "Hello, World" at slice -5 .
-show a, s .`, want: "[ 3, 4 ]World\n"},
+show a, s .`, want: "[ 3, 4 ] World\n"},
 		{name: "floats show as floats", src: `import math
 show 4.0, " ", 2.5 * 2, " ", 7 / 2, " ", 1.5, " ", 7 div 2 .
 r is 16 at sqrt .
@@ -1418,7 +1418,7 @@ show a, b, c .
 show min of map [3: "c", 10: "x", 2: "b"] .
 i is map ["a": 1] at invert .
 v is i at get 1 .
-show v .`, want: "4\nintstrint\n2\n3\n2\na\n"},
+show v .`, want: "4\nint str int\n2\n3\n2\na\n"},
 		{name: "missing map key error quotes strings", src: `m = map [1: "a"]
 v is m at get "1" .`, wantErr: `key "1" not found in map`},
 		{name: "big set stays correct", src: `s = set []
@@ -1432,7 +1432,7 @@ add 5 to s .
 show length of s .
 f is s at find 2999 .
 g is s at find 3000 .
-show f, g .`, want: "3000\ntruefalse\n"},
+show f, g .`, want: "3000\ntrue false\n"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -1590,7 +1590,7 @@ show e .`
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "truefalse\ntruefalse\ntruefalse\ntruefalse\nnothing found\ntrue\n"
+	want := "true false\ntrue false\ntrue false\ntrue false\nnothing found\ntrue\n"
 	if out != want {
 		t.Errorf("got %q, want %q", out, want)
 	}
@@ -1634,7 +1634,7 @@ show orig, big .`
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "[ [ 1 ] ]\ntrue\ntrue\n1|a|2.0\n[ 1, 2 ][ 10, 20 ]\n"
+	want := "[ [ 1 ] ]\ntrue\ntrue\n1|a|2.0\n[ 1, 2 ] [ 10, 20 ]\n"
 	if out != want {
 		t.Errorf("got %q, want %q", out, want)
 	}
@@ -2156,14 +2156,14 @@ show a, " ", b, " ", s, " ", t .`, want: "[ 1 ] [ 1, 2 ] { 1 } { 1, 2 }\n"},
 		{name: "equal values count once", src: `show change list [1, 1.0, "1"] to set .`, want: "{ 1, \"1\" }\n"},
 		{name: "empty", src: `show change list [] to set .`, want: "{  }\n"},
 		{name: "number to list", src: `x = change 5 to list`, wantErr: "change: can't convert integer to list"},
-		{name: "map gives its keys", src: `show change map ["a": 1, "b": 2] to list, change map ["a": 1] to set .`, want: "[ \"a\", \"b\" ]{ \"a\" }\n"},
-		{name: "string gives its characters", src: `show change "héllo" to list, change "aab" to set .`, want: "[ \"h\", \"é\", \"l\", \"l\", \"o\" ]{ \"a\", \"b\" }\n"},
+		{name: "map gives its keys", src: `show change map ["a": 1, "b": 2] to list, change map ["a": 1] to set .`, want: "[ \"a\", \"b\" ] { \"a\" }\n"},
+		{name: "string gives its characters", src: `show change "héllo" to list, change "aab" to set .`, want: "[ \"h\", \"é\", \"l\", \"l\", \"o\" ] { \"a\", \"b\" }\n"},
 		{name: "boolean to set", src: `x = change true to set`, wantErr: "change: can't convert boolean to set"},
 		{name: "unknown target lists the types", src: `x = change 5 to tuple`, wantErr: "want integer, float, string, ascii, char, hex, list, set, keys, or values"},
 		{name: "a map's keys or values", src: `ages = map ["ann": 30, "bo": 25]
 show change ages to keys, change ages to values, change ages to list .
 change ages to values .
-show ages .`, want: "[ \"ann\", \"bo\" ][ 30, 25 ][ \"ann\", \"bo\" ]\n[ 30, 25 ]\n"},
+show ages .`, want: "[ \"ann\", \"bo\" ] [ 30, 25 ] [ \"ann\", \"bo\" ]\n[ 30, 25 ]\n"},
 		{name: "keys need a map", src: `x = change list [1] to keys`, wantErr: "change ... to keys: needs a map, got list"},
 	}
 	for _, c := range cases {
@@ -3379,7 +3379,7 @@ func TestPut(t *testing.T) {
 	cases := []struct{ name, src, want, wantErr string }{
 		{name: "sentence", src: `nums = list [10, 20, 30]
 put 99 to nums at 1 .
-show nums, length of nums .`, want: "[ 10, 99, 30 ]3\n"},
+show nums, length of nums .`, want: "[ 10, 99, 30 ] 3\n"},
 		{name: "method gives the list", src: `nums = list [10, 20, 30]
 r = nums at put[5, 0]
 show r, " ", nums .`, want: "[ 5, 20, 30 ] [ 5, 20, 30 ]\n"},
@@ -3402,7 +3402,7 @@ show a, " ", b .`, want: "[ 1, 9, 2, 3 ] [ 1, 9, 3 ]\n"},
 def put_one[x]
     return x
 def [end]
-show put, put_one[2] .`, want: "42\n"},
+show put, put_one[2] .`, want: "4 2\n"},
 		{name: "past the end", src: `nums = list [1]
 put 2 to nums at 1 .`, wantErr: "index 1 out of range for list nums (length 1)"},
 		{name: "negative", src: `nums = list [1]
@@ -3652,7 +3652,7 @@ show a, b, c, e, f, g .`
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := `[ "one", "two" ][ "at" ][ "of" ][ "call" ][ "bare" ][ "a.txt", "day.txt", "doc.txt", "x.log" ]`
+	want := `[ "one", "two" ] [ "at" ] [ "of" ] [ "call" ] [ "bare" ] [ "a.txt", "day.txt", "doc.txt", "x.log" ]`
 	if strings.TrimSpace(got) != want {
 		t.Errorf("got  %s\nwant %s", got, want)
 	}
@@ -3665,7 +3665,7 @@ show make_date[2026, 10, 9], "|", make_date[2026, 10, 9, 6, 30], "|", make_date[
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.TrimSpace(got) != "2026-10-09 00:00:00|2026-10-09 06:30:00|2026-10-09 06:30:15|2026-10-09 06:30:00 UTC" {
+	if strings.TrimSpace(got) != "2026-10-09 00:00:00 | 2026-10-09 06:30:00 | 2026-10-09 06:30:15 | 2026-10-09 06:30:00 UTC" {
 		t.Errorf("got %s", got)
 	}
 	if _, err := run(t, "import time\nx = make_date[2026, 10, 9, 6]", ""); err == nil || !strings.Contains(err.Error(), "5 (and hour, minute)") {
@@ -3679,7 +3679,7 @@ func TestCommasWithPlaces(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.TrimSpace(got) != "1,250.50|1,234,567.00|-9,876,543.2|1,000.00|7|12.5" {
+	if strings.TrimSpace(got) != "1,250.50 | 1,234,567.00 | -9,876,543.2 | 1,000.00 | 7 | 12.5" {
 		t.Errorf("got %s", got)
 	}
 }

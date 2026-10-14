@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 
@@ -203,8 +204,29 @@ func (p *Parser) parseTheoryStatement() ast.Statement {
 		case "theorem":
 			p.nextToken()
 			start := p.curToken.Pos
-			expr := p.parseExpression(LOWEST)
-			ts.Theorems = append(ts.Theorems, &ast.Theorem{Line: sec.Line, Expr: expr, Text: strings.TrimSpace(p.l.Source()[start:p.curToken.End])})
+			var th *ast.Theorem
+			if p.theoremIsSentence() {
+				// A sentence reads as verify does: a collection, then a rule.
+				p.pushStops(quantWords...)
+				p.inVerifyValue++
+				coll := p.parseExpression(LOWEST)
+				p.inVerifyValue--
+				p.popStops(quantWords...)
+				th = &ast.Theorem{Line: sec.Line, Collection: coll}
+				if th.Rule = p.parseRule("theorem"); th.Rule == nil {
+					p.skipLine()
+					continue
+				}
+			} else {
+				th = &ast.Theorem{Line: sec.Line, Expr: p.parseExpression(LOWEST)}
+			}
+			if p.peekTokenIs(token.IF) && p.peekToken.Line == sec.Line {
+				p.nextToken() // -> if
+				p.nextToken()
+				th.Given = p.parseExpression(LOWEST)
+			}
+			th.Text = strings.TrimSpace(p.l.Source()[start:p.curToken.End])
+			ts.Theorems = append(ts.Theorems, th)
 			p.nextToken()
 		case "proof":
 			if spec == nil {
@@ -214,10 +236,27 @@ func (p *Parser) parseTheoryStatement() ast.Statement {
 				continue
 			}
 			p.nextToken()
+			// A proof is lines of setup (ordinary statements, in one shared
+			// scope) and checks: a line that starts with the theory's word.
+			var setup []ast.Statement
 			for !p.atSection(indent) && !p.curTokenIs(token.EOF) {
-				if c := p.parseProofCase(spec); c != nil {
-					ts.Proofs = append(ts.Proofs, c)
+				if p.curToken.Type == token.IDENT && p.curToken.Literal == name {
+					if c := p.parseProofCase(spec); c != nil {
+						c.Setup, setup = setup, nil
+						ts.Proofs = append(ts.Proofs, c)
+					}
+					continue
 				}
+				before := p.curToken
+				if st := p.parseStatement(); st != nil {
+					setup = append(setup, st)
+				}
+				if p.curToken == before {
+					p.nextToken()
+				}
+			}
+			if len(setup) > 0 {
+				p.errorAt(sec.Line, sec.Pos, "theory %s: a proof's setup lines must be followed by a check: %s ... . is 2", name, name)
 			}
 		}
 	}
@@ -301,6 +340,25 @@ func startsSection(line string) bool {
 		}
 	}
 	return true
+}
+
+// theoremIsSentence reports whether a theorem's line is a sentence (it has
+// a rule word: each, any, not, exactly, at least N, at most N) rather than
+// a claim, looking at the line before any "if".
+func (p *Parser) theoremIsSentence() bool {
+	line := p.curToken.Line
+	for i := 0; ; i++ {
+		t := p.peekN(i)
+		if t.Line != line || t.Type == token.EOF || t.Type == token.IF {
+			return false
+		}
+		if t.Type == token.IDENT && slices.Contains(quantWords, t.Literal) {
+			return true
+		}
+		if t.Type == token.AT && (p.peekN(i+1).Literal == "least" || p.peekN(i+1).Literal == "most") {
+			return true
+		}
+	}
 }
 
 // parseNotation reads "notation tally b in a ." Which words are slots is
@@ -577,8 +635,13 @@ func (p *Parser) parseProofCase(spec *theorySpec) *ast.ProofCase {
 	if p.curTokenIs(token.PERIOD) && p.curToken.Line == tok.Line {
 		p.nextToken()
 	}
+	if p.curToken.Type == token.IDENT && p.curToken.Literal == "fails" && p.curToken.Line == tok.Line {
+		text := strings.TrimSpace(p.l.Source()[tok.Pos:p.curToken.End])
+		p.nextToken()
+		return &ast.ProofCase{Line: tok.Line, Text: text, Use: use, Fails: true}
+	}
 	if !p.curTokenIs(token.IS) || p.curToken.Line != tok.Line {
-		p.errorAt(tok.Line, tok.Pos, "a proof line ends with is and what it gives: %s ... . is 2", spec.name)
+		p.errorAt(tok.Line, tok.Pos, "a proof line ends with is and what it gives, or fails: %s ... . is 2 or %s ... . fails", spec.name, spec.name)
 		p.skipLine()
 		return nil
 	}

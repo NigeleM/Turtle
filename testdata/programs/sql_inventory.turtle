@@ -1,0 +1,76 @@
+// sql_inventory.turtle: a SQLite inventory. Creates tables, inserts and
+// changes records with ? placeholders, runs queries, uses a transaction-like
+// rollback on failure, and checks the results. The database file is removed
+// at the end. Run from this folder: turtle sql_inventory.turtle
+
+import sql
+import system
+
+failures = list []
+
+def expect[label, got, want]
+    if ] got != want [
+        add label to failures .
+        show "  FAIL ", label, ": got ", got, ", want ", want .
+    if [end]
+def [end]
+
+db = sql_create["inventory.db"]
+sql_run[db, "CREATE TABLE items (sku TEXT PRIMARY KEY, name TEXT, qty INTEGER, price REAL)"]
+expect["table exists", sql_tables[db] contains[ "items"], true]
+
+added = sql_run[db, "INSERT INTO items VALUES (?, ?, ?, ?)", list ["A1", "Pen", 40, 1.5]]
+expect["one row inserted", added, 1]
+sql_run[db, "INSERT INTO items VALUES (?, ?, ?, ?)", list ["B2", "Mug", 12, 8.0]]
+sql_run[db, "INSERT INTO items VALUES (?, ?, ?, ?)", list ["C3", "Ink", 0, 4.0]]
+
+rows = sql_query[db, "SELECT name, qty FROM items ORDER BY sku"]
+expect["query gives a list of maps", length of rows, 3]
+expect["column names are keys", rows at get 0 at get "name", "Pen"]
+expect["numbers come back as numbers", rows at get 1 at get "qty", 12]
+
+in_stock = sql_query[db, "SELECT sku FROM items WHERE qty > ? ORDER BY sku", list [0]]
+expect["placeholders filter", length of in_stock, 2]
+
+changed = sql_run[db, "UPDATE items SET qty = qty - ? WHERE sku = ?", list [5, "A1"]]
+expect["update reports rows changed", changed, 1]
+left = sql_query[db, "SELECT qty FROM items WHERE sku = ?", list ["A1"]]
+expect["update took effect", left at get 0 at get "qty", 35]
+
+total = sql_query[db, "SELECT SUM(qty * price) AS value FROM items"]
+expect["aggregate with an alias", total at get 0 at get "value", 35 * 1.5 + 12 * 8.0]
+
+deleted = sql_run[db, "DELETE FROM items WHERE qty = ?", list [0]]
+expect["delete reports rows removed", deleted, 1]
+expect["two items left", length of sql_query[db, "SELECT * FROM items"], 2]
+
+// A failing change leaves the table as it was.
+safe
+    sql_run[db, "INSERT INTO items VALUES (?, ?, ?, ?)", list ["A1", "Dup", 1, 1.0]]
+    expect["a duplicate key stops", true, false]
+handle [] err .
+    expect["a duplicate key is an error", true, true]
+safe [end]
+expect["the table is unchanged after the error", length of sql_query[db, "SELECT * FROM items"], 2]
+
+// Saved and loaded through a CSV file.
+sql_save[db, "SELECT sku, name, qty FROM items", "items_out.csv"]
+other = sql_create["copy.db"]
+sql_run[other, "CREATE TABLE items (sku TEXT PRIMARY KEY, name TEXT, qty INTEGER)"]
+loaded = sql_load[other, "items", "items_out.csv"]
+expect["records loaded from csv", loaded, 2]
+expect["loaded records are queryable", length of sql_query[other, "SELECT * FROM items WHERE name = ?", list ["Mug"]], 1]
+
+sql_close[db]
+sql_close[db]
+sql_close[other]
+
+erase["inventory.db"]
+erase["copy.db"]
+erase["items_out.csv"]
+
+show "sql inventory ok" .
+show "failures: ", length of failures .
+if ] length of failures > 0 [
+    exit[1]
+if [end]

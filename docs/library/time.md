@@ -21,7 +21,7 @@ The clock, dates and time zones, date arithmetic and formatting, and waiting or 
 | `format_date[date, pattern]` | date, pattern text | the date written with the pattern (below) |
 | `d at tostring` | a date | the date as text, as `show` writes it: `"2026-10-10 00:00:00"` (no import needed) |
 | `wait_until[date]` | date | sleeps until then (at once if it's past); returns `none` |
-| `every[amount, unit, job]` | whole number, unit, a function with no parameters | runs `job` now and then on a repeat, until `job` returns `false` |
+| `every[amount, unit, job]` | whole number, unit (`"ns"`, `"ms"`, or the calendar units `"seconds"` and up), a function with no parameters | runs `job` now and then on a repeat, until `job` returns `false`. `"ms"` and `"ns"` make steps of that many milliseconds or nanoseconds |
 
 **Units:** `"seconds"`, `"minutes"`, `"hours"`, `"days"`, `"weeks"`,
 `"months"`, `"years"` (or the singular, `"day"`).

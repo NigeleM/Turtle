@@ -1,0 +1,71 @@
+// schedule_time.turtle: dates, time zones, calendar arithmetic across a clock
+// change, invalid dates, and recurring jobs with every and wait_until. All
+// dates are fixed, so the checks give the same answer on any day.
+// Run from this folder: turtle schedule_time.turtle
+
+import time [make_date, to_date, add_time, time_between, format_date, to_zone, wait_until, every]
+import system
+
+failures = list []
+
+def expect[label, got, want]
+    if ] got != want [
+        add label to failures .
+        show "  FAIL ", label, ": got ", got, ", want ", want .
+    if [end]
+def [end]
+
+// ---------- making dates ----------
+noon = make_date[2026, 10, 12, 12, 0]
+expect["a date reads back", format_date[noon, "YYYY-MM-DD hh:mm"], "2026-10-12 12:00"]
+expect["weekday", format_date[noon, "Weekday"], "Monday"]
+expect["month name", format_date[noon, "Month"], "October"]
+expect["from text", format_date[to_date["2026-01-31"], "DD/MM/YYYY"], "31/01/2026"]
+
+safe
+    bad = make_date[2026, 2, 30]
+    expect["Feb 30 does not exist", true, false]
+handle [date] err .
+    expect["Feb 30 is a date error", kind of err, "date"]
+safe [end]
+
+// ---------- arithmetic ----------
+start = make_date[2026, 1, 1]
+expect["days from 1 Jan to 1 Mar", time_between[start, make_date[2026, 3, 1], "days"], 59]
+expect["add days", format_date[add_time[start, 40, "days"], "YYYY-MM-DD"], "2026-02-10"]
+expect["a negative amount goes back", format_date[add_time[start, -1, "days"], "YYYY-MM-DD"], "2025-12-31"]
+expect["hours between two times", time_between[start, add_time[start, 36, "hours"], "hours"], 36]
+
+// ---------- time zones ----------
+london = make_date[2026, 10, 12, 12, 0, "Europe/London"]
+expect["London noon is 11:00 UTC in October", format_date[to_zone[london, "UTC"], "hh:mm"], "11:00"]
+summer = make_date[2026, 7, 1, 12, 0, "Europe/London"]
+expect["London is one hour ahead in summer", format_date[to_zone[summer, "UTC"], "hh:mm"], "11:00"]
+
+// The clocks go forward on 29 March 2026 in London: 00:00 to 02:00 local
+// is one real hour, because 01:00 is skipped.
+before = make_date[2026, 3, 29, 0, 0, "Europe/London"]
+after = make_date[2026, 3, 29, 2, 0, "Europe/London"]
+expect["one real hour across the clock change", time_between[before, after, "hours"], 1]
+
+// ---------- recurring jobs ----------
+expect["wait_until a past time returns at once", wait_until[to_date["2000-01-01"]], none]
+
+// A job that runs every 10 milliseconds, three times, then returns false to stop.
+count = list [0]
+def tick[]
+    n = count at get 0 + 1
+    put n to count at 0 .
+    if ] n >= 3 [
+        return false
+    if [end]
+    return true
+def [end]
+every[10, "ms", tick]
+expect["every ran the job until it returned false", count at get 0, 3]
+
+show "schedule ok" .
+show "failures: ", length of failures .
+if ] length of failures > 0 [
+    exit[1]
+if [end]
