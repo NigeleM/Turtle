@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 	"unicode/utf8"
 
@@ -69,7 +70,11 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 			}
 			return importedFunctionValue(qualifiedImport(env, e.Module, e.Value), e.Value)
 		}
-		if val, ok := env.Get(e.Value); ok {
+		if val, ok := env.LookupAt(e.Value, atomic.LoadUint64(&e.Place)); ok {
+			return val
+		}
+		if val, p, ok := env.Lookup(e.Value); ok {
+			atomic.StoreUint64(&e.Place, p)
 			return val
 		}
 		if fn, ok := env.GetFunction(e.Value); ok {

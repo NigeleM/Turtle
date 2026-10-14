@@ -312,6 +312,9 @@ type Identifier struct {
 	Token  token.Token
 	Module string
 	Value  string
+	// Place is where the name was last found (see object.Environment.Lookup),
+	// read and written atomically: the scheduler runs code on goroutines.
+	Place uint64
 }
 
 func (i *Identifier) expressionNode()      {}

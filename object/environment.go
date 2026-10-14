@@ -428,3 +428,43 @@ func (e *Environment) Functions() []*Function {
 	}
 	return out
 }
+
+// Place is where a name was found: how many scopes out, and its index
+// there, plus one (so zero means no place yet).
+func place(depth, idx int) uint64 {
+	return uint64(depth)<<32 | uint64(idx+1)
+}
+
+// Lookup is Get, and also where the name was found, for LookupAt.
+func (e *Environment) Lookup(name string) (Object, uint64, bool) {
+	depth := 0
+	for s := e; s != nil; s = s.outer {
+		if i := s.find(name); i >= 0 {
+			return s.vars[i].val, place(depth, i), true
+		}
+		depth++
+	}
+	return nil, 0, false
+}
+
+// LookupAt is Get when the place Lookup gave is still right: no scope
+// nearer than that place has the name, and the place still holds it. Any
+// other case reports false, and the caller does a full Lookup.
+func (e *Environment) LookupAt(name string, p uint64) (Object, bool) {
+	if p == 0 {
+		return nil, false
+	}
+	depth := int(p >> 32)
+	idx := int(uint32(p)) - 1
+	s := e
+	for i := 0; i < depth; i++ {
+		if s == nil || s.find(name) >= 0 {
+			return nil, false
+		}
+		s = s.outer
+	}
+	if s == nil || idx >= len(s.vars) || s.vars[idx].name != name {
+		return nil, false
+	}
+	return s.vars[idx].val, true
+}
