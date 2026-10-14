@@ -852,3 +852,23 @@ func needsSpace(text, shown string) bool {
 	}
 	return !strings.ContainsRune(",.!:;)]}", first) && !strings.ContainsRune("([{", last)
 }
+
+// builtinExportCache is, per name, the builtin modules that provide it as
+// a function. Builtin modules are fixed once the program starts, so each
+// name is looked up once, not on every call of a library function.
+var builtinExportCache sync.Map // name -> []*object.Module
+
+// builtinExporters are the builtin modules that provide name as a function.
+func builtinExporters(name string) []*object.Module {
+	if v, ok := builtinExportCache.Load(name); ok {
+		return v.([]*object.Module)
+	}
+	var mods []*object.Module
+	for _, mod := range builtinModules {
+		if mod.ExportsFunction(name) {
+			mods = append(mods, mod)
+		}
+	}
+	builtinExportCache.Store(name, mods)
+	return mods
+}

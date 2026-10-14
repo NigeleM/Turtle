@@ -858,10 +858,8 @@ func (it *Interpreter) callByName(name string, args []object.Object, env *object
 		requireFuncArgs(name, args, 0)
 		return &object.String{Value: versionText()}
 	}
-	for _, mod := range builtinModules {
-		if mod.ExportsFunction(name) {
-			requireModule(env, mod.Name, name)
-		}
+	for _, mod := range builtinExporters(name) {
+		requireModule(env, mod.Name, name)
 	}
 	// A method in function form, trim[s] (s at trim), or as a sentence,
 	// s trim: the first value is what it works on.
