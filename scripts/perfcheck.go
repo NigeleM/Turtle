@@ -39,7 +39,7 @@ var (
 	bigger   = flag.Float64("bigger", 15, "allowed memory growth, percent")
 	minMS    = flag.Float64("min-ms", 5, "differences under this many ms are noise")
 	minMB    = flag.Float64("min-mb", 8, "differences under this many MB are noise")
-	msLine   = regexp.MustCompile(`ms=([0-9.]+)`)
+	msLine   = regexp.MustCompile(`ms=\s*([0-9.]+)`)
 	skipList = map[string]bool{"run.turtle": true, "hello.turtle": true, "linear.turtle": true} // no single ms= line
 )
 
