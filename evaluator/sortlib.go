@@ -5,6 +5,7 @@
 package evaluator
 
 import (
+	"cmp"
 	"math"
 	"slices"
 	"strings"
@@ -410,11 +411,52 @@ func (it *Interpreter) callSort(name string, args []object.Object) object.Object
 	case "bubble_sort", "insertion_sort", "selection_sort", "merge_sort", "quick_sort",
 		"heap_sort", "shell_sort", "counting_sort", "radix_sort":
 		ks, isMap, cmp := it.sortArgs(name, args, 2)
+		if len(args) == 1 && fastClassic[name] && sortPlain(ks) {
+			return itemsBack(ks, isMap)
+		}
 		classicSorts[name](name, ks, cmp)
 		return itemsBack(ks, isMap)
 	}
 	fatalKind(kindName, "no sort function %q", name)
 	return nil
+}
+
+// fastClassic are the classic sorts that take n log n steps, so sorting
+// plain numbers or text with them gives the same answer by the faster
+// built-in sort (sortPlain). The quadratic ones always run their own
+// steps: that's what they're there to show.
+var fastClassic = map[string]bool{"merge_sort": true, "quick_sort": true, "heap_sort": true, "shell_sort": true}
+
+// sortPlain sorts ks by its key when every key is a whole number or every
+// key is text, and reports whether it did. Equal numbers or equal text are
+// the same value, so the order of equal items can't show.
+func sortPlain(ks []keyed) bool {
+	if len(ks) < 2 {
+		return false
+	}
+	switch ks[0].key.(type) {
+	case *object.Integer:
+		for _, k := range ks {
+			if _, ok := k.key.(*object.Integer); !ok {
+				return false
+			}
+		}
+		slices.SortFunc(ks, func(a, b keyed) int {
+			return cmp.Compare(a.key.(*object.Integer).Value, b.key.(*object.Integer).Value)
+		})
+		return true
+	case *object.String:
+		for _, k := range ks {
+			if _, ok := k.key.(*object.String); !ok {
+				return false
+			}
+		}
+		slices.SortFunc(ks, func(a, b keyed) int {
+			return strings.Compare(a.key.(*object.String).Value, b.key.(*object.String).Value)
+		})
+		return true
+	}
+	return false
 }
 
 // ---- the classic algorithms ----
