@@ -2,6 +2,59 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## 0.9.208 (2026-10-14)
+
+- Variable reads remember where the variable was found, so a name read
+  again from the same place is faster: searching with many variables is
+  about 10% quicker.
+
+## 0.9.207 (2026-10-14)
+
+- Scopes with up to 32 names are searched in a list, not a map: programs
+  with many top-level variables run about 15% faster on lookups.
+
+## 0.9.206 (2026-10-14)
+
+- A function that assigns a name also used at top level no longer checks
+  the assignment on every call: calls to small functions are about 2.3x
+  faster.
+
+## 0.9.205 (2026-10-14)
+
+- Library functions called in function form (`abs[x]`, `sqrt[x]`) look up
+  their module once, not on every call: those calls are about 2.2x faster.
+
+## 0.9.204 (2026-10-14)
+
+- Assembled values (`assemble Point [x, y]`) are made in one allocation:
+  creating records is about 10% faster.
+
+## 0.9.203 (2026-10-14)
+
+- Sorting plain numbers and text is about 30% faster.
+- Text with `{...}` values is built once, not piece by piece.
+
+## 0.9.202 (2026-10-14)
+
+- Peak memory is lower: the garbage collector runs a little more often
+  when a program keeps a lot of data, cutting peaks by 15–30% on most
+  programs, at a small cost in time.
+
+## 0.9.201 (2026-10-14)
+
+- Printed output is buffered: printing many lines is about six times
+  faster. Output still appears in order with input prompts, error
+  messages, and `sys` commands.
+
+## 0.9.200 (2026-10-14)
+
+- `show` builds its text once: printing many values is about 20% faster.
+
+## 0.9.198 (2026-10-14)
+
+- Source files saved with Windows line endings (CRLF) run the same as
+  files with plain line endings; line breaks inside text are one `\n`.
+
 ## 0.9.197 (2026-10-14)
 
 - `show` puts one space between its values: `show 3, 2 .` gives `3 2`.
