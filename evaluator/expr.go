@@ -502,7 +502,6 @@ func numArith(op string, a, b num) num {
 // numericPaths turns evalNumeric on; tests turn it off to compare.
 var numericPaths = true
 
-
 // evalNumericValue is evalNumeric's answer as a value. A function of its
 // own keeps evalExpression's frame, which every expression passes
 // through, as small as it was.
