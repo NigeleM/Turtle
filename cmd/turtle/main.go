@@ -133,7 +133,10 @@ func main() {
 		fmt.Fprintln(os.Stderr, "turtle:", err)
 		os.Exit(1)
 	}
-	os.Exit(runProgram(string(data), filepath.Dir(path), filepath.Base(path), os.Args[2:]))
+	stop := startProfile()
+	code := runProgram(string(data), filepath.Dir(path), filepath.Base(path), os.Args[2:])
+	stop()
+	os.Exit(code)
 }
 
 // runProgram runs Turtle source and returns the exit code.

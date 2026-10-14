@@ -260,9 +260,15 @@ func (it *Interpreter) evalMethodCall(mc *ast.MethodCallExpression, env *object.
 		}()
 	}
 	receiver := it.evalExpression(mc.Receiver, env)
-	args := make([]object.Object, len(mc.Arguments))
-	for i, a := range mc.Arguments {
-		args[i] = it.evalExpression(a, env)
+	// Most calls take one or two arguments: they fit in a buffer on the
+	// stack, so no list of arguments is made for them.
+	var buf [2]object.Object
+	args := buf[:0]
+	if len(mc.Arguments) > len(buf) {
+		args = make([]object.Object, 0, len(mc.Arguments))
+	}
+	for _, a := range mc.Arguments {
+		args = append(args, it.evalExpression(a, env))
 	}
 	return it.applyMethod(mc, receiver, args, env)
 }
@@ -276,10 +282,13 @@ var oldMethodNames = map[string]string{
 
 // applyMethod runs mc's method on values already worked out.
 func (it *Interpreter) applyMethod(mc *ast.MethodCallExpression, receiver object.Object, args []object.Object, env *object.Environment) object.Object {
-	if newName, ok := oldMethodNames[mc.Method]; ok {
-		c := *mc
-		c.Method = newName
-		mc = &c
+	// Every old name has a capital letter, so a name without one skips the lookup.
+	if hasUpper(mc.Method) {
+		if newName, ok := oldMethodNames[mc.Method]; ok {
+			c := *mc
+			c.Method = newName
+			mc = &c
+		}
 	}
 	if !mc.Bracketed && len(args) == 1 {
 		// One argument without brackets: if the method wanted more, say
@@ -865,4 +874,14 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 	}
 	fatalKind(kindName, "unknown number method %q", method)
 	return nil
+}
+
+// hasUpper is whether name has a capital letter.
+func hasUpper(name string) bool {
+	for i := 0; i < len(name); i++ {
+		if c := name[i]; c >= 'A' && c <= 'Z' {
+			return true
+		}
+	}
+	return false
 }
