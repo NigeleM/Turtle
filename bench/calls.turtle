@@ -1,0 +1,21 @@
+// calls: 3,000,000 calls to a small function, each mixing its two
+// arguments into a running value.
+import time
+def mix[a, b]
+    t = a * 31
+    t = t + b
+    return t % 1000000007
+def [end]
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    acc = 0
+    [loop][i = 0; i < 3000000; i++]
+        acc = mix[acc, i]
+    [loop][end]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "result=", acc, " ms=", best .

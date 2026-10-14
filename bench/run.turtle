@@ -28,7 +28,11 @@ benchmarks = map [
     "patterns": "a pattern (regex) over 50,000 lines",
     "functional": "process, keep, reduce over 300,000 numbers",
     "matrix": "a 200 x 200 matrix built, multiplied, and a 200 x 200 system solved (Turtle: import linear)",
-    "stats": "mean, stdev, median, 90th percentile of 300,000 numbers (Turtle: import data; Python: statistics)"
+    "stats": "mean, stdev, median, 90th percentile of 300,000 numbers (Turtle: import data; Python: statistics)",
+    "sort": "300,000 numbers sorted, then a position-weighted checksum",
+    "search": "300,000 binary searches in a sorted list of 300,000 numbers",
+    "calls": "3,000,000 calls to a small function",
+    "builtins": "3,000,000 calls to a library function (abs, from math)"
 ]
 
 def has[cmd]

@@ -1,0 +1,19 @@
+// builtins: 3,000,000 calls to a library function (abs, from the math
+// library), each added into a running total.
+import math
+import time
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    total = 0
+    [loop][i = 0; i < 3000000; i++]
+        d = i - 1500000
+        total = total + abs[d]
+        total = total % 1000000007
+    [loop][end]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "result=", total, " ms=", best .

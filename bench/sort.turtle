@@ -1,0 +1,27 @@
+// sort: 300,000 numbers from a small formula, sorted, then a checksum that
+// weighs each value by its position.
+import time
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    nums = list []
+    x = 1
+    [loop][i = 0; i < 300000; i++]
+        x = x * 75 + 74
+        x = x % 65537
+        add x to nums .
+    [loop][end]
+    sort nums .
+    total = 0
+    [loop][i = 0; i < 300000; i++]
+        v = nums at get[i]
+        k = i % 7 + 1
+        total = total + v * k
+        total = total % 1000000007
+    [loop][end]
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "result=", total, " ms=", best .
