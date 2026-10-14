@@ -100,7 +100,7 @@ type binding struct {
 	val  Object
 }
 
-const smallScope = 8
+const smallScope = 32
 
 // find is where name is among this scope's own vars, or -1.
 func (e *Environment) find(name string) int {
