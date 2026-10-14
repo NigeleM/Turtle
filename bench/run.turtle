@@ -63,7 +63,7 @@ def [end]
 
 // ms reads "result=... ms=..." from a run: [result, ms], or none.
 def ms[out]
-    parts = groups[out, `result=(\S+) ms=([0-9.]+)`]
+    parts = groups[out, `result=\s*(\S+)\s*ms=\s*([0-9.]+)`]
     if ] parts == none [
         return none
     if [end]

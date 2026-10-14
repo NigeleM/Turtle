@@ -274,6 +274,11 @@
               "name": "keyword.other.theory.turtle"
             }
           }
+        },
+        {
+          "comment": "hypothesis[...] checks and the reportfile setting",
+          "match": "(?<![\\w.])(hypothesis|reportfile)\\b",
+          "name": "keyword.other.theory.turtle"
         }
       ]
     },
