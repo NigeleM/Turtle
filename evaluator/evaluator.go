@@ -471,14 +471,16 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		if s.Stderr {
 			requireModule(env, "system", "warn")
 		}
-		out := ""
+		var b strings.Builder
 		for i, e := range s.Expressions {
 			v := it.evalExpression(e, env)
-			if i > 0 && needsSpace(out, v) {
-				out += " "
+			shown := v.Inspect()
+			if i > 0 && needsSpace(b.String(), shown) {
+				b.WriteByte(' ')
 			}
-			out = joinShown(out, v)
+			writeShown(&b, v, shown)
 		}
+		out := b.String()
 		if s.Stderr {
 			fmt.Fprintln(os.Stderr, out)
 		} else {
@@ -837,8 +839,7 @@ func isTruthy(obj object.Object) bool {
 // gives "total: 3", not two spaces), the next piece is empty, or the pieces
 // read as one with punctuation ("Hi, ", name, "!" gives "Hi, Ann!", and
 // "(" + x + ")" gives "(1)").
-func needsSpace(text string, v object.Object) bool {
-	shown := v.Inspect()
+func needsSpace(text, shown string) bool {
 	if shown == "" || text == "" {
 		return false
 	}

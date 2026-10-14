@@ -293,3 +293,15 @@ func scaleMatrix(m *object.Matrix, n object.Object, op string) *object.Matrix {
 	out.CheckInts()
 	return out
 }
+
+// writeShown is joinShown writing into b, with shown already made from v.
+func writeShown(b *strings.Builder, v object.Object, shown string) {
+	if _, ok := v.(*object.Matrix); ok && strings.Contains(shown, "\n") {
+		text := b.String()
+		col := utf8.RuneCountInString(text[strings.LastIndex(text, "\n")+1:])
+		if col > 0 {
+			shown = strings.ReplaceAll(shown, "\n", "\n"+strings.Repeat(" ", col))
+		}
+	}
+	b.WriteString(shown)
+}
