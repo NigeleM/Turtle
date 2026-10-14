@@ -2,6 +2,25 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## 0.9.197 (2026-10-14)
+
+- `show` puts one space between its values: `show 3, 2 .` gives `3 2`.
+  No space goes next to text that already has whitespace, or before
+  punctuation: `show "total: ", n .` gives `total: 3`, and `show name,
+  "!" .` gives `Ann!`. Programs that joined values with `show` and
+  relied on no space need `+` or a space inside the text.
+- A method chain takes one step after another without brackets:
+  `grid at get 0 at put 10, 0` and `grid at get[0] at put[10, 0]` both
+  work, as statements and in expressions.
+- `every` takes `"ms"` and `"ns"` steps, so a job can run every few
+  milliseconds: `every[10, "ms", job]`.
+- Imports can rename: `import data as d` (the module is called `d`, and
+  its names are only reached as `d sum[...]`), and
+  `import data [mean as average]` (`average` is `mean` in that file).
+- The programs in `testdata/programs` check each area of the language
+  (collections, assembled types, files, SQL, matrices, dates, theories
+  and more) and run in the test suite.
+
 ## 0.9.196 (2026-10-11)
 
 - Arithmetic inside arithmetic (`total + i * i % m`) is worked out
