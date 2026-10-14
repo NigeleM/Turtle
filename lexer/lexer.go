@@ -28,7 +28,12 @@ type Lexer struct {
 // Source is the text being read.
 func (l *Lexer) Source() string { return l.input }
 
+// New is a lexer for input. A file saved with Windows line ends (CRLF) reads
+// as if it had plain newlines, so a line break in a text value is one "\n".
 func New(input string) *Lexer {
+	if strings.Contains(input, "\r\n") {
+		input = strings.ReplaceAll(input, "\r\n", "\n")
+	}
 	l := &Lexer{input: input, line: 1, atLineStart: true}
 	l.readChar()
 	return l

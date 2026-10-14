@@ -223,3 +223,21 @@ func TestWideLetterNames(t *testing.T) {
 		t.Errorf("an emoji outside text should be ILLEGAL, got %v", tok.Type)
 	}
 }
+
+// A file with Windows line ends lexes as the same file with plain ones.
+func TestCRLFLexesLikeLF(t *testing.T) {
+	lf := "show \"a\nb\" .\nx = 1\n"
+	crlf := "show \"a\r\nb\" .\r\nx = 1\r\n"
+	want := New(lf)
+	got := New(crlf)
+	for {
+		w := want.NextToken()
+		g := got.NextToken()
+		if w.Type != g.Type || w.Literal != g.Literal || w.Line != g.Line {
+			t.Fatalf("token %v (line %d) from CRLF, want %v (line %d)", g, g.Line, w, w.Line)
+		}
+		if w.Type == token.EOF {
+			break
+		}
+	}
+}
