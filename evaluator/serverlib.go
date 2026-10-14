@@ -231,7 +231,7 @@ func (it *Interpreter) serve(routes []route, port int64, env *object.Environment
 	if host == "localhost" {
 		addr = fmt.Sprintf("http://localhost:%d", ln.Addr().(*net.TCPAddr).Port)
 	}
-	fmt.Printf("serving on %s (Ctrl+C stops it)\n", addr)
+	fmt.Fprintf(stdoutBuf, "serving on %s (Ctrl+C stops it)\n", addr)
 
 	var turn sync.Mutex // Turtle code runs one request at a time
 	var stopWith any    // exit[] from a handler: stops the server, then the program
@@ -249,7 +249,7 @@ func (it *Interpreter) serve(routes []route, port int64, env *object.Environment
 			go srv.Close()
 		})
 		if log {
-			fmt.Printf("%s %s %d %s\n", r.Method, r.URL.RequestURI(), status, fmtDuration(time.Since(start)))
+			fmt.Fprintf(stdoutBuf, "%s %s %d %s\n", r.Method, r.URL.RequestURI(), status, fmtDuration(time.Since(start)))
 		}
 	})
 	it.serverMu.Lock()
@@ -448,7 +448,7 @@ func (it *Interpreter) runHandler(w http.ResponseWriter, r *http.Request, rt rou
 			return
 		}
 		if fe, ok := p.(fatalError); ok && !fe.parse {
-			fmt.Fprintf(os.Stderr, "%s %s: %s\n", r.Method, r.URL.Path, fe.msg)
+			stderrLine(fmt.Sprintf("%s %s: %s", r.Method, r.URL.Path, fe.msg))
 			status = writeText(w, http.StatusInternalServerError, "server error")
 			return
 		}
@@ -594,7 +594,7 @@ func (it *Interpreter) writeResult(w http.ResponseWriter, r *http.Request, v obj
 		}
 		return status
 	case *object.Error:
-		fmt.Fprintf(os.Stderr, "%s %s: %s\n", r.Method, r.URL.Path, x.Inspect())
+		stderrLine(fmt.Sprintf("%s %s: %s", r.Method, r.URL.Path, x.Inspect()))
 		return writeText(w, http.StatusInternalServerError, "server error")
 	}
 	return it.writeResult(w, r, &object.String{Value: v.Inspect()})

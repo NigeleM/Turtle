@@ -319,6 +319,7 @@ func (it *Interpreter) Run(program *ast.Program) (err error) {
 	// Databases the program didn't close are closed when it ends, however
 	// it ends: an unfinished transaction is rolled back and files are let
 	// go (Windows can't delete or reopen a file a program still holds).
+	defer stdoutBuf.Flush() // the output is out by the time Run returns
 	defer it.closeDatabases()
 	defer it.traceClose() // an error's message then starts a line of its own
 	defer func() {
@@ -454,8 +455,9 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 
 	case *ast.InputStatement:
 		if s.Prompt != nil {
-			fmt.Print(it.evalExpression(s.Prompt, env).Inspect())
+			fmt.Fprint(stdoutBuf, it.evalExpression(s.Prompt, env).Inspect())
 		}
+		stdoutBuf.Flush()
 		if !it.stdin.Scan() {
 			// EOF (or a read error) on stdin: there's nothing left to
 			// read, ever, so returning "" here would make any loop that
@@ -482,9 +484,9 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		}
 		out := b.String()
 		if s.Stderr {
-			fmt.Fprintln(os.Stderr, out)
+			stderrLine(out)
 		} else {
-			fmt.Println(out)
+			fmt.Fprintln(stdoutBuf, out)
 		}
 		it.copyOutput(env, out)
 		return noneResult
@@ -500,7 +502,7 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		}
 		val := it.evalExpression(s.Expression, env)
 		if s.Print {
-			fmt.Println(val.Inspect())
+			fmt.Fprintln(stdoutBuf, val.Inspect())
 		}
 		return noneResult
 

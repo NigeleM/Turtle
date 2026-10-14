@@ -611,7 +611,7 @@ func (it *Interpreter) options(args []object.Object) object.Object {
 		}
 		name, value, hasValue := strings.Cut(a, "=")
 		if (name == "--help" && !ownHelp) || (name == "-h" && !ownH) {
-			fmt.Print(optionsHelp(it.Script, names, defaults))
+			fmt.Fprint(stdoutBuf, optionsHelp(it.Script, names, defaults))
 			panic(ExitRequest{Code: 0})
 		}
 		def, known := defaults[name]

@@ -348,7 +348,7 @@ func (it *Interpreter) callHelp(args []object.Object, env *object.Environment) o
 		}
 		text = valueHelp(args[0], "")
 	}
-	fmt.Println(text)
+	fmt.Fprintln(stdoutBuf, text)
 	it.copyOutput(env, text)
 	return object.NoneValue
 }

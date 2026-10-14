@@ -280,6 +280,7 @@ func (it *Interpreter) evalSys(s *ast.SysStatement) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Dir = it.WorkDir // where turtle was run, as file paths resolve
+	stdoutBuf.Flush()    // the program's output so far comes first
 	_ = cmd.Run()
 }
 

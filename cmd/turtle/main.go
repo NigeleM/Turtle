@@ -174,7 +174,7 @@ func runWatched(src, dir, script string, args []string, mode string) int {
 	it.Bundle = bundleFS
 	switch mode {
 	case "trace":
-		it.Trace = os.Stderr
+		it.Trace = evaluator.StderrWriter
 		it.TraceSource("", src)
 	case "debug":
 		it.Debug(os.Stderr, src)

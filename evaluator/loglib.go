@@ -118,7 +118,7 @@ func (it *Interpreter) writeLog(env *object.Environment, e logEntry, console boo
 	}
 	line := it.formatLogLine(e, setting)
 	if b, ok := setting(logConsoleName).(*object.Boolean); console && (!ok || b.Value) {
-		fmt.Fprintln(os.Stderr, line)
+		stderrLine(line)
 	}
 	switch f := setting(logFileName).(type) {
 	case nil, *object.None:

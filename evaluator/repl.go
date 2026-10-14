@@ -30,6 +30,7 @@ func (it *Interpreter) Interrupt() { it.interrupt.Store(true) }
 // it keeps databases open for the next entry. For a lone call
 // ("double[21]") it gives back the call's value, to show.
 func (it *Interpreter) RunEntry(program *ast.Program) (shown object.Object, err error) {
+	defer stdoutBuf.Flush() // what the entry showed is out when it returns
 	defer it.recoverEntry(&err)
 	it.interrupt.Store(false)
 	if len(program.Statements) == 1 {

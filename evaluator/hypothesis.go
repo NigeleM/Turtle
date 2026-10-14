@@ -573,7 +573,7 @@ var ansiCodes = regexp.MustCompile("\x1b\\[[0-9;]*m")
 // program's reportfile when it has one (reportfile = "checks.txt"), with
 // the time and the line it came from.
 func (it *Interpreter) showReport(env *object.Environment, text string) {
-	fmt.Println(text)
+	fmt.Fprintln(stdoutBuf, text)
 	it.fileReport(env, text)
 }
 

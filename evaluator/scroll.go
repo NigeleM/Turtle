@@ -6,7 +6,6 @@ package evaluator
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -663,7 +662,7 @@ const maxDiagnoseLines = 60
 func (it *Interpreter) evalDiagnoseBlock(s *ast.DiagnoseStatement, env *object.Environment) (res ExecResult) {
 	out := &cappedWriter{max: maxDiagnoseLines}
 	say := func(text string) { // shown now, and kept for reportfile
-		fmt.Println(text)
+		fmt.Fprintln(stdoutBuf, text)
 		out.shown.WriteString(text + "\n")
 	}
 	say(fmt.Sprintf("diagnose (lines %d-%d)", s.Line()+1, s.End-1))
@@ -731,7 +730,7 @@ func (c *cappedWriter) Write(b []byte) (int, error) {
 
 func (c *cappedWriter) emit() {
 	if c.lines < c.max {
-		os.Stdout.Write(append([]byte("  "), c.partial...))
+		stdoutBuf.Write(append([]byte("  "), c.partial...))
 		c.shown.WriteString("  " + string(c.partial))
 		c.lines++
 	} else {
