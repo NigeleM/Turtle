@@ -42,11 +42,12 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 		e.Cache = v
 		return v
 	case *ast.InterpolatedString:
-		text := ""
+		var b strings.Builder
 		for _, part := range e.Parts {
-			text = joinShown(text, it.evalExpression(part, env))
+			v := it.evalExpression(part, env)
+			writeShown(&b, v, v.Inspect())
 		}
-		return &object.String{Value: text}
+		return &object.String{Value: b.String()}
 	case *ast.BooleanLiteral:
 		return object.Bool(e.Value)
 	case *ast.NoneLiteral:

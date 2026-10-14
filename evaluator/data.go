@@ -10,7 +10,6 @@ import (
 	"math"
 	"math/rand"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -167,25 +166,44 @@ func sortElements(elems []object.Object) {
 	switch {
 	case len(elems) < 2:
 		return
+	// Equal whole numbers, or equal text, are the same value, so their
+	// order can't show: the faster unstable sort does.
 	case allInts:
-		slices.SortStableFunc(elems, func(a, b object.Object) int {
+		slices.SortFunc(elems, func(a, b object.Object) int {
 			return cmp.Compare(a.(*object.Integer).Value, b.(*object.Integer).Value)
 		})
 		return
 	case allText:
-		slices.SortStableFunc(elems, func(a, b object.Object) int {
+		slices.SortFunc(elems, func(a, b object.Object) int {
 			return strings.Compare(a.(*object.String).Value, b.(*object.String).Value)
 		})
 		return
 	}
-	sort.SliceStable(elems, func(i, j int) bool {
-		fi, _, iok := numeric(elems[i])
-		fj, _, jok := numeric(elems[j])
-		if iok && jok {
-			return fi < fj
+	// Mixed values: each one's number and text are made once, not at every
+	// comparison. A number compares as a number with a number, and by its
+	// shown text otherwise.
+	keys := make([]mixedKey, len(elems))
+	for i, e := range elems {
+		f, _, ok := numeric(e)
+		keys[i] = mixedKey{obj: e, num: f, isNum: ok, text: e.Inspect()}
+	}
+	slices.SortStableFunc(keys, func(a, b mixedKey) int {
+		if a.isNum && b.isNum {
+			return cmp.Compare(a.num, b.num)
 		}
-		return elems[i].Inspect() < elems[j].Inspect()
+		return strings.Compare(a.text, b.text)
 	})
+	for i := range keys {
+		elems[i] = keys[i].obj
+	}
+}
+
+// mixedKey is a value to sort in a mixed list, with what it compares by.
+type mixedKey struct {
+	obj   object.Object
+	num   float64
+	isNum bool
+	text  string
 }
 
 func (it *Interpreter) lengthOf(obj object.Object) int {
