@@ -443,7 +443,7 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 			it.rng = nil // seed = 7 again starts the same values again
 		}
 		if shadows, global := env.SetUnlessShadows(s.Name, v); shadows {
-			if mentionsName(s.Value, s.Name) {
+			if assignReads(s) {
 				outerAssignError(s.Name, it.funcName, global)
 			}
 			env.Set(s.Name, v)

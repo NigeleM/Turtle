@@ -57,6 +57,9 @@ type AssignStatement struct {
 	Token token.Token
 	Name  string
 	Value Expression
+	// Reads records whether Value reads Name, worked out the first time it
+	// is needed (0: not yet, 1: no, 2: yes); see evaluator.assignReads.
+	Reads int32
 }
 
 func (as *AssignStatement) statementNode()       {}

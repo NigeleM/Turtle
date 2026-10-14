@@ -6,6 +6,7 @@ package evaluator
 
 import (
 	"reflect"
+	"sync/atomic"
 
 	"Turtle/ast"
 	"Turtle/token"
@@ -80,5 +81,23 @@ func walkMentions(v reflect.Value, name string) bool {
 			}
 		}
 	}
+	return false
+}
+
+// assignReads is mentionsName for an assignment, worked out once: the
+// answer depends only on the statement, and a function's assignment that
+// shadows a global runs this on every call.
+func assignReads(s *ast.AssignStatement) bool {
+	switch atomic.LoadInt32(&s.Reads) {
+	case 1:
+		return false
+	case 2:
+		return true
+	}
+	if mentionsName(s.Value, s.Name) {
+		atomic.StoreInt32(&s.Reads, 2)
+		return true
+	}
+	atomic.StoreInt32(&s.Reads, 1)
 	return false
 }
