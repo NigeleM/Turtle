@@ -2,6 +2,10 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## 0.9.214 (2026-10-14)
+
+- `table` shows a map of records with one column per field, after its key.
+
 ## 0.9.213 (2026-10-14)
 
 - `table_column[rows, name]` and `table_row[rows, n]` pick one column or one row of a table (records can be assembled values or maps).
