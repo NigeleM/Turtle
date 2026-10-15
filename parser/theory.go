@@ -474,6 +474,11 @@ func namesUsed(node any) map[string]bool {
 				if x.Module != "" {
 					out[x.Module] = true
 				}
+				// "g[]" calls a value held in g (a function), so g is a name the
+				// definition uses, and can be a slot.
+				if x.Module == "" && x.Subject == nil {
+					out[x.Name] = true
+				}
 			case *ast.DataOpStatement:
 				out[x.Target] = true // "add 4 to nums"
 			case *ast.AssignStatement:

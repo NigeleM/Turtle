@@ -496,3 +496,35 @@ func TestLibraryWordNeedsItsImport(t *testing.T) {
 		t.Errorf("without import data: got %q, err %v", got, err)
 	}
 }
+
+// A theory phrase can take a function value: its definition calls the
+// value (g[]), so g is one of its slots.
+func TestTheoryPhraseTakesAFunction(t *testing.T) {
+	src := `def make_counter[]
+    state = list [0]
+    def next[]
+        state at put[state at get[0] + 1, 0] .
+        return state at get[0]
+    def [end]
+    return next
+def [end]
+theory yield
+    abstract
+        yield says the next value of gen.
+    notation yield gen .
+    definition
+        value = gen[]
+        return value
+theory [end]
+c = make_counter[]
+show yield c .
+show yield c .
+`
+	got, err := run(t, src, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "1\n2\n"; got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
