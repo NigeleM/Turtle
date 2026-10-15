@@ -2,6 +2,22 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## 0.9.213 (2026-10-14)
+
+- `table_column[rows, name]` and `table_row[rows, n]` pick one column or one row of a table (records can be assembled values or maps).
+
+## 0.9.212 (2026-10-14)
+
+- A theory phrase can take a function value, so a generator can be a theory word (see the Theories section).
+
+## 0.9.211 (2026-10-14)
+
+- A second top-level `def` with the same name gives a warning naming both lines, in the terminal and in the VS Code editor.
+
+## 0.9.210 (2026-10-14)
+
+- `unique[collection]` gives each value once, and `group[collection, function]` gives a map from each result to its items. Both need `import data`.
+
 ## 0.9.208 (2026-10-14)
 
 - Variable reads remember where the variable was found, so a name read
