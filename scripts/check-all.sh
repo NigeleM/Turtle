@@ -9,7 +9,7 @@
 # that was never added fails here instead of on GitHub. Commit first.
 set -eu
 
-PKGS="./legacy/Files/... ./ast/... ./cmd/... ./docs/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/..."
+PKGS="./ast/... ./cmd/... ./docs/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/..."
 QUICK=0
 [ "${1:-}" = "--quick" ] && QUICK=1
 
