@@ -6,6 +6,7 @@ package evaluator
 
 import (
 	"slices"
+	"strings"
 
 	"Turtle/object"
 )
@@ -391,4 +392,62 @@ func (it *Interpreter) dataGroup(args []object.Object) object.Object {
 		groups.Put(key, &object.List{Elements: []object.Object{e}})
 	}
 	return groups
+}
+
+// tableRecords is the rows of a table: a list or set of records, each an
+// assembled value or a map.
+func tableRecords(fn string, x object.Object) []object.Object {
+	switch c := x.(type) {
+	case *object.List:
+		return c.Elements
+	case *object.Set:
+		return c.Elements
+	}
+	fatalf("'%s' needs a list or set of records (a table), got %s", fn, typeName(x))
+	return nil
+}
+
+// dataTableColumn is table_column[rows, name]: the values of one field,
+// one per record, in row order.
+func dataTableColumn(args []object.Object) object.Object {
+	if len(args) != 2 {
+		fatalf("'table_column' expects 2 arguments (the table, and a column name), got %d", len(args))
+	}
+	name, ok := args[1].(*object.String)
+	if !ok {
+		fatalf("'table_column' needs a column name as text, got %s", typeName(args[1]))
+	}
+	out := &object.List{}
+	for i, rec := range tableRecords("table_column", args[0]) {
+		switch r := rec.(type) {
+		case *object.Assembly:
+			idx := r.Shape.Index(name.Value)
+			if idx < 0 {
+				fatalf("row %d has no column %q (its columns: %s)", i, name.Value, strings.Join(r.Shape.Fields, ", "))
+			}
+			out.Elements = append(out.Elements, r.Values[idx])
+		case *object.Map:
+			v, ok := r.Get(&object.String{Value: name.Value})
+			if !ok {
+				fatalf("row %d has no column %q", i, name.Value)
+			}
+			out.Elements = append(out.Elements, v)
+		default:
+			fatalf("row %d is %s; a table's rows are records (assembled values or maps)", i, typeName(rec))
+		}
+	}
+	return out
+}
+
+// dataTableRow is table_row[rows, n]: record n of the table, from 0.
+func dataTableRow(args []object.Object) object.Object {
+	if len(args) != 2 {
+		fatalf("'table_row' expects 2 arguments (the table, and a row number from 0), got %d", len(args))
+	}
+	rows := tableRecords("table_row", args[0])
+	n, ok := args[1].(*object.Integer)
+	if !ok {
+		fatalf("'table_row' needs a row number as a whole number, got %s", typeName(args[1]))
+	}
+	return rows[listIndex("table", int(n.Value), len(rows))]
 }

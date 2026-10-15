@@ -358,6 +358,15 @@ table[...] shows. Change it like any variable; none shows every row.
     group[list ["ant", "bee", "ape"], x give x at get[0]] .
     // { "a": [ "ant", "ape" ], "b": [ "bee" ] }
 
+### table_column[rows, name]
+  The values of one column of a table, one per row, in row order. A row
+  is an assembled value or a map; the name is the field or key. Example:
+    table_column[people, "last"]        // [ "Lee", "Park" ]
+
+### table_row[rows, n]
+  Row n of a table, counted from 0, as the record itself. Example:
+    table_row[people, 1]                // Person { first: "Bob", last: "Park" }
+
 ### keep[collection, function]
   Keeps only the elements (or map entries) for which the function gives
   true: a filter. As a sentence on its own it changes the collection

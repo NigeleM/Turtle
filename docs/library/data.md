@@ -34,6 +34,8 @@ when the caller's should stay as it was.
 | `keep` | collection, function | keeps only the elements (list/set) or entries (map) for which the function gives a truthy result: a filter |
 | `unique` | collection | a new list with each value once, in the order they first appear (2 and 2.0 are one value); a set comes back as a copy |
 | `group` | collection, function | a map from each result of the function to the list of the items that gave it, in their order |
+| `table_column` | rows, name | one column of a table as a list: the field (of an assembled row) or key (of a map row) named, one value per row |
+| `table_row` | rows, n | row `n` of a table, counted from 0, as the record itself |
 | `copy` | collection [, deep] | a new list/set/map/assembled value. `copy[x]`: the same items, so lists, maps or assembled values *inside* are shared; `copy[x, true]`: everything inside is copied too, so nothing is shared |
 
 | `range` | [from,] to [, step] | a list of the whole numbers from `from` (0 if left out) up to `to`, **not including** `to`, as in Python and Go: `range[5]` is 0 to 4. `step` counts by that much; a negative step counts down (`range[5, 0, -1]` is 5 to 1). Empty when the start is already past the end |

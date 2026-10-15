@@ -3768,3 +3768,15 @@ func TestUniqueAndGroupWork(t *testing.T) {
 		t.Errorf("got %q, want %q", got, want)
 	}
 }
+
+func TestTableColumnAndRow(t *testing.T) {
+	src := "import data\nassemble Person [first, last]\npeople = list [Person[\"Ann\", \"Lee\"], Person[\"Bob\", \"Park\"]]\nshow table_column[people, \"last\"] .\nshow table_row[people, 1] .\nrecs = list [map [\"age\": 30], map [\"age\": 41]]\nshow table_column[recs, \"age\"] .\n"
+	got, err := run(t, src, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "[ \"Lee\", \"Park\" ]\nPerson { first: \"Bob\", last: \"Park\" }\n[ 30, 41 ]\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
