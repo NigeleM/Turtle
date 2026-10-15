@@ -157,6 +157,8 @@ read. It works on:
 | list of maps (what `sql_query` returns) | one per map | one per key |
 | list of assembled values | one per value | one per field |
 | list of lists | one per inner list | `0`, `1`, `2`, ... |
+| map of records (assembled values or maps) | one per entry | `key`, then one per field or key |
+| map of plain values | one per entry | `key`, `value` |
 | a matrix (`import linear`) | one per row | `0`, `1`, `2`, ... |
 | any other list or set | one per element | `#` (counting from 0) and `value` |
 | one map | one per entry | `key` and `value` |

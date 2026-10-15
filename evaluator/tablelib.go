@@ -57,8 +57,22 @@ func tableShape(fn string, x object.Object) textTable {
 	case *object.Set:
 		t = elementsTable(v.Elements)
 	case *object.Map:
+		entries := v.Entries()
+		vals := make([]object.Object, len(entries))
+		for i, e := range entries {
+			vals[i] = e.Val
+		}
+		if len(entries) > 0 && allRecords(vals) {
+			// A map of records: the key, then one column per field of the records.
+			header, rows := recordRows(vals)
+			t = textTable{header: append([]string{"key"}, header...)}
+			for i, e := range entries {
+				t.add(append([]object.Object{e.Key}, rows[i]...))
+			}
+			break
+		}
 		t = textTable{header: []string{"key", "value"}}
-		for _, e := range v.Entries() {
+		for _, e := range entries {
 			t.add([]object.Object{e.Key, e.Val})
 		}
 	case *object.Matrix:

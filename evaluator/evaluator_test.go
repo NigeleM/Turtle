@@ -3780,3 +3780,15 @@ func TestTableColumnAndRow(t *testing.T) {
 		t.Errorf("got %q, want %q", got, want)
 	}
 }
+
+func TestTableOfMapOfRecords(t *testing.T) {
+	src := "import data\nassemble Person [first, last]\npeople = map [\"p1\": Person[\"Ann\", \"Lee\"], \"p2\": Person[\"Bob\", \"Park\"]]\nshow table[people] .\n"
+	got, err := run(t, src, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "key  first  last\n---  -----  ----\np1   Ann    Lee\np2   Bob    Park\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
