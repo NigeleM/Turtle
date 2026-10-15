@@ -32,7 +32,7 @@ when the caller's should stay as it was.
 |---|---|---|
 | `process` | collection, function | replaces each element (list/set) or each value (map) with the function's result; a set is deduplicated afterwards |
 | `keep` | collection, function | keeps only the elements (list/set) or entries (map) for which the function gives a truthy result: a filter |
-| `unique` | collection | a new list with each value once, in the order they first appear (2 and 2.0 are one value); a set comes back as a copy |
+| `unique` | list or set | a new list with each value once, in the order they first appear (2 and 2.0 are one value); a set comes back as a copy. A map is an error: use `unique[map values]`-style code by passing its values as a list |
 | `group` | collection, function | a map from each result of the function to the list of the items that gave it, in their order |
 | `table_column` | rows, name | one column of a table as a list: the field (of an assembled row) or key (of a map row) named, one value per row |
 | `table_row` | rows, n | row `n` of a table, counted from 0, as the record itself |

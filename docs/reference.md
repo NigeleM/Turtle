@@ -1228,6 +1228,12 @@ show yield c .    // 3
 The counter keeps its state in a list, because a function can change a
 list it holds but can't reassign a variable from outside.
 
+**Which names are the phrase's values.** A notation's values are the
+names its definition uses. A name the definition never uses can't be a
+value, so the phrase won't match. The definition has to read every name
+the notation puts in the phrase: `notation grab n in g .` needs `n` and
+`g` in the definition, as a use (`g[]` counts) or a read.
+
 **Checking a theory.** `turtle test` proves the theories of each test
 file and of the files it imports: every proof case must give what it
 says, and every theorem must hold for the proof cases and for 100 random
