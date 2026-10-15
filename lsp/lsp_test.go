@@ -643,3 +643,25 @@ func TestImportAliasCompletion(t *testing.T) {
 		t.Errorf("aliases: d %+v, average %+v", got["d"], got["average"])
 	}
 }
+
+// A top-level def that gives a name again is flagged on the second def.
+func TestRedefinitionWarns(t *testing.T) {
+	src := "def area[x]\n    return x\ndef [end]\ndef area[y]\n    return y + 1\ndef [end]\n"
+	a := analyze(fileURI("/tmp/redef.turtle"), "/tmp/redef.turtle", src, newText(src, false))
+	var found bool
+	for _, d := range a.diags {
+		if d.Severity == severityWarning && strings.Contains(d.Message, "area is defined more than once") && strings.Contains(d.Message, "line 1") {
+			found = true
+			if d.Range.Start.Line != 3 {
+				t.Errorf("warning on line %d, want line 3 (the second def)", d.Range.Start.Line)
+			}
+		}
+	}
+	if !found {
+		t.Errorf("no redefinition warning: %+v", a.diags)
+	}
+	one := "def area[x]\n    return x\ndef [end]\n"
+	if b := analyze(fileURI("/tmp/one.turtle"), "/tmp/one.turtle", one, newText(one, false)); len(b.diags) != 0 {
+		t.Errorf("one def should have no warnings, got %+v", b.diags)
+	}
+}

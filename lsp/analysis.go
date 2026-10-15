@@ -101,8 +101,18 @@ func analyze(uri, path, src string, t *text) *analysis {
 		builtins[lib] = true
 	}
 	dir := filepath.Dir(path)
+	// defLines is the line of the last top-level def of each name, so a def
+	// that gives a name again is flagged: the later one replaces the earlier.
+	defLines := map[string]int{}
 	for _, st := range program.Statements {
 		switch s := st.(type) {
+		case *ast.FunctionDefStatement:
+			line := s.Token.Line - 1
+			if prev, ok := defLines[s.Name]; ok {
+				a.diags = append(a.diags, diagnostic{Range: lineRange(t, line), Severity: severityWarning, Source: "turtle",
+					Message: fmt.Sprintf("%s is defined more than once: this def replaces the one on line %d (calls use the newer one once its line has run)", s.Name, prev)})
+			}
+			defLines[s.Name] = s.Token.Line
 		case *ast.ImportStatement:
 			line := s.Token.Line - 1
 			a.imports = append(a.imports, importInfo{path: s.Path, line: line, alias: s.Alias})
