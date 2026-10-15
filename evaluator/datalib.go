@@ -324,3 +324,71 @@ func dataSum(args []object.Object) object.Object {
 	}
 	return total
 }
+
+// dataUnique is unique[x]: a new list of x's items with each value once, in
+// the order they first appear. A set is already unique: a copy of it.
+func dataUnique(args []object.Object) object.Object {
+	if len(args) != 1 {
+		fatalf("'unique' expects 1 argument (a list or set), got %d", len(args))
+	}
+	switch c := args[0].(type) {
+	case *object.List:
+		out := &object.List{Elements: make([]object.Object, 0, len(c.Elements))}
+		// Numbers are one kind of key (2 and 2.0 are the same value, as ==
+		// says); text is another ("2" and 2 are not).
+		seen := map[string]bool{}
+		texts := map[string]bool{}
+		for _, e := range c.Elements {
+			if s, ok := e.(*object.String); ok {
+				if texts[s.Value] {
+					continue
+				}
+				texts[s.Value] = true
+			} else {
+				k := object.Key(e)
+				if seen[k] {
+					continue
+				}
+				seen[k] = true
+			}
+			out.Elements = append(out.Elements, e)
+		}
+		return out
+	case *object.Set:
+		return shallowCopy(c)
+	}
+	fatalf("'unique' needs a list or set, got %s", typeName(args[0]))
+	return nil
+}
+
+// dataGroup is group[x, fn]: a map from each result of fn to the list of the
+// items giving that result, in their order in x.
+func (it *Interpreter) dataGroup(args []object.Object) object.Object {
+	if len(args) != 2 {
+		fatalf("'group' expects 2 arguments (a list or set, and a function), got %d", len(args))
+	}
+	fn, ok := args[1].(*object.Function)
+	if !ok {
+		fatalf("'group' needs a function (e.g. x give x at length), got %s", typeName(args[1]))
+	}
+	var items []object.Object
+	switch c := args[0].(type) {
+	case *object.List:
+		items = c.Elements
+	case *object.Set:
+		items = c.Elements
+	default:
+		fatalf("'group' needs a list or set, got %s", typeName(args[0]))
+	}
+	groups := object.NewMap()
+	for _, e := range items {
+		key := it.callFunction(fn, "group", []object.Object{e})
+		if got, ok := groups.Get(key); ok {
+			g := got.(*object.List)
+			g.Elements = append(g.Elements, e)
+			continue
+		}
+		groups.Put(key, &object.List{Elements: []object.Object{e}})
+	}
+	return groups
+}

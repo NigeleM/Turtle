@@ -346,6 +346,18 @@ table[...] shows. Change it like any variable; none shows every row.
     nums process x give x * 10 .
     bigger is nums process x give x * 10 .
 
+### unique[collection]
+  A new list with each value once, in the order they first appear (2 and
+  2.0 are one value). A set is already unique: its copy comes back.
+  Example:
+    unique[list [3, 1, 3, 2]] .        // [ 3, 1, 2 ]
+
+### group[collection, function]
+  A map from each result of the function to the list of the items that
+  gave that result, in their order in the collection. Example:
+    group[list ["ant", "bee", "ape"], x give x at get[0]] .
+    // { "a": [ "ant", "ape" ], "b": [ "bee" ] }
+
 ### keep[collection, function]
   Keeps only the elements (or map entries) for which the function gives
   true: a filter. As a sentence on its own it changes the collection

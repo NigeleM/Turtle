@@ -3748,3 +3748,23 @@ func TestDocOfAFileWithPrivateFunctions(t *testing.T) {
 		t.Errorf("got:\n%s", got)
 	}
 }
+
+// unique and group are part of the data library: they need "import data".
+func TestUniqueAndGroupNeedImportData(t *testing.T) {
+	for _, src := range []string{`show unique[list [1, 1]] .`, `show group[list [1], x give x] .`} {
+		if _, err := run(t, src, ""); err == nil || !strings.Contains(err.Error(), "needs \"import data\" first") {
+			t.Errorf("%s: want the import error, got %v", src, err)
+		}
+	}
+}
+
+func TestUniqueAndGroupWork(t *testing.T) {
+	got, err := run(t, "import data\nshow unique[list [3, 1, 3, 2.0, 2]] .\nshow group[list [1, 2, 3, 4], x give x % 2] .\n", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "[ 3, 1, 2.0 ]\n{ 1: [ 1, 3 ], 0: [ 2, 4 ] }\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}

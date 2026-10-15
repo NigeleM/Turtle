@@ -1035,6 +1035,10 @@ func (it *Interpreter) callBuiltin(module, name string, args []object.Object, en
 			return it.dataProcess(args)
 		case "keep":
 			return it.dataKeep(args)
+		case "unique":
+			return dataUnique(args)
+		case "group":
+			return it.dataGroup(args)
 		case "copy":
 			return dataCopy(args)
 		case "table":
