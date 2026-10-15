@@ -106,6 +106,15 @@ jobs:
       - name: Test
         run: go test ./legacy/Files/... ./ast/... ./cmd/... ./docs/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/...
 
+      # The real program, as a user runs it: the built turtle.exe on one of the
+      # checked programs (its own failures: 0 line decides the exit code).
+      - name: Smoke test the built program
+        if: matrix.os == 'windows-latest'
+        run: |
+          go build -o turtle.exe ./cmd/turtle
+          ./turtle.exe testdata/programs/multiline.turtle
+          "7" | ./turtle.exe testdata/programs/language_core.turtle
+
       - name: Build the macOS installer
         if: matrix.os == 'macos-latest'
         run: installer/macos/build-pkg.sh 0.0.0-ci "$RUNNER_TEMP"
