@@ -1195,6 +1195,39 @@ theorem result >= lo if lo <= hi
 Where the `if` condition is false, the theorem says nothing about that
 input.
 
+**A generator as a theory.** A phrase can take a function value, as long
+as its definition calls it: `gen[]` makes `gen` one of the phrase's
+values. So a generator (a function that gives the next value each time
+it's called) can read like a word:
+
+```
+def make_counter[]
+    state = list [0]
+    def next[]
+        state at put[state at get[0] + 1, 0] .
+        return state at get[0]
+    def [end]
+    return next
+def [end]
+
+theory yield
+    abstract
+        yield says the next value of gen.
+    notation yield gen .
+    definition
+        value = gen[]
+        return value
+theory [end]
+
+c = make_counter[]
+show yield c .    // 1
+show yield c .    // 2
+show yield c .    // 3
+```
+
+The counter keeps its state in a list, because a function can change a
+list it holds but can't reassign a variable from outside.
+
 **Checking a theory.** `turtle test` proves the theories of each test
 file and of the files it imports: every proof case must give what it
 says, and every theorem must hold for the proof cases and for 100 random
