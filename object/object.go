@@ -343,6 +343,7 @@ var NoneValue = &None{}
 // exactly like one.
 type Function struct {
 	Name       string
+	Line       int // the line its def is on, for a warning about a second def
 	Parameters []string
 	Body       *ast.BlockStatement
 	Env        *Environment

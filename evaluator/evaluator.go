@@ -351,7 +351,7 @@ func (it *Interpreter) runFile(stmts []ast.Statement, env *object.Environment) E
 		if d, ok := st.(*ast.FunctionDefStatement); ok && !defined[d.Name] {
 			defined[d.Name] = true
 			env.Capture()
-			env.DefineFunction(&object.Function{Name: d.Name, Parameters: d.Parameters, Body: d.Body, Env: env})
+			env.DefineFunction(&object.Function{Name: d.Name, Parameters: d.Parameters, Body: d.Body, Env: env, Line: d.Line()})
 		}
 	}
 	return it.evalStatements(stmts, env)
@@ -532,8 +532,9 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		// enclosing call's scope, so it can be returned or passed along
 		// and still read that call's locals after it has finished.
 		env.Capture()
-		fn := &object.Function{Name: s.Name, Parameters: s.Parameters, Body: s.Body, Env: env}
+		fn := &object.Function{Name: s.Name, Parameters: s.Parameters, Body: s.Body, Env: env, Line: s.Line()}
 		if env.IsTopLevel() {
+			warnRedefinition(env, fn)
 			env.DefineFunction(fn)
 		} else {
 			env.Set(s.Name, fn)
@@ -871,4 +872,16 @@ func builtinExporters(name string) []*object.Module {
 	}
 	builtinExportCache.Store(name, mods)
 	return mods
+}
+
+// warnRedefinition warns, on stderr, when a top-level def gives a name that
+// an earlier def in the same file already gave, with different code. The
+// later def still replaces the earlier one (from its line on), as it always
+// has; the warning says which lines are involved.
+func warnRedefinition(env *object.Environment, fn *object.Function) {
+	old, ok := env.GetFunction(fn.Name)
+	if !ok || old.Body == fn.Body || old.Shape != nil || fn.Shape != nil || old.Line == 0 {
+		return
+	}
+	stderrLine(fmt.Sprintf("warning: %s is defined more than once: the def on line %d replaces the one on line %d (calls use the newer one once its line has run)", fn.Name, fn.Line, old.Line))
 }
