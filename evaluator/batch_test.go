@@ -381,3 +381,20 @@ func TestShuffleStatementChangesTheList(t *testing.T) {
 		t.Errorf("got %q, %v", got, err)
 	}
 }
+
+// shuffle works on lists (of anything), sets, and strings; as a statement a
+// list or set changes in place, and a string or map says how to write it.
+func TestShuffleEveryKind(t *testing.T) {
+	got, err := run(t, "import random\nseed = 5\nx = list [list [1], list [2], list [3], list [4], list [5], list [6]]\nx shuffle .\nshow x .\ns = set [set [1], set [2], set [3]]\nshow length of shuffle[s] .\nt = \"hello\"\nshow length of shuffle[t] .", "")
+	if err != nil || got != "[ [ 6 ], [ 1 ], [ 2 ], [ 4 ], [ 3 ], [ 5 ] ]\n3\n5\n" {
+		t.Errorf("got %q, %v", got, err)
+	}
+	for _, c := range []struct{ src, want string }{
+		{"import random\nt = \"hello\"\nt shuffle .", "a string can't change in place"},
+		{"import random\nm = map [\"a\": 1]\nm shuffle .", "a map has no order to shuffle in place"},
+	} {
+		if _, err := run(t, c.src, ""); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%q: %v, want %q", c.src, err, c.want)
+		}
+	}
+}

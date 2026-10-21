@@ -69,7 +69,7 @@ and `sample`, which go through every item, are in Go for speed):
 | Function | Gives |
 |---|---|
 | `pick[x]` | one item of a list or set, one key of a map, one character of a string |
-| `shuffle[x]` | a new list in random order (a string, for a string), and `x` is left as it was. As a whole statement, `shuffle[x] .` or `x shuffle .`, it shuffles `x` itself, as `process` changes its list |
+| `shuffle[x]` | a new list in random order (a string, for a string), and `x` is left as it was. As a whole statement, `shuffle[x] .` or `x shuffle .`, it shuffles a list or a set itself, as `process` changes its list. A string can't change in place (write `t = shuffle[t]`), and a map has no order to shuffle (`shuffle[m]` gives its keys in random order) |
 | `sample[x, n]` | a list of `n` different items |
 | `chance[p]` | `true` with probability `p` (0 to 1) |
 
