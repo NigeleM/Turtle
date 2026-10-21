@@ -10,34 +10,12 @@ jobs:
   build-vet-test:
     runs-on: ubuntu-latest
     # Real servers for the postgres and mysql drivers (and
-    # testdata/sql/13_servers.turtle); without the URLs those tests skip.
-    services:
-      postgres:
-        image: public.ecr.aws/docker/library/postgres:17
-        env:
-          POSTGRES_USER: turtle
-          POSTGRES_PASSWORD: turtlepw
-          POSTGRES_DB: turtle
-        ports:
-          - 55432:5432
-        options: >-
-          --health-cmd "pg_isready -U turtle" --health-interval 5s
-          --health-timeout 5s --health-retries 20
-      mysql:
-        image: public.ecr.aws/docker/library/mysql:8.4
-        env:
-          MYSQL_ROOT_PASSWORD: rootpw
-          MYSQL_DATABASE: turtle
-          MYSQL_USER: turtle
-          MYSQL_PASSWORD: turtlepw
-        ports:
-          - 53306:3306
-        options: >-
-          --health-cmd "mysqladmin ping -h 127.0.0.1 -prootpw" --health-interval 5s
-          --health-timeout 5s --health-retries 30
+    # testdata/sql/13_servers.turtle), installed on the runner below: the
+    # Docker images are rate-limited on the public registry, so they can't
+    # be pulled reliably. Without the URLs those tests skip.
     env:
-      TURTLE_PG_URL: postgres://turtle:turtlepw@localhost:55432/turtle
-      TURTLE_MYSQL_URL: mysql://turtle:turtlepw@127.0.0.1:53306/turtle
+      TURTLE_PG_URL: postgres://turtle:turtlepw@localhost:5432/turtle
+      TURTLE_MYSQL_URL: mysql://turtle:turtlepw@127.0.0.1:3306/turtle
       # The official sqlite3 checks every database file Turtle writes;
       # without the tool those checks fail rather than quietly skip.
       TURTLE_REQUIRE_SQLITE3: "1"
@@ -47,6 +25,17 @@ jobs:
 
       - name: Install sqlite3 (to check the files Turtle writes)
         run: sudo apt-get install -y sqlite3
+
+      - name: Start PostgreSQL and MySQL (for the server tests)
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql mysql-server
+          sudo systemctl start postgresql
+          sudo systemctl start mysql
+          sudo -u postgres psql -c "CREATE USER turtle WITH PASSWORD 'turtlepw' CREATEDB;"
+          sudo -u postgres psql -c "CREATE DATABASE turtle OWNER turtle;"
+          sudo mysql -e "CREATE DATABASE IF NOT EXISTS turtle; CREATE USER IF NOT EXISTS 'turtle'@'localhost' IDENTIFIED BY 'turtlepw'; CREATE USER IF NOT EXISTS 'turtle'@'%' IDENTIFIED BY 'turtlepw'; GRANT ALL ON turtle.* TO 'turtle'@'localhost'; GRANT ALL ON turtle.* TO 'turtle'@'%'; FLUSH PRIVILEGES;"
+          mysql -h 127.0.0.1 -P 3306 -u turtle -pturtlepw turtle -e "select 1"
 
       - name: Set up Go
         uses: actions/setup-go@v5
