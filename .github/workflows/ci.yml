@@ -37,18 +37,19 @@ jobs:
           # The runner's root login needs a password, so the setup SQL runs as
           # the server itself, at startup (--init-file), then the server stops
           # and the normal service starts with the turtle user in place.
-          cat > /tmp/turtle-init.sql <<'SQL'
+          sudo tee /etc/mysql/turtle-init.sql > /dev/null <<'SQL'
           CREATE DATABASE IF NOT EXISTS turtle;
           CREATE USER IF NOT EXISTS 'turtle'@'localhost' IDENTIFIED BY 'turtlepw';
           CREATE USER IF NOT EXISTS 'turtle'@'%' IDENTIFIED BY 'turtlepw';
           GRANT ALL ON turtle.* TO 'turtle'@'localhost';
           GRANT ALL ON turtle.* TO 'turtle'@'%';
           SQL
-          sudo chmod 644 /tmp/turtle-init.sql
+          sudo chmod 644 /etc/mysql/turtle-init.sql
+          sudo ls -l /etc/mysql/turtle-init.sql
           sudo systemctl stop mysql
           sudo mkdir -p /var/run/mysqld
           sudo chown mysql:mysql /var/run/mysqld
-          sudo mysqld --user=mysql --init-file=/tmp/turtle-init.sql &
+          sudo mysqld --user=mysql --init-file=/etc/mysql/turtle-init.sql &
           for i in $(seq 1 60); do mysqladmin --socket=/var/run/mysqld/mysqld.sock ping 2>/dev/null && break; sleep 1; done
           sleep 5
           sudo pkill -x mysqld || true
