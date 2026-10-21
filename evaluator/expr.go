@@ -282,7 +282,13 @@ func evalInfix(op string, left, right object.Object) object.Object {
 	if l, ok := left.(*object.Integer); ok {
 		if r, ok := right.(*object.Integer); ok {
 			switch op {
-			case "+", "-", "*":
+			case "+":
+				// The sum wraps only when it moves the wrong way for the sign of r.
+				if sum := l.Value + r.Value; (sum > l.Value) == (r.Value > 0) {
+					return object.Int(sum)
+				}
+				return numArith(op, num{isInt: true, i: l.Value}, num{isInt: true, i: r.Value}).box()
+			case "-", "*":
 				return numArith(op, num{isInt: true, i: l.Value}, num{isInt: true, i: r.Value}).box()
 			case "<":
 				return object.Bool(l.Value < r.Value)
