@@ -34,7 +34,17 @@ jobs:
           sudo systemctl start mysql
           sudo -u postgres psql -c "CREATE USER turtle WITH PASSWORD 'turtlepw' CREATEDB;"
           sudo -u postgres psql -c "CREATE DATABASE turtle OWNER turtle;"
-          sudo mysql -e "CREATE DATABASE IF NOT EXISTS turtle; CREATE USER IF NOT EXISTS 'turtle'@'localhost' IDENTIFIED BY 'turtlepw'; CREATE USER IF NOT EXISTS 'turtle'@'%' IDENTIFIED BY 'turtlepw'; GRANT ALL ON turtle.* TO 'turtle'@'localhost'; GRANT ALL ON turtle.* TO 'turtle'@'%'; FLUSH PRIVILEGES;"
+          # The root login on the runner's MySQL needs a password, so start the
+          # server once without grant checks to create the turtle user.
+          sudo systemctl stop mysql
+          sudo mkdir -p /var/run/mysqld
+          sudo chown mysql:mysql /var/run/mysqld
+          sudo mysqld --user=mysql --skip-grant-tables --skip-networking &
+          for i in $(seq 1 60); do mysqladmin --socket=/var/run/mysqld/mysqld.sock ping 2>/dev/null && break; sleep 1; done
+          mysql --socket=/var/run/mysqld/mysqld.sock -u root -e "CREATE DATABASE IF NOT EXISTS turtle; CREATE USER IF NOT EXISTS 'turtle'@'localhost' IDENTIFIED BY 'turtlepw'; CREATE USER IF NOT EXISTS 'turtle'@'%' IDENTIFIED BY 'turtlepw'; GRANT ALL ON turtle.* TO 'turtle'@'localhost'; GRANT ALL ON turtle.* TO 'turtle'@'%'; FLUSH PRIVILEGES;"
+          mysqladmin --socket=/var/run/mysqld/mysqld.sock -u root shutdown
+          for i in $(seq 1 60); do pgrep -x mysqld >/dev/null || break; sleep 1; done
+          sudo systemctl start mysql
           mysql -h 127.0.0.1 -P 3306 -u turtle -pturtlepw turtle -e "select 1"
 
       - name: Set up Go
