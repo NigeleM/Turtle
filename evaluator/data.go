@@ -210,14 +210,26 @@ func sortElements(elems []object.Object) {
 	// Equal whole numbers, or equal text, are the same value, so their
 	// order can't show: the faster unstable sort does.
 	case allInts:
-		slices.SortFunc(elems, func(a, b object.Object) int {
-			return cmp.Compare(a.(*object.Integer).Value, b.(*object.Integer).Value)
-		})
+		// The values are read once into keys, so each comparison is a plain
+		// int64 compare, not a type check on two interfaces.
+		keys := make([]intKey, len(elems))
+		for i, e := range elems {
+			keys[i] = intKey{e.(*object.Integer).Value, e}
+		}
+		slices.SortFunc(keys, func(a, b intKey) int { return cmp.Compare(a.v, b.v) })
+		for i := range keys {
+			elems[i] = keys[i].o
+		}
 		return
 	case allText:
-		slices.SortFunc(elems, func(a, b object.Object) int {
-			return strings.Compare(a.(*object.String).Value, b.(*object.String).Value)
-		})
+		keys := make([]textKey, len(elems))
+		for i, e := range elems {
+			keys[i] = textKey{e.(*object.String).Value, e}
+		}
+		slices.SortFunc(keys, func(a, b textKey) int { return strings.Compare(a.s, b.s) })
+		for i := range keys {
+			elems[i] = keys[i].o
+		}
 		return
 	}
 	// Mixed values compare like with like, as in Python: numbers with
@@ -1167,4 +1179,15 @@ func mulFits(a, b int64) (int64, bool) {
 		return 0, false
 	}
 	return r, true
+}
+
+// intKey and textKey are a sort element's value beside the object it came from.
+type intKey struct {
+	v int64
+	o object.Object
+}
+
+type textKey struct {
+	s string
+	o object.Object
 }
