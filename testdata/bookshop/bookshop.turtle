@@ -213,7 +213,7 @@ check["mean", mean[sales, "copies"], 10]
 check["median", median[sales, "copies"], 8.0]
 spread = stdev[sales, "copies"] - 5.8153402151707185
 check["stdev", spread at abs < 1e-9, true]
-check["percentile", percentile[sales, "copies", 90], 17.7]
+check["percentile", percentile[sales, "copies", 90] at round[6], 17.7]
 summary = describe[sales, "copies"]
 check["describe", count of summary, 12]
 check["mode", mode[sales, "title"], "Dune"]

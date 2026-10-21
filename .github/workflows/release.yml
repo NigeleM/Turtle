@@ -131,11 +131,23 @@ jobs:
     needs: [build-mac, build-linux, build-windows]
     runs-on: ubuntu-latest
     steps:
-    - name: Delete releases past the newest 10
+    - name: Keep the newest 10 complete releases
+      # A release is complete when it has the macOS, Linux and Windows files.
+      # The newest 10 complete releases are kept; older complete ones are
+      # deleted (the tags stay). Partial releases are listed and left alone.
       run: |
-        for tag in $(gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 --json tagName --jq '.[10:][].tagName'); do
-          echo "deleting release $tag (the tag stays)"
-          gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes
+        kept=0
+        for tag in $(gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 --json tagName --jq '.[].tagName'); do
+          names=$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
+          if echo "$names" | grep -qx 'turtle.pkg' && echo "$names" | grep -q '^turtle-linux-' && echo "$names" | grep -q '^turtle-windows-'; then
+            kept=$((kept + 1))
+            if [ "$kept" -gt 10 ]; then
+              echo "deleting complete release $tag (older than the newest 10 complete ones; the tag stays)"
+              gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes
+            fi
+          else
+            echo "partial release $tag: left alone"
+          fi
         done
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

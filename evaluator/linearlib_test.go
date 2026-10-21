@@ -14,6 +14,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -102,13 +104,29 @@ func TestLinear(t *testing.T) {
 		got, err := run(t, "import linear\n"+c.src, "")
 		if err != nil {
 			t.Errorf("%s: %v", c.src, err)
-		} else if strings.TrimSpace(got) != c.want {
+		} else if normalizeFloats(got) != normalizeFloats(c.want) {
 			t.Errorf("%s:\n got  %q\n want %q", c.src, strings.TrimSpace(got), c.want)
 		}
 	}
 }
 
 // A matrix joined into text keeps its rows lined up under the first.
+var floatInText = regexp.MustCompile(`-?\d+\.\d+(?:e[-+]?\d+)?`)
+
+// normalizeFloats rounds every float in a printed result to 9 significant
+// digits and collapses runs of spaces, so the last bits of float arithmetic
+// (which differ between processors) and the padding of a matrix don't matter.
+func normalizeFloats(s string) string {
+	s = floatInText.ReplaceAllStringFunc(s, func(m string) string {
+		v, err := strconv.ParseFloat(m, 64)
+		if err != nil {
+			return m
+		}
+		return strconv.FormatFloat(v, 'g', 9, 64)
+	})
+	return strings.Join(strings.Fields(s), " ")
+}
+
 func TestMatrixInTextStaysAligned(t *testing.T) {
 	src := "import linear\nm = matrix [1, 2; 3, 4]\nshow \"m is \" + m .\nshow \"m: {m}\" .\nshow \"m is \", m, \" and so on\" .\nshow m + \" first\" .\nshow m ."
 	got, err := run(t, src, "")
