@@ -101,6 +101,8 @@ func (p *Parser) expectError(want token.Type) {
 		p.errorAt(line, pos, "calls use [ ], not ( ): write %s[...]", cur.Literal)
 	case want == token.PERIOD && next.Type == token.IDENT && slices.Contains(syntax.Methods, next.Literal):
 		p.errorAt(line, pos, "each method needs 'at' before it: write x at get[...] at %s[...], not x at get[...] %s[...]", next.Literal, next.Literal)
+	case want == token.RPAREN && next.Type == token.IDENT && slices.Contains(syntax.Methods, next.Literal):
+		p.errorAt(line, pos, "a set operator is a method too, and needs 'at' before it: write (x at get[...]) at %s y, or x at get[...] at %s y", next.Literal, next.Literal)
 	case want == token.PERIOD:
 		p.errorAt(line, pos, "expected '.' to end the statement, found %s", found)
 	case want == token.RBRACKET && cur.Type == token.IF:

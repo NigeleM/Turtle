@@ -38,6 +38,7 @@ func TestFriendlyParseErrors(t *testing.T) {
 		{"method as add key", "groups = map [1: list [1]]\nkey = 1\nadd 2 to groups at get[key] .\n", "get is a method, not a map key", 3, 20},
 		{"set of a list", "planks = list [1]\nship = set planks .\n", "to make a set from a list, write: change planks to set", 2, 12},
 		{"method after a bracket call", "role = map [\"a\": set [1]]\nshow role at get[\"a\"] contains[1] .\n", "each method needs 'at' before it", 2, 23},
+		{"set operator after a bracket call", "candidates = map [1: set [1]]\nc = 1\nmissing = set [2]\nshow (candidates at get[c] intersection missing) .\n", "a set operator is a method too", 4, 28},
 		{"brace in string", "show \"{[()()]}\" .\n", "for a plain brace, write \\{)", 1, 6},
 	}
 	for _, c := range cases {
