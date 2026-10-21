@@ -6,9 +6,11 @@ package parser
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"Turtle/ast"
+	"Turtle/syntax"
 	"Turtle/token"
 )
 
@@ -97,6 +99,8 @@ func (p *Parser) expectError(want token.Type) {
 		p.errorAt(line, pos, "this line needs a '.' at the end")
 	case want == token.PERIOD && next.Type == token.LPAREN && cur.Type == token.IDENT && !next.SpaceBefore:
 		p.errorAt(line, pos, "calls use [ ], not ( ): write %s[...]", cur.Literal)
+	case want == token.PERIOD && next.Type == token.IDENT && slices.Contains(syntax.Methods, next.Literal):
+		p.errorAt(line, pos, "each method needs 'at' before it: write x at get[...] at %s[...], not x at get[...] %s[...]", next.Literal, next.Literal)
 	case want == token.PERIOD:
 		p.errorAt(line, pos, "expected '.' to end the statement, found %s", found)
 	case want == token.RBRACKET && cur.Type == token.IF:

@@ -1087,6 +1087,9 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		}
 		return object.Int(rand.Int63n(n.Value))
 	}
+	if textOnlyMethod(method) {
+		fatalKind(kindName, "%q works on text, not on a number: change the number to text first, as x to string, then x at %s[...]", method, method)
+	}
 	fatalKind(kindName, "unknown number method %q", method)
 	return nil
 }
@@ -1097,6 +1100,16 @@ func hasUpper(name string) bool {
 		if c := name[i]; c >= 'A' && c <= 'Z' {
 			return true
 		}
+	}
+	return false
+}
+
+// textOnlyMethod is a method of text that a number doesn't have, so a call on
+// a number can say to change it to text first.
+func textOnlyMethod(method string) bool {
+	switch method {
+	case "padleft", "padright", "upper", "lower", "trim", "split", "replace", "substring":
+		return true
 	}
 	return false
 }

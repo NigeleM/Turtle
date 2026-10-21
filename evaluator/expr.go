@@ -683,7 +683,7 @@ func evalChange(typeName string, val object.Object) object.Object {
 		case *object.String:
 			f, err := strconv.ParseFloat(strings.TrimSpace(v.Value), 64)
 			if err != nil {
-				fatalKind(kindNumber, "change ... to float: %q is not a valid float", v.Value)
+				fatalKind(kindNumber, "change ... to float: %q is not a valid float; to keep going when the text may not be a number, wrap it in safe ... handle", v.Value)
 			}
 			return &object.Float{Value: f}
 		}

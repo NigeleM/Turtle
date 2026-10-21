@@ -398,3 +398,16 @@ func TestShuffleEveryKind(t *testing.T) {
 		}
 	}
 }
+
+// Messages that say what to write: a text method on a number, and a float
+// that isn't one, which says how to keep going.
+func TestMessagesNameTheFix(t *testing.T) {
+	for _, c := range []struct{ src, want string }{
+		{"show 5 at padleft[3] .", "change the number to text first"},
+		{"amount = \"oops\"\nchange amount to float .", "wrap it in safe ... handle"},
+	} {
+		if _, err := run(t, c.src, ""); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%q: %v, want %q", c.src, err, c.want)
+		}
+	}
+}
