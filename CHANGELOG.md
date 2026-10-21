@@ -2,6 +2,22 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## 0.9.215 (2026-10-21)
+
+Breaking changes:
+
+- `add value to map at key` adds to the value there: a new key gets the value (`add 12 to ages at "Cy"` gives `"Cy": 12`), a number adds up (5 becomes 17), text joins on, and a list or set takes the value. Setting a key outright is `put value to map at key`, which now works on maps as it does on lists.
+- Floats compare exactly, as in Python, JavaScript and Go: `0.1 + 0.2 == 0.3` is `false`. Floats show the shortest text that reads back as the same float (`0.30000000000000004`). Matrices compare and show exactly too.
+- `sort` compares like with like, as Python does: numbers with numbers, text with text, lists element by element. Mixing kinds is an error, not a comparison of their text.
+
+Other changes:
+
+- `pi` and `e` come with `import math` (as `pi` or `math pi`); a variable of the same name wins.
+- `reverse` works on text: `"héllo" at reverse` is `"olléh"`.
+- `is_close` (math) and `all_close` (linear) check closeness by the rule of `is close to`, with an optional tolerance.
+- `add ... to rows at i` changes the item at position `i` of a list of lists.
+- Empty collections show as `[]`, `{}`.
+
 ## 0.9.214 (2026-10-14)
 
 - `table` shows a map of records with one column per field, after its key.
