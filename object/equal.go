@@ -6,6 +6,7 @@ package object
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -25,6 +26,21 @@ func Equal(a, b Object) bool {
 		if bi, ok := b.(*Integer); ok {
 			return ai.Value == bi.Value
 		}
+	}
+	if ab, ok := a.(*BigInt); ok {
+		if bb, ok := b.(*BigInt); ok {
+			return ab.V.Cmp(bb.V) == 0
+		}
+		if bf, ok := b.(*Float); ok {
+			return equalBigFloat(ab.V, bf.Value)
+		}
+		return false
+	}
+	if bb, ok := b.(*BigInt); ok {
+		if af, ok := a.(*Float); ok {
+			return equalBigFloat(bb.V, af.Value)
+		}
+		return false
 	}
 	if af, ok := number(a); ok {
 		bf, ok := number(b)
@@ -132,8 +148,10 @@ func Key(obj Object) string {
 	case *Float:
 		// The exact value, as Equal compares: 0.1 + 0.2 and 0.3 are two
 		// keys. A whole number matches its integer key: 2.0 is the key of 2.
-		if v.Value == float64(int64(v.Value)) {
-			return strconv.FormatInt(int64(v.Value), 10)
+		if v.Value == math.Trunc(v.Value) && !math.IsInf(v.Value, 0) {
+			if whole, ok := FloatToInt(v.Value); ok {
+				return whole.Inspect() // the same key as the integer, even past 64 bits
+			}
 		}
 		return floatText(v.Value)
 	case *Set:

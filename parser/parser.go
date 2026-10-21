@@ -15,6 +15,7 @@ package parser
 import (
 	"fmt"
 	"io/fs"
+	"math/big"
 	"slices"
 	"strconv"
 	"strings"
@@ -1963,8 +1964,12 @@ func (p *Parser) parseNegativeNumber() ast.Expression {
 	if tok.Type == token.INT {
 		v, err := strconv.ParseInt(tok.Literal, 10, 64)
 		if err != nil {
-			p.errorf("integer %s is past the integer limits (-9223372036854775808 to 9223372036854775807); write it as a float, e.g. %s.0", tok.Literal, tok.Literal)
-			return nil
+			b, ok := new(big.Int).SetString(tok.Literal, 10)
+			if !ok {
+				p.errorf("%q isn't a whole number Turtle can read", tok.Literal)
+				return nil
+			}
+			return p.maybeSentence(&ast.IntegerLiteral{Token: tok, Big: b})
 		}
 		return p.maybeSentence(&ast.IntegerLiteral{Token: tok, Value: v})
 	}
@@ -1979,8 +1984,12 @@ func (p *Parser) parseNegativeNumber() ast.Expression {
 func (p *Parser) parseIntegerLiteral() ast.Expression {
 	v, err := strconv.ParseInt(p.curToken.Literal, 10, 64)
 	if err != nil {
-		p.errorf("integer %s is past the integer limits (-9223372036854775808 to 9223372036854775807); write it as a float, e.g. %s.0", p.curToken.Literal, p.curToken.Literal)
-		return nil
+		b, ok := new(big.Int).SetString(p.curToken.Literal, 10)
+		if !ok {
+			p.errorf("%q isn't a whole number Turtle can read", p.curToken.Literal)
+			return nil
+		}
+		return p.maybeSentence(&ast.IntegerLiteral{Token: p.curToken, Big: b})
 	}
 	return p.maybeSentence(&ast.IntegerLiteral{Token: p.curToken, Value: v})
 }

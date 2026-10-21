@@ -7,6 +7,7 @@ package evaluator
 import (
 	"fmt"
 	"math"
+	"math/big"
 	"slices"
 	"strconv"
 	"strings"
@@ -22,6 +23,9 @@ import (
 func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environment) object.Object {
 	switch e := expr.(type) {
 	case *ast.IntegerLiteral:
+		if e.Big != nil {
+			return object.IntOf(e.Big)
+		}
 		if v, ok := e.Cache.(*object.Integer); ok {
 			return v
 		}
@@ -217,9 +221,11 @@ func evalPrefix(op string, right object.Object) object.Object {
 		switch v := right.(type) {
 		case *object.Integer:
 			if v.Value == math.MinInt64 {
-				overflow("-", v.Value, 0)
+				return object.IntOf(new(big.Int).Neg(big.NewInt(v.Value)))
 			}
 			return object.Int(-v.Value)
+		case *object.BigInt:
+			return object.IntOf(new(big.Int).Neg(v.V))
 		case *object.Float:
 			return &object.Float{Value: -v.Value}
 		case *object.Matrix:
@@ -256,6 +262,8 @@ func numeric(obj object.Object) (float64, bool, bool) {
 		return float64(v.Value), true, true
 	case *object.Float:
 		return v.Value, false, true
+	case *object.BigInt:
+		return object.BigFloat(v.V), false, true
 	}
 	return 0, false, false
 }
@@ -274,12 +282,8 @@ func evalInfix(op string, left, right object.Object) object.Object {
 	if l, ok := left.(*object.Integer); ok {
 		if r, ok := right.(*object.Integer); ok {
 			switch op {
-			case "+":
-				return object.Int(addInt(l.Value, r.Value))
-			case "-":
-				return object.Int(subInt(l.Value, r.Value))
-			case "*":
-				return object.Int(mulInt(l.Value, r.Value))
+			case "+", "-", "*":
+				return numArith(op, num{isInt: true, i: l.Value}, num{isInt: true, i: r.Value}).box()
 			case "<":
 				return object.Bool(l.Value < r.Value)
 			case ">":
@@ -298,6 +302,9 @@ func evalInfix(op string, left, right object.Object) object.Object {
 				}
 			}
 		}
+	}
+	if res, ok := bigInfix(op, left, right); ok {
+		return res
 	}
 	if res, ok := matrixInfix(op, left, right); ok {
 		return res
@@ -329,9 +336,9 @@ func evalInfix(op string, left, right object.Object) object.Object {
 		rf, rIsInt, rIsNum := numeric(right)
 		if lIsNum && rIsNum {
 			if lIsInt && rIsInt {
-				return object.Int(addInt(left.(*object.Integer).Value, right.(*object.Integer).Value))
+				return numArith("+", num{isInt: true, i: left.(*object.Integer).Value}, num{isInt: true, i: right.(*object.Integer).Value}).box()
 			}
-			return floatChecked("+", lf+rf)
+			return &object.Float{Value: lf + rf}
 		}
 		return &object.String{Value: joinShown(left.Inspect(), right)}
 	}
@@ -348,42 +355,28 @@ func evalInfix(op string, left, right object.Object) object.Object {
 		switch op {
 		case "-":
 			if bothInt {
-				return object.Int(subInt(left.(*object.Integer).Value, right.(*object.Integer).Value))
+				return numArith("-", num{isInt: true, i: left.(*object.Integer).Value}, num{isInt: true, i: right.(*object.Integer).Value}).box()
 			}
-			return floatChecked("-", lf-rf)
+			return &object.Float{Value: lf - rf}
 		case "*":
 			if bothInt {
-				return object.Int(mulInt(left.(*object.Integer).Value, right.(*object.Integer).Value))
+				return numArith("*", num{isInt: true, i: left.(*object.Integer).Value}, num{isInt: true, i: right.(*object.Integer).Value}).box()
 			}
-			return floatChecked("*", lf*rf)
+			return &object.Float{Value: lf * rf}
 		case "/":
 			// Always the exact answer, a float: 7 / 2 is 3.5, 6 / 3 is 2.0.
 			// "div" keeps just the whole part.
 			if rf == 0 {
 				fatalKind(kindMath, "division by zero")
 			}
-			return floatChecked("/", lf/rf)
+			return &object.Float{Value: lf / rf}
 		case "div":
 			// The whole part, an integer: 7 div 2 is 3, -7 div 2 is -3
-			// (toward zero, so (a div b) * b + a % b is a).
-			if bothInt {
-				r := right.(*object.Integer).Value
-				if r == 0 {
-					fatalKind(kindMath, "division by zero")
-				}
-				if r == -1 && left.(*object.Integer).Value == math.MinInt64 {
-					overflow("div", math.MinInt64, -1)
-				}
-				return object.Int(left.(*object.Integer).Value / r)
-			}
-			if rf == 0 {
-				fatalKind(kindMath, "division by zero")
-			}
-			q := math.Trunc(lf / rf)
-			if math.IsNaN(q) || q >= 1<<63 || q < -(1<<63) {
-				fatalKind(kindMath, "%s div %s is too big for an integer", left.Inspect(), right.Inspect())
-			}
-			return object.Int(int64(q))
+			// (toward zero, so (a div b) * b + a % b is a). Past 64 bits it is
+			// still exact.
+			ln, _ := asNum(left)
+			rn, _ := asNum(right)
+			return numArith("div", ln, rn).box()
 		case "%":
 			if bothInt {
 				r := right.(*object.Integer).Value
@@ -437,9 +430,13 @@ type num struct {
 	isInt bool
 	i     int64
 	f     float64
+	big   *big.Int // set when a whole number is past 64 bits (then i is unused)
 }
 
 func (n num) float() float64 {
+	if n.big != nil {
+		return object.BigFloat(n.big)
+	}
 	if n.isInt {
 		return float64(n.i)
 	}
@@ -447,6 +444,9 @@ func (n num) float() float64 {
 }
 
 func (n num) box() object.Object {
+	if n.big != nil {
+		return object.IntOf(n.big)
+	}
 	if n.isInt {
 		return object.Int(n.i)
 	}
@@ -460,6 +460,8 @@ func asNum(v object.Object) (num, bool) {
 		return num{isInt: true, i: x.Value}, true
 	case *object.Float:
 		return num{f: x.Value}, true
+	case *object.BigInt:
+		return num{isInt: true, big: x.V}, true
 	}
 	return num{}, false
 }
@@ -470,52 +472,45 @@ func asNum(v object.Object) (num, bool) {
 // div keeps the whole part, toward zero.
 func numArith(op string, a, b num) num {
 	both := a.isInt && b.isInt
+	if both {
+		switch op {
+		case "+", "-", "*", "div", "%":
+			if a.big == nil && b.big == nil {
+				if r, ok := intArithFits(op, a.i, b.i); ok {
+					return r
+				}
+			}
+			return bigArith(op, a, b)
+		}
+	}
 	switch op {
 	case "+":
-		if both {
-			return num{isInt: true, i: addInt(a.i, b.i)}
-		}
-		return num{f: checkFloat("+", a.float()+b.float())}
+		return num{f: a.float() + b.float()}
 	case "-":
-		if both {
-			return num{isInt: true, i: subInt(a.i, b.i)}
-		}
-		return num{f: checkFloat("-", a.float()-b.float())}
+		return num{f: a.float() - b.float()}
 	case "*":
-		if both {
-			return num{isInt: true, i: mulInt(a.i, b.i)}
-		}
-		return num{f: checkFloat("*", a.float()*b.float())}
+		return num{f: a.float() * b.float()}
 	case "/":
 		if b.float() == 0 {
 			fatalKind(kindMath, "division by zero")
 		}
-		return num{f: checkFloat("/", a.float()/b.float())}
-	case "div":
-		if both {
-			if b.i == 0 {
-				fatalKind(kindMath, "division by zero")
-			}
-			if b.i == -1 && a.i == math.MinInt64 {
-				overflow("div", math.MinInt64, -1)
-			}
-			return num{isInt: true, i: a.i / b.i}
+		// Whole numbers past 2^53 can't be divided exactly as floats, so the
+		// exact quotient is rounded once, as Python does for int / int.
+		if both && (a.big != nil || b.big != nil || !exactAsFloat(a.i) || !exactAsFloat(b.i)) {
+			return num{f: ratFloat(bigOf(a), bigOf(b))}
 		}
+		return num{f: a.float() / b.float()}
+	case "div":
 		if b.float() == 0 {
 			fatalKind(kindMath, "division by zero")
 		}
 		q := math.Trunc(a.float() / b.float())
-		if math.IsNaN(q) || q >= 1<<63 || q < -(1<<63) {
-			fatalKind(kindMath, "%s div %s is too big for an integer", a.box().Inspect(), b.box().Inspect())
+		if math.IsNaN(q) || math.IsInf(q, 0) {
+			fatalKind(kindMath, "%s div %s is not a number", a.box().Inspect(), b.box().Inspect())
 		}
-		return num{isInt: true, i: int64(q)}
+		n, _ := asNum(wholeOf("div", q))
+		return n
 	case "%":
-		if both {
-			if b.i == 0 {
-				fatalKind(kindMath, "modulo by zero")
-			}
-			return num{isInt: true, i: a.i % b.i}
-		}
 		if b.float() == 0 {
 			fatalKind(kindMath, "modulo by zero")
 		}
@@ -552,6 +547,9 @@ func (it *Interpreter) evalNumeric(e ast.Expression, env *object.Environment) (n
 		// The usual parts, read straight: a whole number, a variable.
 		switch x := e.(type) {
 		case *ast.IntegerLiteral:
+			if x.Big != nil {
+				return num{isInt: true, big: x.Big}, nil
+			}
 			return num{isInt: true, i: x.Value}, nil
 		case *ast.Identifier:
 			if x.Module == "" {
@@ -666,13 +664,17 @@ func evalChange(typeName string, val object.Object) object.Object {
 		case *object.Integer:
 			return v
 		case *object.Float:
-			return object.Int(wholeChecked("change to integer", v.Value))
+			return wholeOf("change to integer", math.Trunc(v.Value))
 		case *object.String:
-			n, err := strconv.ParseInt(strings.TrimSpace(v.Value), 10, 64)
-			if err != nil {
-				fatalKind(kindNumber, "change ... to integer: %q is not a valid integer", v.Value)
+			text := strings.TrimSpace(v.Value)
+			if n, err := strconv.ParseInt(text, 10, 64); err == nil {
+				return object.Int(n)
 			}
-			return object.Int(n)
+			// A long run of digits, past 64 bits, is still a whole number.
+			if b, ok := new(big.Int).SetString(text, 10); ok && !strings.ContainsAny(text, "_") {
+				return object.IntOf(b)
+			}
+			fatalKind(kindNumber, "change ... to integer: %q is not a valid integer", v.Value)
 		}
 	case "float":
 		switch v := val.(type) {
@@ -1199,16 +1201,6 @@ func floatChecked(op string, f float64) object.Object {
 	return &object.Float{Value: f}
 }
 
-// wholeChecked is a float as a whole number, or an error when it's past the
-// integer limits (or not a number), as the integer overflow error does.
-func wholeChecked(what string, f float64) int64 {
-	if math.IsNaN(f) || f < float64(math.MinInt64) || f >= float64(math.MaxInt64) {
-		fatalKind(kindMath, "%s: %s is past the integer limits (%d to %d); use a float for bigger numbers",
-			what, (&object.Float{Value: f}).Inspect(), int64(math.MinInt64), int64(math.MaxInt64))
-	}
-	return int64(f)
-}
-
 func mulInt(a, b int64) int64 {
 	if a == 0 || b == 0 {
 		return 0
@@ -1241,10 +1233,4 @@ func userFunction(env *object.Environment, name string) bool {
 		return true
 	}
 	return resolveImported(env, name) != nil
-}
-
-// checkFloat is f, or the same error floatChecked gives for an infinity or NaN.
-func checkFloat(op string, f float64) float64 {
-	floatChecked(op, f)
-	return f
 }

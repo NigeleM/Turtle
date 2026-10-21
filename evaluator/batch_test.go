@@ -423,21 +423,55 @@ func TestShowSemicolonSeparatesItems(t *testing.T) {
 
 // Numbers past their limits are errors, not silent clamps or infinities, and
 // whole-number powers are exact up to the integer limit.
-func TestNumericLimitsAreErrors(t *testing.T) {
+func TestNumericLimitsAreExact(t *testing.T) {
 	got, err := run(t, "import math\nshow 3 at pow 39, \" \", 2 at pow 10 .", "")
 	if err != nil || got != "4052555153018976267 1024\n" {
 		t.Errorf("exact pow: %q, %v", got, err)
 	}
 	for _, c := range []struct{ src, want string }{
-		{"import math\nshow 3 at pow 40 .", "integer overflow: 3 at pow 40 is past the integer limits"},
-		{"import math\nshow 1e19 at round .", "round: 1e+19 is past the integer limits"},
-		{"show change 1e19 to integer .", "change to integer: 1e+19 is past the integer limits"},
-		{"import math\nshow (-9223372036854775807 - 1) at abs .", "integer overflow: abs of -9223372036854775808"},
-		{"show 1e308 * 10 .", "the result of * is too big for a float"},
+		{"import math\nshow 3 at pow 40 .", "12157665459056928801"},
+		{"import math\nshow 1e19 at round .", "10000000000000000000"},
+		{"show change 1e19 to integer .", "10000000000000000000"},
+		{"import math\nshow (-9223372036854775807 - 1) at abs .", "9223372036854775808"},
+		{"show 1e308 * 10 .", "inf"},
+	} {
+		got, err := run(t, c.src, "")
+		if err != nil || strings.TrimSpace(got) != c.want {
+			t.Errorf("%q: %q, %v, want %q", c.src, got, err, c.want)
+		}
+	}
+	for _, c := range []struct{ src, want string }{
+		{"import math\nshow 0.0 at pow -1.0 .", "zero can't be raised to a negative power"},
 		{"import math\nshow (-8.0) at pow 0.5 .", "the result of pow is not a number"},
 	} {
 		if _, err := run(t, c.src, ""); err == nil || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%q: %v, want %q", c.src, err, c.want)
 		}
+	}
+}
+
+// Like Python: float arithmetic past the float range gives inf, and inf - inf
+// gives nan, with no error; inf and nan are shown as inf, -inf and nan.
+func TestFloatInfAndNaNFromArithmetic(t *testing.T) {
+	got, err := run(t, "show 1e308 * 10, \" \", -1e308 * 10, \" \", (1e308 * 10) - (1e308 * 10) .", "")
+	if err != nil || got != "inf -inf nan\n" {
+		t.Errorf("got %q, %v", got, err)
+	}
+	if _, err := run(t, "show 1.0 / 0.0 .", ""); err == nil || !strings.Contains(err.Error(), "division by zero") {
+		t.Errorf("division by zero: %v", err)
+	}
+}
+
+// Big whole numbers: written as literals, computed exactly, compared exactly
+// with each other and with floats (10**30 is not 1e30, as in Python), and
+// usable as map keys.
+func TestBigIntegersLiteralsAndKeys(t *testing.T) {
+	got, err := run(t, "x = 123456789012345678901234567890\nshow x + 1, \" \", x * 2 .\nshow 2 * 10 == 20, \" \", 10 * 1e30 == 1e31 .", "")
+	if err != nil || got != "123456789012345678901234567891 246913578024691357802469135780\ntrue true\n" {
+		t.Errorf("got %q, %v", got, err)
+	}
+	got, err = run(t, "m = map [1000000000000000000000: \"a\"]\nm at add[\"b\", 1.0e21]\nshow m at len, \" \", m at get[1000000000000000000000] .", "")
+	if err != nil || got != "1 ab\n" { // 1.0e21 is the same key, so "b" joins "a"
+		t.Errorf("keys: %q, %v", got, err)
 	}
 }

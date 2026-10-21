@@ -8,6 +8,7 @@ import (
 	"cmp"
 	"fmt"
 	"math"
+	"math/big"
 	"math/rand"
 	"slices"
 	"strconv"
@@ -1019,10 +1020,12 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		requireArgs(method, args, 0)
 		f, isInt, _ := numeric(receiver)
 		if isInt {
+			if bb, isBig := object.BigOf(receiver); isBig {
+				return object.IntOf(new(big.Int).Abs(bb))
+			}
 			v := receiver.(*object.Integer).Value
 			if v == math.MinInt64 {
-				fatalKind(kindMath, "integer overflow: abs of %d is past the integer limits (%d to %d); use a float for bigger numbers",
-					v, int64(math.MinInt64), int64(math.MaxInt64))
+				return object.IntOf(new(big.Int).Neg(big.NewInt(v)))
 			}
 			if v < 0 {
 				return object.Int(-v)
@@ -1039,7 +1042,7 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		}
 		f, _, _ := numeric(receiver)
 		if len(args) == 0 {
-			return object.Int(wholeChecked("round", math.Round(f)))
+			return wholeOf("round", math.Round(f))
 		}
 		p, ok := args[0].(*object.Integer)
 		if !ok || p.Value < -15 || p.Value > 15 {
@@ -1048,7 +1051,7 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		places := int(p.Value)
 		if places <= 0 {
 			scale := math.Pow(10, float64(-places))
-			return object.Int(wholeChecked("round", math.Round(f/scale)*scale))
+			return wholeOf("round", math.Round(f/scale)*scale)
 		}
 		if _, isInt := receiver.(*object.Integer); isInt {
 			return receiver // a whole number already has every place
@@ -1062,12 +1065,12 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		requireModule(env, "math", "floor")
 		requireArgs(method, args, 0)
 		f, _, _ := numeric(receiver)
-		return object.Int(wholeChecked("floor", math.Floor(f)))
+		return wholeOf("floor", math.Floor(f))
 	case "ceil":
 		requireModule(env, "math", "ceil")
 		requireArgs(method, args, 0)
 		f, _, _ := numeric(receiver)
-		return object.Int(wholeChecked("ceil", math.Ceil(f)))
+		return wholeOf("ceil", math.Ceil(f))
 	case "pow":
 		requireModule(env, "math", "pow")
 		requireArgs(method, args, 1)
@@ -1077,16 +1080,20 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 			fatalf("%q argument must be a number, got %s", method, typeName(args[0]))
 		}
 		// A whole number to a non-negative whole power is a whole number,
-		// computed exactly: 2 at pow 10 is 1024, and a result past the integer
-		// limits is the integer overflow error, as * gives.
+		// computed exactly, however big: 2 at pow 10 is 1024, 3 at pow 40 is
+		// 12157665459056928801.
 		if baseInt && expInt && exp >= 0 {
 			b := receiver.(*object.Integer).Value
-			r, fits := powInt(b, int64(exp))
-			if !fits {
-				fatalKind(kindMath, "integer overflow: %d at pow %d is past the integer limits (%d to %d); use a float (e.g. 1.0) for bigger numbers",
-					b, int64(exp), int64(math.MinInt64), int64(math.MaxInt64))
+			if r, fits := powInt(b, int64(exp)); fits {
+				return object.Int(r)
 			}
-			return object.Int(r)
+			return powBig(big.NewInt(b), int64(exp))
+		}
+		if bb, isBig := receiver.(*object.BigInt); isBig && expInt && exp >= 0 {
+			return powBig(bb.V, int64(exp))
+		}
+		if base == 0 && exp < 0 {
+			fatalKind(kindMath, "zero can't be raised to a negative power")
 		}
 		return floatChecked("pow", math.Pow(base, exp))
 	case "random":
@@ -1129,8 +1136,7 @@ func textOnlyMethod(method string) bool {
 }
 
 // powInt is b to the power e (e >= 0), by repeated squaring. It reports
-// whether the answer fits an integer; only the answer has to fit, as in
-// 3 at pow 39.
+// whether the answer fits an int64.
 func powInt(b, e int64) (r int64, fits bool) {
 	result := int64(1)
 	for {

@@ -59,6 +59,15 @@ func (f *Float) Inspect() string { return floatText(f.Value) }
 func (f *Float) Exact() string { return floatText(f.Value) }
 
 func floatText(v float64) string {
+	// Python's spelling for the special values: inf, -inf and nan.
+	switch {
+	case math.IsInf(v, 1):
+		return "inf"
+	case math.IsInf(v, -1):
+		return "-inf"
+	case math.IsNaN(v):
+		return "nan"
+	}
 	// Very big and very small numbers in scientific notation, where
 	// Python switches too: 1e+16 and up, below 0.0001 (1e-05).
 	if a := math.Abs(v); a != 0 && !math.IsInf(v, 0) && !math.IsNaN(v) && (a >= 1e16 || a < 1e-4) {

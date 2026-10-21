@@ -229,11 +229,17 @@ func TestAssembleDuplicateFieldIsAnError(t *testing.T) {
 	}
 }
 
+// An integer literal past 64 bits is a big integer, not an error.
 func TestIntegerLiteralPastLimit(t *testing.T) {
 	p := New(lexer.New("show 99999999999999999999 .\n"))
-	p.ParseProgram()
-	if errs := p.Errors(); len(errs) == 0 || !strings.Contains(errs[0], "past the integer limits") {
-		t.Fatalf("want a limits error, got %v", errs)
+	prog := p.ParseProgram()
+	if errs := p.Errors(); len(errs) != 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+	st := prog.Statements[0].(*ast.ShowStatement)
+	lit := st.Expressions[0].(*ast.IntegerLiteral)
+	if lit.Big == nil || lit.Big.String() != "99999999999999999999" {
+		t.Fatalf("want the big value 99999999999999999999, got %+v", lit)
 	}
 }
 

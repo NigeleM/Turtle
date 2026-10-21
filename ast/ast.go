@@ -6,6 +6,7 @@
 package ast
 
 import (
+	"math/big"
 	"strings"
 
 	"Turtle/token"
@@ -326,6 +327,8 @@ func (i *Identifier) TokenLiteral() string { return i.Token.Literal }
 type IntegerLiteral struct {
 	Token token.Token
 	Value int64
+	// Big is the value when the literal is past 64 bits (then Value is unused).
+	Big   *big.Int
 	Cache any
 }
 

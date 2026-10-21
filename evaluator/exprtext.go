@@ -23,6 +23,9 @@ func exprText(e ast.Expression) string {
 		}
 		return x.Value
 	case *ast.IntegerLiteral:
+		if x.Big != nil {
+			return x.Big.String()
+		}
 		return strconv.FormatInt(x.Value, 10)
 	case *ast.FloatLiteral:
 		return x.Token.Literal

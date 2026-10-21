@@ -239,18 +239,17 @@ or assembled value, text is quoted so it can't be mistaken for a number:
 `show list [1, "1"] .` prints `[ 1, "1" ]`. Text on its own isn't quoted:
 `show "hi" .` prints `hi`.
 
-Integers are 64-bit, the industry standard (Java's and C#'s `long`, Go's
-`int64`, Rust's `i64`): from `-9223372036854775808` to
-`9223372036854775807`. A result past either limit is an "integer
-overflow" error, never a silent wrap-around; use a float (`1.0`) for
-bigger numbers. An integer literal past the limit is a parse error.
+Integers have no limit, as in Python: `2 at pow 100` is
+`1267650600228229401496703205376`, and a literal can be as long as you like.
+The arithmetic is exact (`9223372036854775807 + 1` is `9223372036854775808`).
+Small whole numbers stay on the fast path, so ordinary loops cost no more.
+Conversions from a float keep the whole part exactly: `change 1e19 to integer`
+is `10000000000000000000`.
 
-The same limit applies to conversions: `round`, `floor`, `ceil`, `abs` and
-`change ... to integer` give an error for a value past it, rather than
-clamping it, and `pow` with whole numbers gives an exact integer or the
-overflow error (`3 at pow 39` is exact, `3 at pow 40` is an error). A float
-result that is too big for a float, or not a number (`(-8.0) at pow 0.5`),
-is also an error and never shows as `+Inf` or `NaN`.
+Floats are the usual 64-bit ones. Arithmetic past their range gives `inf` or
+`-inf`, and `inf - inf` gives `nan`, as in Python (`show 1e308 * 10` shows
+`inf`). A power or a math function past the range is an error instead, as
+`math.exp` is in Python. Division by zero is always an error.
 
 Truthiness (conditions, `&&`, `||`, `!`), the Python rule: `false`,
 `none`, `0`, `0.0`, `""`, and an empty list, set or map are falsy;
@@ -1368,7 +1367,7 @@ safe [end]
 |----------|----------------------------------------------------------|
 | `file`   | a missing file, a file that can't be written, end of input |
 | `number` | `change "abc" to integer`                                |
-| `math`   | division or modulo by zero, integer overflow, `sqrt` of a negative |
+| `math`   | division or modulo by zero, a float power or math function out of range, `sqrt` of a negative |
 | `index`  | list index out of range, `pop` or `min of` on an empty collection |
 | `key`    | map key not found                                        |
 | `name`   | undefined variable, function, method, module or field    |

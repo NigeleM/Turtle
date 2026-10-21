@@ -1550,12 +1550,12 @@ show P["Ana"] .`, want: "{ 1: \"a\", \"1\": \"b\", true: [ \"x\", 3, none ] }\np
 		{name: "limits themselves are fine", src: `hi = 9223372036854775807
 lo = -9223372036854775807 - 1
 show hi, " ", lo .`, want: "9223372036854775807 -9223372036854775808\n"},
-		{name: "add overflow", src: `show 9223372036854775807 + 1 .`, wantErr: "integer overflow: 9223372036854775807 + 1 is past the integer limits"},
-		{name: "subtract overflow", src: `lo = -9223372036854775807 - 1
-show lo - 1 .`, wantErr: "integer overflow"},
-		{name: "multiply overflow", src: `show 4611686018427387904 * 2 .`, wantErr: "integer overflow"},
-		{name: "negate overflow", src: `lo = -9223372036854775807 - 1
-show -lo .`, wantErr: "integer overflow"},
+		{name: "add past the limit is exact", src: `show 9223372036854775807 + 1 .`, want: "9223372036854775808\n"},
+		{name: "subtract past the limit is exact", src: `lo = -9223372036854775807 - 1
+show lo - 1 .`, want: "-9223372036854775809\n"},
+		{name: "multiply past the limit is exact", src: `show 4611686018427387904 * 2 .`, want: "9223372036854775808\n"},
+		{name: "negate past the limit is exact", src: `lo = -9223372036854775807 - 1
+show -lo .`, want: "9223372036854775808\n"},
 		{name: "floats go further", src: `show 9223372036854775807 * 10.0 > 9223372036854775807 .`, want: "true\n"},
 	}
 	for _, c := range cases {
