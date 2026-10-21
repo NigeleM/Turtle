@@ -331,7 +331,7 @@ func evalInfix(op string, left, right object.Object) object.Object {
 			if lIsInt && rIsInt {
 				return object.Int(addInt(left.(*object.Integer).Value, right.(*object.Integer).Value))
 			}
-			return &object.Float{Value: lf + rf}
+			return floatChecked("+", lf+rf)
 		}
 		return &object.String{Value: joinShown(left.Inspect(), right)}
 	}
@@ -350,19 +350,19 @@ func evalInfix(op string, left, right object.Object) object.Object {
 			if bothInt {
 				return object.Int(subInt(left.(*object.Integer).Value, right.(*object.Integer).Value))
 			}
-			return &object.Float{Value: lf - rf}
+			return floatChecked("-", lf-rf)
 		case "*":
 			if bothInt {
 				return object.Int(mulInt(left.(*object.Integer).Value, right.(*object.Integer).Value))
 			}
-			return &object.Float{Value: lf * rf}
+			return floatChecked("*", lf*rf)
 		case "/":
 			// Always the exact answer, a float: 7 / 2 is 3.5, 6 / 3 is 2.0.
 			// "div" keeps just the whole part.
 			if rf == 0 {
 				fatalKind(kindMath, "division by zero")
 			}
-			return &object.Float{Value: lf / rf}
+			return floatChecked("/", lf/rf)
 		case "div":
 			// The whole part, an integer: 7 div 2 is 3, -7 div 2 is -3
 			// (toward zero, so (a div b) * b + a % b is a).
@@ -475,22 +475,22 @@ func numArith(op string, a, b num) num {
 		if both {
 			return num{isInt: true, i: addInt(a.i, b.i)}
 		}
-		return num{f: a.float() + b.float()}
+		return num{f: checkFloat("+", a.float()+b.float())}
 	case "-":
 		if both {
 			return num{isInt: true, i: subInt(a.i, b.i)}
 		}
-		return num{f: a.float() - b.float()}
+		return num{f: checkFloat("-", a.float()-b.float())}
 	case "*":
 		if both {
 			return num{isInt: true, i: mulInt(a.i, b.i)}
 		}
-		return num{f: a.float() * b.float()}
+		return num{f: checkFloat("*", a.float()*b.float())}
 	case "/":
 		if b.float() == 0 {
 			fatalKind(kindMath, "division by zero")
 		}
-		return num{f: a.float() / b.float()}
+		return num{f: checkFloat("/", a.float()/b.float())}
 	case "div":
 		if both {
 			if b.i == 0 {
@@ -666,7 +666,7 @@ func evalChange(typeName string, val object.Object) object.Object {
 		case *object.Integer:
 			return v
 		case *object.Float:
-			return object.Int(int64(v.Value))
+			return object.Int(wholeChecked("change to integer", v.Value))
 		case *object.String:
 			n, err := strconv.ParseInt(strings.TrimSpace(v.Value), 10, 64)
 			if err != nil {
@@ -1187,6 +1187,28 @@ func subInt(a, b int64) int64 {
 	return r
 }
 
+// floatChecked is a float result, or an error when it can't be shown as a
+// number: past the float range (infinity) or not a number at all (NaN).
+func floatChecked(op string, f float64) object.Object {
+	if math.IsNaN(f) {
+		fatalKind(kindMath, "the result of %s is not a number, so it can't be shown: check the values first", op)
+	}
+	if math.IsInf(f, 0) {
+		fatalKind(kindMath, "the result of %s is too big for a float (past about 1.8e308)", op)
+	}
+	return &object.Float{Value: f}
+}
+
+// wholeChecked is a float as a whole number, or an error when it's past the
+// integer limits (or not a number), as the integer overflow error does.
+func wholeChecked(what string, f float64) int64 {
+	if math.IsNaN(f) || f < float64(math.MinInt64) || f >= float64(math.MaxInt64) {
+		fatalKind(kindMath, "%s: %s is past the integer limits (%d to %d); use a float for bigger numbers",
+			what, (&object.Float{Value: f}).Inspect(), int64(math.MinInt64), int64(math.MaxInt64))
+	}
+	return int64(f)
+}
+
 func mulInt(a, b int64) int64 {
 	if a == 0 || b == 0 {
 		return 0
@@ -1219,4 +1241,10 @@ func userFunction(env *object.Environment, name string) bool {
 		return true
 	}
 	return resolveImported(env, name) != nil
+}
+
+// checkFloat is f, or the same error floatChecked gives for an infinity or NaN.
+func checkFloat(op string, f float64) float64 {
+	floatChecked(op, f)
+	return f
 }

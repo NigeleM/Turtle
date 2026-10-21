@@ -1019,7 +1019,15 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		requireArgs(method, args, 0)
 		f, isInt, _ := numeric(receiver)
 		if isInt {
-			return object.Int(int64(math.Abs(f)))
+			v := receiver.(*object.Integer).Value
+			if v == math.MinInt64 {
+				fatalKind(kindMath, "integer overflow: abs of %d is past the integer limits (%d to %d); use a float for bigger numbers",
+					v, int64(math.MinInt64), int64(math.MaxInt64))
+			}
+			if v < 0 {
+				return object.Int(-v)
+			}
+			return object.Int(v)
 		}
 		return &object.Float{Value: math.Abs(f)}
 	case "round":
@@ -1031,7 +1039,7 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		}
 		f, _, _ := numeric(receiver)
 		if len(args) == 0 {
-			return object.Int(int64(math.Round(f)))
+			return object.Int(wholeChecked("round", math.Round(f)))
 		}
 		p, ok := args[0].(*object.Integer)
 		if !ok || p.Value < -15 || p.Value > 15 {
@@ -1040,7 +1048,7 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		places := int(p.Value)
 		if places <= 0 {
 			scale := math.Pow(10, float64(-places))
-			return object.Int(int64(math.Round(f/scale) * scale))
+			return object.Int(wholeChecked("round", math.Round(f/scale)*scale))
 		}
 		if _, isInt := receiver.(*object.Integer); isInt {
 			return receiver // a whole number already has every place
@@ -1054,12 +1062,12 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		requireModule(env, "math", "floor")
 		requireArgs(method, args, 0)
 		f, _, _ := numeric(receiver)
-		return object.Int(int64(math.Floor(f)))
+		return object.Int(wholeChecked("floor", math.Floor(f)))
 	case "ceil":
 		requireModule(env, "math", "ceil")
 		requireArgs(method, args, 0)
 		f, _, _ := numeric(receiver)
-		return object.Int(int64(math.Ceil(f)))
+		return object.Int(wholeChecked("ceil", math.Ceil(f)))
 	case "pow":
 		requireModule(env, "math", "pow")
 		requireArgs(method, args, 1)
@@ -1068,13 +1076,19 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		if !ok {
 			fatalf("%q argument must be a number, got %s", method, typeName(args[0]))
 		}
-		r := math.Pow(base, exp)
-		// A whole number to a non-negative whole power is a whole number:
-		// 2 at pow 10 is 1024, not 1024.0 (as long as it fits an integer).
-		if baseInt && expInt && exp >= 0 && math.Abs(r) < 1<<53 {
-			return object.Int(int64(r))
+		// A whole number to a non-negative whole power is a whole number,
+		// computed exactly: 2 at pow 10 is 1024, and a result past the integer
+		// limits is the integer overflow error, as * gives.
+		if baseInt && expInt && exp >= 0 {
+			b := receiver.(*object.Integer).Value
+			r, fits := powInt(b, int64(exp))
+			if !fits {
+				fatalKind(kindMath, "integer overflow: %d at pow %d is past the integer limits (%d to %d); use a float (e.g. 1.0) for bigger numbers",
+					b, int64(exp), int64(math.MinInt64), int64(math.MaxInt64))
+			}
+			return object.Int(r)
 		}
-		return &object.Float{Value: r}
+		return floatChecked("pow", math.Pow(base, exp))
 	case "random":
 		requireModule(env, "math", "random")
 		requireArgs(method, args, 0)
@@ -1112,4 +1126,39 @@ func textOnlyMethod(method string) bool {
 		return true
 	}
 	return false
+}
+
+// powInt is b to the power e (e >= 0), by repeated squaring. It reports
+// whether the answer fits an integer; only the answer has to fit, as in
+// 3 at pow 39.
+func powInt(b, e int64) (r int64, fits bool) {
+	result := int64(1)
+	for {
+		if e&1 == 1 {
+			var ok bool
+			if result, ok = mulFits(result, b); !ok {
+				return 0, false
+			}
+		}
+		e >>= 1
+		if e == 0 {
+			return result, true
+		}
+		var ok bool
+		if b, ok = mulFits(b, b); !ok {
+			return 0, false
+		}
+	}
+}
+
+// mulFits is a * b, and whether it fits an integer.
+func mulFits(a, b int64) (int64, bool) {
+	if a == 0 || b == 0 {
+		return 0, true
+	}
+	r := a * b
+	if r/b != a || (a == -1 && b == math.MinInt64) || (b == -1 && a == math.MinInt64) {
+		return 0, false
+	}
+	return r, true
 }

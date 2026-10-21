@@ -420,3 +420,24 @@ func TestShowSemicolonSeparatesItems(t *testing.T) {
 		t.Errorf("got %q, %v", got, err)
 	}
 }
+
+// Numbers past their limits are errors, not silent clamps or infinities, and
+// whole-number powers are exact up to the integer limit.
+func TestNumericLimitsAreErrors(t *testing.T) {
+	got, err := run(t, "import math\nshow 3 at pow 39, \" \", 2 at pow 10 .", "")
+	if err != nil || got != "4052555153018976267 1024\n" {
+		t.Errorf("exact pow: %q, %v", got, err)
+	}
+	for _, c := range []struct{ src, want string }{
+		{"import math\nshow 3 at pow 40 .", "integer overflow: 3 at pow 40 is past the integer limits"},
+		{"import math\nshow 1e19 at round .", "round: 1e+19 is past the integer limits"},
+		{"show change 1e19 to integer .", "change to integer: 1e+19 is past the integer limits"},
+		{"import math\nshow (-9223372036854775807 - 1) at abs .", "integer overflow: abs of -9223372036854775808"},
+		{"show 1e308 * 10 .", "the result of * is too big for a float"},
+		{"import math\nshow (-8.0) at pow 0.5 .", "the result of pow is not a number"},
+	} {
+		if _, err := run(t, c.src, ""); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%q: %v, want %q", c.src, err, c.want)
+		}
+	}
+}

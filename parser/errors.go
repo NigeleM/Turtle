@@ -103,6 +103,8 @@ func (p *Parser) expectError(want token.Type) {
 		p.errorAt(line, pos, "each method needs 'at' before it: write x at get[...] at %s[...], not x at get[...] %s[...]", next.Literal, next.Literal)
 	case want == token.RPAREN && next.Type == token.IDENT && slices.Contains(syntax.Methods, next.Literal):
 		p.errorAt(line, pos, "a set operator is a method too, and needs 'at' before it: write (x at get[...]) at %s y, or x at get[...] at %s y", next.Literal, next.Literal)
+	case isBitwise(next.Literal):
+		p.errorAt(line, pos, "Turtle has no bitwise operators (& | ^ << >>)")
 	case want == token.PERIOD:
 		p.errorAt(line, pos, "expected '.' to end the statement, found %s", found)
 	case want == token.RBRACKET && cur.Type == token.IF:
@@ -152,6 +154,10 @@ func (p *Parser) statementStartError() {
 		p.errorAt(cur.Line, cur.Pos, "this ']' has no '[' to close: one too many?")
 	case cur.Type == token.RBRACKET || cur.Type == token.LBRACKET:
 		p.errorAt(cur.Line, cur.Pos, "a line can't start with %s here", describe(cur))
+	case isBitwise(cur.Literal):
+		p.errorAt(cur.Line, cur.Pos, "Turtle has no bitwise operators (& | ^ << >>)")
+	case cur.Type == token.PERIOD && prev.Line == cur.Line:
+		p.errorAt(cur.Line, cur.Pos, "this full stop ends nothing: the statement before it already ended on this line, so remove it")
 	default:
 		p.errorAt(cur.Line, cur.Pos, "a line can't start with %s", describe(cur))
 	}
@@ -259,6 +265,15 @@ func (p *Parser) checkMethodOnRight(op token.Token, left, right ast.Expression) 
 	case *ast.IntegerLiteral, *ast.FloatLiteral:
 		return // "x * 2 at fixed[1]" on a literal is clear enough
 	}
-	p.warnAt(mc.Token.Line, mc.Token.Pos, "at %s works on %s only, not on the whole %s; to %s the whole value, store it first: v = ... %s %s, then v at %s",
+	p.warnAt(mc.Token.Line, mc.Token.Pos, "at %s works on %s only, not on the whole %s; to apply %s to the whole value, store it first: v = ... %s %s, then v at %s",
 		mc.Method, what, op.Literal+" expression", mc.Method, op.Literal, what, mc.Method)
+}
+
+// isBitwise is one of the operators Turtle doesn't have, named in messages.
+func isBitwise(lit string) bool {
+	switch lit {
+	case "&", "|", "^", "<<", ">>":
+		return true
+	}
+	return false
 }

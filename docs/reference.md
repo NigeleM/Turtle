@@ -245,6 +245,13 @@ Integers are 64-bit, the industry standard (Java's and C#'s `long`, Go's
 overflow" error, never a silent wrap-around; use a float (`1.0`) for
 bigger numbers. An integer literal past the limit is a parse error.
 
+The same limit applies to conversions: `round`, `floor`, `ceil`, `abs` and
+`change ... to integer` give an error for a value past it, rather than
+clamping it, and `pow` with whole numbers gives an exact integer or the
+overflow error (`3 at pow 39` is exact, `3 at pow 40` is an error). A float
+result that is too big for a float, or not a number (`(-8.0) at pow 0.5`),
+is also an error and never shows as `+Inf` or `NaN`.
+
 Truthiness (conditions, `&&`, `||`, `!`), the Python rule: `false`,
 `none`, `0`, `0.0`, `""`, and an empty list, set or map are falsy;
 everything else is truthy. So `if ] matches [` means "if there are any
