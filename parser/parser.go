@@ -782,7 +782,7 @@ func (p *Parser) parseShowStatement() ast.Statement {
 	tok := p.curToken
 	p.nextToken()
 	exprs := []ast.Expression{p.parseExpression(LOWEST)}
-	for p.peekTokenIs(token.COMMA) {
+	for p.peekTokenIs(token.COMMA) || p.peekTokenIs(token.SEMI) {
 		p.nextToken()
 		p.nextToken()
 		exprs = append(exprs, p.parseExpression(LOWEST))

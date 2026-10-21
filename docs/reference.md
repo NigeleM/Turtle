@@ -436,6 +436,8 @@ whitespace, so text that ends in a space keeps its own:
 | `show "x is ", x, ", y is ", y .` (with `x` = 1, `y` = 2) | `x is 1, y is 2` |
 | `show "a", "(", x, ")" .` | `a (1)` |
 
+In a `show` line, a semicolon starts the next item, so a sentence call's commas stay its arguments: `show 1 add3 2, 3; " " .` prints the sum, then a space. Elsewhere a semicolon is only for loop headers.
+
 Punctuation is set against the value before it: no space goes before
 `, . ! ? : ; ) ] }` or after `( [ {`. To join pieces with no space at all,
 use `+` (`show "x="+n .` gives `x=3`).

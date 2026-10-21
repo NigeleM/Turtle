@@ -411,3 +411,12 @@ func TestMessagesNameTheFix(t *testing.T) {
 		}
 	}
 }
+
+// In show, a semicolon separates items, so a sentence call's commas stay its
+// arguments; a semicolon anywhere else is still an error.
+func TestShowSemicolonSeparatesItems(t *testing.T) {
+	got, err := run(t, "def add3[a, b, c]\n    return a + b + c\ndef [end]\nshow 1 add3 2, 3; \" \" .\nnums = list [10, 20, 30]\ni = 1\nshow nums get i; \" \" .", "")
+	if err != nil || got != "6 \n20 \n" {
+		t.Errorf("got %q, %v", got, err)
+	}
+}
