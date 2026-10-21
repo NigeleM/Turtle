@@ -10,6 +10,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"Turtle/ast"
@@ -568,29 +569,44 @@ func (d *Database) Inspect() string { return "database " + d.Name }
 // shared: Int and Bool give them out instead of making new ones, which
 // saves most of a program's memory churn.
 var (
-	smallInts  [smallIntMax - smallIntMin + 1]Integer // one block, filled once
+	intPages   [(smallIntMax - smallIntMin + 1 + 1<<intPageBits - 1) >> intPageBits]atomic.Pointer[[1 << intPageBits]Integer]
 	trueValue  = &Boolean{Value: true}
 	falseValue = &Boolean{Value: false}
 )
 
-// The shared integers cover loop counters, positions and most counts.
+// The shared integers cover loop counters, positions, most counts and the
+// values of the usual sums. They are made a page at a time, when a program
+// first needs one, so a small program holds only the pages it uses.
 const (
 	smallIntMin = -1024
-	smallIntMax = 65535
+	smallIntMax = 1<<20 - 1
+	intPageBits = 12
 )
-
-func init() {
-	for i := range smallInts {
-		smallInts[i].Value = int64(i + smallIntMin)
-	}
-}
 
 // Int is the integer n, shared when it's small.
 func Int(n int64) *Integer {
 	if n >= smallIntMin && n <= smallIntMax {
-		return &smallInts[n-smallIntMin]
+		i := n - smallIntMin
+		page := intPages[i>>intPageBits].Load()
+		if page == nil {
+			page = newIntPage(i >> intPageBits)
+		}
+		return &page[i&(1<<intPageBits-1)]
 	}
 	return &Integer{Value: n}
+}
+
+// newIntPage makes page number n of the shared integers, or returns the
+// one another caller made first.
+func newIntPage(n int64) *[1 << intPageBits]Integer {
+	page := new([1 << intPageBits]Integer)
+	for j := range page {
+		page[j].Value = (n<<intPageBits + int64(j)) + smallIntMin
+	}
+	if intPages[n].CompareAndSwap(nil, page) {
+		return page
+	}
+	return intPages[n].Load()
 }
 
 // Bool is true or false, shared.
