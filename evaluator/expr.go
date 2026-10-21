@@ -1044,7 +1044,7 @@ func qualifiedImport(env *object.Environment, module, name string) *object.Impor
 func importedFunctionValue(im *object.Import, name string) object.Object {
 	fn, ok := im.Module.Function(im.Library(name))
 	if !ok {
-		fatalf("%q is a builtin of %q and can only be called, not used as a value", name, im.Module.Name)
+		fatalf("%q is a builtin of %q and is called, not used as a value: write %s[...] with brackets, or put the value first in a sentence, as x %s .", name, im.Module.Name, name, name)
 	}
 	return fn
 }
