@@ -346,6 +346,12 @@ func (it *Interpreter) callRandom(name string, args []object.Object, env *object
 	switch name {
 	case "shuffle":
 		requireFuncArgs(name, args, 1)
+		// As a whole statement (shuffle[x] .) a list is shuffled in place, as
+		// process and keep change theirs; used as a value it gives a new list.
+		if list, ok := args[0].(*object.List); ok && it.takeInPlace() {
+			rng.Shuffle(len(list.Elements), func(i, j int) { list.Elements[i], list.Elements[j] = list.Elements[j], list.Elements[i] })
+			return list
+		}
 		items := append([]object.Object{}, randomItems(name, args[0])...)
 		rng.Shuffle(len(items), func(i, j int) { items[i], items[j] = items[j], items[i] })
 		if _, isText := args[0].(*object.String); isText {

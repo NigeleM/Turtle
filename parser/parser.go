@@ -595,6 +595,12 @@ func (p *Parser) parseIdentifierLeadStatement() ast.Statement {
 		if call, ok := expr.(*ast.CallExpression); ok {
 			return &ast.CallStatement{Token: tok, Call: call}
 		}
+		// "x shuffle .": a sentence call with no argument reads as a qualified
+		// name; as a whole statement it is still a call on x, which can change x.
+		if id, ok := expr.(*ast.Identifier); ok && id.Module != "" {
+			call := &ast.CallExpression{Token: id.Token, Subject: &ast.Identifier{Token: id.Token, Value: id.Module}, Name: id.Value}
+			return &ast.CallStatement{Token: tok, Call: call}
+		}
 		return &ast.ExpressionStatement{Token: tok, Expression: expr}
 	}
 	// "nums at add 4", "m at put[9, 1, 2]": a method call on its own line

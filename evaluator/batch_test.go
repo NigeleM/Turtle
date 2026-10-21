@@ -372,3 +372,12 @@ func TestMinMaxTakeSimpleValues(t *testing.T) {
 		t.Errorf("sort lists of lists: %q, %v", got, err)
 	}
 }
+
+// shuffle as a whole statement shuffles the list itself, as process does; as a
+// value it gives a new list and leaves the list alone.
+func TestShuffleStatementChangesTheList(t *testing.T) {
+	got, err := run(t, "import random\nseed = 3\nx = list [1, 2, 3, 4, 5]\nshuffle[x] .\nshow x .\ny = shuffle[x]\nshow x, \" \", y .\nx shuffle .\nshow x .", "")
+	if err != nil || got != "[ 1, 2, 5, 3, 4 ]\n[ 1, 2, 5, 3, 4 ] [ 3, 5, 2, 1, 4 ]\n[ 1, 5, 3, 4, 2 ]\n" {
+		t.Errorf("got %q, %v", got, err)
+	}
+}
