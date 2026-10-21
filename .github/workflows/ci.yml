@@ -54,7 +54,7 @@ jobs:
           sudo pkill -x mysqld || true
           for i in $(seq 1 60); do pgrep -x mysqld >/dev/null || break; sleep 1; done
           sudo systemctl start mysql
-          mysql -h 127.0.0.1 -P 3306 -u turtle -pturtlepw turtle -e "select 1"
+          mysql -h 127.0.0.1 -P 3306 -u turtle -pturtlepw turtle -e "select 1" || { sudo tail -60 /var/log/mysql/error.log; sudo journalctl -u mysql --no-pager | tail -40; exit 1; }
 
       - name: Set up Go
         uses: actions/setup-go@v5
