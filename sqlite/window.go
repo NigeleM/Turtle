@@ -435,7 +435,7 @@ func (c *corePlan) frameBounds(r *runner, snaps []winSnap, w *winPlan, rows []in
 	rangeValue := func(b frameBound) Value {
 		r.restore(snaps[rows[p]])
 		v := numericValue(r.eval(b.n))
-		if v == nil || toFloat(v) < 0 {
+		if toFloat(v) < 0 {
 			fail("SQL: frame starting offset must be a non-negative number")
 		}
 		return v

@@ -128,11 +128,10 @@ func exprList(es []ast.Expression) string {
 
 // isLiteral: showing this part's value would only repeat what's written.
 func isLiteral(e ast.Expression) bool {
-	switch e.(type) {
+	switch p := e.(type) {
 	case *ast.IntegerLiteral, *ast.FloatLiteral, *ast.StringLiteral, *ast.BooleanLiteral, *ast.NoneLiteral:
 		return true
 	case *ast.PrefixExpression:
-		p := e.(*ast.PrefixExpression)
 		return p.Operator == "-" && isLiteral(p.Right)
 	}
 	return false

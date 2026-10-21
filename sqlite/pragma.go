@@ -221,9 +221,7 @@ func (f *dbFile) pragmaRows(name string, arg Value, hasArg bool) ([]string, [][]
 		}
 		var rows [][]Value
 		for _, t := range tables {
-			for _, v := range f.fkViolations(t) {
-				rows = append(rows, v)
-			}
+			rows = append(rows, f.fkViolations(t)...)
 		}
 		return cols, rows
 	case "integrity_check", "quick_check":

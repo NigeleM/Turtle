@@ -96,10 +96,6 @@ type documentSymbol struct {
 	SelectionRange rangeLSP `json:"selectionRange"`
 }
 
-type hover struct {
-	Contents markup `json:"contents"`
-}
-
 type markup struct {
 	Kind  string `json:"kind"`
 	Value string `json:"value"`

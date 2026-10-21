@@ -176,10 +176,6 @@ var dateLayouts = []string{
 	"2006-01-02 15:04:05Z07:00",
 }
 
-func parseDate(text string) object.Object {
-	return parseDateIn(text, time.Local)
-}
-
 // parseDateIn is parseDate with a zone for text that names none.
 func parseDateIn(text string, loc *time.Location) object.Object {
 	if d, ok := tryParseDateIn(text, loc); ok {

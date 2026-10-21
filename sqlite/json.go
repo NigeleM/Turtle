@@ -401,16 +401,6 @@ func (n *jnode) typeName() string {
 	return []string{"null", "true", "false", "integer", "real", "text", "array", "object"}[n.kind]
 }
 
-func (n *jnode) clone() *jnode {
-	c := *n
-	c.elems = make([]*jnode, len(n.elems))
-	for i, e := range n.elems {
-		c.elems[i] = e.clone()
-	}
-	c.keys = append([]*jnode{}, n.keys...)
-	return &c
-}
-
 // ---- paths ----
 
 type jstep struct {

@@ -383,10 +383,7 @@ func (f *dbFile) fkRewriteChild(t *Table, rowid int64, old, vals []Value) {
 // fkBusy guards a cascade against coming back to a row it's deleting.
 func (f *dbFile) fkBusy(t *Table, rowid int64) bool {
 	key := t.Name + "\x00" + itoa64(rowid)
-	if f.fkDeleting[key] {
-		return true
-	}
-	return false
+	return f.fkDeleting[key]
 }
 
 func keyOf(vals []Value, cols []int) ([]Value, bool) {

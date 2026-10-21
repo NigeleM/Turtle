@@ -200,9 +200,7 @@ func parseYMD(s string, p *dateTime) bool {
 		return false
 	}
 	rest = strings.TrimLeft(rest, " ")
-	if strings.HasPrefix(rest, "T") {
-		rest = rest[1:]
-	}
+	rest = strings.TrimPrefix(rest, "T")
 	if rest != "" {
 		if !parseHMS(rest, p) {
 			return false

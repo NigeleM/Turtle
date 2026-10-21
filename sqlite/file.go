@@ -1152,9 +1152,6 @@ func (f *dbFile) text(b []byte) string {
 	return string(utf16.Decode(u))
 }
 
-// errStop ends a scan early without an error.
-var errStop = errors.New("stop")
-
 // journalMode is what PRAGMA journal_mode reports.
 func (f *dbFile) journalMode() string {
 	if f.wal {

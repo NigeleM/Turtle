@@ -5,7 +5,6 @@
 package evaluator
 
 import (
-	"fmt"
 	"math"
 	"math/big"
 	"slices"
@@ -1179,22 +1178,6 @@ func fieldOf(obj object.Object, field string) (*object.Assembly, int) {
 // Going past either end is an error rather than silently wrapping around
 // to the other end, the way Swift and Rust (in debug builds) handle it.
 
-func addInt(a, b int64) int64 {
-	r := a + b
-	if (a > 0 && b > 0 && r < 0) || (a < 0 && b < 0 && r >= 0) {
-		overflow("+", a, b)
-	}
-	return r
-}
-
-func subInt(a, b int64) int64 {
-	r := a - b
-	if (a >= 0 && b < 0 && r < 0) || (a < 0 && b > 0 && r >= 0) {
-		overflow("-", a, b)
-	}
-	return r
-}
-
 // floatChecked is a float result, or an error when it can't be shown as a
 // number: past the float range (infinity) or not a number at all (NaN).
 func floatChecked(op string, f float64) object.Object {
@@ -1205,26 +1188,6 @@ func floatChecked(op string, f float64) object.Object {
 		fatalKind(kindMath, "the result of %s is too big for a float (past about 1.8e308)", op)
 	}
 	return &object.Float{Value: f}
-}
-
-func mulInt(a, b int64) int64 {
-	if a == 0 || b == 0 {
-		return 0
-	}
-	r := a * b
-	if r/b != a || (a == -1 && b == math.MinInt64) || (b == -1 && a == math.MinInt64) {
-		overflow("*", a, b)
-	}
-	return r
-}
-
-func overflow(op string, a, b int64) {
-	expr := fmt.Sprintf("%d %s %d", a, op, b)
-	if op == "-" && b == 0 {
-		expr = fmt.Sprintf("-(%d)", a)
-	}
-	fatalKind(kindMath, "integer overflow: %s is past the integer limits (%d to %d); use a float (e.g. 1.0) for bigger numbers",
-		expr, int64(math.MinInt64), int64(math.MaxInt64))
 }
 
 // userFunction reports whether name is the program's own function (a

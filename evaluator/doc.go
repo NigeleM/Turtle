@@ -206,11 +206,6 @@ func fileDoc(name, src string) string {
 	return sb.String()
 }
 
-func commentText(line string) string {
-	t := strings.TrimPrefix(strings.TrimSpace(line), "//")
-	return strings.TrimPrefix(t, " ")
-}
-
 // editDistance counts the letters to add, remove or change to turn a
 // into b, to suggest names for a misspelling.
 func editDistance(a, b string) int {

@@ -17,7 +17,6 @@ import (
 	"bufio"
 	"crypto/tls"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -53,14 +52,13 @@ func errorf(format string, args ...any) error {
 
 // DB is one connection to a server.
 type DB struct {
-	conn     net.Conn
-	r        *bufio.Reader
-	w        []byte // the message being built
-	status   byte   // from ReadyForQuery: I idle, T in a transaction, E failed transaction
-	params   map[string]string
-	closed   bool
-	name     string
-	nextStmt int
+	conn   net.Conn
+	r      *bufio.Reader
+	w      []byte // the message being built
+	status byte   // from ReadyForQuery: I idle, T in a transaction, E failed transaction
+	params map[string]string
+	closed bool
+	name   string
 }
 
 // Open connects to postgres://user:password@host:port/database. Query
@@ -597,5 +595,3 @@ func QuoteIdent(name string) string {
 
 // Name is the server and database, for messages.
 func (db *DB) Name() string { return db.name }
-
-var errClosed = errors.New("closed")
