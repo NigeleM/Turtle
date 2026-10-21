@@ -154,10 +154,16 @@ func noteFuncVar(name string) {
 
 // put sets name in this exact scope.
 func (e *Environment) put(name string, val Object) {
+	e.store(e.find(name), name, val)
+}
+
+// store sets name to val at index i of this scope's vars, which is where
+// find put it, or adds it as a new binding when i is -1.
+func (e *Environment) store(i int, name string, val Object) {
 	if _, ok := val.(*Function); ok {
 		noteFuncVar(name)
 	}
-	if i := e.find(name); i >= 0 {
+	if i >= 0 {
 		e.vars[i].val = val
 		return
 	}
@@ -277,8 +283,8 @@ func (e *Environment) SetUnlessShadows(name string, val Object) (shadows, global
 		}
 		e = e.outer
 	}
-	if e.outer == nil || e.find(name) >= 0 {
-		e.put(name, val)
+	if i := e.find(name); e.outer == nil || i >= 0 {
+		e.store(i, name, val)
 		return false, false
 	}
 	for s := e.outer; s != nil; s = s.outer {
