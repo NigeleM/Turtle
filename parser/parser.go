@@ -2069,6 +2069,11 @@ func (p *Parser) interpolatedPart(tok token.Token, src string) ast.Expression {
 		p.errorAt(tok.Line, tok.Pos, "{%s} in a string: %s (for a plain brace, write \\{)", src, why)
 		return &ast.StringLiteral{Token: tok}
 	}
+	// {2} in text is the value 2, which is rarely meant: a note says how to
+	// keep the braces as text. Expressions such as {x} or {1+1} are not noted.
+	if _, err := strconv.ParseFloat(strings.TrimSpace(src), 64); err == nil {
+		p.warnAt(tok.Line, tok.Pos, "{%s} in a string is the value %s, not the text {%s}: to keep the braces as text, write \\{%s}", src, strings.TrimSpace(src), src, src)
+	}
 	if strings.TrimSpace(src) == "" {
 		return fail("put a name or expression inside the braces")
 	}

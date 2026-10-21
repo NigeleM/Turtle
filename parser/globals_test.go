@@ -38,3 +38,28 @@ func TestWarnsWhenAFunctionShadowsATopLevelName(t *testing.T) {
 		}
 	}
 }
+
+// A number alone in braces in text is noted, since it's read as the value;
+// a variable or an expression in braces is not.
+func TestNoteForANumberInBraces(t *testing.T) {
+	cases := []struct {
+		src  string
+		want int
+	}{
+		{"show \"f(g(h[1]{2}))\" .\n", 1},
+		{"x = 3\nshow \"{x} and {1+1}\" .\n", 0},
+	}
+	for _, c := range cases {
+		p := New(lexer.New(c.src))
+		p.ParseProgram()
+		got := 0
+		for _, w := range p.Warnings() {
+			if strings.Contains(w.Msg, "is the value 2, not the text") {
+				got++
+			}
+		}
+		if got != c.want {
+			t.Errorf("%q: %d notes, want %d (%v)", c.src, got, c.want, p.Warnings())
+		}
+	}
+}

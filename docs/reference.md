@@ -483,6 +483,8 @@ show "a plain \{brace\}" .                       // a plain {brace}
   show "{}" .                                // {}
   ```
 
+  A number alone in braces, such as `{2}`, is read as the value 2 and gets a note:
+  write `\{2}` to keep the braces as text.
   `\{` is always a plain brace; use it for other text with braces,
   like `"set \{1, 2}"`. A `{` with no closing `}` or an unfinished
   expression is a parse error. A `}` on its own is plain text.
