@@ -142,7 +142,7 @@ const maxCallDepth = 100000
 // their sentence words active (see loglib.go, testlib.go). Anything else falls through to
 // the file-based import.
 var builtinModules = map[string]*object.Module{
-	"math":     {Name: "math", Methods: []string{"sqrt", "abs", "round", "floor", "ceil", "pow", "random", "is_close"}},
+	"math":     {Name: "math", Methods: []string{"sqrt", "abs", "round", "floor", "ceil", "pow", "random", "is_close", "sin", "cos", "tan", "exp", "log"}},
 	"time":     {Name: "time", Funcs: []string{"now", "sleep", "today", "today_utc", "make_date", "to_date", "to_zone", "add_time", "time_between", "format_date", "wait_until", "every"}},
 	"data":     {Name: "data", Funcs: append([]string{"process", "keep", "unique", "group", "table_column", "table_row", "copy", "table", "table_read", "table_write", "range", "reduce", "sum"}, statsFuncs...)},
 	"system":   {Name: "system", Aliases: map[string]string{"isFile": "isfile", "isFolder": "isfolder", "scriptFolder": "scriptfolder"}, Funcs: []string{"args", "exists", "isfile", "isfolder", "exit", "env", "scriptfolder", "contents", "erase", "warn", "copyto", "moveto", "makefolder", "walk", "pack", "unpack", "loadenv", "options", "memory", "sizeof", "freememory"}},

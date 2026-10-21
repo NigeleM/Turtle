@@ -95,9 +95,9 @@ decades = map []
 [loop][b in books]
     d = year of b div 10 * 10
     if ] decades at contains[d] [
-        decades is decades at add[d, decades at get[d] + 1] .
+        decades is decades at put[decades at get[d] + 1, d] .
     else ]
-        decades is decades at add[d, 1] .
+        decades is decades at put[1, d] .
     if [end]
 [loop][end]
 check["for-each and map", decades at get[1980], 2]

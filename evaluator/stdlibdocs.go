@@ -20,6 +20,36 @@ var moduleDocs = map[string]string{
   Example:
     r is 16 at sqrt .
 
+### number at sin
+  The sine of an angle in radians (a full turn is 2 * pi). Gives back: a float.
+  Example:
+    s is (math pi / 2) at sin .            // 1.0
+
+### number at cos
+  The cosine of an angle in radians. Gives back: a float.
+  Example:
+    c is 0 at cos .                        // 1.0
+
+### number at tan
+  The tangent of an angle in radians. Gives back: a float.
+  Example:
+    t is 0 at tan .                        // 0.0
+
+### number at exp
+  e raised to the number: 0 at exp is 1.0. A result too big for a float is
+  a math error.
+  Example:
+    g is 2 at exp .                        // 7.38905609893065
+
+### number at log
+  The natural logarithm (base e) of a number above 0. With a base, the
+  logarithm in that base: 1000 at log[10] is 3.0. Zero or a negative number
+  is a math error.
+  base       optional: a base above 0 and not 1.
+  Example:
+    n is 1 at exp at log .                 // 1.0
+    d is 1000 at log[10] .                 // 3.0
+
 ### number at is_close
   Whether two numbers are close, by the same rule as "check ... is close to":
   within 1e-9 of the larger one, or 1e-12 of each other, whichever is more.

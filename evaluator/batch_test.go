@@ -294,3 +294,81 @@ func TestDateTostring(t *testing.T) {
 		t.Errorf("want the date method error, got %v", err)
 	}
 }
+
+// ß has no single capital letter, so upper gives SS, as Python does.
+func TestUpperSharpS(t *testing.T) {
+	got, err := run(t, "show \"straße\" at upper .", "")
+	if err != nil || got != "STRASSE\n" {
+		t.Errorf("got %q, %v", got, err)
+	}
+}
+
+// sin, cos, tan, exp and log come with import math; log takes an optional base.
+func TestMathTrigAndLogarithms(t *testing.T) {
+	got, err := run(t, "import math\nshow 0 at sin, \" \", 0 at cos, \" \", 0 at exp, \" \", 1 at log, \" \", 1000 at log[10], \" \", 8 at log[2] .", "")
+	if err != nil || got != "0.0 1.0 1.0 0.0 3.0 3.0\n" {
+		t.Errorf("got %q, %v", got, err)
+	}
+	if _, err := run(t, "import math\nshow 0 at log .", ""); err == nil || !strings.Contains(err.Error(), "'log' needs a number above 0") {
+		t.Errorf("log of zero: %v", err)
+	}
+	if _, err := run(t, "import math\nshow 1000 at exp .", ""); err == nil || !strings.Contains(err.Error(), "'exp' is too big") {
+		t.Errorf("exp overflow: %v", err)
+	}
+	if _, err := run(t, "show 1 at sin .", ""); err == nil || !strings.Contains(err.Error(), `"sin" needs "import math" first`) {
+		t.Errorf("sin without import: %v", err)
+	}
+}
+
+// A method's argument without brackets stops before an operator; a sentence
+// call's argument takes it. Parentheses or brackets give either form the sum.
+func TestArgumentReachOfMethodsAndSentenceCalls(t *testing.T) {
+	src := `import data
+nums = list [10, 20, 30]
+i = 1
+show nums at get i + 1 .
+show nums at get (i + 1) .
+show nums at get[i + 1] .
+show (nums at get i) + 1 .
+show nums get i + 1 .
+show (nums get i) + 1 .`
+	got, err := run(t, src, "")
+	if err != nil || got != "21\n30\n30\n21\n30\n21\n" {
+		t.Errorf("got %q, %v", got, err)
+	}
+}
+
+// pop removes the last item, or with a position the item there, and gives it back.
+func TestPopWithPosition(t *testing.T) {
+	got, err := run(t, "nums = list [1, 2, 3, 2]\nshow nums at pop, \" \", nums .\nnums2 = list [1, 2, 3]\nfirst = nums2 at pop[0]\nshow first, \" \", nums2 .\nnums2 at pop[1] .\nshow nums2 .", "")
+	if err != nil || got != "2 [ 1, 2, 3 ]\n1 [ 2, 3 ]\n[ 2 ]\n" {
+		t.Errorf("got %q, %v", got, err)
+	}
+	if _, err := run(t, "nums = list [1]\nnums at pop[5] .", ""); err == nil || !strings.Contains(err.Error(), "out of range") {
+		t.Errorf("out of range: %v", err)
+	}
+}
+
+// min and max take lists and sets of numbers, text or booleans. A list or set
+// nested inside, or two values of different kinds, is an error that names
+// max_sort or min_sort; sort still orders lists of lists.
+func TestMinMaxTakeSimpleValues(t *testing.T) {
+	got, err := run(t, "nums = list [3, 9, 2]\nst = set [3, 9, 2]\nwords = list [\"b\", \"a\", \"c\"]\nshow max of nums, \" \", min[st], \" \", max of words .", "")
+	if err != nil || got != "9 2 c\n" {
+		t.Errorf("got %q, %v", got, err)
+	}
+	cases := []struct{ src, want string }{
+		{"show max of set [set [1], set [2]] .", "max can't compare set values with each other"},
+		{"show min[1, \"a\"] .", "min can't compare string and integer"},
+		{"rows = list [map [\"v\": 3]]\nshow max[rows, \"v\"] .", "max_sort or min_sort from import sort"},
+	}
+	for _, c := range cases {
+		if _, err := run(t, c.src, ""); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%q: %v, want %q", c.src, err, c.want)
+		}
+	}
+	got, err = run(t, "lists = list [list [9, \"a\"], list [2, \"c\"]]\nsort lists .\nshow lists .", "")
+	if err != nil || got != "[ [ 2, \"c\" ], [ 9, \"a\" ] ]\n" {
+		t.Errorf("sort lists of lists: %q, %v", got, err)
+	}
+}

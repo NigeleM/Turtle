@@ -84,10 +84,10 @@ mismatches = list []
         out = runall[list [fill[run of lang, name]]] at get[0]
         got = ms[output of out]
         if ] got == none [
-            row is row at add[name of lang, "error"] .
+            row is row at put["error", name of lang] .
             show "  ", name of lang, " failed: ", errors of out, output of out .
         else ]
-            row is row at add[name of lang, got at get[1]] .
+            row is row at put[got at get[1], name of lang] .
             if ] want == none [
                 want = got at get[0]
             else if ] got at get[0] != want [
@@ -111,7 +111,7 @@ startup = map ["benchmark": "startup (hello)"]
                 best = took
             if [end]
         [loop][end]
-        startup is startup at add[name of lang, best] .
+        startup is startup at put[best, name of lang] .
     if [end]
 [loop][end]
 add startup to rows .

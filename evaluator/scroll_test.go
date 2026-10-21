@@ -371,7 +371,7 @@ func TestOfGetHint(t *testing.T) {
 // add ... to a map or list at a place changes the value there, by its
 // type: numbers add up, lists and sets take the item. put sets a key.
 func TestAddToMapAtKey(t *testing.T) {
-	got, err := run(t, "ages = map [\"Ann\": 30]\nadd 12 to ages at \"Cy\" .\nadd 12 to ages at \"Cy\" .\nadd 1 to ages at \"Ann\" .\nages is ages at add[\"Bo\", 7] .\nshow ages .", "")
+	got, err := run(t, "ages = map [\"Ann\": 30]\nadd 12 to ages at \"Cy\" .\nadd 12 to ages at \"Cy\" .\nadd 1 to ages at \"Ann\" .\nages is ages at put[7, \"Bo\"] .\nshow ages .", "")
 	if err != nil || strings.TrimSpace(got) != `{ "Ann": 31, "Cy": 24, "Bo": 7 }` {
 		t.Errorf("got %q, %v", got, err)
 	}
@@ -420,11 +420,11 @@ func TestSortExact(t *testing.T) {
 // is inside.
 func TestDiagnoseShowsEachStepAsItWas(t *testing.T) {
 	src := `def add_fee[m]
-    m at add "fee", 50 .
+    m at put 50, "fee" .
     return m
 def [end]
 def add_tax[m]
-    m at add "tax", 8 .
+    m at put 8, "tax" .
     return m
 def [end]
 price = scroll add_fee, add_tax .

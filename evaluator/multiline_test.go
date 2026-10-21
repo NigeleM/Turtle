@@ -24,7 +24,7 @@ func TestBracketsOverLines(t *testing.T) {
 		{"function parameters", "def f[\n    a,\n    b\n]\n    return a + b\ndef [end]\nshow f[1, 2] .", "3\n"},
 		{"library call", "import data\ny = range[\n    0, 3,\n]\nshow y .", "[ 0, 1, 2 ]\n"},
 		{"method", "x = list [3, 1]\ny = x at get[\n    0\n]\nshow y .", "3\n"},
-		{"method in an is statement", "m = map []\nm is m at add[\n    \"a\", 1\n] .\nshow m .", "{ \"a\": 1 }\n"},
+		{"method in an is statement", "m = map []\nm is m at put[\n    1, \"a\"\n] .\nshow m .", "{ \"a\": 1 }\n"},
 		{"import names, trailing comma", "import time [\n    now,\n    today,\n]\nshow today[] != none .", "true\n"},
 		{"if ] name [", "ready = true\nif ] ready [\n    show \"go\" .\nif [end]", "go\n"},
 		{"if ] x at isempty [", "x = list []\nif ] x at isempty [\n    show \"empty\" .\nif [end]", "empty\n"},

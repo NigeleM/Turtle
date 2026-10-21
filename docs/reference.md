@@ -113,8 +113,8 @@ error that says so).
 | `list` | makes a list | `list [1, 2, 3]` | [Data structures](#data-structures) |
 | `loop` | repeats code | `[loop][x in nums]`, `[loop][i = 0; i < 3; i++]` | [Loops](#loops) |
 | `map` | makes a map of keys to values | `map ["a": 1]` | [Data structures](#data-structures) |
-| `max` | the largest item | `max of nums` | [Data structures](#data-structures) |
-| `min` | the smallest item | `min of nums` | [Data structures](#data-structures) |
+| `max` | the largest item (`max of nums`, or `max[nums]`, or `max[a, b]`) | `max of nums` | [Data structures](#data-structures) |
+| `min` | the smallest item (`min of nums`, or `min[nums]`, or `min[a, b]`) | `min of nums` | [Data structures](#data-structures) |
 | `none` | no value | `x = none` | [None](#none) |
 | `of` | a field or key of a value | `qty of order`, `length of nums` | [Assembled types](#assembled-types) |
 | `read` | reads a file's lines | `[read] notes.txt to lines [end]` | [Files](#files) |
@@ -306,6 +306,20 @@ right: `10 - 4 - 3` is `3`, `100 / 10 / 5` is `2`. Expressions can be
 as long and nested as you like:
 `1 + 2 - 3 + 4 - (5 + 6) + 7 * 8` is `49`,
 `2 * (3 + 4) * (5 - (6 - 7))` is `84`.
+
+**Arguments and operators.** How far an argument reaches depends on the form:
+
+| Written as | Means | Result for `nums = list [10, 20, 30]`, `i = 1` |
+|---|---|---|
+| `nums at get i + 1` | `(nums at get i) + 1`: the method's argument stops before `+` | `21` |
+| `nums at get (i + 1)` | the item after `i` | `30` |
+| `nums at get[i + 1]` | the item after `i` | `30` |
+| `nums get i + 1` | `nums get (i + 1)`: a sentence call's argument takes the `+` | `30` |
+| `(nums get i) + 1` | the item at `i`, plus 1 | `21` |
+
+So: a method (`at`) takes one value as its bracket-less argument, and a
+sentence call takes the arithmetic. To give a method the whole sum, use
+parentheses or brackets. To add to the item, put the call in parentheses.
 
 Function calls: `<name>[<expr>, ...]` — Turtle uses `[...]` for call and
 definition argument lists, not `(...)`. See also sentence-style calls
@@ -524,6 +538,9 @@ top-level variables; it never sees the *caller's* locals. A parameter/local
 of the same name shadows the outer one. Assignment always writes to the
 call's own local scope, never an outer one, so `x = ...` inside a function
 can't clobber a global `x` — it just shadows it for the rest of that call.
+When a function assigns a name that the file also sets at top level, Turtle prints a
+note where the assignment is (once per name and function), because that assignment makes a local and
+the top-level value stays the same. The editor shows the same note.
 Reading the outer one to assign it, as in `count = count + 1` with no local
 `count` yet, is an error that says what to do instead: give the function
 the value and return the new one, or keep it in a list or map.
@@ -1506,6 +1523,7 @@ put <expr> to <ident> at <expr> .  // replaces the item there (list), or sets th
 length of <expr> .                 // prints
 min of <expr> .                     // prints
 max of <expr> .                      // prints
+min[<expr>] .  or  min[<a>, <b>, ...] .   // the same as min of, without of; max[...] likewise
 ```
 
 Method-call form:

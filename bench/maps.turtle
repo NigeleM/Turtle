@@ -5,7 +5,7 @@ best = 1000000000
     t = now[]
     m = map []
     [loop][i = 0; i < 200000; i++]
-        m is m at add["k{i}", i] .
+        m is m at put[i, "k{i}"] .
     [loop][end]
     total = 0
     [loop][i = 0; i < 200000; i++]

@@ -222,12 +222,12 @@ func sortElements(elems []object.Object) {
 	// Mixed values compare like with like, as in Python: numbers with
 	// numbers, text with text, lists element by element. Anything else
 	// stops with an error rather than a guess.
-	slices.SortStableFunc(elems, compareSortValues)
+	slices.SortStableFunc(elems, orderValues)
 }
 
-// compareSortValues orders two values for sort, or stops with an error
-// when they can't be compared.
-func compareSortValues(a, b object.Object) int {
+// orderValues orders two values for sort, element by element for lists, or
+// stops with an error when they can't be compared.
+func orderValues(a, b object.Object) int {
 	fa, _, aNum := numeric(a)
 	fb, _, bNum := numeric(b)
 	ta, tb := typeName(a), typeName(b)
@@ -247,11 +247,37 @@ func compareSortValues(a, b object.Object) int {
 	return 0
 }
 
+// extremeOrder orders two values for min or max. Only values of one simple
+// kind compare: numbers, text or booleans. Lists and maps don't, because a
+// list of lists or a record needs a key to say what's largest, which is what
+// max_sort and min_sort (import sort) are for.
+func extremeOrder(verb string, a, b object.Object) int {
+	fa, _, aNum := numeric(a)
+	fb, _, bNum := numeric(b)
+	ta, tb := typeName(a), typeName(b)
+	hint := ". min and max take a list or set of numbers, text or booleans; for a list of lists, a set of sets or a record, use max_sort or min_sort from import sort, as in max_sort[rows, \"v\", \"first\"]"
+	switch {
+	case aNum && bNum:
+		return cmp.Compare(fa, fb)
+	case isText(a) && isText(b):
+		return strings.Compare(a.(*object.String).Value, b.(*object.String).Value)
+	case isBool(a) && isBool(b):
+		return cmp.Compare(boolRank(a), boolRank(b))
+	case ta == tb:
+		fatalKind(kindType, "%s can't compare %s values with each other%s", verb, ta, hint)
+	}
+	if isList(a) || isList(b) || typeName(a) == "map" || typeName(b) == "map" {
+		fatalKind(kindType, "%s can't compare %s and %s: the values must be the same kind%s", verb, ta, tb, hint)
+	}
+	fatalKind(kindType, "%s can't compare %s and %s: the values must be the same kind", verb, ta, tb)
+	return 0
+}
+
 // compareLists orders two lists element by element, then by length, as
 // Python does: [2, "c"] comes before [9, "a"].
 func compareLists(a, b *object.List) int {
 	for i := 0; i < len(a.Elements) && i < len(b.Elements); i++ {
-		if c := compareSortValues(a.Elements[i], b.Elements[i]); c != 0 {
+		if c := orderValues(a.Elements[i], b.Elements[i]); c != 0 {
 			return c
 		}
 	}
@@ -297,44 +323,52 @@ func (it *Interpreter) lengthOf(obj object.Object) int {
 	}
 }
 
+// extreme is min or max: "min of x" takes the collection x, and "min[a, b]"
+// takes the values (min[nums] is the collection, as a single argument).
+// Values compare as sort does, so mixing kinds is an error.
+func (it *Interpreter) extreme(argExpr ast.Expression, argExprs []ast.Expression, env *object.Environment, wantMin bool) object.Object {
+	if argExprs == nil {
+		return it.reduceExtreme(argExpr, env, wantMin)
+	}
+	if len(argExprs) == 1 {
+		return it.reduceExtreme(argExprs[0], env, wantMin)
+	}
+	candidates := make([]object.Object, len(argExprs))
+	for i, e := range argExprs {
+		candidates[i] = it.evalExpression(e, env)
+	}
+	return pickExtreme(candidates, wantMin)
+}
+
 func (it *Interpreter) reduceExtreme(argExpr ast.Expression, env *object.Environment, wantMin bool) object.Object {
 	obj := it.evalExpression(argExpr, env)
-	var candidates []object.Object
 	switch v := obj.(type) {
 	case *object.List:
-		candidates = v.Elements
+		return pickExtreme(v.Elements, wantMin)
 	case *object.Set:
-		candidates = v.Elements
+		return pickExtreme(v.Elements, wantMin)
 	case *object.Map:
-		candidates = v.KeyList()
-	default:
-		fatalf("'min/max of' needs a list, set, or map, got %s", typeName(obj))
+		return pickExtreme(v.KeyList(), wantMin)
+	}
+	fatalf("'min/max of' needs a list, set, or map, got %s", typeName(obj))
+	return nil
+}
+
+func pickExtreme(candidates []object.Object, wantMin bool) object.Object {
+	verb := "max"
+	if wantMin {
+		verb = "min"
 	}
 	if len(candidates) == 0 {
-		fatalKind(kindIndex, "'min/max of' called on an empty collection")
+		fatalKind(kindIndex, "'min/max' called on an empty collection")
 	}
 	best := candidates[0]
 	for _, c := range candidates[1:] {
-		if better(c, best, wantMin) {
+		if c2 := extremeOrder(verb, c, best); (wantMin && c2 < 0) || (!wantMin && c2 > 0) {
 			best = c
 		}
 	}
 	return best
-}
-
-func better(a, b object.Object, wantMin bool) bool {
-	af, _, aok := numeric(a)
-	bf, _, bok := numeric(b)
-	if aok && bok {
-		if wantMin {
-			return af < bf
-		}
-		return af > bf
-	}
-	if wantMin {
-		return a.Inspect() < b.Inspect()
-	}
-	return a.Inspect() > b.Inspect()
 }
 
 // ---- method-call form: "result is receiver at method arg, arg ." -------
@@ -523,12 +557,25 @@ func listMethod(l *object.List, method string, args []object.Object) object.Obje
 		reverseElements(l.Elements)
 		return l
 	case "pop":
+		// pop removes and gives back the last item; pop[i] does the same for
+		// the item at position i (pop[0] is the first).
+		if len(args) > 1 {
+			fatalf("'pop' takes an optional position: pop or pop[i], got %d argument(s)", len(args))
+		}
 		if len(l.Elements) == 0 {
 			fatalKind(kindIndex, "'pop' called on an empty list")
 		}
-		last := l.Elements[len(l.Elements)-1]
-		l.Elements = l.Elements[:len(l.Elements)-1]
-		return last
+		i := len(l.Elements) - 1
+		if len(args) == 1 {
+			idx, ok := args[0].(*object.Integer)
+			if !ok {
+				fatalf("'pop' needs a whole-number position, got %s", typeName(args[0]))
+			}
+			i = listIndex("list", int(idx.Value), len(l.Elements))
+		}
+		item := l.Elements[i]
+		l.Elements = append(l.Elements[:i:i], l.Elements[i+1:]...)
+		return item
 	case "find", "contains":
 		requireArgs(method, args, 1)
 		for _, e := range l.Elements {
@@ -742,8 +789,14 @@ func mapMethod(m *object.Map, method string, args []object.Object) object.Object
 		list.Elements = m.KeyList()
 		return list
 	case "add":
+		// add[value, key] is the statement "add value to m at key".
 		requireArgs(method, args, 2)
-		m.Put(args[0], args[1])
+		addAt("map", m, args[1], args[0])
+		return m
+	case "put":
+		// put[value, key] is the statement "put value to m at key": it sets the key.
+		requireArgs(method, args, 2)
+		m.Put(args[1], args[0])
 		return m
 	case "delete":
 		requireArgs(method, args, 1)
@@ -752,8 +805,14 @@ func mapMethod(m *object.Map, method string, args []object.Object) object.Object
 		}
 		return m
 	case "invert":
+		// Two keys with one value can't both be keys of the result: the later
+		// one wins, and a warning says which entry was dropped.
 		result := object.NewMap()
 		for _, e := range m.Entries() {
+			if old, dup := result.Get(e.Val); dup {
+				stderrLine(fmt.Sprintf("warning: %s is the value of both %s and %s, so the inverted map keeps only %s (line %d)",
+					object.Shown(e.Val), object.Shown(old), object.Shown(e.Key), object.Shown(e.Key), currentLine))
+			}
 			result.Put(e.Val, e.Key)
 		}
 		return result
@@ -782,7 +841,8 @@ func stringMethod(s *object.String, method string, args []object.Object) object.
 		return object.Bool(err == nil)
 	case "upper":
 		requireArgs(method, args, 0)
-		return &object.String{Value: strings.ToUpper(s.Value)}
+		// ß has no single capital letter, so it becomes SS, as Python does.
+		return &object.String{Value: strings.ReplaceAll(strings.ToUpper(s.Value), "ß", "SS")}
 	case "lower":
 		requireArgs(method, args, 0)
 		return &object.String{Value: strings.ToLower(s.Value)}
@@ -885,6 +945,14 @@ func runeIndexOf(s, sub string) int {
 // of these require "import math" first (see requireModule) — they're a
 // bundle of library functionality on top of the core +-*/% operators,
 // not core syntax.
+// mathOf is a math method of one number with no argument: sin, cos, exp.
+func mathOf(env *object.Environment, method string, receiver object.Object, args []object.Object, f func(float64) float64) object.Object {
+	requireModule(env, "math", method)
+	requireArgs(method, args, 0)
+	x, _, _ := numeric(receiver)
+	return &object.Float{Value: f(x)}
+}
+
 func (it *Interpreter) numberMethod(receiver object.Object, method string, args []object.Object, env *object.Environment) object.Object {
 	switch method {
 	case "fixed":
@@ -902,6 +970,42 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 			fatalf("'is_close' needs a number to compare with, got %s", typeName(args[0]))
 		}
 		return object.Bool(closeEnough(a, b, closeTolerance("is_close", args[1:])))
+	case "sin":
+		return mathOf(env, method, receiver, args, math.Sin)
+	case "cos":
+		return mathOf(env, method, receiver, args, math.Cos)
+	case "tan":
+		return mathOf(env, method, receiver, args, math.Tan)
+	case "exp":
+		r := mathOf(env, method, receiver, args, math.Exp)
+		if math.IsInf(r.(*object.Float).Value, 0) {
+			fatalKind(kindMath, "'exp' is too big for a float (the result is more than about 1.8e308)")
+		}
+		return r
+	case "log":
+		requireModule(env, "math", "log")
+		if len(args) > 1 {
+			fatalf("'log' takes an optional base: x at log or x at log[10], got %d argument(s)", len(args))
+		}
+		f, _, _ := numeric(receiver)
+		if f <= 0 {
+			fatalKind(kindMath, "'log' needs a number above 0, got %v", f)
+		}
+		if len(args) == 0 {
+			return &object.Float{Value: math.Log(f)}
+		}
+		base, _, _ := numeric(args[0])
+		if base <= 0 || base == 1 {
+			fatalKind(kindMath, "'log' needs a base above 0 and not 1, got %v", base)
+		}
+		// Base 10 and 2 use the exact functions, so 1000 at log[10] is 3.0.
+		switch base {
+		case 10:
+			return &object.Float{Value: math.Log10(f)}
+		case 2:
+			return &object.Float{Value: math.Log2(f)}
+		}
+		return &object.Float{Value: math.Log(f) / math.Log(base)}
 	case "sqrt":
 		requireModule(env, "math", "sqrt")
 		requireArgs(method, args, 0)

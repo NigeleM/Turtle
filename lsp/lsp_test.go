@@ -665,3 +665,19 @@ func TestRedefinitionWarns(t *testing.T) {
 		t.Errorf("one def should have no warnings, got %+v", b.diags)
 	}
 }
+
+// A function that assigns a top-level name makes a local of it, so the
+// editor warns on that line (the same note the terminal prints).
+func TestShadowingAssignmentWarns(t *testing.T) {
+	src := "best = 1000000\ndef set_best[v]\n    if ] v < best [\n        best = v\n    if [end]\ndef [end]\n"
+	a := analyze(fileURI("/tmp/shadow.turtle"), "/tmp/shadow.turtle", src, newText(src, false))
+	var found bool
+	for _, d := range a.diags {
+		if d.Severity == severityWarning && strings.Contains(d.Message, "best is also a top-level variable") && d.Range.Start.Line == 3 {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("no warning on line 4 for the shadowing assignment: %+v", a.diags)
+	}
+}

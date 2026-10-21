@@ -40,6 +40,20 @@ arbitrary expression).
 | `min of <expr> .` | list, set, map | Prints the smallest element (list/set) or smallest **key** (map; values aren't compared). |
 | `max of <expr> .` | list, set, map | Same as `min of`, but largest. |
 
+`min` and `max` compare the items of a list or set, and the items must be
+numbers, text or booleans, all of one kind. A list or set inside a list or
+set is an error: for a list of lists, a set of sets, or a record, use
+`max_sort` or `min_sort` from `import sort`, which take a key, as in
+`max_sort[rows, "v", "first"]`.
+| `min[<expr>]` | list, set, map | The smallest element, as an expression: `x = min[nums]`. Same as `min of nums`. |
+| `min[<a>, <b>, ...]` | any values that compare | The smallest of the values: `lo = min[3, 5]` is 3. Mixing numbers and text is an error, as in `sort`. |
+| `max[<expr>]`, `max[<a>, <b>, ...]` | as `min` | The largest, the same way. |
+
+`min[...]` and `max[...]` need no `of`, so they can be used anywhere an
+expression can, including right before a method: `min[nums] at pow[2]` is the
+smallest number squared, where `min of nums at pow[2]` would apply the method
+to `nums` alone. `min of` and `max of` keep working as before.
+
 `length of`/`min of`/`max of` are also ordinary expressions usable anywhere
 (`x = 1 + length of nums`) — they only print when they're the entire
 statement. They apply to the value right after `of`, so
@@ -84,9 +98,9 @@ nums at put[9, 0]
 | `count` | value | number of matching elements (Integer) |
 | `index` | value | first matching index, or `-1` |
 | `sort` | — | the list, sorted |
-| `remove` | value | the list, first match removed (the earliest one when a value repeats; `pop` takes the last) |
+| `remove` | value | the list, first match removed (the earliest one when a value repeats). To remove by position, use `pop` (last, `pop[0]` first, `pop[i]` at `i`) |
 | `reverse` | — | the list, reversed |
-| `pop` | — | the **removed last element** (fatal if empty) |
+| `pop` | [position] | removes the item and gives it back. With no position, the **last** item. With a position, that item: `pop[0]` is the first, `pop[i]` the one at `i`. Fatal if empty or out of range. To remove without using the item, write `nums at pop .` as a statement. |
 | `contains` / `find` | value | Boolean, whether present: `nums at contains[3]` |
 | `insert` | value, index | the list, with value inserted |
 | `put` | value, index | the list, with the item at index replaced: `nums at put[99, 2]` (the same order as `insert`) |
@@ -120,9 +134,10 @@ methods per type.)
 | `getvalues` | — | a list of values, insertion order |
 | `getkeys` | — | a list of the keys, insertion order, each with its own type |
 | `isempty` | — | Boolean: `true` when the map has no entries |
-| `add` | key, value | the map, with the entry set |
+| `add` | value, key | the map: the statement `add value to m at key` (a new key gets the value; an existing number adds up, text joins on, a list or set takes the value) |
+| `put` | value, key | the map, with the key set to the value (new or not) |
 | `delete` | key | the map, with the entry removed (fatal if not found) |
-| `invert` | — | new map: values become keys, keys become values. When two keys share a value, only one entry survives: the later key in insertion order (`{"Ana": "B", "Eli": "B"}` inverts to `{"B": "Eli"}`) |
+| `invert` | — | new map: values become keys, keys become values. When two keys share a value, only one entry survives: the later key in insertion order (`{"Ana": "B", "Eli": "B"}` inverts to `{"B": "Eli"}`), and Turtle prints a warning naming the dropped key |
 | `tostring` | — | display string |
 
 ### string
@@ -134,7 +149,7 @@ All indices are Unicode code points (runes), not bytes — consistent with
 | Method | Args | Returns |
 |---|---|---|
 | `len` / `length` | — | how many characters (Integer), like `length of s` |
-| `upper` / `lower` | — | case-converted string |
+| `upper` / `lower` | — | case-converted string. `upper` turns `ß` into `SS`, as Python does (`"straße" at upper` is `"STRASSE"`) |
 | `reverse` | — | the text backwards, character by character: `"héllo" at reverse` is `"olléh"` |
 | `isempty` | — | Boolean: `true` for `""` |
 | `trim` | — | leading/trailing whitespace stripped |

@@ -94,8 +94,14 @@ func exprText(e ast.Expression) string {
 		}
 		return params + " give ..."
 	case *ast.MinExpression:
+		if x.Args != nil {
+			return "min[" + exprList(x.Args) + "]"
+		}
 		return "min of " + exprText(x.Arg)
 	case *ast.MaxExpression:
+		if x.Args != nil {
+			return "max[" + exprList(x.Args) + "]"
+		}
 		return "max of " + exprText(x.Arg)
 	case *ast.LengthExpression:
 		return "length of " + exprText(x.Arg)

@@ -184,9 +184,9 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 		return it.evalMethodCall(e, env)
 
 	case *ast.MinExpression:
-		return it.reduceExtreme(e.Arg, env, true)
+		return it.extreme(e.Arg, e.Args, env, true)
 	case *ast.MaxExpression:
-		return it.reduceExtreme(e.Arg, env, false)
+		return it.extreme(e.Arg, e.Args, env, false)
 	case *ast.LengthExpression:
 		return object.Int(int64(it.lengthOf(it.evalExpression(e.Arg, env))))
 	case *ast.MatrixLiteral:

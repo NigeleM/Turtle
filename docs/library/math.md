@@ -33,6 +33,9 @@ The math methods:
 | `ceil` | — | next integer toward positive infinity |
 | `pow` | exponent | receiver raised to exponent: an `integer` when both are whole numbers and the exponent isn't negative, otherwise a `float` |
 | `random` | — | a random integer in `[0, receiver)`; the receiver is the exclusive upper bound and must be a positive integer |
+| `sin`, `cos`, `tan` | — | the sine, cosine or tangent of an angle in radians (a full turn is `2 * pi`), as a float |
+| `exp` | — | `e` raised to the number, as a float. A result too big for a float is a math error |
+| `log` | [base] | the natural logarithm (base `e`), or the logarithm in `base` (`100 at log[10]` is `2.0`). Zero or a negative number is a math error |
 | `is_close` | other [, tolerance] | `true` or `false`: whether the two numbers are close, by the rule of `is close to` in a check. The optional tolerance is the most they may differ (0 or more): `(0.1 + 0.2) at is_close[0.3]` is `true` |
 
 ```

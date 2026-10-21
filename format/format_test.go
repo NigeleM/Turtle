@@ -98,6 +98,11 @@ func TestFormat(t *testing.T) {
 func TestFormatEveryFile(t *testing.T) {
 	var files []string
 	filepath.WalkDir("..", func(p string, d os.DirEntry, err error) error {
+		// The Complexity folder is a local review kept out of the repo (it
+		// holds files that are meant to fail), so it isn't formatted here.
+		if d != nil && d.IsDir() && d.Name() == "Complexity" {
+			return filepath.SkipDir
+		}
 		if err == nil && !d.IsDir() && syntax.IsTurtleFile(p) {
 			files = append(files, p)
 		}

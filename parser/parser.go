@@ -384,6 +384,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 	if p.testImported {
 		linkValidateExamples(program.Statements)
 	}
+	p.warnLocalShadows(program.Statements)
 	return program
 }
 
@@ -2369,6 +2370,19 @@ func (p *Parser) parseMapLiteral() ast.Expression {
 
 func (p *Parser) parseMinMaxLength() ast.Expression {
 	tok := p.curToken
+	if tok.Type != token.LENGTH && p.peekTokenIs(token.LBRACKET) {
+		// "min[nums]" or "max[a, b]": the function form, as the others are.
+		p.nextToken()
+		args := p.parseExpressionList(token.RBRACKET)
+		if len(args) == 0 {
+			p.errorAt(tok.Line, tok.Pos, "%s[...] needs a list, or at least two values to compare: %s[nums] or %s[a, b]", tok.Literal, tok.Literal, tok.Literal)
+			return nil
+		}
+		if tok.Type == token.MIN {
+			return &ast.MinExpression{Token: tok, Args: args}
+		}
+		return &ast.MaxExpression{Token: tok, Args: args}
+	}
 	if !p.expectPeek(token.OF) {
 		return nil
 	}

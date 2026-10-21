@@ -485,17 +485,22 @@ type MethodCallExpression struct {
 func (mc *MethodCallExpression) expressionNode()      {}
 func (mc *MethodCallExpression) TokenLiteral() string { return mc.Token.Literal }
 
+// MinExpression is "min of x" (Arg) or "min[a, b, ...]" (Args): the
+// smallest of a collection, or of the values given.
 type MinExpression struct {
 	Token token.Token
 	Arg   Expression
+	Args  []Expression
 }
 
 func (m *MinExpression) expressionNode()      {}
 func (m *MinExpression) TokenLiteral() string { return m.Token.Literal }
 
+// MaxExpression is "max of x" (Arg) or "max[a, b, ...]" (Args).
 type MaxExpression struct {
 	Token token.Token
 	Arg   Expression
+	Args  []Expression
 }
 
 func (m *MaxExpression) expressionNode()      {}
