@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -121,6 +122,9 @@ func normalizeFloats(s string) string {
 		v, err := strconv.ParseFloat(m, 64)
 		if err != nil {
 			return m
+		}
+		if math.Abs(v) < 1e-9 { // float leftovers around zero are zero
+			return "0"
 		}
 		return strconv.FormatFloat(v, 'g', 9, 64)
 	})
