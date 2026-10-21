@@ -27,12 +27,14 @@ arbitrary expression).
 | Statement | Applies to | Effect |
 |---|---|---|
 | `add <expr> to <target> .` | list, set | Appends. Sets silently skip the add if the value's already present. |
+| `add <expr> to <target> at <key> .` | map | A new key starts at the value: `add 12 to ages at "Cy"` gives `"Cy": 12`. An existing value changes by its type: a number adds up (5 becomes 17), text joins on, and a list or set takes the value (`add "b" to groups at "x"` appends to that list). |
+| `add <expr> to <target> at <position> .` | list of lists | Changes the item at that position by the same rules (`add 9 to rows at 1` appends 9 to row 1). Fatal if the position is out of range. |
 | `remove <expr> from <target> .` | list, set | Removes the first matching element. No-op if not found. |
 | `delete <expr> from <target> .` | map | Deletes the key. **Fatal error if the key doesn't exist.** |
-| `sort <target> .` | list, set | Sorts in place: numerically if all elements are numbers, lexicographically (by display string) otherwise. |
+| `sort <target> .` | list, set | Sorts in place, as Python does: numbers with numbers, text with text (capitals first), lists element by element. Mixing kinds is an error. |
 | `reverse <target> .` | list, set | Reverses in place. |
 | `insert <expr> to <target> at <expr> .` | list | Inserts at the given index. Fatal if index is out of range (`0..length` inclusive). |
-| `put <expr> to <target> at <expr> .` | list | Replaces the item at the given index (`0..length-1`); the length stays the same. |
+| `put <expr> to <target> at <expr> .` | list, map | A list: replaces the item at the given index (`0..length-1`); the length stays the same. A map: sets the key to the value, new or not (`put 0 to ages at "Ann"`). |
 | `put <expr> to <target> at <row>, <column> .` | matrix (`import linear`) | Replaces the number at that row and column. |
 | `length of <expr> .` | list, set, map, string | Prints the count (map: number of keys; string: character count, in Unicode code points, not bytes). |
 | `min of <expr> .` | list, set, map | Prints the smallest element (list/set) or smallest **key** (map; values aren't compared). |
@@ -82,7 +84,7 @@ nums at put[9, 0]
 | `count` | value | number of matching elements (Integer) |
 | `index` | value | first matching index, or `-1` |
 | `sort` | — | the list, sorted |
-| `remove` | value | the list, first match removed |
+| `remove` | value | the list, first match removed (the earliest one when a value repeats; `pop` takes the last) |
 | `reverse` | — | the list, reversed |
 | `pop` | — | the **removed last element** (fatal if empty) |
 | `contains` / `find` | value | Boolean, whether present: `nums at contains[3]` |
@@ -120,7 +122,7 @@ methods per type.)
 | `isempty` | — | Boolean: `true` when the map has no entries |
 | `add` | key, value | the map, with the entry set |
 | `delete` | key | the map, with the entry removed (fatal if not found) |
-| `invert` | — | new map: values become keys, keys become values |
+| `invert` | — | new map: values become keys, keys become values. When two keys share a value, only one entry survives: the later key in insertion order (`{"Ana": "B", "Eli": "B"}` inverts to `{"B": "Eli"}`) |
 | `tostring` | — | display string |
 
 ### string
@@ -133,6 +135,7 @@ All indices are Unicode code points (runes), not bytes — consistent with
 |---|---|---|
 | `len` / `length` | — | how many characters (Integer), like `length of s` |
 | `upper` / `lower` | — | case-converted string |
+| `reverse` | — | the text backwards, character by character: `"héllo" at reverse` is `"olléh"` |
 | `isempty` | — | Boolean: `true` for `""` |
 | `trim` | — | leading/trailing whitespace stripped |
 | `get` | index | the one-character string at that index, from `0`; fatal if out of range (including negative) |

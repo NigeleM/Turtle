@@ -21,7 +21,7 @@ func TestRawStringsAndPatterns(t *testing.T) {
 		{"import pattern\nshow matches[\"ab-1234\", `^[a-z]{2}-\\d{4}$`] .", "true\n"},
 		{"import pattern\nshow matches[\"ab\", `\\d`] .", "false\n"},
 		{"import pattern\nshow findall[\"a1 b22\", `\\d+`] .", "[ \"1\", \"22\" ]\n"},
-		{"import pattern\nshow findall[\"ab\", `\\d+`] .", "[  ]\n"},
+		{"import pattern\nshow findall[\"ab\", `\\d+`] .", "[]\n"},
 		{"import pattern\nshow replaceall[\"a1 b2\", `\\d`, \"#\"] .", "a# b#\n"},
 		{"import pattern\nshow replaceall[\"2026-10-06\", `(\\d+)-(\\d+)-(\\d+)`, `$3/$2/$1`] .", "06/10/2026\n"},
 		{"import pattern\nshow splitby[\"a, b;c\", `[,;]\\s*`] .", "[ \"a\", \"b\", \"c\" ]\n"},
@@ -79,7 +79,7 @@ func TestRangeReduceSum(t *testing.T) {
 		{"import data\nshow range[0, 9, 3] .", "[ 0, 3, 6 ]\n"},
 		{"import data\nshow range[5, 0, -1] .", "[ 5, 4, 3, 2, 1 ]\n"},
 		{"import data\nshow range[10, 0, -3] .", "[ 10, 7, 4, 1 ]\n"},
-		{"import data\nshow range[5, 1], range[0], range[3, 3] .", "[  ] [  ] [  ]\n"},
+		{"import data\nshow range[5, 1], range[0], range[3, 3] .", "[] [] []\n"},
 		{"import data\nshow range[-2, 2] .", "[ -2, -1, 0, 1 ]\n"},
 		{"import data\n[loop][i in 1 range 4]\n    show i .\n[loop][end]", "1\n2\n3\n"},
 		{"import data\nnums = list [1, 2, 3]\nshow reduce[nums, 0, [t, x] give t + x] .", "6\n"},
@@ -220,7 +220,7 @@ show typeof[3.14159 at round[2]], " ", typeof[1234 at round[-2]] .`
 	}
 }
 
-func TestFloatsShowFifteenDigits(t *testing.T) {
+func TestFloatsShowShortestText(t *testing.T) {
 	src := `import json
 x = 0.1 + 0.2
 show x, " ", x == 0.3, " ", 1/3.0, " ", 2.5, " ", 7.0, " ", 0.000001234 .
@@ -230,15 +230,15 @@ show json_text[list [x]] .`
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "0.3 true 0.333333333333333 2.5 7.0 1.234e-06\n0.3 [ 0.6 ]\n[0.30000000000000004]\n"
+	want := "0.30000000000000004 false 0.3333333333333333 2.5 7.0 1.234e-06\n0.30000000000000004 [ 0.6000000000000001 ]\n[0.30000000000000004]\n"
 	if got != want {
 		t.Errorf("got %q, want %q", got, want)
 	}
 }
 
-// Floats compare as they show: ==, <, sets, map keys, searches and check
-// all agree, and integers stay exact.
-func TestFloatsCompareAsTheyShow(t *testing.T) {
+// Floats compare exactly, as IEEE 754 does: ==, <, sets, map keys, searches
+// and check all agree, and integers stay exact.
+func TestFloatsCompareExactly(t *testing.T) {
 	src := `import test
 import data
 import math
@@ -248,19 +248,20 @@ show 1.1 * 3 == 3.3, 0.3 < 0.30000000000001, 2.0000000000000004 == 2 .
 s = set [0.3, x, 0.6000000000000001, 0.6]
 show length of s .
 m = map [0.3: "a"]
-show m at get[x] .
+show m at contains[x], m at contains[0.3] .
 nums = list [0.2, 0.4, 0.6000000000000001]
 show nums at contains[0.6], nums at index[0.6] .
 b is list [1, 2, 3] process v give v * 0.2 .
 show b == list [0.2, 0.4, 0.6] .
-check 0.1 + 0.2 == 0.3 .
+check 0.1 + 0.2 != 0.3 .
+check x is close to 0.3 .
 check x at round[2] == 0.3 .
 show 9007199254740993 == 9007199254740992 .`
 	got, err := run(t, src, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "true false false true false true\ntrue true true\n2\na\ntrue 2\ntrue\nfalse\n"
+	want := "false true true true false false\nfalse true false\n4\nfalse true\nfalse -1\nfalse\nfalse\n"
 	if got != want {
 		t.Errorf("got %q\nwant %q", got, want)
 	}

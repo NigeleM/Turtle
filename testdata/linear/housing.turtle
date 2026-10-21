@@ -26,8 +26,28 @@ def near[label, got, want]
     if [end]
 def [end]
 
+// same: numbers, lists and matrices agree item by item to 1e-9. Float
+// arithmetic leaves leftovers, and == is exact.
 def same[label, got, want]
-    if ] got != want [
+    xs = list [got]
+    ys = list [want]
+    if ] typeof[got] == "matrix" [
+        xs = got at flatten at row[0]
+        ys = want at flatten at row[0]
+    if [end]
+    if ] typeof[got] == "list" [
+        xs = got
+        ys = want
+    if [end]
+    bad = xs at len != ys at len
+    if ] bad == false [
+        [loop][i in range[xs at len]]
+            if ] (xs at get[i] - ys at get[i]) at abs > 1e-9 [
+                bad = true
+            if [end]
+        [loop][end]
+    if [end]
+    if ] bad [
         add label to failures .
         show "  FAIL ", label, ": got ", got, ", want ", want .
     if [end]

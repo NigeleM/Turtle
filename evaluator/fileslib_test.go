@@ -163,7 +163,7 @@ show args[] .`
 		args []string
 		want string
 	}{
-		{nil, "{ \"--out\": \"result.csv\", \"-v\": false, \"--count\": 1, \"--rate\": 0.5 }\n[  ]\n"},
+		{nil, "{ \"--out\": \"result.csv\", \"-v\": false, \"--count\": 1, \"--rate\": 0.5 }\n[]\n"},
 		{[]string{"data.csv", "--out=r.csv", "-v", "--count", "3", "more"}, "{ \"--out\": \"r.csv\", \"-v\": true, \"--count\": 3, \"--rate\": 0.5 }\n[ \"data.csv\", \"more\" ]\n"},
 		{[]string{"--rate", "2", "-v=false", "--", "--out"}, "{ \"--out\": \"result.csv\", \"-v\": false, \"--count\": 1, \"--rate\": 2.0 }\n[ \"--out\" ]\n"},
 		{[]string{"-5"}, "{ \"--out\": \"result.csv\", \"-v\": false, \"--count\": 1, \"--rate\": 0.5 }\n[ \"-5\" ]\n"},

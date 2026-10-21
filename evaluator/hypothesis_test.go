@@ -53,7 +53,7 @@ func TestHypothesisReports(t *testing.T) {
 		{"a fact that doesn't", "xs = list [0.5, 0.25]\nhypothesis[xs at get[0] + xs at get[1] == 1]", []string{
 			"  holds     no\n", "  where     got 0.75, want 1", "  xs        list of 2: [ 0.5, 0.25 ]"}},
 		{"a check form", "n = 4\nhypothesis[n is close to 4.2 within 0.1]\nhypothesis[n is integer]", []string{
-			"hypothesis n is close to 4.2 within 0.1 (line 3)\n  holds     no\n  where     got 4, want 4.2 (off by -0.2; allowed: 0.1)",
+			"hypothesis n is close to 4.2 within 0.1 (line 3)\n  holds     no\n  where     got 4, want 4.2 (off by -0.20000000000000018; allowed: 0.1)",
 			"hypothesis n is integer (line 4)\n  holds     yes"}},
 		{"an expected error", "hypothesis[1 / 0 fails [math]]", []string{"  holds     yes"}},
 		{"each item", `assemble Sale [item, qty]

@@ -5,6 +5,27 @@ import linear
 import data
 import math
 
+// Float arithmetic leaves 1e-16 leftovers, and == is exact, so checks on
+// computed numbers compare them within a tiny margin.
+def same_matrix[a, b]
+    if ] a at shape != b at shape [
+        return false
+    if [end]
+    return same_list[a at flatten at row[0], b at flatten at row[0]]
+def [end]
+
+def same_list[xs, ys]
+    if ] xs at len != ys at len [
+        return false
+    if [end]
+    [loop][i in range[xs at len]]
+        if ] abs[xs at get[i] - ys at get[i]] > 1e-9 [
+            return false
+        if [end]
+    [loop][end]
+    return true
+def [end]
+
 // ---------- writing a matrix ----------
 def test_literal_forms[]
     one = matrix [1, 2; 3, 4]
@@ -181,8 +202,8 @@ def [end]
 def test_equality[]
     a = matrix [4, 7; 2, 6]
     // Float leftovers (1e-16 where a 0 belongs) still compare equal ...
-    check a * inverse[a] == identity[2] .
-    check inverse[inverse[a]] == a .
+    check same_matrix[a * inverse[a], identity[2]] .
+    check same_matrix[inverse[inverse[a]], a] .
     // ... but real differences don't.
     check a != matrix [4, 7; 2, 6.001] .
     check matrix [1, 2] != matrix [1; 2] .
@@ -260,7 +281,7 @@ def test_singular[]
     // Small numbers aren't singular: what counts is size next to the
     // matrix's largest number.
     tiny = matrix [1e-18, 0; 0, 2e-18]
-    check inverse[tiny] * tiny == identity[2] .
+    check same_matrix[inverse[tiny] * tiny, identity[2]] .
     check rank[tiny] == 2 .
     // A row that's a mix of the others, in a bigger matrix.
     mixed = matrix [1, 2, 3; 4, 5, 6; 5, 7, 9]
@@ -291,14 +312,14 @@ def test_decompositions[]
         matrix [0, 1; 1, 0],
         matrix [1.5, 2.25, -3; 0.5, 7, 1; 2, 0, 4]
     ]
-    verify ms each m give lu[m] at get["p"] * m == lu[m] at get["l"] * lu[m] at get["u"] .
-    verify ms each m give qr[m] at get["q"] * qr[m] at get["r"] == m .
+    verify ms each m give same_matrix[lu[m] at get["p"] * m, lu[m] at get["l"] * lu[m] at get["u"]] .
+    verify ms each m give same_matrix[qr[m] at get["q"] * qr[m] at get["r"], m] .
     verify ms each m give transpose[transpose[m]] == m .
-    verify ms each m give rebuilt[svd[m]] == m .
+    verify ms each m give same_matrix[rebuilt[svd[m]], m] .
     tall = matrix [1, 2; 3, 4; 5, 6; 7, 8]
-    check rebuilt[svd[tall]] == tall .
+    check same_matrix[rebuilt[svd[tall]], tall] .
     wide = transpose[tall]
-    check rebuilt[svd[wide]] == wide .
+    check same_matrix[rebuilt[svd[wide]], wide] .
     check svd[tall] at get["s"] at length == 2 .
 def [end]
 
@@ -309,13 +330,13 @@ def [end]
 def test_eigen[]
     // Repeated eigenvalues: the identity's vectors are any basis.
     e = eigen[identity[3]]
-    check e at get["values"] == list [1, 1, 1] .
+    check same_list[e at get["values"], list [1, 1, 1]] .
     m = matrix [2, 0, 0; 0, 3, 4; 0, 4, 9]
     e = eigen[m]
-    check e at get["values"] == list [11, 2, 1] .
+    check same_list[e at get["values"], list [11, 2, 1]] .
     v = e at get["vectors"]
-    check m * v == v * diagonal[e at get["values"]] .
-    check transpose[v] * v == identity[3] .
+    check same_matrix[m * v, v * diagonal[e at get["values"]]] .
+    check same_matrix[transpose[v] * v, identity[3]] .
     check eigen[matrix [1, 2; 3, 4]] fails [linear] .
 def [end]
 
@@ -329,7 +350,7 @@ def test_sentences[]
     size = a shape
     size_of_v = list [3, 4] norm
     check t == a .
-    check x == list [0.8, 1.4] .
+    check same_list[x, list [0.8, 1.4]] .
     check squared == a * a .
     check size == list [2, 2] .
     check size_of_v == 5 .
@@ -374,10 +395,10 @@ def test_statistics_edges[]
     [loop][i in range[1000]]
         add 0.1 to tenths .
     [loop][end]
-    check mean[tenths] == 0.1 .
+    check mean[tenths] is close to 0.1 .
     // Rows: a missing value in a column is skipped, not zero.
     people = list [map ["age": 30, "h": 1.8], map ["age": none, "h": 1.6], map ["age": 50, "h": 1.7]]
     check mean[people, "age"] == 40 .
-    check covariance[people, "age", "h"] == -1.0 .
+    check covariance[people, "age", "h"] is close to -1.0 .
     check mean[people, "weight"] fails [key] .
 def [end]

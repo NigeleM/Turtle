@@ -72,29 +72,10 @@ func (m *Matrix) Copy() *Matrix {
 	return &Matrix{Rows: m.Rows, Cols: m.Cols, Data: append([]float64(nil), m.Data...), Ints: m.Ints}
 }
 
-// Leftover is how small, next to a matrix's largest number, a number is
-// counted as float arithmetic's leftover rather than a value: inverse[a]
-// times a gives 1s and 0s, give or take 1e-16. Such a number shows as 0.0
-// and compares equal to 0, as 0.1 + 0.2 shows 0.3; get still gives it
-// exactly.
-const Leftover = 1e-13
-
-// scale is the largest number's size, for Leftover.
-func (m *Matrix) scale() float64 {
-	big := 0.0
-	for _, v := range m.Data {
-		big = math.Max(big, math.Abs(v))
-	}
-	return big
-}
-
-// cell is how one number shows.
-func (m *Matrix) cell(v, scale float64) string {
+// cell is how one number shows: exactly, as numpy shows it.
+func (m *Matrix) cell(v float64) string {
 	if m.Ints {
 		return strconv.FormatInt(int64(v), 10)
-	}
-	if math.Abs(v) < Leftover*scale {
-		v = 0
 	}
 	return (&Float{Value: v}).Inspect()
 }
@@ -121,12 +102,11 @@ func (m *Matrix) Inspect() string {
 	fracs := make([][]string, rows)
 	wholeW := make([]int, cols)
 	fracW := make([]int, cols)
-	scale := m.scale()
 	for r := range rows {
 		wholes[r] = make([]string, cols)
 		fracs[r] = make([]string, cols)
 		for c := range cols {
-			s := m.cell(m.At(r, c), scale)
+			s := m.cell(m.At(r, c))
 			whole, frac := s, ""
 			if i := strings.IndexByte(s, '.'); i >= 0 {
 				whole, frac = s[:i], s[i:]
@@ -172,27 +152,24 @@ func (m *Matrix) SizeText() string {
 // matrix [1, 2; 3, 4], which is also the code that makes it.
 func (m *Matrix) Line() string {
 	rows := make([]string, m.Rows)
-	scale := m.scale()
 	for r := range m.Rows {
 		cells := make([]string, m.Cols)
 		for c := range m.Cols {
-			cells[c] = m.cell(m.At(r, c), scale)
+			cells[c] = m.cell(m.At(r, c))
 		}
 		rows[r] = strings.Join(cells, ", ")
 	}
 	return "matrix [" + strings.Join(rows, "; ") + "]"
 }
 
-// EqualMatrix is == for matrices: the same size, and every number equal
-// as numbers compare (to 15 significant digits), or apart by no more than
-// a leftover (see Leftover) of the larger matrix.
+// EqualMatrix is == for matrices: the same size, and every number exactly
+// equal. For a tolerance, use is close to.
 func EqualMatrix(a, b *Matrix) bool {
 	if a.Rows != b.Rows || a.Cols != b.Cols {
 		return false
 	}
-	tol := Leftover * math.Max(a.scale(), b.scale())
 	for i, v := range a.Data {
-		if CompareFloats(v, b.Data[i]) != 0 && math.Abs(v-b.Data[i]) > tol {
+		if v != b.Data[i] {
 			return false
 		}
 	}

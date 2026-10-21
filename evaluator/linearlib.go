@@ -21,7 +21,7 @@ import (
 var linearFuncs = []string{
 	"identity", "zeros", "ones", "diagonal", "shape", "row", "column",
 	"flatten", "reshape", "transpose", "trace", "determinant", "inverse", "rank", "power",
-	"multiply_each", "solve", "least_squares", "dot", "cross", "norm",
+	"multiply_each", "solve", "least_squares", "dot", "cross", "norm", "all_close",
 	"unit", "lu", "qr", "eigen", "svd",
 }
 

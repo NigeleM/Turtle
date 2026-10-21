@@ -331,6 +331,11 @@ func callLinear(name string, args []object.Object) object.Object {
 			fatalKind(kindLinear, "'cross' works on two lists of 3 numbers (3-D vectors), got %d and %d", len(u), len(v))
 		}
 		return numbersList([]float64{u[1]*v[2] - u[2]*v[1], u[2]*v[0] - u[0]*v[2], u[0]*v[1] - u[1]*v[0]}, ui && vi)
+	case "all_close":
+		if len(args) < 2 || len(args) > 3 {
+			fatalKind(kindLinear, "'all_close' takes two matrices or lists and an optional tolerance: all_close[a, b] or all_close[a, b, 0.001], got %d argument(s)", len(args))
+		}
+		return object.Bool(allClose(name, args[0], args[1], closeTolerance(name, args[2:])))
 	case "norm":
 		requireFuncArgs(name, args, 1)
 		var xs []float64
@@ -412,6 +417,33 @@ func callLinear(name string, args []object.Object) object.Object {
 
 // qrSolve is the least-squares x for q r x = b: R x = Qᵀ b, from the
 // bottom row up.
+// allClose is whether two matrices (the same size) or two vectors (the same
+// length) have every pair of numbers close, as is close to says for one.
+func allClose(fn string, a, b object.Object, tol float64) bool {
+	if ma, ok := a.(*object.Matrix); ok {
+		mb, ok := b.(*object.Matrix)
+		if !ok || ma.Rows != mb.Rows || ma.Cols != mb.Cols {
+			return false
+		}
+		return allCloseNumbers(ma.Data, mb.Data, tol)
+	}
+	if _, ok := b.(*object.Matrix); ok {
+		return false
+	}
+	xs, _ := vector(fn, a)
+	ys, _ := vector(fn, b)
+	return len(xs) == len(ys) && allCloseNumbers(xs, ys, tol)
+}
+
+func allCloseNumbers(xs, ys []float64, tol float64) bool {
+	for i := range xs {
+		if !closeEnough(xs[i], ys[i], tol) {
+			return false
+		}
+	}
+	return true
+}
+
 func qrSolve(q, r, b *object.Matrix) *object.Matrix {
 	qtb := matMul(transposed(q), b)
 	n := r.Rows

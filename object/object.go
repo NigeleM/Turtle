@@ -48,20 +48,14 @@ func (f *Float) Type() Type { return FLOAT }
 
 // Inspect always shows a float as a float: 4.0, not 4, so it's never
 // mistaken for an integer.
-// Inspect is how a float shows: to 15 significant digits, as Excel and
-// SQLite show numbers, so binary leftovers don't: 0.1 + 0.2 shows 0.3
-// (it's 0.30000000000000004 inside, and == still sees that). Files and
-// databases get every digit: see Exact.
-func (f *Float) Inspect() string {
-	v := f.Value
-	if !math.IsInf(v, 0) && !math.IsNaN(v) {
-		v, _ = strconv.ParseFloat(strconv.FormatFloat(v, 'g', 15, 64), 64)
-	}
-	return floatText(v)
-}
+// Inspect is how a float shows: the shortest text that reads back as the
+// same float, as Python's repr does. 0.1 + 0.2 shows 0.30000000000000004,
+// and 1e15 + 0.3 shows 1000000000000000.2, so no two different floats
+// print the same.
+func (f *Float) Inspect() string { return floatText(f.Value) }
 
 // Exact is every digit of the float: what JSON, CSV and test failures
-// write, so nothing is lost.
+// write, so nothing is lost. It is the same text as Inspect now.
 func (f *Float) Exact() string { return floatText(f.Value) }
 
 func floatText(v float64) string {
@@ -131,6 +125,9 @@ type List struct{ Elements []Object }
 
 func (l *List) Type() Type { return LIST }
 func (l *List) Inspect() string {
+	if len(l.Elements) == 0 {
+		return "[]"
+	}
 	parts := make([]string, len(l.Elements))
 	for i, e := range l.Elements {
 		parts[i] = Shown(e)
@@ -152,6 +149,9 @@ type Set struct {
 
 func (s *Set) Type() Type { return SET }
 func (s *Set) Inspect() string {
+	if len(s.Elements) == 0 {
+		return "{}"
+	}
 	parts := make([]string, len(s.Elements))
 	for i, e := range s.Elements {
 		parts[i] = Shown(e)
@@ -214,6 +214,9 @@ func NewMap() *Map { return &Map{} }
 
 func (m *Map) Type() Type { return MAP }
 func (m *Map) Inspect() string {
+	if len(m.entries) == 0 {
+		return "{}"
+	}
 	parts := make([]string, len(m.entries))
 	for i, e := range m.entries {
 		parts[i] = Shown(e.Key) + ": " + Shown(e.Val)

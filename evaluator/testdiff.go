@@ -247,6 +247,19 @@ func plural(n int, word string) string {
 // closeEnough: the two numbers differ by no more than tol, or (tol < 0)
 // by a tiny amount relative to their size, for decimals that can't be
 // exact (0.1 + 0.2 is 0.30000000000000004).
+// closeTolerance is the optional tolerance of is_close and all_close: none
+// means the default, the same as is close to, and one must be 0 or more.
+func closeTolerance(fn string, opt []object.Object) float64 {
+	if len(opt) == 0 {
+		return -1
+	}
+	t, _, ok := numeric(opt[0])
+	if !ok || t < 0 {
+		fatalf("'%s' needs a tolerance of 0 or more, got %s", fn, object.Shown(opt[0]))
+	}
+	return t
+}
+
 func closeEnough(a, b, tol float64) bool {
 	d := math.Abs(a - b)
 	if tol >= 0 {

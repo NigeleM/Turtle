@@ -33,6 +33,7 @@ The math methods:
 | `ceil` | — | next integer toward positive infinity |
 | `pow` | exponent | receiver raised to exponent: an `integer` when both are whole numbers and the exponent isn't negative, otherwise a `float` |
 | `random` | — | a random integer in `[0, receiver)`; the receiver is the exclusive upper bound and must be a positive integer |
+| `is_close` | other [, tolerance] | `true` or `false`: whether the two numbers are close, by the rule of `is close to` in a check. The optional tolerance is the most they may differ (0 or more): `(0.1 + 0.2) at is_close[0.3]` is `true` |
 
 ```
 import math
@@ -41,6 +42,10 @@ r is 16 at sqrt .        // 4.0 (sqrt always give a float)
 p is 2 at pow 10 .       // 1024
 n is 10 at random .      // some integer in [0, 10)
 ```
+
+The constants `pi` and `e` come with `import math` too, as floats:
+`2 * pi * r` and `e at pow[x]`. Write `math pi` if you want the qualified
+name. A variable of your own named `e` or `pi` takes precedence.
 
 `%` (modulo) is a core operator, not a method, so it needs no import — see
 [`reference.md`](../reference.md#expressions).

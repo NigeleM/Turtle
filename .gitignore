@@ -16,3 +16,6 @@ testdata/sql/export_*.csv
 bench/.turtle-bench
 __pycache__/
 /bench/RESULTS.md
+
+# local test programs and their output (not part of the repo)
+/Complexity/

@@ -368,15 +368,24 @@ func TestOfGetHint(t *testing.T) {
 	}
 }
 
-// add ... to a map at a key; the older form still works.
+// add ... to a map or list at a place changes the value there, by its
+// type: numbers add up, lists and sets take the item. put sets a key.
 func TestAddToMapAtKey(t *testing.T) {
-	got, err := run(t, "ages = map [\"Ann\": 30]\nadd 12 to ages at \"Cy\" .\nadd 31 to ages at \"Ann\" .\nages is ages at add[\"Bo\", 7] .\nshow ages .", "")
-	if err != nil || strings.TrimSpace(got) != `{ "Ann": 31, "Cy": 12, "Bo": 7 }` {
+	got, err := run(t, "ages = map [\"Ann\": 30]\nadd 12 to ages at \"Cy\" .\nadd 12 to ages at \"Cy\" .\nadd 1 to ages at \"Ann\" .\nages is ages at add[\"Bo\", 7] .\nshow ages .", "")
+	if err != nil || strings.TrimSpace(got) != `{ "Ann": 31, "Cy": 24, "Bo": 7 }` {
 		t.Errorf("got %q, %v", got, err)
 	}
-	_, err = run(t, "nums = list [1]\nadd 2 to nums at 0 .", "")
-	if err == nil || !strings.Contains(err.Error(), "insert ... to nums at ...") {
-		t.Errorf("list: %v", err)
+	got, err = run(t, "rows = list [list [1], list [2]]\nadd 9 to rows at 1 .\nshow rows .", "")
+	if err != nil || strings.TrimSpace(got) != "[ [ 1 ], [ 2, 9 ] ]" {
+		t.Errorf("list of lists: %q, %v", got, err)
+	}
+	got, err = run(t, "groups = map [\"x\": list [\"a\"]]\nadd \"b\" to groups at \"x\" .\nshow groups .", "")
+	if err != nil || strings.TrimSpace(got) != `{ "x": [ "a", "b" ] }` {
+		t.Errorf("map of lists: %q, %v", got, err)
+	}
+	_, err = run(t, "nums = list [1]\nadd 2 to nums at 5 .", "")
+	if err == nil || !strings.Contains(err.Error(), "out of range") {
+		t.Errorf("list position: %v", err)
 	}
 }
 

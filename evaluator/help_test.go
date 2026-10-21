@@ -20,7 +20,7 @@ func TestHelp(t *testing.T) {
 		{`help["sql_load"]`, "sql_load[db, table, path"},
 		{`help["upper"]`, "string at upper        (a string method"},
 		{`help["get"]`, "list at get[index]"},
-		{`help["string"]`, "A string's methods, as x at upper:\n  upper, lower, trim,"},
+		{`help["string"]`, "A string's methods, as x at upper:\n  upper, lower, reverse, trim,"},
 		{`help["nothing_here"]`, `no library, function, method or keyword called "nothing_here"`},
 		{`help["sql_lod"]`, "did you mean sql_load?"},
 		{"import linear\nhelp[matrix [1, 2]]", "This is a matrix, 1 x 2.\nA matrix's methods, as x at rows:"},

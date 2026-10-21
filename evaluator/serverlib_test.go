@@ -213,7 +213,7 @@ func TestServerMisuse(t *testing.T) {
 		}
 	}
 	got, _ := run(t, "import server\nr = reply[404, \"gone\"]\nshow r, \"|\", status of r, \"|\", typeof[r], \"|\", serverlog, \"|\", serverhost .", "")
-	if want := `Reply { status: 404, body: "gone", headers: {  } } | 404 | Reply | true | localhost`; strings.TrimSpace(got) != want {
+	if want := `Reply { status: 404, body: "gone", headers: {} } | 404 | Reply | true | localhost`; strings.TrimSpace(got) != want {
 		t.Errorf("got %q, want %q", got, want)
 	}
 }

@@ -20,6 +20,15 @@ var moduleDocs = map[string]string{
   Example:
     r is 16 at sqrt .
 
+### number at is_close
+  Whether two numbers are close, by the same rule as "check ... is close to":
+  within 1e-9 of the larger one, or 1e-12 of each other, whichever is more.
+  tolerance  optional: the most they may differ (0 or more), as "within".
+  Gives back: true or false.
+  Example:
+    ok is (0.1 + 0.2) at is_close[0.3] .       // true
+    ok is (10 / 3) at is_close[3.33, 0.01] .   // true
+
 ### number at abs
   The number without its sign: -7 becomes 7.
   Gives back: the same kind of number (integer or float).
@@ -179,6 +188,15 @@ row[r], column[c], flatten, reshape[r, c]. change rows to matrix makes one from 
   unknowns (columns): the line or curve of best fit.
   Example:
     fit = least_squares[points, ys]
+
+### all_close[a, b]
+  Whether two matrices of the same size, or two lists of the same length,
+  have every pair of numbers close (by the rule of is_close). Different
+  sizes or lengths give false.
+  tolerance  optional third argument: the most each pair may differ.
+  Example:
+    same is all_close[inverse[m] * m, identity[2]]
+    same is all_close[u, v, 0.001]
 
 ### dot[u, v]
   The dot product of two lists of the same length.

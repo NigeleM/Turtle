@@ -27,6 +27,11 @@ list (a new map, for a map) and leaves the original unchanged. The
 | an integer | that position in a list of lists | `min_sort[pairs, 1]` |
 | a list of those | the first, then the next for ties | `min_sort[books, list ["author", "price"]]` |
 
+**Case-insensitive text** is a function that gives the lower-case text,
+as Python's `key=str.lower` does: `min_sort[names, s give s at lower]`
+puts `"Alice"` among the `a`s. Plain `sort names .` compares the
+characters themselves, so capitals come first.
+
 **How much** (`min_sort` and `max_sort` only): `"first"` gives just the
 first item, or `none` when there's nothing; a number `n` gives the first
 `n`. So `max_sort[books, "price", "first"]` is the most expensive book,

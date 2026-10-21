@@ -1015,6 +1015,13 @@ func (p *Parser) parseAddStatement() ast.Statement {
 		p.nextToken()
 		p.nextToken()
 		key = p.parseExpression(LOWEST)
+		// "add w to groups at get[key] .": the target must be a variable, so
+		// a method call here is a mistake, not a key.
+		if call, ok := key.(*ast.CallExpression); ok && call.Subject == nil && call.Module == "" && slices.Contains(syntax.Methods, call.Name) {
+			p.errorAt(call.Token.Line, call.Token.Pos, "%s is a method, not a map key: put the list in a variable first (row = %s at %s[key] .), then add to row",
+				call.Name, target, call.Name)
+			return nil
+		}
 	}
 	if !p.requirePeriod() {
 		return nil
@@ -2052,7 +2059,7 @@ func plainBrace(rest string) bool {
 // interpolatedPart parses the expression inside one {...} of a string.
 func (p *Parser) interpolatedPart(tok token.Token, src string) ast.Expression {
 	fail := func(why string) ast.Expression {
-		p.errorAt(tok.Line, tok.Pos, "{%s} in a string: %s", src, why)
+		p.errorAt(tok.Line, tok.Pos, "{%s} in a string: %s (for a plain brace, write \\{)", src, why)
 		return &ast.StringLiteral{Token: tok}
 	}
 	if strings.TrimSpace(src) == "" {
@@ -2310,6 +2317,12 @@ func (p *Parser) parseListLiteral() ast.Expression {
 
 func (p *Parser) parseSetLiteral() ast.Expression {
 	tok := p.curToken
+	if p.peekTokenIs(token.IDENT) {
+		// "ship = set planks": a list becomes a set with change, not set.
+		p.nextToken()
+		p.errorf("to make a set from a list, write: change %s to set .", p.curToken.Literal)
+		return nil
+	}
 	if !p.expectPeek(token.LBRACKET) {
 		return nil
 	}

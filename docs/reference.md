@@ -283,6 +283,8 @@ whole calculation:
 |---|---|---|
 | `a at invert == b at invert` | both maps inverted, then compared | `a.invert() == b.invert()` |
 | `"a" + "b" at upper` | `"aB"` | `"a" + "b".upper()` |
+| `"+" + "-" at padright[5] + "+"` | `"+-    +"`: only `"-"` is padded | `"+" + "-".ljust(5) + "+"` |
+| `("+" + "-") at padright[5] + "+"` | `"+-   +"`: the whole text is padded first | `("+" + "-").ljust(5) + "+"` |
 | `("a" + "b") at upper` | `"AB"` | `("a" + "b").upper()` |
 | `2 + 16 at sqrt * 2` | `10.0` | `2 + sqrt(16) * 2` |
 | `nums at get[0] + nums at get[2]` | adds two items | `nums[0] + nums[2]` |
@@ -424,18 +426,21 @@ Punctuation is set against the value before it: no space goes before
 `, . ! ? : ; ) ] }` or after `( [ {`. To join pieces with no space at all,
 use `+` (`show "x="+n .` gives `x=3`).
 
-**Floats show to 15 significant digits**, as Excel and SQLite show them,
-so the leftovers of binary arithmetic don't: `0.1 + 0.2` shows `0.3`, and
-`list [1, 2, 3] process x give x * 0.2` shows `[ 0.2, 0.4, 0.6 ]`. They
-compare the same way: when either side is a float, `==`, `!=`, `<`,
-`<=`, `>` and `>=` use the 15-digit values, so `0.1 + 0.2 == 0.3` is
-`true` and `0.30000000000000004 > 0.3` is `false`: what shows the same
-is equal. Sets, map keys, `contains` and `count` agree. Integers compare
-exactly. Very big and very small floats show in scientific notation, where
-Python switches too: `1e+16` and up, and below `0.0001` (`1e-05`). The value itself keeps every digit, and writing to a file
-(JSON, CSV) or a database keeps them all. For a looser match, round
-first (`x at round[2] == y at round[2]`), or use `is close to` in a test.
-For a fixed number of places on screen, use `x at fixed[2]` (`"0.30"`).
+**Floats show the shortest text that reads back as the same float**, as
+Python's `repr` does. So `0.1 + 0.2` shows `0.30000000000000004`, and
+`list [1, 2, 3] process x give x * 0.2` shows
+`[ 0.2, 0.4, 0.6000000000000001 ]`. Very big and very small floats show in
+scientific notation, where Python switches too: `1e+16` and up, and below
+`0.0001` (`1e-05`). Writing to a file (JSON, CSV) or a database keeps every
+digit as well.
+
+Floats compare exactly, as they do in Python, JavaScript, Java and Go:
+`0.1 + 0.2 == 0.3` is `false`, because the two are different floats (the
+first is `0.30000000000000004`). Sets, map keys, `contains` and `index`
+agree: two floats are one key only when they are the same float. A matrix's
+`==` is exact too. For a match within a margin, use `is close to` in a test,
+or round first (`x at round[2] == y at round[2]`). For a fixed number of
+places on screen, use `x at fixed[2]` (`"0.30"`).
 
 ## Strings
 
@@ -1490,13 +1495,14 @@ Statement-form operations (all require a trailing `.`):
 
 ```
 add <expr> to <ident> .
-add <expr> to <ident> at <key> .  // map only: ages["Cy"] = 12 is add 12 to ages at "Cy" .
+add <expr> to <ident> at <key> .  // map: a new key gets the value; an existing one changes by its type (5 + 12 is 17)
+add <expr> to <ident> at <position> .  // list of lists: adds to the item there
 remove <expr> from <ident> .
 delete <expr> from <ident> .      // map only
 sort <ident> .
 reverse <ident> .
 insert <expr> to <ident> at <expr> .
-put <expr> to <ident> at <expr> .  // list only: replaces the item there
+put <expr> to <ident> at <expr> .  // replaces the item there (list), or sets the key (map)
 length of <expr> .                 // prints
 min of <expr> .                     // prints
 max of <expr> .                      // prints
@@ -1507,6 +1513,14 @@ Method-call form:
 ```
 <ident> is <expr> [at <method> [<expr> {, <expr>}]] .
 ```
+
+`sort` puts numbers in number order and text in character order (capitals
+first, as Python does). A list of lists sorts element by element, then by
+length: `[2, "c"]` comes before `[9, "a"]`. Mixing numbers and text in one
+list is an error, as in Python: `sort [1, "a"]` stops with "can't sort string
+and integer together". A boolean sorts with a boolean (false first). `import
+sort` has key functions and other algorithms, such as case-insensitive text
+(see [sort](library/sort.md)).
 
 Plain `<ident> is <expr> .` (no `at`) is assignment/aliasing. An `is`
 line is a sentence, so it ends with a period like `show` and `add`;

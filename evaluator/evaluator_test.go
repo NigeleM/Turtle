@@ -134,6 +134,8 @@ func TestFatalErrorsHaveLineNumbers(t *testing.T) {
 		{"undefined variable", "a = 1\nshow b .", `line 2: undefined variable "b"`},
 		{"math not imported", `r is 5 at sqrt .`, `line 1: "sqrt" needs "import math" first`},
 		{"time not imported", "t = now[]", `line 1: "now" needs "import time" first`},
+		{"sort text and a number", "x = list [1, \"a\"]\nsort x .", "line 2: can't sort string and integer together: sort compares numbers with numbers, text with text and lists with lists, as Python does"},
+		{"list called like a function", "pow2 = list [1, 2]\nx = pow2[1]", `line 2: "pow2" is a value, not a function: to get an item, write pow2 at get[index]`},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -2154,7 +2156,7 @@ t = change s to set
 add 2 to t .
 show a, " ", b, " ", s, " ", t .`, want: "[ 1 ] [ 1, 2 ] { 1 } { 1, 2 }\n"},
 		{name: "equal values count once", src: `show change list [1, 1.0, "1"] to set .`, want: "{ 1, \"1\" }\n"},
-		{name: "empty", src: `show change list [] to set .`, want: "{  }\n"},
+		{name: "empty", src: `show change list [] to set .`, want: "{}\n"},
 		{name: "number to list", src: `x = change 5 to list`, wantErr: "change: can't convert integer to list"},
 		{name: "map gives its keys", src: `show change map ["a": 1, "b": 2] to list, change map ["a": 1] to set .`, want: "[ \"a\", \"b\" ] { \"a\" }\n"},
 		{name: "string gives its characters", src: `show change "héllo" to list, change "aab" to set .`, want: "[ \"h\", \"é\", \"l\", \"l\", \"o\" ] { \"a\", \"b\" }\n"},
@@ -2196,7 +2198,7 @@ func TestJSONLibrary(t *testing.T) {
 	cases := []struct{ name, src, want, wantErr string }{
 		{name: "load types", src: `import json
 d = load['{"s": "x", "i": 3, "f": 2.5, "w": 2.0, "b": true, "n": null, "l": [1, "a"], "m": {}}']
-show d .`, want: `{ "s": "x", "i": 3, "f": 2.5, "w": 2.0, "b": true, "n": none, "l": [ 1, "a" ], "m": {  } }` + "\n"},
+show d .`, want: `{ "s": "x", "i": 3, "f": 2.5, "w": 2.0, "b": true, "n": none, "l": [ 1, "a" ], "m": {} }` + "\n"},
 		{name: "key order kept", src: `import json
 show load['{"z": 1, "a": 2, "m": 3}'] at getkeys .`, want: `[ "z", "a", "m" ]` + "\n"},
 		{name: "numbers", src: `import json
@@ -2223,7 +2225,7 @@ show json_get[map ["p": P[5]], "p", "x"] .`, want: "5\n"},
 json_write["out.json", map ["a": list [1, 2], "b": map []]]
 [read] out.json to lines [end]
 show length of lines .
-show json_read["out.json"] .`, want: "7\n" + `{ "a": [ 1, 2 ], "b": {  } }` + "\n"},
+show json_read["out.json"] .`, want: "7\n" + `{ "a": [ 1, 2 ], "b": {} }` + "\n"},
 		{name: "bad JSON is kind json", src: `import json
 safe
     d = load['{"a": 1,}']
@@ -2945,7 +2947,7 @@ table_write["q.csv", list [1], map ["quote": "always"]]`, wantErr: "option \"quo
 		{name: "text after a closing quote", src: `import data
 r = table_read["after.csv"]`, wantErr: "after.csv: line 2: text after a quoted value"},
 		{name: "empty file", src: `import data
-show table_read["empty.csv"] .`, want: "[  ]\n"},
+show table_read["empty.csv"] .`, want: "[]\n"},
 		{name: "round trip csv and tsv", src: `import data
 rows = table_read["books.csv"]
 show table_write["copy.csv", rows] .
@@ -3407,8 +3409,8 @@ show put, put_one[2] .`, want: "4 2\n"},
 put 2 to nums at 1 .`, wantErr: "index 1 out of range for list nums (length 1)"},
 		{name: "negative", src: `nums = list [1]
 r = nums at put[2, -1]`, wantErr: "index -1 out of range"},
-		{name: "a map", src: `m = map ["a": 1]
-put 2 to m at 0 .`, wantErr: "'put ... to m' needs a list, got map"},
+		{name: "a map takes one key", src: `m = map ["a": 1]
+put 2 to m at 0, 1 .`, wantErr: "'put ... to m at ...' takes one key for a map"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -3790,5 +3792,26 @@ func TestTableOfMapOfRecords(t *testing.T) {
 	want := "key  first  last\n---  -----  ----\np1   Ann    Lee\np2   Bob    Park\n"
 	if got != want {
 		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+// pi and e come with import math (a variable of the same name wins), and
+// text reverses character by character.
+func TestMathConstantsAndStringReverse(t *testing.T) {
+	src := `import math
+show pi, " ", e, " ", math pi at round[2] .
+show "abc" at reverse, " ", "héllo" at reverse .
+e = 3
+show e .`
+	got, err := run(t, src, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "3.141592653589793 2.718281828459045 3.14\ncba olléh\n3\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+	if _, err := run(t, "show pi .", ""); err == nil {
+		t.Error("pi without import math should be an undefined variable")
 	}
 }

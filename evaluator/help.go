@@ -41,7 +41,7 @@ var typeMethods = map[string][]string{
 		"len", "isempty", "tostring"},
 	"map": {"get[key]", "add[key, value]", "delete[key]", "contains[key]", "getkeys", "getvalues",
 		"invert", "len", "isempty", "tostring"},
-	"string": {"upper", "lower", "trim", "get[index]", "slice[start, end]", "split[separator]",
+	"string": {"upper", "lower", "reverse", "trim", "get[index]", "slice[start, end]", "split[separator]",
 		"contains[text]", "indexof[text]", "replace[old, new]", "padleft[width]", "padright[width]",
 		"isnumber", "len", "isempty", "tostring"},
 	"integer": {"fixed[places]", "commas", "commas[places]", "sqrt", "abs", "round", "floor", "ceil", "pow[power]", "random"},

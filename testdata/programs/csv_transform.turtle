@@ -67,7 +67,7 @@ totals = map []
     if ] totals at contains region [
         new_total = totals at get region + qty * price
     if [end]
-    add new_total to totals at region .
+    put new_total to totals at region .
 [loop][end]
 expect["north revenue", totals at get "north", 36.5]
 expect["south revenue", totals at get "south", 16.0]
@@ -78,7 +78,7 @@ names = table_read["regions.csv"]
 name_of = map []
 [loop][r in names]
     code = r at get "region"
-    add r at get "name" to name_of at code .
+    put r at get "name" to name_of at code .
 [loop][end]
 
 report = list []

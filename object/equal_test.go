@@ -10,10 +10,10 @@ import (
 	"testing"
 )
 
-// Floats compare as they show, to 15 significant digits. These check
-// that the rule holds together on many random numbers: equal exactly
-// when they show the same, ordering consistent with equality, keys
-// matching equality, and numbers that are clearly apart never equal.
+// Floats compare exactly, as IEEE 754 does, and show the shortest text
+// that reads back as the same float. These check that the two agree on
+// many random numbers: equal exactly when they show the same, ordering
+// consistent with equality, keys matching equality.
 func TestFloatComparisonIsConsistent(t *testing.T) {
 	r := rand.New(rand.NewSource(1))
 	random := func() float64 {
@@ -70,9 +70,10 @@ func TestFloatComparisonExamples(t *testing.T) {
 		eq   bool
 	}{
 		{f(0.1 + 0.2), f(0.3), true},
-		{f(0.6000000000000001), f(0.6), true},
-		{f(1.1 * 3), f(3.3), true},
-		{f(2.0000000000000004), i(2), true},
+		{f(0.6000000000000001), f(0.6), false},
+		{f(1.1 * 3), f(3.3), true}, // exact constants in Go
+		{f(2.0000000000000004), i(2), false},
+		{f(2), i(2), true},
 		{f(0.3), f(0.30000000000001), false}, // differs in the 14th digit
 		{f(1e-20), f(0), false},
 		{f(0), f(math.Copysign(0, -1)), true},
@@ -85,7 +86,7 @@ func TestFloatComparisonExamples(t *testing.T) {
 			t.Errorf("%s == %s: got %v, want %v", c.a.Inspect(), c.b.Inspect(), got, c.eq)
 		}
 	}
-	if CompareFloats(0.30000000000000004, 0.3) != 0 || CompareFloats(0.3, 0.31) != -1 {
+	if CompareFloats(0.30000000000000004, 0.3) != 1 || CompareFloats(0.3, 0.31) != -1 {
 		t.Error("ordering")
 	}
 }

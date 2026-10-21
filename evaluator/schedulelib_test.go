@@ -132,7 +132,7 @@ func TestFetchallErrors(t *testing.T) {
 	}
 	// Nothing to do.
 	got, err = run(t, "import schedule\nshow fetchall[list []] .", "")
-	if err != nil || strings.TrimSpace(got) != "[  ]" {
+	if err != nil || strings.TrimSpace(got) != "[]" {
 		t.Errorf("empty: got %q, %v", got, err)
 	}
 }

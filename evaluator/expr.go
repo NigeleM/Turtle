@@ -65,6 +65,11 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 		// "a b" is either module a's function b (as a value) or the
 		// sentence-style call b[a] with no further arguments.
 		if e.Module != "" {
+			if e.Module == "math" {
+				if c, ok := mathConstant(env, e.Value); ok {
+					return c
+				}
+			}
 			if subject, ok := sentenceSubject(env, e.Module); ok {
 				return it.callByName(e.Value, []object.Object{subject}, env)
 			}
@@ -82,6 +87,9 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 		}
 		if im := resolveImported(env, e.Value); im != nil {
 			return importedFunctionValue(im, e.Value)
+		}
+		if c, ok := mathConstant(env, e.Value); ok {
+			return c
 		}
 		if e.Value == "version" { // core: show version .
 			return &object.String{Value: versionText()}
@@ -223,6 +231,23 @@ func evalPrefix(op string, right object.Object) object.Object {
 	}
 	fatalf("unknown prefix operator %q", op)
 	return nil
+}
+
+// mathConstants are the constants import math brings in: pi and e.
+var mathConstants = map[string]float64{"pi": math.Pi, "e": math.E}
+
+// mathConstant is pi or e when import math brings it into this file. It
+// is looked up after variables, so a variable of the same name wins.
+func mathConstant(env *object.Environment, name string) (object.Object, bool) {
+	v, ok := mathConstants[name]
+	if !ok {
+		return nil, false
+	}
+	im, ok := env.ImportOf("math")
+	if !ok || !im.Allows(name) {
+		return nil, false
+	}
+	return &object.Float{Value: v}, true
 }
 
 func numeric(obj object.Object) (float64, bool, bool) {
@@ -374,7 +399,7 @@ func evalInfix(op string, left, right object.Object) object.Object {
 		}
 	case "<", ">", "<=", ">=":
 		if lIsNum && rIsNum {
-			if !lIsInt || !rIsInt { // a float: compared as they show, to 15 digits
+			if !lIsInt || !rIsInt { // a float: compared exactly
 				c := object.CompareFloats(lf, rf)
 				return object.Bool(compareNum(op, float64(c), 0))
 			}
@@ -879,6 +904,9 @@ func (it *Interpreter) callByName(name string, args []object.Object, env *object
 				fatalKind(kindName, "%s is private to %s: a ~ function is for its own file", name, im.Module.Name)
 			}
 		}
+	}
+	if _, ok := env.Get(name); ok {
+		fatalKind(kindName, "%q is a value, not a function: to get an item, write %s at get[index]", name, name)
 	}
 	fatalKind(kindName, "undefined function %q", name)
 	return nil

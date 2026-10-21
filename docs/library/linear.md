@@ -531,6 +531,30 @@ show norm[list [3, 4]] .
 5.0
 ```
 
+### `all_close[a, b]`
+
+Whether two matrices of the same size, or two lists of the same length, have
+every pair of numbers close. The rule is the one `is close to` uses in a check
+(within 1e-9 of the larger number, or 1e-12 of each other). Use it for results
+of float arithmetic, where `==` is exact and a leftover like `1e-16` breaks it.
+Different sizes or lengths give `false`.
+
+- `a`, `b`: two matrices, or two lists of numbers
+- `tolerance`: optional, a third argument: the most each pair may differ (0 or more)
+
+**Gives:** `true` or `false`.
+
+```
+m = matrix [4, 7; 2, 6]
+show all_close[m * inverse[m], identity[2]] .
+show all_close[list [1, 2], list [1.01, 2], 0.1] .
+```
+
+```
+true
+true
+```
+
 ### `unit[v]`
 
 The vector scaled to length 1, in the same direction.

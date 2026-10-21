@@ -6,7 +6,6 @@ package object
 
 import (
 	"fmt"
-	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -29,7 +28,7 @@ func Equal(a, b Object) bool {
 	}
 	if af, ok := number(a); ok {
 		bf, ok := number(b)
-		return ok && CompareFloats(af, bf) == 0
+		return ok && af == bf
 	}
 	switch av := a.(type) {
 	case *List:
@@ -131,13 +130,12 @@ func Key(obj Object) string {
 	case *String:
 		return strconv.Quote(v.Value)
 	case *Float:
-		// The 15-digit value, as Equal compares: 0.1 + 0.2 and 0.3 are one
-		// key, and 2.0000000000000004 is the key of 2.
-		r := Round15(v.Value)
-		if r == float64(int64(r)) {
-			return strconv.FormatInt(int64(r), 10)
+		// The exact value, as Equal compares: 0.1 + 0.2 and 0.3 are two
+		// keys. A whole number matches its integer key: 2.0 is the key of 2.
+		if v.Value == float64(int64(v.Value)) {
+			return strconv.FormatInt(int64(v.Value), 10)
 		}
-		return floatText(r)
+		return floatText(v.Value)
 	case *Set:
 		parts := make([]string, len(v.Elements))
 		for i, e := range v.Elements {
@@ -176,37 +174,18 @@ func Key(obj Object) string {
 	return obj.Inspect()
 }
 
-// Round15 is v to 15 significant digits, the way floats show (Inspect).
-func Round15(v float64) float64 {
-	if v == 0 || math.IsInf(v, 0) || math.IsNaN(v) {
-		return v
-	}
-	r, _ := strconv.ParseFloat(strconv.FormatFloat(v, 'g', 15, 64), 64)
-	return r
-}
-
-// CompareFloats orders two numbers as they show, to 15 significant
-// digits: 0.1 + 0.2 equals 0.3, and 0.30000000000000004 isn't more than
-// 0.3. Numbers that are clearly apart are compared directly, without
-// rounding, so loops stay fast. -1, 0 or 1.
+// CompareFloats orders two numbers exactly, as IEEE 754 does (-1, 0 or
+// 1). A NaN is not equal to anything, and sorts after the numbers.
 func CompareFloats(a, b float64) int {
-	if a == b {
+	switch {
+	case a < b:
+		return -1
+	case a > b:
+		return 1
+	case a == b:
 		return 0
 	}
-	if math.Abs(a-b) > 1e-12*math.Max(math.Abs(a), math.Abs(b)) || math.IsNaN(a) || math.IsNaN(b) {
-		if a < b {
-			return -1
-		}
-		return 1
-	}
-	ra, rb := Round15(a), Round15(b)
-	switch {
-	case ra < rb:
-		return -1
-	case ra > rb:
-		return 1
-	}
-	return 0
+	return 1 // a NaN
 }
 
 func number(obj Object) (float64, bool) {

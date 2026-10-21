@@ -32,14 +32,7 @@ func (it *Interpreter) evalDataOp(s *ast.DataOpStatement, env *object.Environmen
 	case ast.OpAdd:
 		val := it.evalExpression(s.Value, env)
 		if s.Index != nil {
-			m, ok := target.(*object.Map)
-			if !ok {
-				if _, isList := target.(*object.List); isList {
-					fatalf("'add ... to %s at ...' gives a map a key; to put an item into a list at a position, write insert ... to %s at ... .", s.Target, s.Target)
-				}
-				fatalf("'add ... to %s at ...' needs a map, got %s", s.Target, typeName(target))
-			}
-			m.Put(it.evalExpression(s.Index, env), val)
+			addAt(s.Target, target, it.evalExpression(s.Index, env), val)
 			return
 		}
 		switch t := target.(type) {
@@ -90,6 +83,13 @@ func (it *Interpreter) evalDataOp(s *ast.DataOpStatement, env *object.Environmen
 		}
 	case ast.OpPut:
 		val := it.evalExpression(s.Value, env)
+		if m, ok := target.(*object.Map); ok {
+			if s.Index2 != nil {
+				fatalf("'put ... to %s at ...' takes one key for a map: put 9 to %s at \"key\" .", s.Target, s.Target)
+			}
+			m.Put(it.evalExpression(s.Index, env), val)
+			return
+		}
 		if m, ok := target.(*object.Matrix); ok {
 			if s.Index2 == nil {
 				fatalf("'put ... to %s' needs a row and a column for a matrix: put 9 to %s at 1, 2 .", s.Target, s.Target)
@@ -128,6 +128,46 @@ func (it *Interpreter) evalDataOp(s *ast.DataOpStatement, env *object.Environmen
 			fatalKind(kindIndex, "index %d out of range for list %s (length %d)", idx, s.Target, len(list.Elements))
 		}
 		list.Elements = append(list.Elements[:idx:idx], append([]object.Object{val}, list.Elements[idx:]...)...)
+	}
+}
+
+// addAt is "add val to target at key". A map's new key starts at val
+// (add 12 to ages at "Cy" gives Cy 12). An existing value changes by its
+// type: a number adds up (Cy 5 becomes 17), text joins on, and a list or
+// set takes the value.
+func addAt(name string, target, key, val object.Object) {
+	var place object.Object
+	var set func(object.Object)
+	switch t := target.(type) {
+	case *object.Map:
+		cur, ok := t.Get(key)
+		if !ok { // a new key starts at the value: add 12 to ages at "Cy" gives Cy 12
+			t.Put(key, val)
+			return
+		}
+		place = cur
+		set = func(v object.Object) { t.Put(key, v) }
+	case *object.List:
+		idx, ok := key.(*object.Integer)
+		if !ok {
+			fatalf("'add ... to %s at ...' needs an integer position for a list, got %s", name, typeName(key))
+		}
+		i := int(idx.Value)
+		if i < 0 || i >= len(t.Elements) {
+			listIndex("list "+name, i, len(t.Elements))
+		}
+		place = t.Elements[i]
+		set = func(v object.Object) { t.Elements[i] = v }
+	default:
+		fatalf("'add ... to %s at ...' needs a map or a list, got %s", name, typeName(target))
+	}
+	switch p := place.(type) {
+	case *object.List:
+		p.Elements = append(p.Elements, val)
+	case *object.Set:
+		p.Add(val)
+	default:
+		set(evalInfix("+", place, val))
 	}
 }
 
@@ -179,31 +219,66 @@ func sortElements(elems []object.Object) {
 		})
 		return
 	}
-	// Mixed values: each one's number and text are made once, not at every
-	// comparison. A number compares as a number with a number, and by its
-	// shown text otherwise.
-	keys := make([]mixedKey, len(elems))
-	for i, e := range elems {
-		f, _, ok := numeric(e)
-		keys[i] = mixedKey{obj: e, num: f, isNum: ok, text: e.Inspect()}
-	}
-	slices.SortStableFunc(keys, func(a, b mixedKey) int {
-		if a.isNum && b.isNum {
-			return cmp.Compare(a.num, b.num)
-		}
-		return strings.Compare(a.text, b.text)
-	})
-	for i := range keys {
-		elems[i] = keys[i].obj
-	}
+	// Mixed values compare like with like, as in Python: numbers with
+	// numbers, text with text, lists element by element. Anything else
+	// stops with an error rather than a guess.
+	slices.SortStableFunc(elems, compareSortValues)
 }
 
-// mixedKey is a value to sort in a mixed list, with what it compares by.
-type mixedKey struct {
-	obj   object.Object
-	num   float64
-	isNum bool
-	text  string
+// compareSortValues orders two values for sort, or stops with an error
+// when they can't be compared.
+func compareSortValues(a, b object.Object) int {
+	fa, _, aNum := numeric(a)
+	fb, _, bNum := numeric(b)
+	ta, tb := typeName(a), typeName(b)
+	switch {
+	case aNum && bNum:
+		return cmp.Compare(fa, fb)
+	case isText(a) && isText(b):
+		return strings.Compare(a.(*object.String).Value, b.(*object.String).Value)
+	case isList(a) && isList(b):
+		return compareLists(a.(*object.List), b.(*object.List))
+	case isBool(a) && isBool(b):
+		return cmp.Compare(boolRank(a), boolRank(b))
+	case ta == tb:
+		fatalKind(kindType, "can't sort %s values with each other: sort compares numbers with numbers, text with text and lists with lists, as Python does", ta)
+	}
+	fatalKind(kindType, "can't sort %s and %s together: sort compares numbers with numbers, text with text and lists with lists, as Python does", ta, tb)
+	return 0
+}
+
+// compareLists orders two lists element by element, then by length, as
+// Python does: [2, "c"] comes before [9, "a"].
+func compareLists(a, b *object.List) int {
+	for i := 0; i < len(a.Elements) && i < len(b.Elements); i++ {
+		if c := compareSortValues(a.Elements[i], b.Elements[i]); c != 0 {
+			return c
+		}
+	}
+	return cmp.Compare(len(a.Elements), len(b.Elements))
+}
+
+func isText(obj object.Object) bool {
+	_, ok := obj.(*object.String)
+	return ok
+}
+
+func isBool(obj object.Object) bool {
+	_, ok := obj.(*object.Boolean)
+	return ok
+}
+
+// boolRank is 0 for false and 1 for true, so false sorts first.
+func boolRank(obj object.Object) int {
+	if obj.(*object.Boolean).Value {
+		return 1
+	}
+	return 0
+}
+
+func isList(obj object.Object) bool {
+	_, ok := obj.(*object.List)
+	return ok
 }
 
 func (it *Interpreter) lengthOf(obj object.Object) int {
@@ -711,6 +786,13 @@ func stringMethod(s *object.String, method string, args []object.Object) object.
 	case "lower":
 		requireArgs(method, args, 0)
 		return &object.String{Value: strings.ToLower(s.Value)}
+	case "reverse":
+		requireArgs(method, args, 0)
+		runes := []rune(s.Value)
+		for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+			runes[i], runes[j] = runes[j], runes[i]
+		}
+		return &object.String{Value: string(runes)}
 	case "trim":
 		requireArgs(method, args, 0)
 		return &object.String{Value: strings.TrimSpace(s.Value)}
@@ -809,6 +891,17 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		return fixedText(method, receiver, args)
 	case "commas":
 		return commasText(method, receiver, args)
+	case "is_close":
+		requireModule(env, "math", "is_close")
+		if len(args) < 1 || len(args) > 2 {
+			fatalf("'is_close' takes a number and an optional tolerance: x at is_close[y] or x at is_close[y, 0.001], got %d argument(s)", len(args))
+		}
+		a, _, _ := numeric(receiver)
+		b, _, ok := numeric(args[0])
+		if !ok {
+			fatalf("'is_close' needs a number to compare with, got %s", typeName(args[0]))
+		}
+		return object.Bool(closeEnough(a, b, closeTolerance("is_close", args[1:])))
 	case "sqrt":
 		requireModule(env, "math", "sqrt")
 		requireArgs(method, args, 0)

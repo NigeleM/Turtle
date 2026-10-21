@@ -223,7 +223,7 @@ var Methods = []string{
 	"intersection", "invert", "isempty", "isnumber", "len", "length", "lower",
 	"pop", "pow", "put", "random", "remove", "replace", "reverse", "round",
 	"slice", "sort", "split", "sqrt", "subset", "superset", "tostring", "trim",
-	"union", "upper", "fixed", "commas", "padleft", "padright",
+	"union", "upper", "fixed", "commas", "padleft", "padright", "is_close",
 	"rows", "columns", "shape", "row", "column",
 }
 

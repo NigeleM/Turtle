@@ -144,7 +144,7 @@ theory [end]
 		"FAIL  theory wrongfail",
 		"proof: wrongfail 1 . fails . gave 2, expected an error",
 		"FAIL  theory somebig",
-		"theorem result at least 1 x give x >= 4 fails on a = [  ]: 0 of 0 items follow the rule; at least 1 should",
+		"theorem result at least 1 x give x >= 4 fails on a = []: 0 of 0 items follow the rule; at least 1 should",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q in:\n%s", want, out)

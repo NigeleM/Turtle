@@ -41,7 +41,7 @@ counts = map []
     if ] counts at contains w [
         n = counts at get w + 1
     if [end]
-    add n to counts at w .
+    put n to counts at w .
 [loop][end]
 expect["the is counted case-blind", counts at get "the", 3]
 expect["fox twice", counts at get "fox", 2]

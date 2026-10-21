@@ -95,6 +95,18 @@ handle [] err .
     expect["a singular matrix is an error", true, true]
 safe [end]
 
+// Closeness: float results compare with is_close and all_close, not ==.
+expect["is_close, the default", (0.1 + 0.2) at is_close[0.3], true]
+expect["is_close, too far", (10 / 3) at is_close[3.33], false]
+expect["is_close, with a tolerance", (10 / 3) at is_close[3.33, 0.01], true]
+expect["is_close, a tolerance of 0", (0.1 + 0.2) at is_close[0.3, 0], false]
+m = matrix [4, 7; 2, 6]
+expect["all_close, inverse times matrix", all_close[m * inverse[m], identity[2]], true]
+expect["all_close, the sizes differ", all_close[m, matrix [4, 7, 0; 2, 6, 0]], false]
+expect["all_close, lists", all_close[list [0.1 + 0.2, 1], list [0.3, 1]], true]
+expect["all_close, lengths differ", all_close[list [1, 2], list [1, 2, 3]], false]
+expect["all_close, a tolerance", all_close[list [1, 2], list [1.01, 2], 0.1], true]
+expect["all_close, too tight", all_close[list [1, 2], list [1.01, 2], 0.001], false]
 show "math, random and matrices ok" .
 show "failures: ", length of failures .
 if ] length of failures > 0 [

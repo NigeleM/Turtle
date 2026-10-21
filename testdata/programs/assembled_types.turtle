@@ -62,7 +62,7 @@ expect["fields as list items", sorted_items, list ["ink", "mug", "pen"]]
 // Assembled values as map values and as keys of a set-like list.
 by_item = map []
 [loop][o in lines]
-    add o to by_item at item of o .
+    put o to by_item at item of o .
 [loop][end]
 expect["map of assembled values", qty of by_item at get "mug", 2]
 

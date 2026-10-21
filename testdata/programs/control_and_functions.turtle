@@ -55,7 +55,7 @@ check["counting loop", seen, list [0, 1, 2, 3, 4]]
 
 pairs = list []
 ages = map ["ann": 30]
-add "bob" to ages at "bob" .
+put "bob" to ages at "bob" .
 [loop][k in ages]
     add length of k to pairs .
 [loop][end]
