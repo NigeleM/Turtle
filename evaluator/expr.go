@@ -828,15 +828,27 @@ func (it *Interpreter) applyCall(ce *ast.CallExpression, args []object.Object, e
 	if fn := knownFunction(ce, env); fn != nil {
 		return it.callFunction(fn, ce.Name, args)
 	}
-	return it.callByName(ce.Name, args, env)
+	if c, ok := ce.Cache.(*callCache); ok && c.epoch == object.FuncEpoch() && c.root == env.Root() {
+		switch {
+		case c.im != nil:
+			return it.callImported(c.im, ce.Name, args, env)
+		case c.method != nil && len(args) > 0:
+			return it.applyMethod(c.method, args[0], args[1:], env)
+		}
+	}
+	return it.callByNameAt(ce, ce.Name, args, env)
 }
 
-// callCache is what a call by name remembers: the function it reached,
-// in which module, and as of which object.FuncEpoch.
+// callCache is what a call by name remembers, as of which
+// object.FuncEpoch and in which module: the program's function it
+// reached, or, when no function of the program's has the name, the import
+// that provides it or the method it calls in function form (abs[d]).
 type callCache struct {
-	epoch uint64
-	root  *object.Environment
-	fn    *object.Function
+	epoch  uint64
+	root   *object.Environment
+	fn     *object.Function
+	im     *object.Import
+	method *ast.MethodCallExpression
 }
 
 // knownFunction is the module function ce reaches by name, without
@@ -876,15 +888,34 @@ func sentenceSubject(env *object.Environment, name string) (object.Object, bool)
 }
 
 func (it *Interpreter) callByName(name string, args []object.Object, env *object.Environment) object.Object {
-	if v, ok := env.Get(name); ok {
-		if fn, ok := v.(*object.Function); ok {
-			return it.callFunction(fn, name, args)
+	return it.callByNameAt(nil, name, args, env)
+}
+
+// callByNameAt is callByName for the call site ce (nil for none): when the
+// name reaches an import or a method in function form, ce remembers it
+// (see callCache), so the next call there goes straight to it.
+func (it *Interpreter) callByNameAt(ce *ast.CallExpression, name string, args []object.Object, env *object.Environment) object.Object {
+	// Only a variable that holds a function is called; a name that never
+	// held one can't be.
+	funcVar := object.MayBeFuncVar(name)
+	if funcVar {
+		if v, ok := env.Get(name); ok {
+			if fn, ok := v.(*object.Function); ok {
+				return it.callFunction(fn, name, args)
+			}
 		}
 	}
 	if fn, ok := env.GetFunction(name); ok {
 		return it.callFunction(fn, name, args)
 	}
+	remember := func(c *callCache) {
+		if ce != nil && !funcVar {
+			c.epoch, c.root = object.FuncEpoch(), env.Root()
+			ce.Cache = c
+		}
+	}
 	if im := resolveImported(env, name); im != nil {
+		remember(&callCache{im: im})
 		return it.callImported(im, name, args, env)
 	}
 	if name == "diagnose" { // core: "s diagnose 3"
@@ -913,7 +944,9 @@ func (it *Interpreter) callByName(name string, args []object.Object, env *object
 		if len(args) == 0 {
 			fatalf("%s needs a value to work on: %s[x], x %s, or x at %s", name, name, name, name)
 		}
-		return it.applyMethod(&ast.MethodCallExpression{Method: name, Bracketed: true}, args[0], args[1:], env)
+		mc := &ast.MethodCallExpression{Method: name, Bracketed: true}
+		remember(&callCache{method: mc})
+		return it.applyMethod(mc, args[0], args[1:], env)
 	}
 	if object.IsPrivate(name) {
 		for _, im := range env.Imports() {

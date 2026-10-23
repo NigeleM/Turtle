@@ -123,30 +123,39 @@ func (e *Environment) find(name string) int {
 }
 
 // Which function a call by name reaches changes only when a function is
-// defined or when a variable of that name holds a function; funcEpoch
-// counts those changes, so a call can keep the function it found until
-// the count moves. funcVars are the names that have ever held a function
-// as a variable: a call by any other name can't reach a variable.
+// defined, when a file imports something, or when a variable of that name
+// holds a function; funcEpoch counts those changes, so a call can keep
+// what it found until the count moves. funcVars are the names that have
+// ever held a function as a variable: a call by any other name can't
+// reach a variable. Every call reads it and almost none add to it, so a
+// new name copies the set and readers take no lock.
 var (
 	funcEpoch  atomic.Uint64
-	funcVarsMu sync.Mutex
-	funcVars   = map[string]bool{}
+	funcVarsMu sync.Mutex // held by writers only
+	funcVars   atomic.Pointer[map[string]bool]
 )
+
+func init() { funcVars.Store(&map[string]bool{}) }
 
 // FuncEpoch is the count of changes to which function a name reaches.
 func FuncEpoch() uint64 { return funcEpoch.Load() }
 
 // MayBeFuncVar is whether name has ever held a function as a variable.
-func MayBeFuncVar(name string) bool {
-	funcVarsMu.Lock()
-	defer funcVarsMu.Unlock()
-	return funcVars[name]
-}
+func MayBeFuncVar(name string) bool { return (*funcVars.Load())[name] }
 
 func noteFuncVar(name string) {
+	if MayBeFuncVar(name) {
+		return
+	}
 	funcVarsMu.Lock()
-	if !funcVars[name] {
-		funcVars[name] = true
+	old := *funcVars.Load()
+	if !old[name] {
+		next := make(map[string]bool, len(old)+1)
+		for n := range old {
+			next[n] = true
+		}
+		next[name] = true
+		funcVars.Store(&next)
 		funcEpoch.Add(1)
 	}
 	funcVarsMu.Unlock()
@@ -350,6 +359,7 @@ func (e *Environment) Root() *Environment { return e.root() }
 // same module under the same name again merges: a full import wins over any
 // list, and lists accumulate.
 func (e *Environment) AddImport(mod *Module, bound string, names []string, aliases map[string]string) {
+	defer funcEpoch.Add(1) // what a call by name reaches may change
 	r := e.root()
 	for _, im := range r.imports {
 		if im.Module != mod || im.Name != bound {

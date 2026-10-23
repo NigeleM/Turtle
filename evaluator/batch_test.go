@@ -320,6 +320,35 @@ func TestMathTrigAndLogarithms(t *testing.T) {
 	}
 }
 
+// A call site remembers where a library call goes, and forgets it as soon
+// as something could change it: a variable of that name holding a function,
+// or a new import.
+func TestCallSiteFollowsNewFunctionsAndImports(t *testing.T) {
+	got, err := run(t, `import math
+def call[]
+    return abs[-5]
+def [end]
+show call[], " ", call[] .
+abs = [x] give 99
+show call[] .`, "")
+	if err != nil || got != "5 5\n99\n" {
+		t.Errorf("function variable: got %q, %v", got, err)
+	}
+	got, err = run(t, `def call[]
+    return mean[list [1, 2, 3]]
+def [end]
+safe
+    show call[] .
+handle [] e .
+    show "before" .
+safe [end]
+import data
+show call[] .`, "")
+	if err != nil || got != "before\n2.0\n" {
+		t.Errorf("import after a failed call: got %q, %v", got, err)
+	}
+}
+
 // asin, acos, atan and atan2 give angles in radians, as Python's math does.
 func TestMathInverseTrig(t *testing.T) {
 	got, err := run(t, "import math\nshow 1 at asin, \" \", 0 at acos, \" \", 1 at atan, \" \", 1 at atan2[-1], \" \", -1 at atan2[-1], \" \", 0.5 at asin at sin .", "")
