@@ -13,6 +13,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"Turtle/object"
 )
@@ -287,12 +288,65 @@ func jsonKey(who string, k object.Object) string {
 	return ""
 }
 
+// writeJSONString writes s as a JSON string, the same bytes Go's encoder
+// writes with HTML escaping off (<, > and & stay readable). Text with
+// nothing to escape, the usual case, is copied as it is; a fresh encoder
+// for every key and value made writing JSON several times slower.
 func writeJSONString(buf *bytes.Buffer, s string) {
-	enc := json.NewEncoder(buf)
-	enc.SetEscapeHTML(false)    // keep <, > and & readable
-	_ = enc.Encode(s)           // a string always encodes
-	buf.Truncate(buf.Len() - 1) // Encode adds a newline
+	buf.WriteByte('"')
+	start := 0
+	for i := 0; i < len(s); {
+		b := s[i]
+		if b < utf8.RuneSelf {
+			if b >= 0x20 && b != '"' && b != '\\' {
+				i++
+				continue
+			}
+			buf.WriteString(s[start:i])
+			switch b {
+			case '"', '\\':
+				buf.WriteByte('\\')
+				buf.WriteByte(b)
+			case '\b':
+				buf.WriteString(`\b`)
+			case '\f':
+				buf.WriteString(`\f`)
+			case '\n':
+				buf.WriteString(`\n`)
+			case '\r':
+				buf.WriteString(`\r`)
+			case '\t':
+				buf.WriteString(`\t`)
+			default:
+				buf.WriteString(`\u00`)
+				buf.WriteByte(hexDigits[b>>4])
+				buf.WriteByte(hexDigits[b&0xF])
+			}
+			i++
+			start = i
+			continue
+		}
+		r, size := utf8.DecodeRuneInString(s[i:])
+		switch {
+		case r == utf8.RuneError && size == 1: // not UTF-8: the replacement character
+			buf.WriteString(s[start:i])
+			buf.WriteString("\ufffd")
+		case r == '\u2028' || r == '\u2029': // line breaks to JavaScript
+			buf.WriteString(s[start:i])
+			buf.WriteString(`\u202`)
+			buf.WriteByte(hexDigits[r&0xF])
+		default:
+			i += size
+			continue
+		}
+		i += size
+		start = i
+	}
+	buf.WriteString(s[start:])
+	buf.WriteByte('"')
 }
+
+const hexDigits = "0123456789abcdef"
 
 func writeJSONArray(buf *bytes.Buffer, who string, elems []object.Object, indent, prefix string, seen map[object.Object]bool) {
 	if len(elems) == 0 {
