@@ -196,6 +196,102 @@ show f[] .`,
     return down[n + 1]
 def [end]
 show down[0] .`,
+		"top level: a function reads a global the loop changes": `total = 0
+def report[]
+    return total * 10
+def [end]
+seen = list []
+[loop][i = 0; i < 4; i++]
+    total = total + i
+    add report[] to seen .
+[loop][end]
+show total, seen .`,
+		"top level: names set in the loop are there after it": `[loop][i = 0; i < 3; i++]
+    last = i * i
+    if ] i == 1 [
+        mid = "one"
+    if [end]
+[loop][end]
+show last, mid .`,
+		"top level: the counter stays the loop's": `i = "outer"
+[loop][i = 0; i < 3; i++]
+    x = i
+[loop][end]
+show i, x .`,
+		"top level: an error mid-loop keeps what was set": `total = 0
+safe
+    [loop][i = 0; i < 10; i++]
+        total = total + 1
+        y = 10 / (5 - i)
+    [loop][end]
+handle [math] e .
+    show "stopped at", total, kind of e, line of e .
+safe [end]
+show total .`,
+		"top level: lists changed in place and read by a function": `nums = list []
+def count[]
+    return length of nums
+def [end]
+[loop][i = 0; i < 5; i++]
+    add i to nums .
+    if ] count[] == 3 [
+        put 99 to nums at 0 .
+    if [end]
+[loop][end]
+show nums .`,
+		"top level: function values and fields": `import data
+assemble Point [x, y]
+pts = list []
+[loop][i = 0; i < 3; i++]
+    add Point[i, i * 2] to pts .
+[loop][end]
+total = 0
+[loop][p in pts]
+    total = total + x of p + y of p
+[loop][end]
+doubled = list []
+[loop][r = 0; r < 2; r++]
+    doubled = process[pts, p give x of p * 2]
+[loop][end]
+show total, doubled .`,
+		"top level: reading before the loop sets it": `[loop][i = 0; i < 2; i++]
+    show later .
+    later = i
+[loop][end]`,
+		"top level: for-each and while": `words = list ["a", "bb", "ccc"]
+n = 0
+[loop][w in words]
+    n = n + length of w
+[loop][end]
+k = 1
+[loop][k < 100]
+    k = k * 3
+[loop][end]
+show n, k .`,
+		"sentence names and calls, in place": `import data
+import math
+def clean[rows]
+    rows keep r give r != none .
+    return rows
+def [end]
+m = map ["a": 1, "b": 2]
+out = list []
+[loop][r = 0; r < 2; r++]
+    [loop][k in m getkeys]
+        add k to out .
+    [loop][end]
+    add math sqrt[16] to out .
+    add "lo" isinstring "hello" to out .
+[loop][end]
+show out, clean[list [1, none, 2]] .`,
+		"min, max and random with a seed": `import random
+seed = 7
+xs = list []
+[loop][i = 0; i < 3; i++]
+    add random integer from 1 to 100 to xs .
+    add min[i, 1] + max of list [i, 5] to xs .
+[loop][end]
+show xs .`,
 		"assigning a global it reads stays on the tree": `count = 1
 def f[]
     count = count + 1

@@ -17,6 +17,7 @@ import (
 	"maps"
 	"math"
 	"os"
+	"reflect"
 	"slices"
 	"strings"
 	"sync/atomic"
@@ -237,6 +238,12 @@ type compiler struct {
 	assigned map[string]bool
 	n        int
 	failed   bool
+	// top is set for a loop of the program's top level (a region): every
+	// name is a global, loaded into a slot when the loop starts; shared are
+	// the globals some function may read by name, stored back on every
+	// assignment so a function called in the loop sees them.
+	top    bool
+	shared map[string]bool
 }
 
 // settingNames are variables libraries read from the caller's scope
@@ -369,7 +376,7 @@ func (c *compiler) stmt(st ast.Statement) stmtFn {
 			c.fail("setting")
 			return nil
 		}
-		if sl, ok := c.resolve(s.Name); (!ok || !c.defined[sl]) && assignReads(s) {
+		if sl, ok := c.resolve(s.Name); !c.top && (!ok || !c.defined[sl]) && assignReads(s) {
 			c.fail("assignment may change an outer name")
 			return nil
 		}
@@ -379,6 +386,17 @@ func (c *compiler) stmt(st ast.Statement) stmtFn {
 			slot = c.local(s.Name)
 		}
 		c.defined[slot] = true
+		if g, isGlobal := c.locals[name]; c.top && isGlobal && g == slot && c.shared[name] {
+			return func(it *Interpreter, sl []val) ctl {
+				if !it.inBuiltin {
+					currentLine = line
+				}
+				v := value(it, sl)
+				sl[slot] = v
+				it.vmEnv.Set(name, v.box())
+				return ctlNext
+			}
+		}
 		return func(it *Interpreter, sl []val) ctl {
 			if !it.inBuiltin {
 				currentLine = line
@@ -760,13 +778,13 @@ func (c *compiler) exprIn(e ast.Expression, numeric bool) exprFn {
 
 	case *ast.Identifier:
 		if x.Module != "" {
-			break // "n f", which may read a local
+			return c.sentenceName(x)
 		}
 		slot, ok := c.resolve(x.Value)
 		if ok && c.defined[slot] {
 			return func(_ *Interpreter, s []val) val { return s[slot] }
 		}
-		if ok || c.assigned[x.Value] {
+		if ok || c.assigned[x.Value] || c.top {
 			slot = c.local(x.Value)
 			// The function's own once set; until then the outer one.
 			return func(it *Interpreter, s []val) val {
@@ -853,6 +871,24 @@ func (c *compiler) exprIn(e ast.Expression, numeric bool) exprFn {
 			}
 			return val{o: m}
 		}
+	case *ast.FieldExpression:
+		obj := c.expr(x.Object)
+		return func(it *Interpreter, s []val) val { return valOf(fieldValue(x, obj(it, s).box())) }
+
+	case *ast.FunctionLiteral:
+		// A function value keeps the scope it was made in; the slots
+		// aren't in one, so it may use none of their names.
+		for name := range wordsIn(x) {
+			if _, inSlot := c.resolve(name); inSlot || !c.top && c.assigned[name] {
+				c.fail("function value using a variable of the body")
+				return nil
+			}
+		}
+		return func(it *Interpreter, _ []val) val {
+			it.vmEnv.Capture()
+			return val{o: &object.Function{Parameters: x.Parameters, Body: x.Body, Env: it.vmEnv}}
+		}
+
 	case *ast.InterpolatedString:
 		parts := c.exprs(x.Parts)
 		return func(it *Interpreter, s []val) val {
@@ -872,13 +908,83 @@ func (c *compiler) exprIn(e ast.Expression, numeric bool) exprFn {
 		}
 		src, to := c.expr(x.Source), x.TypeName
 		return func(it *Interpreter, s []val) val { return valOf(evalChange(to, src(it, s).box())) }
+	case *ast.MinExpression:
+		return c.extreme(x.Arg, x.Args, true)
+	case *ast.MaxExpression:
+		return c.extreme(x.Arg, x.Args, false)
 	}
-	if id, ok := e.(*ast.Identifier); ok {
-		c.fail("name not local: " + id.Value)
-		return nil
+	// Anything else runs as the tree runs it, in the scope the body was
+	// made in, when it uses no name that lives in a slot here.
+	if c.slotFree(e) {
+		return func(it *Interpreter, _ []val) val { return valOf(it.evalExpression(e, it.vmEnv)) }
 	}
 	c.fail(fmt.Sprintf("expression %T", e))
 	return nil
+}
+
+// slotFree is whether n uses no name whose value is in a slot (or
+// might be): a variable of the body, a loop's name, or one it assigns.
+func (c *compiler) slotFree(n any) bool {
+	for w := range wordsIn(n) {
+		if c.assigned[w] {
+			return false
+		}
+		for _, l := range c.loops {
+			if _, ok := l[w]; ok {
+				return false
+			}
+		}
+		if _, ok := c.locals[w]; ok && !c.top {
+			return false
+		}
+	}
+	return true
+}
+
+func (c *compiler) extreme(arg ast.Expression, args []ast.Expression, wantMin bool) exprFn {
+	if args == nil || len(args) == 1 {
+		if args != nil {
+			arg = args[0]
+		}
+		a := c.expr(arg)
+		return func(it *Interpreter, s []val) val { return valOf(extremeOf(a(it, s).box(), wantMin)) }
+	}
+	fs := c.exprs(args)
+	return func(it *Interpreter, s []val) val {
+		cand := make([]object.Object, len(fs))
+		for i, f := range fs {
+			cand[i] = f(it, s).box()
+		}
+		return valOf(pickExtreme(cand, wantMin))
+	}
+}
+
+// sentenceName is "m f": module m's function f, or, when m is a
+// variable, the call f[m]; as evalName works it out.
+func (c *compiler) sentenceName(x *ast.Identifier) exprFn {
+	mod := x.Module
+	slot, ok := c.resolve(mod)
+	if !ok && !c.assigned[mod] && !c.top {
+		return func(it *Interpreter, _ []val) val { return valOf(it.evalExpression(x, it.vmEnv)) }
+	}
+	if !ok {
+		slot = c.local(mod)
+	}
+	return func(it *Interpreter, s []val) val {
+		if mod == "math" {
+			if cv, ok := mathConstant(it.vmEnv, x.Value); ok {
+				return valOf(cv)
+			}
+		}
+		v := s[slot]
+		if v == unset {
+			return valOf(it.evalExpression(x, it.vmEnv))
+		}
+		if _, isModule := it.vmEnv.FindImport(mod); isModule {
+			fatalKind(kindName, "%q is both a variable and an imported module — rename the variable", mod)
+		}
+		return valOf(it.callByName(x.Value, []object.Object{v.box()}, it.vmEnv))
+	}
 }
 
 // name is the variable a data statement works on, as getVar finds it.
@@ -887,7 +993,7 @@ func (c *compiler) name(n string) exprFn {
 	if ok && c.defined[slot] {
 		return func(_ *Interpreter, s []val) val { return s[slot] }
 	}
-	if ok || c.assigned[n] {
+	if ok || c.assigned[n] || c.top {
 		slot = c.local(n)
 		return func(it *Interpreter, s []val) val {
 			if v := s[slot]; v != unset {
@@ -905,6 +1011,58 @@ func (c *compiler) exprs(es []ast.Expression) []exprFn {
 		out[i] = c.expr(e)
 	}
 	return out
+}
+
+// sentenceCall is a call with a subject ("lo" isinstring line) or a
+// module or variable in front (math sqrt[x], nums sum), as applyCall
+// works it out.
+func (c *compiler) sentenceCall(ce *ast.CallExpression, statement bool) exprFn {
+	args := c.exprs(ce.Arguments)
+	// As a statement (nums keep n give n > 2 .) the call works in place:
+	// the flag is set once its arguments are worked out, as evalCall does.
+	boxed := func(it *Interpreter, s []val, first object.Object) []object.Object {
+		out := make([]object.Object, 0, len(args)+1)
+		if first != nil {
+			out = append(out, first)
+		}
+		for _, a := range args {
+			out = append(out, a(it, s).box())
+		}
+		return out
+	}
+	inPlace := func(it *Interpreter) func() {
+		if !statement {
+			return func() {}
+		}
+		it.inPlace = true
+		return func() { it.inPlace = false }
+	}
+	if ce.Subject != nil {
+		subj := c.expr(ce.Subject)
+		return func(it *Interpreter, s []val) val {
+			a := boxed(it, s, nil) // the arguments first, then the subject, as applyCall
+			defer inPlace(it)()
+			return valOf(it.callByName(ce.Name, append([]object.Object{subj(it, s).box()}, a...), it.vmEnv))
+		}
+	}
+	mod := ce.Module
+	slot, ok := c.resolve(mod)
+	if !ok && (c.assigned[mod] || c.top) {
+		slot, ok = c.local(mod), true
+	}
+	return func(it *Interpreter, s []val) val {
+		a := boxed(it, s, nil)
+		defer inPlace(it)()
+		if ok {
+			if v := s[slot]; v != unset {
+				if _, isModule := it.vmEnv.FindImport(mod); isModule {
+					fatalKind(kindName, "%q is both a variable and an imported module — rename the variable", mod)
+				}
+				return valOf(it.callByName(ce.Name, append([]object.Object{v.box()}, a...), it.vmEnv))
+			}
+		}
+		return valOf(it.applyCall(ce, a, it.vmEnv))
+	}
 }
 
 // slowInfix is op on values that aren't both plain whole numbers in
@@ -973,9 +1131,12 @@ func arith(op string, l, r exprFn, numeric bool) exprFn {
 // call is a call by name: to a compiled body, its arguments go straight
 // into the new frame; to anything else, as the tree calls it.
 func (c *compiler) call(ce *ast.CallExpression, statement bool) exprFn {
-	if ce.Subject != nil || ce.Module != "" || ce.Name == "diagnose" {
-		c.fail("call form")
+	if ce.Name == "diagnose" {
+		c.fail("diagnose")
 		return nil
+	}
+	if ce.Subject != nil || ce.Module != "" {
+		return c.sentenceCall(ce, statement)
 	}
 	if _, local := c.resolve(ce.Name); local || c.assigned[ce.Name] {
 		c.fail("call of a variable") // a variable holding a function
@@ -1013,4 +1174,146 @@ func (c *compiler) call(ce *ast.CallExpression, statement bool) exprFn {
 		}
 		return valOf(it.applyCall(ce, boxed, it.vmEnv))
 	}
+}
+
+// ---- the top level ----
+
+// A region is a loop at the program's top level, compiled. Its globals
+// live in slots while it runs: loaded when it starts, and the ones it
+// assigns stored back when it ends, by its end or an error.
+type region struct {
+	c       *compiled
+	globals []regionVar
+}
+
+type regionVar struct {
+	name     string
+	slot     int
+	assigned bool
+}
+
+// noRegion marks a top-level loop that runs as a tree.
+var noRegion = &region{}
+
+// regionFor is s compiled, or nil.
+func (it *Interpreter) regionFor(s *ast.LoopStatement) *region {
+	if r, ok := it.regions[s]; ok {
+		if r == noRegion {
+			return nil
+		}
+		return r
+	}
+	r := compileRegion(s, it.topShared)
+	if it.regions == nil {
+		it.regions = map[*ast.LoopStatement]*region{}
+	}
+	it.regions[s] = r
+	if r != noRegion {
+		vmCompiledCount.Add(1)
+	}
+	if vmStats {
+		if r == noRegion {
+			fmt.Fprintf(os.Stderr, "vm: tree loop on line %d: %s\n", s.Line(), vmWhy)
+		} else {
+			fmt.Fprintf(os.Stderr, "vm: compiled loop on line %d\n", s.Line())
+		}
+	}
+	if r == noRegion {
+		return nil
+	}
+	return r
+}
+
+func compileRegion(s *ast.LoopStatement, shared map[string]bool) *region {
+	c := &compiler{locals: map[string]int{}, defined: map[int]bool{}, assigned: map[string]bool{}, top: true, shared: shared}
+	assignedNames([]ast.Statement{s}, c.assigned)
+	body := c.block([]ast.Statement{s})
+	if c.failed {
+		return noRegion
+	}
+	r := &region{c: &compiled{nslots: c.n, body: body}}
+	for name, slot := range c.locals {
+		r.globals = append(r.globals, regionVar{name: name, slot: slot, assigned: c.assigned[name]})
+	}
+	return r
+}
+
+// runRegion runs a compiled top-level loop in env, the program's globals.
+func (it *Interpreter) runRegion(r *region, env *object.Environment) ExecResult {
+	st := &it.vm
+	m := st.mark()
+	s := st.alloc(r.c.nslots)
+	newFrame(s, 0)
+	for _, g := range r.globals {
+		if v, ok := env.Get(g.name); ok {
+			s[g.slot] = valOf(v)
+		}
+	}
+	prevFile, prevBuiltin, prevFunc, prevDepth, prevEnv := currentFile, it.inBuiltin, it.funcName, it.depth, it.vmEnv
+	it.vmEnv = env
+	defer func() {
+		for _, g := range r.globals {
+			if v := s[g.slot]; g.assigned && v != unset {
+				env.Set(g.name, v.box())
+			}
+		}
+		clear(s)
+		st.release(m)
+		currentFile, it.inBuiltin, it.funcName, it.depth, it.vmEnv = prevFile, prevBuiltin, prevFunc, prevDepth, prevEnv
+	}()
+	if runStmts(it, s, r.c.body) == ctlReturn {
+		return ExecResult{Signal: SigReturn, Value: it.vmRet.box()}
+	}
+	return noneResult
+}
+
+// namesInDeferred are the names in code that may run later and read a
+// global by name: function bodies, function values, scrolls, theories.
+// Every word in them counts, so the set is larger than it need be, never
+// smaller.
+func namesInDeferred(prog *ast.Program) map[string]bool {
+	return words(prog, false)
+}
+
+// wordsIn is every word in n.
+func wordsIn(n any) map[string]bool {
+	return words(n, true)
+}
+
+// words are the strings in n's tree: all of them, or only those inside
+// code that runs later.
+func words(n any, all bool) map[string]bool {
+	names := map[string]bool{}
+	var walk func(v reflect.Value, in bool)
+	walk = func(v reflect.Value, in bool) {
+		switch v.Kind() {
+		case reflect.Pointer, reflect.Interface:
+			if v.IsNil() {
+				return
+			}
+			switch v.Interface().(type) {
+			case *ast.FunctionDefStatement, *ast.FunctionLiteral, *ast.ScrollExpression,
+				*ast.TheoryStatement, *ast.TheoryCall, *ast.HypothesisExpression:
+				in = true
+			}
+			walk(v.Elem(), in)
+		case reflect.Struct:
+			t := v.Type()
+			for i := range v.NumField() {
+				if f := t.Field(i); f.IsExported() && f.Name != "Cache" && f.Name != "Compiled" && f.Name != "Big" {
+					walk(v.Field(i), in)
+				}
+			}
+		case reflect.Slice, reflect.Array:
+			for i := range v.Len() {
+				walk(v.Index(i), in)
+			}
+		case reflect.String:
+			if in {
+				names[v.String()] = true
+			}
+		}
+	}
+	walk(reflect.ValueOf(n), all)
+	return names
 }

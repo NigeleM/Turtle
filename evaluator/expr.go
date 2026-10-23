@@ -194,7 +194,11 @@ func (it *Interpreter) evalName(e *ast.Identifier, env *object.Environment) obje
 //
 //go:noinline
 func (it *Interpreter) evalField(e *ast.FieldExpression, env *object.Environment) object.Object {
-	obj := it.evalExpression(e.Object, env)
+	return fieldValue(e, it.evalExpression(e.Object, env))
+}
+
+// fieldValue is e's field of obj, e's object worked out.
+func fieldValue(e *ast.FieldExpression, obj object.Object) object.Object {
 	if d, ok := obj.(*object.Date); ok {
 		v, ok := d.Field(e.Field)
 		if !ok {

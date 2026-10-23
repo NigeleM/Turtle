@@ -89,6 +89,10 @@ type Interpreter struct {
 	vm    vmStack
 	vmEnv *object.Environment
 	vmRet val
+	// topShared are the names deferred code may read (see namesInDeferred),
+	// set by Run: top-level loops are compiled only then; regions holds them.
+	topShared map[string]bool
+	regions   map[*ast.LoopStatement]*region
 	// stop is set from outside to stop the code running: stopInterrupt by
 	// the REPL's Ctrl-C, stopTimeout when a server request runs past
 	// servertimeout. The next statement, or loop pass, checks it.
@@ -360,6 +364,9 @@ func (it *Interpreter) Run(program *ast.Program) (err error) {
 			panic(r)
 		}
 	}()
+	if vmEnabled {
+		it.topShared = namesInDeferred(program)
+	}
 	it.runFile(program.Statements, it.Global)
 	return nil
 }
@@ -765,6 +772,11 @@ func (it *Interpreter) evalIf(s *ast.IfStatement, env *object.Environment) ExecR
 // closure made in the loop can still read it after the loop ends. Every
 // other assignment in the body goes to the enclosing scope as usual.
 func (it *Interpreter) evalLoop(s *ast.LoopStatement, env *object.Environment) ExecResult {
+	if env == it.Global && it.topShared != nil && it.Trace == nil && it.debug == nil {
+		if r := it.regionFor(s); r != nil {
+			return it.runRegion(r, env)
+		}
+	}
 	if s.Kind == ast.LoopEach {
 		return it.evalEach(s, env)
 	}

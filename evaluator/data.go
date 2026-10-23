@@ -377,7 +377,11 @@ func (it *Interpreter) extreme(argExpr ast.Expression, argExprs []ast.Expression
 }
 
 func (it *Interpreter) reduceExtreme(argExpr ast.Expression, env *object.Environment, wantMin bool) object.Object {
-	obj := it.evalExpression(argExpr, env)
+	return extremeOf(it.evalExpression(argExpr, env), wantMin)
+}
+
+// extremeOf is min or max of a list's, set's or map's items.
+func extremeOf(obj object.Object, wantMin bool) object.Object {
 	switch v := obj.(type) {
 	case *object.List:
 		return pickExtreme(v.Elements, wantMin)
