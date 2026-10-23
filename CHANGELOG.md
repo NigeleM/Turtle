@@ -2,6 +2,10 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## 0.9.223 (2026-10-23)
+
+- An assignment remembers where it stored its name, and stores there again while that place is still right, instead of searching the scopes each time: programs that assign in loops run 2 to 6% faster (binary search 6%). New variables, and the error for changing an outer variable from a function, work as before.
+
 ## 0.9.222 (2026-10-23)
 
 - A call to a library function by name (`abs[d]`, `sqrt[x]`, `mean[nums]`) remembers where it goes, so the next call there skips the search: about 25% faster in a loop of such calls. It looks again after a `def`, an `import`, or a variable taking a function value, so a function of the program's own still wins.
