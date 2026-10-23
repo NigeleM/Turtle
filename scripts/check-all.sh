@@ -20,7 +20,8 @@ step() { printf '\n== %s\n' "$1"; }
 
 step "files git doesn't have"
 missing=$(git ls-files --others --exclude-standard -- '*.go' '*.turtle' '*.trt' 'go.mod')
-ignored=$(git ls-files --others --ignored --exclude-standard -- '*.go' '*.turtle' | grep -v '^testdata/sql/work' || true)
+# Complexity/ is the local program corpus, kept out of git on purpose.
+ignored=$(git ls-files --others --ignored --exclude-standard -- '*.go' '*.turtle' | grep -v '^testdata/sql/work\|^Complexity/' || true)
 if [ -n "$missing$ignored" ]; then
 	echo "not committed:"; echo "$missing$ignored" | sed '/^$/d; s/^/  /'
 	fail=1
@@ -59,7 +60,8 @@ fi
 
 if [ "$QUICK" = 0 ]; then
 	if docker info >/dev/null 2>&1; then
-		for v in 1.24 latest; do
+		# The oldest Go that go.mod allows, and the newest.
+		for v in "$(sed -n 's/^go //p' go.mod)" latest; do
 			step "linux, Go $v (Docker)"
 			docker pull -q "golang:$v" >/dev/null || fail=1
 			out=$(docker run --rm -v "$work":/src:ro "golang:$v" sh -c "
