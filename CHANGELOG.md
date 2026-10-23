@@ -2,6 +2,19 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## 0.9.225 (2026-10-23)
+
+Breaking changes (limits on input that could take all memory):
+
+- An integer stops at 10,000,000 bits (about 3 million digits): `*` and `pow` that would go past it are a `math` error, `integer too big`, checked before the work is done. `change ... to integer` reads text of at most 1,000,000 digits. Before, one line such as `pow[2, 4000000000]` could take all memory or run for hours.
+
+Other changes:
+
+- `m["apples"] = 3` says how to set a key or an item (`m at put[key, value]`, or `put value to nums at index .`) instead of that a line can't start with `=`.
+- Each level of a function call takes about half the stack it did: 100,000 nested calls use 243 MB instead of 483 MB.
+- Text with a long run of plain braces is read in linear time: 300,000 braces take 0.02 s, where they took about 9 s.
+- Releases and checks run on GitHub's Node 24 actions (checkout v7, setup-go v7, action-gh-release v3), as Node 20 is retired.
+
 ## 0.9.224 (2026-10-23)
 
 Breaking changes (limits on input that could hang or crash Turtle):
