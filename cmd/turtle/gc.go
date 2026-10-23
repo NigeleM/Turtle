@@ -17,12 +17,10 @@ import (
 // program that keeps a lot would grow to several times that. After each
 // collection the share is set again from what's kept: gcMaxPercent while
 // that's small, less as it grows, so the garbage allowed stays near
-// gcAllowance, and never under gcMinPercent (half Go's own default: a
-// program that keeps a lot peaks near one and a half times what it keeps,
-// not twice, for a little more collecting, measured at no loss of speed).
+// gcAllowance, and never under gcMinPercent (Go's own default).
 const (
 	gcMaxPercent = 150
-	gcMinPercent = 50
+	gcMinPercent = 100
 	gcAllowance  = 16 << 20 // bytes
 )
 

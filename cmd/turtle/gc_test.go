@@ -17,9 +17,8 @@ func TestGCPercentFor(t *testing.T) {
 		1 << 20:   gcMaxPercent, // 1 MB kept: collect rarely
 		8 << 20:   150,
 		16 << 20:  100,
-		32 << 20:  50,
-		24 << 20:  66,
-		512 << 20: gcMinPercent, // never under half Go's default
+		32 << 20:  100,
+		512 << 20: gcMinPercent, // never under Go's default
 	}
 	for live, want := range cases {
 		if got := gcPercentFor(live); got != want {
