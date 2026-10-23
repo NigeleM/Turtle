@@ -84,6 +84,11 @@ type Interpreter struct {
 	// inBuiltin is true while a builtin library's Turtle code runs:
 	// errors then point at the caller's line, not the library's.
 	inBuiltin bool
+	// vm holds compiled calls' frames, vmEnv the defining scope of the
+	// compiled body running, and vmRet what its return gave (see vm.go).
+	vm    vmStack
+	vmEnv *object.Environment
+	vmRet val
 	// stop is set from outside to stop the code running: stopInterrupt by
 	// the REPL's Ctrl-C, stopTimeout when a server request runs past
 	// servertimeout. The next statement, or loop pass, checks it.
@@ -624,9 +629,19 @@ func (it *Interpreter) evalShow(s *ast.ShowStatement, env *object.Environment) E
 	if s.Stderr {
 		requireModule(env, "system", "warn")
 	}
+	var buf [4]object.Object
+	vals := buf[:0]
+	for _, e := range s.Expressions {
+		vals = append(vals, it.evalExpression(e, env))
+	}
+	it.showValues(s, vals, env)
+	return noneResult
+}
+
+// showValues writes the values of show ... . (or warn) on one line.
+func (it *Interpreter) showValues(s *ast.ShowStatement, vals []object.Object, env *object.Environment) {
 	var b strings.Builder
-	for i, e := range s.Expressions {
-		v := it.evalExpression(e, env)
+	for i, v := range vals {
 		shown := v.Inspect()
 		if i > 0 && needsSpace(b.String(), shown) {
 			b.WriteByte(' ')
@@ -640,7 +655,6 @@ func (it *Interpreter) evalShow(s *ast.ShowStatement, env *object.Environment) E
 		fmt.Fprintln(stdoutBuf, out)
 	}
 	it.copyOutput(env, out)
-	return noneResult
 }
 
 // evalDef is a def as a statement.

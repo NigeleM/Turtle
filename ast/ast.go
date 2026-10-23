@@ -8,6 +8,7 @@ package ast
 import (
 	"math/big"
 	"strings"
+	"sync/atomic"
 
 	"Turtle/token"
 )
@@ -48,6 +49,9 @@ func (p *Program) TokenLiteral() string {
 type BlockStatement struct {
 	Token      token.Token
 	Statements []Statement
+	// Compiled is the interpreter's: a function body made into Go
+	// functions the first time it is called.
+	Compiled atomic.Value
 }
 
 func (bs *BlockStatement) statementNode()       {}

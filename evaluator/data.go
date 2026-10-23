@@ -29,11 +29,27 @@ func (it *Interpreter) getVar(env *object.Environment, name string) object.Objec
 
 func (it *Interpreter) evalDataOp(s *ast.DataOpStatement, env *object.Environment) {
 	target := it.getVar(env, s.Target)
+	var v, idx, idx2 object.Object
+	if s.Value != nil {
+		v = it.evalExpression(s.Value, env)
+	}
+	if s.Index != nil {
+		idx = it.evalExpression(s.Index, env)
+	}
+	if s.Index2 != nil {
+		idx2 = it.evalExpression(s.Index2, env)
+	}
+	dataOp(s, target, v, idx, idx2)
+}
+
+// dataOp is the data statement s on target with its parts worked out:
+// the value, and the index and column when s has them.
+func dataOp(s *ast.DataOpStatement, target, v, idx, idx2 object.Object) {
 	switch s.Kind {
 	case ast.OpAdd:
-		val := it.evalExpression(s.Value, env)
+		val := v
 		if s.Index != nil {
-			addAt(s.Target, target, it.evalExpression(s.Index, env), val)
+			addAt(s.Target, target, idx, val)
 			return
 		}
 		switch t := target.(type) {
@@ -45,7 +61,7 @@ func (it *Interpreter) evalDataOp(s *ast.DataOpStatement, env *object.Environmen
 			fatalf("'add ... to %s' needs a list or set, got %s", s.Target, typeName(target))
 		}
 	case ast.OpRemove:
-		val := it.evalExpression(s.Value, env)
+		val := v
 		switch t := target.(type) {
 		case *object.List:
 			t.Elements = removeFirst(t.Elements, val)
@@ -56,7 +72,7 @@ func (it *Interpreter) evalDataOp(s *ast.DataOpStatement, env *object.Environmen
 			fatalf("'remove ... from %s' needs a list or set, got %s", s.Target, typeName(target))
 		}
 	case ast.OpDelete:
-		key := it.evalExpression(s.Value, env)
+		key := v
 		m, ok := target.(*object.Map)
 		if !ok {
 			fatalf("'delete ... from %s' needs a map, got %s", s.Target, typeName(target))
@@ -83,25 +99,25 @@ func (it *Interpreter) evalDataOp(s *ast.DataOpStatement, env *object.Environmen
 			fatalf("'reverse %s' needs a list or set, got %s", s.Target, typeName(target))
 		}
 	case ast.OpPut:
-		val := it.evalExpression(s.Value, env)
+		val := v
 		if m, ok := target.(*object.Map); ok {
 			if s.Index2 != nil {
 				fatalf("'put ... to %s at ...' takes one key for a map: put 9 to %s at \"key\" .", s.Target, s.Target)
 			}
-			m.Put(it.evalExpression(s.Index, env), val)
+			m.Put(idx, val)
 			return
 		}
 		if m, ok := target.(*object.Matrix); ok {
 			if s.Index2 == nil {
 				fatalf("'put ... to %s' needs a row and a column for a matrix: put 9 to %s at 1, 2 .", s.Target, s.Target)
 			}
-			matrixMethod(m, "put", []object.Object{val, it.evalExpression(s.Index, env), it.evalExpression(s.Index2, env)})
+			matrixMethod(m, "put", []object.Object{val, idx, idx2})
 			return
 		}
 		if s.Index2 != nil {
 			fatalf("'put ... to %s at %s' has two positions, but %s is %s, which has one: put 9 to nums at 2 .", s.Target, "row, column", s.Target, typeName(target))
 		}
-		idxObj, ok := it.evalExpression(s.Index, env).(*object.Integer)
+		idxObj, ok := idx.(*object.Integer)
 		if !ok {
 			fatalf("'put ... at ...' needs an integer index")
 		}
@@ -115,8 +131,8 @@ func (it *Interpreter) evalDataOp(s *ast.DataOpStatement, env *object.Environmen
 		}
 		list.Elements[i] = val
 	case ast.OpInsert:
-		val := it.evalExpression(s.Value, env)
-		idxObj, ok := it.evalExpression(s.Index, env).(*object.Integer)
+		val := v
+		idxObj, ok := idx.(*object.Integer)
 		if !ok {
 			fatalf("'insert ... at ...' needs an integer index")
 		}

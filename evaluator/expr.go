@@ -1063,6 +1063,9 @@ func (it *Interpreter) callFunction(fn *object.Function, name string, args []obj
 	if len(args) != len(fn.Parameters) {
 		wrongArgCount(fn, name, args)
 	}
+	if c := it.compiledBody(fn); c != nil {
+		return it.vmFromTree(fn, c, name, args)
+	}
 	it.inPlace = false // only data's process / keep take it, right away
 	defEnv := fn.Env
 	if defEnv == nil {
