@@ -20,10 +20,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
         go-version: '1.27'
 
@@ -38,7 +38,7 @@ jobs:
       run: installer/macos/build-pkg.sh "${{ github.ref_name }}" release
 
     - name: Upload Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v3
       with:
         tag_name: ${{ github.ref_name }}
         # 0.x versions are pre-releases: GitHub shows the badge.
@@ -51,10 +51,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
         go-version: '1.27'
 
@@ -68,7 +68,7 @@ jobs:
       run: installer/linux/build.sh "${{ github.ref_name }}" release
 
     - name: Upload Linux Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v3
       with:
         tag_name: ${{ github.ref_name }}
         # 0.x versions are pre-releases: GitHub shows the badge.
@@ -85,10 +85,10 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
         go-version: '1.27'
 
@@ -114,7 +114,7 @@ jobs:
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
     - name: Upload Windows Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v3
       with:
         tag_name: ${{ github.ref_name }}
         # 0.x versions are pre-releases: GitHub shows the badge.

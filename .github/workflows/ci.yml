@@ -21,7 +21,7 @@ jobs:
       TURTLE_REQUIRE_SQLITE3: "1"
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install sqlite3 (to check the files Turtle writes)
         run: sudo apt-get install -y sqlite3
@@ -58,7 +58,7 @@ jobs:
           mysql -h 127.0.0.1 -P 3306 -u turtle -pturtlepw turtle -e "select 1" || { sudo tail -60 /var/log/mysql/error.log; sudo journalctl -u mysql --no-pager | tail -40; exit 1; }
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version: '1.27'
 
@@ -96,14 +96,14 @@ jobs:
       TURTLE_REQUIRE_SQLITE3: "1"
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install sqlite3 (to check the files Turtle writes)
         if: matrix.os == 'windows-latest'
         run: choco install sqlite -y --no-progress
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version: '1.27'
 
@@ -144,12 +144,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version: '1.27'
 
@@ -165,10 +165,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version: '1.27'
 
