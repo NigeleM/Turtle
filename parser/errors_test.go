@@ -41,6 +41,8 @@ func TestFriendlyParseErrors(t *testing.T) {
 		{"set operator after a bracket call", "candidates = map [1: set [1]]\nc = 1\nmissing = set [2]\nshow (candidates at get[c] intersection missing) .\n", "a set operator is a method too", 4, 28},
 		{"semicolon outside show", "x = 1; 2 .\n", "a line can't start with ';'", 1, 6},
 		{"bitwise operator", "x = 6 & 3\n", "Turtle has no bitwise operators", 1, 7},
+		{"shift operator", "show 1 << 3 .\n", "Turtle has no bitwise operators", 1, 8},
+		{"right shift operator", "show 8 >> 1 .\n", "Turtle has no bitwise operators", 1, 8},
 		{"extra full stop", "show \"x\" .\nfail \"stock ran out\" .\n", "this full stop ends nothing", 2, 22},
 		{"brace in string", "show \"{[()()]}\" .\n", "for a plain brace, write \\{)", 1, 6},
 	}

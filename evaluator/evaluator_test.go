@@ -166,6 +166,7 @@ show n + 1 .`, "7\n8\n"},
 		{"hex from integer", `show change 255 to hex .`, "ff\n"},
 		{"hex to integer", `show change "ff" to hex .`, "255\n"},
 		{"hex with 0x prefix", `show change "0xff" to hex .`, "255\n"},
+		{"underscores group digits, as in Python", `show change "1_000" to integer, " ", change "-12_345_678" to integer, " ", change "123_456_789_012_345_678_901" to integer .`, "1000 -12345678 123456789012345678901\n"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -184,12 +185,14 @@ func TestChangeInvalidIntegerIsFatal(t *testing.T) {
 	// "change <ident> to <type> ." (statement form) requires an
 	// identifier, so a bad conversion is exercised via the expression
 	// form instead.
-	_, err := run(t, `n = change "not a number" to integer`, "")
-	if err == nil {
-		t.Fatal("expected an error, got none")
-	}
-	if !strings.Contains(err.Error(), "not a valid integer") {
-		t.Errorf("got error %q, want it to mention 'not a valid integer'", err.Error())
+	for _, text := range []string{"not a number", "1__000", "_1000", "1000_", "1_0.5"} {
+		_, err := run(t, `n = change "`+text+`" to integer`, "")
+		if err == nil {
+			t.Fatalf("%q: expected an error, got none", text)
+		}
+		if !strings.Contains(err.Error(), "not a valid integer") {
+			t.Errorf("%q: got error %q, want it to mention 'not a valid integer'", text, err.Error())
+		}
 	}
 }
 
@@ -1394,6 +1397,65 @@ show f[] .`, want: "5\n"},
     return f[n + 1]
 def [end]
 f[0]`, wantErr: "recursion too deep"},
+		{name: "a list holding itself is a clean error when shown", src: `x = list [1]
+add x to x .
+show x .`, wantErr: "contains itself"},
+		{name: "a map holding itself is a clean error in text", src: `m = map []
+m at put[m, "self"]
+show "m is {m}" .`, wantErr: "contains itself"},
+		{name: "two lists holding themselves can't be compared", src: `x = list [1]
+add x to x .
+y = list [1]
+add y to y .
+show x == y .`, wantErr: "contains itself"},
+		{name: "a list holding itself is a clean error as a set item", src: `x = list [1]
+add x to x .
+s = set [x]`, wantErr: "contains itself"},
+		{name: "sorting lists that hold themselves is a clean error", src: `x = list [1]
+add x to x .
+y = list [x, x]
+sort y .`, wantErr: "contains itself"},
+		{name: "a value nested too deep is a clean error", src: `x = list [1]
+[loop][i = 0; i < 200000; i++]
+    x = list [x]
+[loop][end]
+show x .`, wantErr: "nested more than 100000 levels deep"},
+		{name: "safe catches a value that holds itself", src: `x = list [1]
+add x to x .
+safe
+    show x .
+handle [] e .
+    show "caught" .
+safe [end]`, want: "caught\n"},
+		{name: "a deep copy of a list that holds itself is a clean error", src: `import data
+x = list [1]
+add x to x .
+y = copy[x, true]`, wantErr: "contains itself"},
+		{name: "a deep copy still copies a shared list twice", src: `import data
+a = list [1]
+x = list [a, a]
+y = copy[x, true]
+first = y at get[0]
+add 2 to first .
+show y .`, want: "[ [ 1, 2 ], [ 1 ] ]\n"},
+		{name: "json_text stops where load would", src: `import json
+x = list [1]
+[loop][i = 0; i < 20000; i++]
+    x = list [x]
+[loop][end]
+t = json_text[x]`, wantErr: "deeper than JSON can be read back"},
+		{name: "json_text writes what load can read back", src: `import json
+x = list [1]
+[loop][i = 0; i < 9000; i++]
+    x = list [x]
+[loop][end]
+t = json_text[x]
+show t at len, " ", load[t] == x .`, want: "18003 true\n"},
+		{name: "a value equals itself, even one that holds itself", src: `x = list [1]
+add x to x .
+n = list [(1e308 * 10) - (1e308 * 10)]
+m = list [(1e308 * 10) - (1e308 * 10)]
+show x == x, " ", n == n, " ", n == m, " ", list [x] at contains[x] .`, want: "true true false true\n"},
 		{name: "get rejects negative indexes", src: `l = list [1, 2, 3]
 a is l at get -1 .`, wantErr: "index -1 out of range for list (length 3)"},
 		{name: "slice still counts from the end", src: `l = list [1, 2, 3, 4]

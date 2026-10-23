@@ -408,6 +408,8 @@ func TestWarnings(t *testing.T) {
 		{"x = \"a\" + s at upper", ""},     // not a finishing method
 		{"x = a * 2 at fixed[1]", ""},      // on a plain number
 		{"v = a / b\nx = v at round[1]", ""},
+		{"x = 2 * (v at round[0])", ""}, // the brackets say what round works on
+		{"x = 2 * (v) at round[0]", "at round works on v only"},
 	}
 	for _, c := range cases {
 		p := New(lexer.New(c.src))

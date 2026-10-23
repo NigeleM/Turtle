@@ -40,7 +40,8 @@ floats (`2.5`, `1e3` → `1000.0`), `true`/`false` booleans, `null` `none`.
 arrays; an assembled value becomes an object of its fields
 (`Order["pen", 3]` → `{"item": "pen", "qty": 3}`); `none` becomes `null`.
 Number map keys become text keys (`1` → `"1"`), since JSON keys are
-always text; any other key, a function, or a value that contains itself
+always text; any other key, a function, a value that contains itself, or
+one nested more than 10,000 levels deep (deeper than `load` can read back)
 is a `type` error.
 
 **`json_get`** takes map keys, assembled-value field names, and list

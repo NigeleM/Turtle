@@ -387,7 +387,7 @@ target name covers both directions of a pair:
 
 | Target | From | Result |
 |---|---|---|
-| `integer` | string | parsed as base-10 (fatal if invalid) |
+| `integer` | string | parsed as base-10, with single underscores allowed between digits as in Python (`"1_000"` is 1000); fatal if invalid |
 | `integer` | float | truncated toward zero |
 | `float` | string | parsed as a float |
 | `float` | integer | widened |
@@ -1561,6 +1561,17 @@ only at the start of a line followed by a value; otherwise it's an
 ordinary name. As methods, both take the value first, then the position,
 as the sentences do: `nums at insert[99, 1]`, `nums at put[99, 1]`; both
 give back the list.
+
+Lists, sets and maps hold other values by reference, so a list can be put
+inside itself (`add x to x .`). Showing, comparing, sorting, copying with
+`copy[x, true]`, or using as a set item or map key walks the value to its
+end: one that holds itself, or one nested more than 100,000 levels deep,
+stops with an error ("this value is nested more than 100000 levels deep,
+or contains itself") that `safe` can handle, rather than running forever.
+A value always equals itself without that walk, as in Python: `x == x` is
+`true` even after `add x to x .`, and so is it for a list holding `nan`
+compared with itself (two separate lists holding `nan` are not equal).
+JSON is written at most 10,000 levels deep, the depth `load` can read.
 
 ## Files
 

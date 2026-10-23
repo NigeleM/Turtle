@@ -213,6 +213,10 @@ func jsonPlace(text string, offset int64, msg string) string {
 
 // ---- Turtle -> JSON text ------------------------------------------------
 
+// maxJSONWriteDepth is how deep written JSON can nest: load, through Go's
+// reader, stops at 10000 levels.
+const maxJSONWriteDepth = 10000
+
 // toJSON encodes v. indent "" is one line; "  " is indented for files.
 func toJSON(who string, v object.Object, indent string) []byte {
 	var buf bytes.Buffer
@@ -226,6 +230,12 @@ func writeJSON(buf *bytes.Buffer, who string, v object.Object, indent, prefix st
 	case *object.List, *object.Set, *object.Map, *object.Assembly:
 		if seen[v] {
 			fatalf("%s: the value contains itself, so it can't be written as JSON", who)
+		}
+		// seen holds the values this one is inside, so its size is the
+		// depth. load reads JSON 10000 levels deep, so deeper JSON couldn't
+		// be read back.
+		if len(seen) >= maxJSONWriteDepth {
+			fatalf("%s: the value is nested more than %d levels deep, deeper than JSON can be read back", who, maxJSONWriteDepth)
 		}
 		seen[v] = true
 		defer delete(seen, v)

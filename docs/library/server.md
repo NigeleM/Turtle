@@ -82,6 +82,7 @@ folder that doesn't exist is an error of kind `server`.
 |---|---|---|
 | `serverlog` | `true` | a line per request: method, path, status, time |
 | `serverhost` | `"localhost"` | only this computer; `"0.0.0.0"` answers others on the network |
+| `servertimeout` | `30` | how many seconds a handler may run (a whole or decimal number); past that it stops and the visitor gets `503`. `0` is no limit |
 
 **One request at a time.** Turtle code runs one line at a time, so
 requests take turns (the network work around them runs side by side).
@@ -100,6 +101,13 @@ That's fine for tools, dashboards and small sites.
   a request, sending a file and sending an answer happen side by side,
   so one slow connection doesn't hold up the others. Bodies are limited
   to 10 MB.
+- **A stuck handler can't hold the server.** Requests take turns, so a
+  handler that never finishes would keep every other visitor waiting.
+  One that runs past `servertimeout` seconds (30 unless you change it)
+  is stopped at its next line, answers `503`, and the terminal shows
+  `GET /path: stopped after 30s (servertimeout)`; the next request goes
+  on. A single long library call (a big sort, `sleep`) finishes before
+  the handler stops. `safe` can't catch the stop.
 - **Errors stay private.** A handler that fails answers `500 server
   error`; the details go to the terminal, not to the visitor.
 - **On the internet, put a web server in front.** Turtle speaks plain

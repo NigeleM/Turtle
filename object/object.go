@@ -106,12 +106,76 @@ type String struct{ Value string }
 // like Inspect, except that a string is quoted, so you can see its type —
 // list [1, "1"] shows as [ 1, "1" ]. A string shown on its own (show "hi")
 // isn't quoted.
-func Shown(o Object) string {
+func Shown(o Object) string { return shown(o, 0) }
+
+// shown is Shown at depth levels inside other values. Lists, sets, maps
+// and assembled values are walked here rather than through their Inspect,
+// so the depth is counted all the way down.
+func shown(o Object, depth int) string {
 	switch v := o.(type) {
 	case *String:
 		return strconv.Quote(v.Value)
 	case *Matrix:
 		return v.Line()
+	case *List, *Set, *Map, *Assembly:
+		return inspect(o, depth)
+	}
+	return o.Inspect()
+}
+
+// MaxNesting is how many levels of values inside values Turtle walks to
+// show, compare or key a value. A value deeper than that — or one that
+// holds itself (add x to x .), which is endlessly deep — stops with an
+// error instead of exhausting the stack.
+const MaxNesting = 100000
+
+// TooDeep reports a value nested past MaxNesting. The evaluator replaces
+// it with one that stops the program with a Turtle error; it must not
+// return.
+var TooDeep = func() {
+	panic(fmt.Sprintf("a value is nested more than %d levels deep, or contains itself", MaxNesting))
+}
+
+// inspect is the text of a list, set, map or assembled value at depth.
+func inspect(o Object, depth int) string {
+	if depth >= MaxNesting {
+		TooDeep()
+	}
+	depth++
+	switch v := o.(type) {
+	case *List:
+		if len(v.Elements) == 0 {
+			return "[]"
+		}
+		parts := make([]string, len(v.Elements))
+		for i, e := range v.Elements {
+			parts[i] = shown(e, depth)
+		}
+		return "[ " + strings.Join(parts, ", ") + " ]"
+	case *Set:
+		if len(v.Elements) == 0 {
+			return "{}"
+		}
+		parts := make([]string, len(v.Elements))
+		for i, e := range v.Elements {
+			parts[i] = shown(e, depth)
+		}
+		return "{ " + strings.Join(parts, ", ") + " }"
+	case *Map:
+		if len(v.entries) == 0 {
+			return "{}"
+		}
+		parts := make([]string, len(v.entries))
+		for i, e := range v.entries {
+			parts[i] = shown(e.Key, depth) + ": " + shown(e.Val, depth)
+		}
+		return "{ " + strings.Join(parts, ", ") + " }"
+	case *Assembly:
+		parts := make([]string, len(v.Values))
+		for i, x := range v.Values {
+			parts[i] = v.Shape.Fields[i] + ": " + shown(x, depth)
+		}
+		return v.Shape.Name + " { " + strings.Join(parts, ", ") + " }"
 	}
 	return o.Inspect()
 }
@@ -132,17 +196,8 @@ func (b *Boolean) Inspect() string {
 // List is Turtle's `list [...]` — ordered, duplicates allowed.
 type List struct{ Elements []Object }
 
-func (l *List) Type() Type { return LIST }
-func (l *List) Inspect() string {
-	if len(l.Elements) == 0 {
-		return "[]"
-	}
-	parts := make([]string, len(l.Elements))
-	for i, e := range l.Elements {
-		parts[i] = Shown(e)
-	}
-	return "[ " + strings.Join(parts, ", ") + " ]"
-}
+func (l *List) Type() Type      { return LIST }
+func (l *List) Inspect() string { return inspect(l, 0) }
 
 // Set is Turtle's `set [...]` — insertion-ordered, deduplicated by Equal
 // (so set [1, 2] and set [2, 1] are equal, and 1 and "1" are distinct).
@@ -153,52 +208,82 @@ func (l *List) Inspect() string {
 // in place (sort, reverse) needs no call, since membership is the same.
 type Set struct {
 	Elements []Object
-	index    map[string][]Object
+	index    *keyIndex[Object]
+	// more holds the other elements under a key already in index: only
+	// values that aren't equal but share a Key (two nans), so nearly
+	// always nil.
+	more map[hashKey][]Object
 }
 
-func (s *Set) Type() Type { return SET }
-func (s *Set) Inspect() string {
-	if len(s.Elements) == 0 {
-		return "{}"
-	}
-	parts := make([]string, len(s.Elements))
-	for i, e := range s.Elements {
-		parts[i] = Shown(e)
-	}
-	return "{ " + strings.Join(parts, ", ") + " }"
-}
+func (s *Set) Type() Type      { return SET }
+func (s *Set) Inspect() string { return inspect(s, 0) }
 
-func (s *Set) Contains(v Object) bool {
+func (s *Set) Contains(v Object) bool { return s.contains(v, 0) }
+
+// contains is Contains inside an Equal at depth, so a set compared inside
+// itself still counts toward MaxNesting.
+func (s *Set) contains(v Object, depth int) bool {
 	if s.index == nil {
-		s.index = map[string][]Object{}
-		for _, e := range s.Elements {
-			k := entryKey(e)
-			s.index[k] = append(s.index[k], e)
-		}
+		s.reindex()
 	}
-	for _, e := range s.index[entryKey(v)] {
-		if Equal(e, v) {
+	return s.holds(v, entryKey(v), depth)
+}
+
+// holds is whether an element under key k equals v.
+func (s *Set) holds(v Object, k hashKey, depth int) bool {
+	e, ok := s.index.get(k)
+	if !ok {
+		return false
+	}
+	if equal(e, v, depth) {
+		return true
+	}
+	for _, e := range s.more[k] {
+		if equal(e, v, depth) {
 			return true
 		}
 	}
 	return false
 }
 
+func (s *Set) reindex() {
+	s.index = newKeyIndex[Object](len(s.Elements))
+	s.more = nil
+	for _, e := range s.Elements {
+		s.file(entryKey(e), e)
+	}
+}
+
+// file puts v in the index under k.
+func (s *Set) file(k hashKey, v Object) {
+	if _, taken := s.index.get(k); !taken {
+		s.index.put(k, v)
+		return
+	}
+	if s.more == nil {
+		s.more = map[hashKey][]Object{}
+	}
+	s.more[k] = append(s.more[k], v)
+}
+
 // Add appends v unless an equal element is already present, reporting
 // whether it was added.
 func (s *Set) Add(v Object) bool {
-	if s.Contains(v) {
+	if s.index == nil {
+		s.reindex()
+	}
+	k := entryKey(v)
+	if s.holds(v, k, 0) {
 		return false
 	}
 	s.Elements = append(s.Elements, v)
-	k := entryKey(v)
-	s.index[k] = append(s.index[k], v)
+	s.file(k, v)
 	return true
 }
 
 // Changed must be called after any change to Elements other than Add or
 // reordering.
-func (s *Set) Changed() { s.index = nil }
+func (s *Set) Changed() { s.index, s.more = nil, nil }
 
 // Map is Turtle's `map [...]`, insertion-ordered. Keys can be any value
 // and keep their type: map [1: "a"] has the integer key 1, distinct from
@@ -208,7 +293,7 @@ func (s *Set) Changed() { s.index = nil }
 // rows, which a short scan finds as fast, without a hash table each.
 type Map struct {
 	entries []MapEntry
-	index   map[string]int
+	index   *keyIndex[int]
 }
 
 // MapEntry is one key and its value.
@@ -221,17 +306,8 @@ const smallMap = 32
 
 func NewMap() *Map { return &Map{} }
 
-func (m *Map) Type() Type { return MAP }
-func (m *Map) Inspect() string {
-	if len(m.entries) == 0 {
-		return "{}"
-	}
-	parts := make([]string, len(m.entries))
-	for i, e := range m.entries {
-		parts[i] = Shown(e.Key) + ": " + Shown(e.Val)
-	}
-	return "{ " + strings.Join(parts, ", ") + " }"
-}
+func (m *Map) Type() Type      { return MAP }
+func (m *Map) Inspect() string { return inspect(m, 0) }
 
 // Len is how many entries the map has.
 func (m *Map) Len() int { return len(m.entries) }
@@ -243,7 +319,7 @@ func (m *Map) Entries() []MapEntry { return m.entries }
 // find is where key is, or -1.
 func (m *Map) find(key Object) int {
 	if m.index != nil {
-		if i, ok := m.index[entryKey(key)]; ok {
+		if i, ok := m.index.get(entryKey(key)); ok {
 			return i
 		}
 		return -1
@@ -273,16 +349,16 @@ func (m *Map) Put(key, val Object) {
 	m.entries = append(m.entries, MapEntry{Key: key, Val: val})
 	switch {
 	case m.index != nil:
-		m.index[entryKey(key)] = len(m.entries) - 1
+		m.index.put(entryKey(key), len(m.entries)-1)
 	case len(m.entries) > smallMap:
 		m.reindex()
 	}
 }
 
 func (m *Map) reindex() {
-	m.index = make(map[string]int, len(m.entries)*2)
+	m.index = newKeyIndex[int](len(m.entries) * 2)
 	for i, e := range m.entries {
-		m.index[entryKey(e.Key)] = i
+		m.index.put(entryKey(e.Key), i)
 	}
 }
 
@@ -416,14 +492,8 @@ type Assembly struct {
 	Values []Object // in Shape.Fields order
 }
 
-func (a *Assembly) Type() Type { return Type(a.Shape.Name) }
-func (a *Assembly) Inspect() string {
-	parts := make([]string, len(a.Values))
-	for i, v := range a.Values {
-		parts[i] = a.Shape.Fields[i] + ": " + Shown(v)
-	}
-	return a.Shape.Name + " { " + strings.Join(parts, ", ") + " }"
-}
+func (a *Assembly) Type() Type      { return Type(a.Shape.Name) }
+func (a *Assembly) Inspect() string { return inspect(a, 0) }
 
 // Error is what a handle statement stores when a safe block stops on an
 // error. It shows as its full message ("line 3: division by zero"), and

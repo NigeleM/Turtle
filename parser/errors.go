@@ -176,6 +176,9 @@ func (p *Parser) noValueError() {
 		p.errorAt(cur.Line, cur.Pos, "'=' sets a variable and can't go here: to compare, use ==")
 	case cur.Type == token.LPAREN || cur.Type == token.RPAREN:
 		p.errorAt(cur.Line, cur.Pos, "a value is missing before %s", describe(cur))
+	case (cur.Type == token.LT || cur.Type == token.GT) && prev.Type == cur.Type && !cur.SpaceBefore && prev.Line == cur.Line:
+		// "1 << 3" reads as < twice: a shift, which Turtle doesn't have.
+		p.errorAt(prev.Line, prev.Pos, "Turtle has no bitwise operators (& | ^ << >>)")
 	default:
 		p.errorAt(cur.Line, cur.Pos, "expected a value, found %s", describe(cur))
 	}
@@ -255,8 +258,8 @@ func (p *Parser) checkMethodOnRight(op token.Token, left, right ast.Expression) 
 		return
 	}
 	mc, ok := right.(*ast.MethodCallExpression)
-	if !ok || !finishingMethods[mc.Method] {
-		return
+	if !ok || !finishingMethods[mc.Method] || mc.Grouped {
+		return // "2 * (v at round)": the brackets already say what it works on
 	}
 	what := "the value just before it"
 	switch r := mc.Receiver.(type) {

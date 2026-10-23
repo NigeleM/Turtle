@@ -240,7 +240,11 @@ func sortElements(elems []object.Object) {
 
 // orderValues orders two values for sort, element by element for lists, or
 // stops with an error when they can't be compared.
-func orderValues(a, b object.Object) int {
+func orderValues(a, b object.Object) int { return orderAt(a, b, 0) }
+
+// orderAt is orderValues at depth levels inside lists (see
+// object.MaxNesting).
+func orderAt(a, b object.Object, depth int) int {
 	fa, _, aNum := numeric(a)
 	fb, _, bNum := numeric(b)
 	ta, tb := typeName(a), typeName(b)
@@ -250,7 +254,7 @@ func orderValues(a, b object.Object) int {
 	case isText(a) && isText(b):
 		return strings.Compare(a.(*object.String).Value, b.(*object.String).Value)
 	case isList(a) && isList(b):
-		return compareLists(a.(*object.List), b.(*object.List))
+		return compareLists(a.(*object.List), b.(*object.List), depth)
 	case isBool(a) && isBool(b):
 		return cmp.Compare(boolRank(a), boolRank(b))
 	case ta == tb:
@@ -288,9 +292,12 @@ func extremeOrder(verb string, a, b object.Object) int {
 
 // compareLists orders two lists element by element, then by length, as
 // Python does: [2, "c"] comes before [9, "a"].
-func compareLists(a, b *object.List) int {
+func compareLists(a, b *object.List, depth int) int {
+	if depth >= object.MaxNesting {
+		object.TooDeep()
+	}
 	for i := 0; i < len(a.Elements) && i < len(b.Elements); i++ {
-		if c := orderValues(a.Elements[i], b.Elements[i]); c != 0 {
+		if c := orderAt(a.Elements[i], b.Elements[i], depth+1); c != 0 {
 			return c
 		}
 	}
@@ -989,6 +996,30 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		return mathOf(env, method, receiver, args, math.Cos)
 	case "tan":
 		return mathOf(env, method, receiver, args, math.Tan)
+	case "asin", "acos":
+		// Only -1 to 1 is the sine or cosine of an angle; past that there's
+		// no answer, as sqrt of a negative has none.
+		if x, _, _ := numeric(receiver); x < -1 || x > 1 {
+			requireModule(env, "math", method)
+			fatalKind(kindMath, "'%s' needs a number from -1 to 1, got %v", method, x)
+		}
+		if method == "asin" {
+			return mathOf(env, method, receiver, args, math.Asin)
+		}
+		return mathOf(env, method, receiver, args, math.Acos)
+	case "atan":
+		return mathOf(env, method, receiver, args, math.Atan)
+	case "atan2":
+		// y at atan2[x] is the angle of the point (x, y), as Python's
+		// math.atan2(y, x): -pi to pi, right for every quadrant.
+		requireModule(env, "math", method)
+		requireArgs(method, args, 1)
+		y, _, _ := numeric(receiver)
+		x, _, ok := numeric(args[0])
+		if !ok {
+			fatalf("'atan2' needs a number for x, as y at atan2[x], got %s", typeName(args[0]))
+		}
+		return &object.Float{Value: math.Atan2(y, x)}
 	case "exp":
 		r := mathOf(env, method, receiver, args, math.Exp)
 		if math.IsInf(r.(*object.Float).Value, 0) {

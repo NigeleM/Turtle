@@ -24,7 +24,7 @@ var ErrInterrupted = errors.New("interrupted")
 
 // Interrupt stops the code now running, at its next statement. It's safe
 // to call from another goroutine.
-func (it *Interpreter) Interrupt() { it.interrupt.Store(true) }
+func (it *Interpreter) Interrupt() { it.stop.Store(stopInterrupt) }
 
 // RunEntry runs one REPL entry in the session's global scope. Unlike Run
 // it keeps databases open for the next entry. For a lone call
@@ -32,7 +32,7 @@ func (it *Interpreter) Interrupt() { it.interrupt.Store(true) }
 func (it *Interpreter) RunEntry(program *ast.Program) (shown object.Object, err error) {
 	defer stdoutBuf.Flush() // what the entry showed is out when it returns
 	defer it.recoverEntry(&err)
-	it.interrupt.Store(false)
+	it.stop.Store(stopNone)
 	if len(program.Statements) == 1 {
 		switch st := program.Statements[0].(type) {
 		case *ast.CallStatement:
@@ -57,7 +57,7 @@ func (it *Interpreter) RunEntry(program *ast.Program) (shown object.Object, err 
 // RunExpression works out one expression in the session's global scope.
 func (it *Interpreter) RunExpression(e ast.Expression) (v object.Object, err error) {
 	defer it.recoverEntry(&err)
-	it.interrupt.Store(false)
+	it.stop.Store(stopNone)
 	currentLine = 1
 	return it.evalExpression(e, it.Global), nil
 }

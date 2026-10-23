@@ -1,0 +1,27 @@
+// sets: 200,000 numbers put in each of two sets, 300,000 membership
+// checks, then their intersection and union.
+import time
+best = 1000000000
+[loop][r = 0; r < 3; r++]
+    t = now[]
+    a = set []
+    b = set []
+    [loop][i = 0; i < 200000; i++]
+        add (i * 7) % 300007 to a .
+        add i * 3 to b .
+    [loop][end]
+    hits = 0
+    [loop][i = 0; i < 300000; i++]
+        if ] a at contains[i] [
+            hits = hits + 1
+        if [end]
+    [loop][end]
+    both = a at intersection[b]
+    either = a at union[b]
+    total = hits + both at len + either at len
+    took = now[] - t
+    if ] took < best [
+        best = took
+    if [end]
+[loop][end]
+show "result=", total, " ms=", best .

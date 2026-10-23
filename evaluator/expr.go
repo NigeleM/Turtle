@@ -7,6 +7,7 @@ package evaluator
 import (
 	"math"
 	"math/big"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -240,6 +241,10 @@ func evalPrefix(op string, right object.Object) object.Object {
 
 // mathConstants are the constants import math brings in: pi and e.
 var mathConstants = map[string]float64{"pi": math.Pi, "e": math.E}
+
+// digitGroups is a whole number written with single underscores between
+// its digits: 1_000, -12_345_678.
+var digitGroups = regexp.MustCompile(`^[+-]?[0-9]+(_[0-9]+)+$`)
 
 // mathConstant is pi or e when import math brings it into this file. It
 // is looked up after variables, so a variable of the same name wins.
@@ -672,6 +677,11 @@ func evalChange(typeName string, val object.Object) object.Object {
 			return wholeOf("change to integer", math.Trunc(v.Value))
 		case *object.String:
 			text := strings.TrimSpace(v.Value)
+			// Underscores between digits group them, as in Python and as
+			// change ... to float allows: "1_000" is 1000.
+			if strings.Contains(text, "_") && digitGroups.MatchString(text) {
+				text = strings.ReplaceAll(text, "_", "")
+			}
 			if n, err := strconv.ParseInt(text, 10, 64); err == nil {
 				return object.Int(n)
 			}

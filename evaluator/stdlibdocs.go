@@ -35,6 +35,31 @@ var moduleDocs = map[string]string{
   Example:
     t is 0 at tan .                        // 0.0
 
+### number at asin
+  The angle, in radians, whose sine is the number: from -pi/2 to pi/2. The
+  number must be from -1 to 1; anything else is a math error.
+  Example:
+    a is 1 at asin .                       // 1.5707963267948966 (pi / 2)
+
+### number at acos
+  The angle, in radians, whose cosine is the number: from 0 to pi. The
+  number must be from -1 to 1; anything else is a math error.
+  Example:
+    a is 0 at acos .                       // 1.5707963267948966 (pi / 2)
+
+### number at atan
+  The angle, in radians, whose tangent is the number: from -pi/2 to pi/2.
+  Example:
+    a is 1 at atan .                       // 0.7853981633974483 (pi / 4)
+
+### number at atan2 x
+  The angle, in radians, of the point (x, y), where y is the number it's
+  called on: from -pi to pi, right in every quadrant, as Python's
+  math.atan2(y, x).
+  x          the point's x.
+  Example:
+    a is 1 at atan2[-1] .                  // 2.356194490192345 (3 pi / 4)
+
 ### number at exp
   e raised to the number: 0 at exp is 1.0. A result too big for a float is
   a math error.
@@ -985,6 +1010,8 @@ body read as JSON, or none), form (a posted form), ip.
 Settings ("import server" makes them):
     serverlog = true            show a line per request: GET /users/7 200 3ms
     serverhost = "localhost"    "0.0.0.0" to answer other computers too
+    servertimeout = 30          seconds a handler may run before it's stopped
+                                with 503; 0 is no limit
 
 ### serve[routes, port]
   Starts the server and answers requests until the program is stopped.

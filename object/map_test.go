@@ -6,6 +6,8 @@ package object
 
 import (
 	"fmt"
+	"math"
+	"math/big"
 	"math/rand"
 	"testing"
 	"time"
@@ -142,5 +144,81 @@ func TestSetKeysAsKeySays(t *testing.T) {
 	}
 	if len(s.Elements) != 6 { // 1 and 1.0 are one; 0.1+0.2 and 0.3 are one
 		t.Fatalf("set has %d elements: %s", len(s.Elements), s.Inspect())
+	}
+}
+
+// TestIndexKeysAgreeWithKey: an index key is one key exactly when Key says
+// so, for every kind of key a map or set holds, so a lookup through the
+// index finds what Key finds.
+func TestIndexKeysAgreeWithKey(t *testing.T) {
+	big := func(s string) Object {
+		b, _ := new(big.Int).SetString(s, 10)
+		return IntOf(b)
+	}
+	vals := []Object{
+		Int(0), Int(2), Int(-7), Int(math.MaxInt64), Int(math.MinInt64),
+		&Float{Value: 2}, &Float{Value: -0.0}, &Float{Value: 2.5}, &Float{Value: -7},
+		&Float{Value: 1 << 63}, &Float{Value: -(1 << 63)}, &Float{Value: 1e300},
+		&Float{Value: math.Inf(1)}, &Float{Value: math.NaN()},
+		big("9223372036854775808"), big("-9223372036854775809"),
+		&String{Value: "2"}, &String{Value: ""}, &String{Value: "\x002"}, &String{Value: "\x00\"2\""},
+		Bool(true), Bool(false), NoneValue,
+		&List{Elements: []Object{Int(2)}}, &List{Elements: []Object{&Float{Value: 2}}},
+		&Set{Elements: []Object{Int(1), Int(2)}}, &Set{Elements: []Object{Int(2), Int(1)}},
+	}
+	for _, a := range vals {
+		for _, b := range vals {
+			if same, want := entryKey(a) == entryKey(b), Key(a) == Key(b); same != want {
+				t.Errorf("%s and %s: index keys equal %v, Key equal %v", Shown(a), Shown(b), same, want)
+			}
+		}
+	}
+	m := NewMap()
+	for i := 0; i < 100; i++ { // past smallMap, so lookups go through the index
+		m.Put(Int(int64(i)), Int(int64(i)))
+	}
+	if v, ok := m.Get(&Float{Value: 42}); !ok || v.(*Integer).Value != 42 {
+		t.Errorf("42.0 in an indexed map gave %v %v, want the entry for 42", v, ok)
+	}
+	if _, ok := m.Get(&String{Value: "42"}); ok {
+		t.Errorf(`"42" found the entry for 42`)
+	}
+}
+
+// TestSetKeepsValuesThatShareAKey: two nans have one Key but aren't equal,
+// so a set keeps both, finds each, and still has both after its index is
+// rebuilt. Equal values of different kinds (2 and 2.0) are one element.
+func TestSetKeepsValuesThatShareAKey(t *testing.T) {
+	a, b := &Float{Value: math.NaN()}, &Float{Value: math.NaN()}
+	s := &Set{}
+	for _, v := range []Object{Int(1), a, b, &String{Value: "nan"}} {
+		if !s.Add(v) {
+			t.Fatalf("%s wasn't added", Shown(v))
+		}
+	}
+	check := func(when string) {
+		if len(s.Elements) != 4 || !s.Contains(Int(1)) || !s.Contains(&String{Value: "nan"}) {
+			t.Fatalf("%s: elements %v", when, s.Elements)
+		}
+		found := 0
+		for _, e := range s.Elements {
+			if s.Contains(e) || e == a || e == b {
+				found++
+			}
+		}
+		if found != 4 {
+			t.Fatalf("%s: found %d of 4", when, found)
+		}
+	}
+	check("as added")
+	s.Changed()
+	check("after a rebuild")
+	two, _ := new(big.Int).SetString("2", 10) // made as arithmetic makes it, through IntOf
+	n := &Set{}
+	for _, v := range []Object{Int(2), &Float{Value: 2}, IntOf(two)} {
+		n.Add(v)
+	}
+	if len(n.Elements) != 1 {
+		t.Errorf("2, 2.0 and a computed 2 made %d elements, want 1", len(n.Elements))
 	}
 }

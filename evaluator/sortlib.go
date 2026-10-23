@@ -70,7 +70,18 @@ func orderKindName(v object.Object) string {
 // item (then the shorter first), assembled values by their type's name
 // then field by field, maps entry by entry (key, then value). Different
 // kinds go by orderRank.
-func compareValues(fn string, a, b object.Object) int {
+func compareValues(fn string, a, b object.Object) int { return compareAt(fn, a, b, 0) }
+
+// compareAt is compareValues at depth levels inside other values (see
+// object.MaxNesting).
+func compareAt(fn string, a, b object.Object, depth int) int {
+	switch a.(type) {
+	case *object.List, *object.Set, *object.Map, *object.Assembly:
+		if depth >= object.MaxNesting {
+			object.TooDeep()
+		}
+		depth++
+	}
 	ra, rb := orderRank(a), orderRank(b)
 	if ra < 0 || rb < 0 {
 		bad := a
@@ -105,7 +116,7 @@ func compareValues(fn string, a, b object.Object) int {
 	case *object.List, *object.Set:
 		ea, eb := elementsOf(a), elementsOf(b)
 		for i := 0; i < len(ea) && i < len(eb); i++ {
-			if c := compareValues(fn, ea[i], eb[i]); c != 0 {
+			if c := compareAt(fn, ea[i], eb[i], depth); c != 0 {
 				return c
 			}
 		}
@@ -116,7 +127,7 @@ func compareValues(fn string, a, b object.Object) int {
 			return c
 		}
 		for i := 0; i < len(x.Values) && i < len(y.Values); i++ {
-			if c := compareValues(fn, x.Values[i], y.Values[i]); c != 0 {
+			if c := compareAt(fn, x.Values[i], y.Values[i], depth); c != 0 {
 				return c
 			}
 		}
@@ -125,10 +136,10 @@ func compareValues(fn string, a, b object.Object) int {
 		y := b.(*object.Map)
 		xe, ye := x.Entries(), y.Entries()
 		for i := 0; i < len(xe) && i < len(ye); i++ {
-			if c := compareValues(fn, xe[i].Key, ye[i].Key); c != 0 {
+			if c := compareAt(fn, xe[i].Key, ye[i].Key, depth); c != 0 {
 				return c
 			}
-			if c := compareValues(fn, xe[i].Val, ye[i].Val); c != 0 {
+			if c := compareAt(fn, xe[i].Val, ye[i].Val, depth); c != 0 {
 				return c
 			}
 		}

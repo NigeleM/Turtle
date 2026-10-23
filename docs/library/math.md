@@ -34,6 +34,8 @@ The math methods:
 | `pow` | exponent | receiver raised to exponent: an `integer` when both are whole numbers and the exponent isn't negative, otherwise a `float` |
 | `random` | — | a random integer in `[0, receiver)`; the receiver is the exclusive upper bound and must be a positive integer |
 | `sin`, `cos`, `tan` | — | the sine, cosine or tangent of an angle in radians (a full turn is `2 * pi`), as a float |
+| `asin`, `acos`, `atan` | — | the angle in radians whose sine, cosine or tangent is the number, as a float (`1 at asin` is `pi / 2`). `asin` and `acos` need a number from -1 to 1; anything else is a math error |
+| `atan2` | x | `y at atan2[x]` is the angle in radians of the point (x, y), from `-pi` to `pi`, as Python's `math.atan2(y, x)` |
 | `exp` | — | `e` raised to the number, as a float. A result too big for a float is a math error |
 | `log` | [base] | the natural logarithm (base `e`), or the logarithm in `base` (`100 at log[10]` is `2.0`). Zero or a negative number is a math error |
 | `is_close` | other [, tolerance] | `true` or `false`: whether the two numbers are close, by the rule of `is close to` in a check. The optional tolerance is the most they may differ (0 or more): `(0.1 + 0.2) at is_close[0.3]` is `true` |

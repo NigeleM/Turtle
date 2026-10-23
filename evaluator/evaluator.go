@@ -17,6 +17,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 	"unicode"
 	"unicode/utf8"
 
@@ -77,9 +78,13 @@ type Interpreter struct {
 	// inBuiltin is true while a builtin library's Turtle code runs:
 	// errors then point at the caller's line, not the library's.
 	inBuiltin bool
-	// interrupt is set from outside (the REPL's Ctrl-C) to stop the code
-	// running; the next statement checks it.
-	interrupt atomic.Bool
+	// stop is set from outside to stop the code running: stopInterrupt by
+	// the REPL's Ctrl-C, stopTimeout when a server request runs past
+	// servertimeout. The next statement, or loop pass, checks it.
+	stop atomic.Int32
+	// requestLimit is how long a server request may run (servertimeout);
+	// 0 is no limit.
+	requestLimit time.Duration
 	// statementCall is the call a statement is made of ("nums process
 	// x give x + 1 ."), and inPlace tells data's process and keep that
 	// they're that call: then they change the collection itself; used as a
@@ -142,7 +147,7 @@ const maxCallDepth = 100000
 // their sentence words active (see loglib.go, testlib.go). Anything else falls through to
 // the file-based import.
 var builtinModules = map[string]*object.Module{
-	"math":     {Name: "math", Methods: []string{"sqrt", "abs", "round", "floor", "ceil", "pow", "random", "is_close", "sin", "cos", "tan", "exp", "log"}},
+	"math":     {Name: "math", Methods: []string{"sqrt", "abs", "round", "floor", "ceil", "pow", "random", "is_close", "sin", "cos", "tan", "asin", "acos", "atan", "atan2", "exp", "log"}},
 	"time":     {Name: "time", Funcs: []string{"now", "sleep", "today", "today_utc", "make_date", "to_date", "to_zone", "add_time", "time_between", "format_date", "wait_until", "every"}},
 	"data":     {Name: "data", Funcs: append([]string{"process", "keep", "unique", "group", "table_column", "table_row", "copy", "table", "table_read", "table_write", "range", "reduce", "sum"}, statsFuncs...)},
 	"system":   {Name: "system", Aliases: map[string]string{"isFile": "isfile", "isFolder": "isfolder", "scriptFolder": "scriptfolder"}, Funcs: []string{"args", "exists", "isfile", "isfolder", "exit", "env", "scriptfolder", "contents", "erase", "warn", "copyto", "moveto", "makefolder", "walk", "pack", "unpack", "loadenv", "options", "memory", "sizeof", "freememory"}},
@@ -283,6 +288,14 @@ func fatalf(format string, args ...interface{}) {
 	fatalKind(kindType, format, args...)
 }
 
+func init() {
+	// A value too deep to walk stops the program like any other error, so
+	// safe blocks, tests and the server's handlers see it.
+	object.TooDeep = func() {
+		fatalf("this value is nested more than %d levels deep, or contains itself (as after add x to x .), so it can't be shown, compared or used as a key", object.MaxNesting)
+	}
+}
+
 // fatalKind is fatalf for an error of a particular kind.
 func fatalKind(kind, format string, args ...interface{}) {
 	text := fmt.Sprintf(format, args...)
@@ -418,10 +431,26 @@ func (it *Interpreter) evalBlock(block *ast.BlockStatement, env *object.Environm
 	return it.evalStatements(block.Statements, env)
 }
 
+// Why the running code is asked to stop (Interpreter.stop).
+const (
+	stopNone int32 = iota
+	stopInterrupt
+	stopTimeout
+)
+
+// stopNow stops the running code for reason. Neither stop is an error a
+// safe block can handle: the REPL or the server catches it.
+func (it *Interpreter) stopNow(reason int32) {
+	it.stop.Store(stopNone)
+	if reason == stopTimeout {
+		panic(requestTimeout{})
+	}
+	panic(interruptRequest{})
+}
+
 func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment) ExecResult {
-	if it.interrupt.Load() {
-		it.interrupt.Store(false)
-		panic(interruptRequest{})
+	if reason := it.stop.Load(); reason != stopNone {
+		it.stopNow(reason)
 	}
 	var trace *traceLine
 	if !it.inBuiltin {
@@ -664,6 +693,10 @@ func (it *Interpreter) evalLoop(s *ast.LoopStatement, env *object.Environment) E
 		env = loopEnv
 	}
 	for n := 1; ; n++ {
+		// A loop with nothing in its body runs no statement to check.
+		if reason := it.stop.Load(); reason != stopNone {
+			it.stopNow(reason)
+		}
 		if s.Condition != nil {
 			if !isTruthy(it.evalExpression(s.Condition, env)) {
 				break

@@ -709,30 +709,42 @@ func (it *Interpreter) validateRun(v *ast.ValidateStatement, inputs []*ast.Valid
 }
 
 // deepCopy copies a value and everything inside it.
-func deepCopy(v object.Object) object.Object {
+func deepCopy(v object.Object) object.Object { return deepCopyAt(v, 0) }
+
+// deepCopyAt is deepCopy at depth levels inside other values: a value
+// nested past object.MaxNesting, or one that holds itself, stops with an
+// error instead of exhausting the stack.
+func deepCopyAt(v object.Object, depth int) object.Object {
+	switch v.(type) {
+	case *object.List, *object.Set, *object.Map, *object.Assembly:
+		if depth >= object.MaxNesting {
+			object.TooDeep()
+		}
+		depth++
+	}
 	switch x := v.(type) {
 	case *object.List:
 		out := &object.List{Elements: make([]object.Object, len(x.Elements))}
 		for i, e := range x.Elements {
-			out.Elements[i] = deepCopy(e)
+			out.Elements[i] = deepCopyAt(e, depth)
 		}
 		return out
 	case *object.Set:
 		out := &object.Set{}
 		for _, e := range x.Elements {
-			out.Add(deepCopy(e))
+			out.Add(deepCopyAt(e, depth))
 		}
 		return out
 	case *object.Map:
 		out := object.NewMap()
 		for _, e := range x.Entries() {
-			out.Put(deepCopy(e.Key), deepCopy(e.Val))
+			out.Put(deepCopyAt(e.Key, depth), deepCopyAt(e.Val, depth))
 		}
 		return out
 	case *object.Assembly:
 		vals := make([]object.Object, len(x.Values))
 		for i, e := range x.Values {
-			vals[i] = deepCopy(e)
+			vals[i] = deepCopyAt(e, depth)
 		}
 		return &object.Assembly{Shape: x.Shape, Values: vals}
 	case *object.Matrix:

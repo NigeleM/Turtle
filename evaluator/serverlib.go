@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"net/http"
 	"os"
@@ -44,12 +45,22 @@ import (
 // headers, body, json, form, ip) and gives back text (a page), a map or
 // list (JSON), reply[status, body, headers] or redirect[address]. A
 // handler's error answers 500 and is shown; the server goes on. Requests
-// take turns: Turtle code runs one line at a time.
+// take turns: Turtle code runs one line at a time, so a handler that runs
+// past servertimeout seconds is stopped and answers 503.
 
 const (
-	serverLogName  = "serverlog"
-	serverHostName = "serverhost"
+	serverLogName     = "serverlog"
+	serverHostName    = "serverhost"
+	serverTimeoutName = "servertimeout"
 )
+
+// defaultRequestLimit is servertimeout's starting value, in seconds: as
+// long as the server waits for a request to arrive.
+const defaultRequestLimit = 30
+
+// requestTimeout stops a handler that ran past servertimeout; no safe
+// block handles it, so the handler can't carry on.
+type requestTimeout struct{}
 
 // replyShape is reply's assembled type: Reply { status, body, headers }.
 var replyShape = &object.Shape{Name: "Reply", Fields: []string{"status", "body", "headers"}}
@@ -63,6 +74,23 @@ func defineServerSettings(env *object.Environment) {
 	if _, ok := env.Get(serverHostName); !ok {
 		env.Set(serverHostName, &object.String{Value: "localhost"})
 	}
+	if _, ok := env.Get(serverTimeoutName); !ok {
+		env.Set(serverTimeoutName, object.Int(defaultRequestLimit))
+	}
+}
+
+// requestLimitOf reads servertimeout: seconds a handler may run, 0 for no
+// limit.
+func requestLimitOf(env *object.Environment) time.Duration {
+	v, ok := env.Get(serverTimeoutName)
+	if !ok {
+		return defaultRequestLimit * time.Second
+	}
+	secs, _, isNum := numeric(v)
+	if !isNum || secs < 0 || math.IsNaN(secs) || math.IsInf(secs, 0) {
+		fatalf("servertimeout is how many seconds a request may run (0 for no limit), got %s", object.Shown(v))
+	}
+	return time.Duration(secs * float64(time.Second))
 }
 
 func (it *Interpreter) callServer(name string, args []object.Object, env *object.Environment) object.Object {
@@ -220,6 +248,7 @@ func (it *Interpreter) serve(routes []route, port int64, env *object.Environment
 	if v, ok := env.Get(serverLogName); ok {
 		log = isTruthy(v)
 	}
+	it.requestLimit = requestLimitOf(env)
 	ln, err := net.Listen("tcp", net.JoinHostPort(host, strconv.FormatInt(port, 10)))
 	if err != nil {
 		if errors.Is(err, syscall.EADDRINUSE) {
@@ -447,6 +476,11 @@ func (it *Interpreter) runHandler(w http.ResponseWriter, r *http.Request, rt rou
 		if p == nil {
 			return
 		}
+		if _, ok := p.(requestTimeout); ok {
+			stderrLine(fmt.Sprintf("%s %s: stopped after %s (servertimeout)", r.Method, r.URL.Path, fmtDuration(it.requestLimit)))
+			status = writeText(w, http.StatusServiceUnavailable, "the request took too long")
+			return
+		}
 		if fe, ok := p.(fatalError); ok && !fe.parse {
 			stderrLine(fmt.Sprintf("%s %s: %s", r.Method, r.URL.Path, fe.msg))
 			status = writeText(w, http.StatusInternalServerError, "server error")
@@ -455,6 +489,27 @@ func (it *Interpreter) runHandler(w http.ResponseWriter, r *http.Request, rt rou
 		status = writeText(w, http.StatusInternalServerError, "server error")
 		stop(p)
 	}()
+	if limit := it.requestLimit; limit > 0 {
+		// Past the limit, the next statement stops the handler. Once the
+		// handler is done, the timer can no longer ask, and a stop it asked
+		// for too late is taken back, so it can't reach other code.
+		var mu sync.Mutex
+		running := true
+		timer := time.AfterFunc(limit, func() {
+			mu.Lock()
+			if running {
+				it.stop.CompareAndSwap(stopNone, stopTimeout)
+			}
+			mu.Unlock()
+		})
+		defer func() {
+			mu.Lock()
+			running = false
+			mu.Unlock()
+			timer.Stop()
+			it.stop.CompareAndSwap(stopTimeout, stopNone)
+		}()
+	}
 	var result object.Object
 	switch a := rt.answer.(type) {
 	case *object.Function:

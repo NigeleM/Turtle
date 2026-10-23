@@ -21,7 +21,10 @@ import (
 // type with equal fields. Anything else needs the same type and
 // the same value — so 1 and "1" are different, even though both show
 // as 1.
-func Equal(a, b Object) bool {
+func Equal(a, b Object) bool { return equal(a, b, 0) }
+
+// equal is Equal at depth levels inside other values (see MaxNesting).
+func equal(a, b Object, depth int) bool {
 	if ai, ok := a.(*Integer); ok {
 		if bi, ok := b.(*Integer); ok {
 			return ai.Value == bi.Value
@@ -46,6 +49,18 @@ func Equal(a, b Object) bool {
 		bf, ok := number(b)
 		return ok && af == bf
 	}
+	switch a.(type) {
+	case *List, *Set, *Map, *Assembly:
+		if a == b {
+			// The same value equals itself without a walk, as in Python:
+			// even one that holds itself, or holds nan.
+			return true
+		}
+		if depth >= MaxNesting {
+			TooDeep()
+		}
+		depth++
+	}
 	switch av := a.(type) {
 	case *List:
 		bv, ok := b.(*List)
@@ -53,7 +68,7 @@ func Equal(a, b Object) bool {
 			return false
 		}
 		for i := range av.Elements {
-			if !Equal(av.Elements[i], bv.Elements[i]) {
+			if !equal(av.Elements[i], bv.Elements[i], depth) {
 				return false
 			}
 		}
@@ -64,7 +79,7 @@ func Equal(a, b Object) bool {
 			return false
 		}
 		for _, e := range av.Elements {
-			if !bv.Contains(e) {
+			if !bv.contains(e, depth) {
 				return false
 			}
 		}
@@ -76,7 +91,7 @@ func Equal(a, b Object) bool {
 		}
 		for _, e := range av.entries {
 			v, ok := bv.Get(e.Key)
-			if !ok || !Equal(e.Val, v) {
+			if !ok || !equal(e.Val, v, depth) {
 				return false
 			}
 		}
@@ -97,7 +112,7 @@ func Equal(a, b Object) bool {
 			return false
 		}
 		for i := range av.Values {
-			if !Equal(av.Values[i], bv.Values[i]) {
+			if !equal(av.Values[i], bv.Values[i], depth) {
 				return false
 			}
 		}
@@ -106,15 +121,71 @@ func Equal(a, b Object) bool {
 	return a.Type() == b.Type() && a.Inspect() == b.Inspect()
 }
 
-// entryKey is a map's or set's index key for obj: one key exactly when
-// Key says so, without making anything for the usual key, text. Text is
-// itself; anything else is a NUL and its Key, which no text starts with
-// (text that does start with a NUL gets the same treatment).
-func entryKey(obj Object) string {
-	if s, ok := obj.(*String); ok && (s.Value == "" || s.Value[0] != 0) {
-		return s.Value
+// hashKey is a map's or set's index key: one key exactly when Key says so.
+// The usual keys, text and whole numbers, are kept as themselves, so
+// finding one makes nothing.
+type hashKey struct {
+	whole bool   // n is the key: a whole number that fits 64 bits
+	n     int64  //
+	s     string // otherwise: text as itself, anything else a NUL and its Key
+}
+
+// entryKey is obj's index key. A whole number that fits 64 bits is its
+// value, whether an integer, a whole float (2.0 is 2, as Key says) or a
+// big integer that fits. Text is itself; anything else is a NUL and its
+// Key, which no text starts with (text that does start with a NUL gets
+// the same treatment).
+func entryKey(obj Object) hashKey {
+	switch v := obj.(type) {
+	case *String:
+		if v.Value == "" || v.Value[0] != 0 {
+			return hashKey{s: v.Value}
+		}
+	case *Integer:
+		return hashKey{whole: true, n: v.Value}
+	case *Float:
+		if v.Value == math.Trunc(v.Value) && v.Value >= -(1<<63) && v.Value < 1<<63 {
+			return hashKey{whole: true, n: int64(v.Value)}
+		}
+	case *BigInt:
+		if v.V.IsInt64() {
+			return hashKey{whole: true, n: v.V.Int64()}
+		}
 	}
-	return "\x00" + Key(obj)
+	return hashKey{s: "\x00" + Key(obj)}
+}
+
+// keyIndex finds a V by hashKey: text keys in one Go map, whole numbers in
+// another, so each kind hashes as itself. Each map is made on first use.
+type keyIndex[V any] struct {
+	text  map[string]V
+	whole map[int64]V
+	size  int // how many entries to make room for at first
+}
+
+func newKeyIndex[V any](size int) *keyIndex[V] { return &keyIndex[V]{size: size} }
+
+func (x *keyIndex[V]) get(k hashKey) (V, bool) {
+	if k.whole {
+		v, ok := x.whole[k.n]
+		return v, ok
+	}
+	v, ok := x.text[k.s]
+	return v, ok
+}
+
+func (x *keyIndex[V]) put(k hashKey, v V) {
+	if k.whole {
+		if x.whole == nil {
+			x.whole = make(map[int64]V, x.size)
+		}
+		x.whole[k.n] = v
+		return
+	}
+	if x.text == nil {
+		x.text = make(map[string]V, x.size)
+	}
+	x.text[k.s] = v
 }
 
 // sameKey is whether a and b are one key, as Key(a) == Key(b) says (2
@@ -138,7 +209,17 @@ func sameKey(a, b Object) bool {
 // a set's elements are put in a fixed order first, and a whole-number
 // float matches its integer (2.0 == 2). Strings are quoted, so the
 // string "1" and the integer 1 are different keys.
-func Key(obj Object) string {
+func Key(obj Object) string { return key(obj, 0) }
+
+// key is Key at depth levels inside other values (see MaxNesting).
+func key(obj Object, depth int) string {
+	switch obj.(type) {
+	case *Set, *List, *Map, *Assembly:
+		if depth >= MaxNesting {
+			TooDeep()
+		}
+		depth++
+	}
 	switch v := obj.(type) {
 	case *Date:
 		// The same moment is the same key, whichever clock shows it.
@@ -157,27 +238,27 @@ func Key(obj Object) string {
 	case *Set:
 		parts := make([]string, len(v.Elements))
 		for i, e := range v.Elements {
-			parts[i] = Key(e)
+			parts[i] = key(e, depth)
 		}
 		sort.Strings(parts)
 		return "{" + strings.Join(parts, ",") + "}"
 	case *List:
 		parts := make([]string, len(v.Elements))
 		for i, e := range v.Elements {
-			parts[i] = Key(e)
+			parts[i] = key(e, depth)
 		}
 		return "[" + strings.Join(parts, ",") + "]"
 	case *Map:
 		parts := make([]string, len(v.entries))
 		for i, e := range v.entries {
-			parts[i] = Key(e.Key) + ":" + Key(e.Val)
+			parts[i] = key(e.Key, depth) + ":" + key(e.Val, depth)
 		}
 		sort.Strings(parts)
 		return "map{" + strings.Join(parts, ",") + "}"
 	case *Assembly:
 		parts := make([]string, len(v.Values))
 		for i, e := range v.Values {
-			parts[i] = v.Shape.Fields[i] + ":" + Key(e)
+			parts[i] = v.Shape.Fields[i] + ":" + key(e, depth)
 		}
 		return v.Shape.Name + "{" + strings.Join(parts, ",") + "}"
 	case *Function:

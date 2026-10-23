@@ -480,6 +480,7 @@ type MethodCallExpression struct {
 	Method    string
 	Arguments []Expression
 	Bracketed bool // args were given as "x at m[args]" (expression form)
+	Grouped   bool // written in ( ): "2 * (v at round)" says what round works on
 	// Hint, when set, is added to an error from this call: the method
 	// works on a value people often don't expect (see the parser).
 	Hint string

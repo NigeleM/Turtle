@@ -2237,6 +2237,8 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 		e.Grouped = true
 	case *ast.PrefixExpression:
 		e.Grouped = true
+	case *ast.MethodCallExpression:
+		e.Grouped = true
 	}
 	return expr
 }

@@ -190,6 +190,63 @@ serve[map ["GET /stop": stop], 0]`
 	}
 }
 
+// A handler that runs past servertimeout is stopped, answers 503, and the
+// server goes on: even one whose loop body is empty, and even inside safe.
+func TestServerTimeout(t *testing.T) {
+	src := `import server
+serverlog = false
+servertimeout = 0.2
+def spin[req]
+    n = 0
+    [loop][true]
+        n = n + 1
+    [loop][end]
+def [end]
+def empty[req]
+    [loop][true]
+    [loop][end]
+def [end]
+def guarded[req]
+    safe
+        [loop][true]
+        [loop][end]
+    handle [] e .
+        return "caught"
+    safe [end]
+def [end]
+def quick[req]
+    return "ok"
+def [end]
+serve[map ["GET /spin": spin, "GET /empty": empty, "GET /guarded": guarded, "GET /quick": quick], 0]`
+	base := startServer(t, t.TempDir(), src)
+	for _, path := range []string{"/spin", "/empty", "/guarded"} {
+		start := time.Now()
+		status, _, body := get(t, "GET", base+path, "", "")
+		if status != 503 || body != "the request took too long" {
+			t.Errorf("%s: got %d %q, want 503", path, status, body)
+		}
+		if took := time.Since(start); took > 3*time.Second {
+			t.Errorf("%s: stopped after %s, want about 0.2s", path, took)
+		}
+		if status, _, body := get(t, "GET", base+"/quick", "", ""); status != 200 || body != "ok" {
+			t.Errorf("after %s: got %d %q, want the server still answering", path, status, body)
+		}
+	}
+}
+
+// servertimeout must be a number of seconds, 0 or more.
+func TestServerTimeoutSetting(t *testing.T) {
+	for _, v := range []string{`"soon"`, `-1`} {
+		_, err := run(t, "import server\nservertimeout = "+v+"\nserve[map [], 0]", "")
+		if err == nil || !strings.Contains(err.Error(), "servertimeout is how many seconds a request may run") {
+			t.Errorf("servertimeout = %s: %v", v, err)
+		}
+	}
+	if got := requestLimitOf(New(t.TempDir()).Global); got != 30*time.Second {
+		t.Errorf("default: %s, want 30s", got)
+	}
+}
+
 func TestServerMisuse(t *testing.T) {
 	cases := []struct{ src, kind, want string }{
 		{`serve[5]`, "type", "serve: the routes must be a map"},

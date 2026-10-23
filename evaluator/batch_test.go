@@ -320,6 +320,25 @@ func TestMathTrigAndLogarithms(t *testing.T) {
 	}
 }
 
+// asin, acos, atan and atan2 give angles in radians, as Python's math does.
+func TestMathInverseTrig(t *testing.T) {
+	got, err := run(t, "import math\nshow 1 at asin, \" \", 0 at acos, \" \", 1 at atan, \" \", 1 at atan2[-1], \" \", -1 at atan2[-1], \" \", 0.5 at asin at sin .", "")
+	if err != nil || got != "1.5707963267948966 1.5707963267948966 0.7853981633974483 2.356194490192345 -2.356194490192345 0.5\n" {
+		t.Errorf("got %q, %v", got, err)
+	}
+	for _, src := range []string{"show 2 at asin .", "show -1.5 at acos ."} {
+		if _, err := run(t, "import math\n"+src, ""); err == nil || !strings.Contains(err.Error(), "needs a number from -1 to 1") {
+			t.Errorf("%s: %v", src, err)
+		}
+	}
+	if _, err := run(t, "show 2 at asin .", ""); err == nil || !strings.Contains(err.Error(), `"asin" needs "import math" first`) {
+		t.Errorf("asin without import: %v", err)
+	}
+	if _, err := run(t, "import math\nshow 1 at atan2[\"x\"] .", ""); err == nil || !strings.Contains(err.Error(), "'atan2' needs a number") {
+		t.Errorf("atan2 with text: %v", err)
+	}
+}
+
 // A method's argument without brackets stops before an operator; a sentence
 // call's argument takes it. Parentheses or brackets give either form the sum.
 func TestArgumentReachOfMethodsAndSentenceCalls(t *testing.T) {
