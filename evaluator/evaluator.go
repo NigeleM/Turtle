@@ -480,15 +480,7 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		// Where the name was stored last time is usually where it goes
 		// again (see object.Environment.StoreAt); otherwise, a full look.
 		if !env.StoreAt(s.Name, atomic.LoadUint64(&s.Place), v) {
-			shadows, global, p := env.SetUnlessShadows(s.Name, v)
-			if shadows {
-				if assignReads(s) {
-					outerAssignError(s.Name, it.funcName, global)
-				}
-				env.Set(s.Name, v)
-			} else {
-				atomic.StoreUint64(&s.Place, p)
-			}
+			it.assignByName(s, env, v)
 		}
 		if trace != nil {
 			it.traceAssign(trace, s.Name, v.Inspect())
@@ -496,42 +488,10 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		return noneResult
 
 	case *ast.InputStatement:
-		if s.Prompt != nil {
-			fmt.Fprint(stdoutBuf, it.evalExpression(s.Prompt, env).Inspect())
-		}
-		stdoutBuf.Flush()
-		if !it.stdin.Scan() {
-			// EOF (or a read error) on stdin: there's nothing left to
-			// read, ever, so returning "" here would make any loop that
-			// re-prompts on bad input (e.g. retrying invalid numeric
-			// input) spin forever re-reading empty strings instead of
-			// terminating.
-			fatalKind(kindFile, "unexpected end of input reading %q", s.Name)
-		}
-		env.Set(s.Name, &object.String{Value: it.stdin.Text()})
-		return noneResult
+		return it.evalInput(s, env)
 
 	case *ast.ShowStatement:
-		if s.Stderr {
-			requireModule(env, "system", "warn")
-		}
-		var b strings.Builder
-		for i, e := range s.Expressions {
-			v := it.evalExpression(e, env)
-			shown := v.Inspect()
-			if i > 0 && needsSpace(b.String(), shown) {
-				b.WriteByte(' ')
-			}
-			writeShown(&b, v, shown)
-		}
-		out := b.String()
-		if s.Stderr {
-			stderrLine(out)
-		} else {
-			fmt.Fprintln(stdoutBuf, out)
-		}
-		it.copyOutput(env, out)
-		return noneResult
+		return it.evalShow(s, env)
 
 	case *ast.LogStatement:
 		it.evalLog(s, env)
@@ -567,39 +527,14 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		return ExecResult{Signal: SigContinue}
 
 	case *ast.FunctionDefStatement:
-		// A top-level def goes in its file's global function table,
-		// callable by name from anywhere in that file (and exported to
-		// files that import it). A def nested inside a function body is a
-		// closure: a local variable holding a function that captures the
-		// enclosing call's scope, so it can be returned or passed along
-		// and still read that call's locals after it has finished.
-		env.Capture()
-		fn := &object.Function{Name: s.Name, Parameters: s.Parameters, Body: s.Body, Env: env, Line: s.Line()}
-		if env.IsTopLevel() {
-			warnRedefinition(env, fn)
-			env.DefineFunction(fn)
-		} else {
-			env.Set(s.Name, fn)
-		}
-		return noneResult
+		return it.evalDef(s, env)
 
 	case *ast.TheoryStatement:
 		it.defineTheory(s, env)
 		return noneResult
 
 	case *ast.AssembleStatement:
-		// Like a def: the constructor goes in the file's function table at
-		// top level (so it's exported and importable), or is a local
-		// inside a function body.
-		shape := &object.Shape{Name: s.Name, Fields: s.Fields}
-		env.Capture()
-		fn := &object.Function{Name: s.Name, Parameters: s.Fields, Shape: shape, Env: env}
-		if env.IsTopLevel() {
-			env.DefineFunction(fn)
-		} else {
-			env.Set(s.Name, fn)
-		}
-		return noneResult
+		return it.evalAssemble(s, env)
 
 	case *ast.CheckStatement:
 		it.evalCheck(s, env)
@@ -618,25 +553,10 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		return it.evalDiagnoseBlock(s, env)
 
 	case *ast.FailStatement:
-		val := it.evalExpression(s.Value, env)
-		fatalKind(kindCustom, "%s", val.Inspect())
-		return noneResult
+		return it.evalFail(s, env)
 
 	case *ast.FieldAssignStatement:
-		obj := it.evalExpression(s.Target.Object, env)
-		if _, ok := obj.(*object.Error); ok {
-			fatalf("an error's parts can't be changed (%s of an error is read-only)", s.Target.Field)
-		}
-		if _, ok := obj.(*object.Date); ok {
-			fatalf("a date's parts can't be changed (%s of a date is read-only); make a new one with add_time or make_date", s.Target.Field)
-		}
-		if m, ok := obj.(*object.Map); ok {
-			m.Put(&object.String{Value: s.Target.Field}, it.evalExpression(s.Value, env))
-			return noneResult
-		}
-		a, i := fieldOf(obj, s.Target.Field)
-		a.Values[i] = it.evalExpression(s.Value, env)
-		return noneResult
+		return it.evalFieldAssign(s, env)
 
 	case *ast.IfStatement:
 		return it.evalIf(s, env)
@@ -669,8 +589,146 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		return noneResult
 
 	default:
-		fatalf("no evaluator for statement type %T", stmt)
+		unknownStatement(stmt)
 		return noneResult
+	}
+}
+
+// The less common statements, apart from evalStatement so its stack
+// frame, taken for every statement at every level of calls, stays small.
+
+// evalInput is x = ? : a line read from the input.
+//
+//go:noinline
+func (it *Interpreter) evalInput(s *ast.InputStatement, env *object.Environment) ExecResult {
+	if s.Prompt != nil {
+		fmt.Fprint(stdoutBuf, it.evalExpression(s.Prompt, env).Inspect())
+	}
+	stdoutBuf.Flush()
+	if !it.stdin.Scan() {
+		// EOF (or a read error) on stdin: there's nothing left to
+		// read, ever, so returning "" here would make any loop that
+		// re-prompts on bad input (e.g. retrying invalid numeric
+		// input) spin forever re-reading empty strings instead of
+		// terminating.
+		fatalKind(kindFile, "unexpected end of input reading %q", s.Name)
+	}
+	env.Set(s.Name, &object.String{Value: it.stdin.Text()})
+	return noneResult
+}
+
+// evalShow is show ... . (or warn): the values on one line.
+//
+//go:noinline
+func (it *Interpreter) evalShow(s *ast.ShowStatement, env *object.Environment) ExecResult {
+	if s.Stderr {
+		requireModule(env, "system", "warn")
+	}
+	var b strings.Builder
+	for i, e := range s.Expressions {
+		v := it.evalExpression(e, env)
+		shown := v.Inspect()
+		if i > 0 && needsSpace(b.String(), shown) {
+			b.WriteByte(' ')
+		}
+		writeShown(&b, v, shown)
+	}
+	out := b.String()
+	if s.Stderr {
+		stderrLine(out)
+	} else {
+		fmt.Fprintln(stdoutBuf, out)
+	}
+	it.copyOutput(env, out)
+	return noneResult
+}
+
+// evalDef is a def as a statement.
+//
+//go:noinline
+func (it *Interpreter) evalDef(s *ast.FunctionDefStatement, env *object.Environment) ExecResult {
+	// A top-level def goes in its file's global function table,
+	// callable by name from anywhere in that file (and exported to
+	// files that import it). A def nested inside a function body is a
+	// closure: a local variable holding a function that captures the
+	// enclosing call's scope, so it can be returned or passed along
+	// and still read that call's locals after it has finished.
+	env.Capture()
+	fn := &object.Function{Name: s.Name, Parameters: s.Parameters, Body: s.Body, Env: env, Line: s.Line()}
+	if env.IsTopLevel() {
+		warnRedefinition(env, fn)
+		env.DefineFunction(fn)
+	} else {
+		env.Set(s.Name, fn)
+	}
+	return noneResult
+}
+
+// evalAssemble is assemble Name [fields].
+//
+//go:noinline
+func (it *Interpreter) evalAssemble(s *ast.AssembleStatement, env *object.Environment) ExecResult {
+	// Like a def: the constructor goes in the file's function table at
+	// top level (so it's exported and importable), or is a local
+	// inside a function body.
+	shape := &object.Shape{Name: s.Name, Fields: s.Fields}
+	env.Capture()
+	fn := &object.Function{Name: s.Name, Parameters: s.Fields, Shape: shape, Env: env}
+	if env.IsTopLevel() {
+		env.DefineFunction(fn)
+	} else {
+		env.Set(s.Name, fn)
+	}
+	return noneResult
+}
+
+// evalFail is fail "...": the program's own error.
+//
+//go:noinline
+func (it *Interpreter) evalFail(s *ast.FailStatement, env *object.Environment) ExecResult {
+	val := it.evalExpression(s.Value, env)
+	fatalKind(kindCustom, "%s", val.Inspect())
+	return noneResult
+}
+
+// evalFieldAssign is field of value = new value.
+//
+//go:noinline
+func (it *Interpreter) evalFieldAssign(s *ast.FieldAssignStatement, env *object.Environment) ExecResult {
+	obj := it.evalExpression(s.Target.Object, env)
+	if _, ok := obj.(*object.Error); ok {
+		fatalf("an error's parts can't be changed (%s of an error is read-only)", s.Target.Field)
+	}
+	if _, ok := obj.(*object.Date); ok {
+		fatalf("a date's parts can't be changed (%s of a date is read-only); make a new one with add_time or make_date", s.Target.Field)
+	}
+	if m, ok := obj.(*object.Map); ok {
+		m.Put(&object.String{Value: s.Target.Field}, it.evalExpression(s.Value, env))
+		return noneResult
+	}
+	a, i := fieldOf(obj, s.Target.Field)
+	a.Values[i] = it.evalExpression(s.Value, env)
+	return noneResult
+}
+
+//go:noinline
+func unknownStatement(stmt ast.Statement) {
+	fatalf("no evaluator for statement type %T", stmt)
+}
+
+// assignByName is an assignment that isn't to where its name was stored
+// last time: a full look, and the error for changing an outer variable.
+//
+//go:noinline
+func (it *Interpreter) assignByName(s *ast.AssignStatement, env *object.Environment, v object.Object) {
+	shadows, global, p := env.SetUnlessShadows(s.Name, v)
+	if shadows {
+		if assignReads(s) {
+			outerAssignError(s.Name, it.funcName, global)
+		}
+		env.Set(s.Name, v)
+	} else {
+		atomic.StoreUint64(&s.Place, p)
 	}
 }
 

@@ -47,12 +47,7 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 		e.Cache = v
 		return v
 	case *ast.InterpolatedString:
-		var b strings.Builder
-		for _, part := range e.Parts {
-			v := it.evalExpression(part, env)
-			writeShown(&b, v, v.Inspect())
-		}
-		return &object.String{Value: b.String()}
+		return it.evalInterpolated(e, env)
 	case *ast.BooleanLiteral:
 		return object.Bool(e.Value)
 	case *ast.NoneLiteral:
@@ -68,38 +63,12 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 		// or "apply[mylib binary, 3]" passes the function itself.
 		// "a b" is either module a's function b (as a value) or the
 		// sentence-style call b[a] with no further arguments.
-		if e.Module != "" {
-			if e.Module == "math" {
-				if c, ok := mathConstant(env, e.Value); ok {
-					return c
-				}
+		if e.Module == "" {
+			if val, ok := env.LookupAt(e.Value, atomic.LoadUint64(&e.Place)); ok {
+				return val
 			}
-			if subject, ok := sentenceSubject(env, e.Module); ok {
-				return it.callByName(e.Value, []object.Object{subject}, env)
-			}
-			return importedFunctionValue(qualifiedImport(env, e.Module, e.Value), e.Value)
 		}
-		if val, ok := env.LookupAt(e.Value, atomic.LoadUint64(&e.Place)); ok {
-			return val
-		}
-		if val, p, ok := env.Lookup(e.Value); ok {
-			atomic.StoreUint64(&e.Place, p)
-			return val
-		}
-		if fn, ok := env.GetFunction(e.Value); ok {
-			return fn
-		}
-		if im := resolveImported(env, e.Value); im != nil {
-			return importedFunctionValue(im, e.Value)
-		}
-		if c, ok := mathConstant(env, e.Value); ok {
-			return c
-		}
-		if e.Value == "version" { // core: show version .
-			return &object.String{Value: versionText()}
-		}
-		fatalKind(kindName, "undefined variable %q", e.Value)
-		return nil
+		return it.evalName(e, env)
 
 	case *ast.PrefixExpression:
 		right := it.evalExpression(e.Right, env)
@@ -137,52 +106,10 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 		return it.evalScroll(e, env)
 
 	case *ast.FieldExpression:
-		obj := it.evalExpression(e.Object, env)
-		if d, ok := obj.(*object.Date); ok {
-			v, ok := d.Field(e.Field)
-			if !ok {
-				fatalKind(kindName, "a date has no part %q (its parts: %s)", e.Field, object.DateFields)
-			}
-			return v
-		}
-		if er, ok := obj.(*object.Error); ok {
-			v, ok := er.Field(e.Field)
-			if !ok {
-				fatalKind(kindName, "an error has no field %q (its fields: kind, file, line, message)", e.Field)
-			}
-			return v
-		}
-		if m, ok := obj.(*object.Map); ok {
-			// title of row: the map's "title" key.
-			v, ok := m.Get(&object.String{Value: e.Field})
-			if !ok {
-				fatalKind(kindKey, "the map has no %q key (%s of a map reads its %q key)", e.Field, e.Field, e.Field)
-			}
-			return v
-		}
-		a, i := fieldOf(obj, e.Field)
-		return a.Values[i]
+		return it.evalField(e, env)
 
-	case *ast.ListLiteral:
-		list := &object.List{}
-		for _, el := range e.Elements {
-			list.Elements = append(list.Elements, it.evalExpression(el, env))
-		}
-		return list
-
-	case *ast.SetLiteral:
-		set := &object.Set{}
-		for _, el := range e.Elements {
-			set.Add(it.evalExpression(el, env))
-		}
-		return set
-
-	case *ast.MapLiteral:
-		m := object.NewMap()
-		for i, k := range e.Keys {
-			m.Put(it.evalExpression(k, env), it.evalExpression(e.Values[i], env))
-		}
-		return m
+	case *ast.ListLiteral, *ast.SetLiteral, *ast.MapLiteral:
+		return it.evalCollection(e, env)
 
 	case *ast.MethodCallExpression:
 		return it.evalMethodCall(e, env)
@@ -196,12 +123,7 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 	case *ast.MatrixLiteral:
 		return it.evalMatrixLiteral(e, env)
 	case *ast.ChangeExpression:
-		if e.TypeName == "matrix" {
-			if _, ok := env.ImportOf("linear"); !ok {
-				fatalKind(kindName, "change ... to matrix needs \"import linear\" first")
-			}
-		}
-		return evalChange(e.TypeName, it.evalExpression(e.Source, env))
+		return it.evalChangeExpression(e, env)
 
 	case *ast.RandomExpression:
 		return it.evalRandom(e.Shape, env)
@@ -210,9 +132,134 @@ func (it *Interpreter) evalExpression(expr ast.Expression, env *object.Environme
 		return object.Bool(it.isKind(it.evalExpression(e.Value, env), e.Kind, env))
 
 	default:
-		fatalf("no evaluator for expression type %T", expr)
+		unknownExpression(expr)
 		return nil
 	}
+}
+
+// The less common kinds of expression, apart from evalExpression so its
+// stack frame, taken at every level of every expression, stays small.
+
+// evalInterpolated is text with {values} in it.
+//
+//go:noinline
+func (it *Interpreter) evalInterpolated(e *ast.InterpolatedString, env *object.Environment) object.Object {
+	var b strings.Builder
+	for _, part := range e.Parts {
+		v := it.evalExpression(part, env)
+		writeShown(&b, v, v.Inspect())
+	}
+	return &object.String{Value: b.String()}
+}
+
+// evalName is a name whose place isn't known yet, or a module's name:
+// a variable found by a full look, a function, an import's function, a
+// math constant, or version.
+//
+//go:noinline
+func (it *Interpreter) evalName(e *ast.Identifier, env *object.Environment) object.Object {
+	if e.Module != "" {
+		if e.Module == "math" {
+			if c, ok := mathConstant(env, e.Value); ok {
+				return c
+			}
+		}
+		if subject, ok := sentenceSubject(env, e.Module); ok {
+			return it.callByName(e.Value, []object.Object{subject}, env)
+		}
+		return importedFunctionValue(qualifiedImport(env, e.Module, e.Value), e.Value)
+	}
+	if val, p, ok := env.Lookup(e.Value); ok {
+		atomic.StoreUint64(&e.Place, p)
+		return val
+	}
+	if fn, ok := env.GetFunction(e.Value); ok {
+		return fn
+	}
+	if im := resolveImported(env, e.Value); im != nil {
+		return importedFunctionValue(im, e.Value)
+	}
+	if c, ok := mathConstant(env, e.Value); ok {
+		return c
+	}
+	if e.Value == "version" { // core: show version .
+		return &object.String{Value: versionText()}
+	}
+	fatalKind(kindName, "undefined variable %q", e.Value)
+	return nil
+}
+
+// evalField is "field of value": a date's part, an error's field, a map's
+// key, or an assembled value's field.
+//
+//go:noinline
+func (it *Interpreter) evalField(e *ast.FieldExpression, env *object.Environment) object.Object {
+	obj := it.evalExpression(e.Object, env)
+	if d, ok := obj.(*object.Date); ok {
+		v, ok := d.Field(e.Field)
+		if !ok {
+			fatalKind(kindName, "a date has no part %q (its parts: %s)", e.Field, object.DateFields)
+		}
+		return v
+	}
+	if er, ok := obj.(*object.Error); ok {
+		v, ok := er.Field(e.Field)
+		if !ok {
+			fatalKind(kindName, "an error has no field %q (its fields: kind, file, line, message)", e.Field)
+		}
+		return v
+	}
+	if m, ok := obj.(*object.Map); ok {
+		// title of row: the map's "title" key.
+		v, ok := m.Get(&object.String{Value: e.Field})
+		if !ok {
+			fatalKind(kindKey, "the map has no %q key (%s of a map reads its %q key)", e.Field, e.Field, e.Field)
+		}
+		return v
+	}
+	a, i := fieldOf(obj, e.Field)
+	return a.Values[i]
+}
+
+// evalCollection is a list [...], set [...] or map [...] written out.
+//
+//go:noinline
+func (it *Interpreter) evalCollection(expr ast.Expression, env *object.Environment) object.Object {
+	switch e := expr.(type) {
+	case *ast.ListLiteral:
+		list := &object.List{}
+		for _, el := range e.Elements {
+			list.Elements = append(list.Elements, it.evalExpression(el, env))
+		}
+		return list
+	case *ast.SetLiteral:
+		set := &object.Set{}
+		for _, el := range e.Elements {
+			set.Add(it.evalExpression(el, env))
+		}
+		return set
+	}
+	e := expr.(*ast.MapLiteral)
+	m := object.NewMap()
+	for i, k := range e.Keys {
+		m.Put(it.evalExpression(k, env), it.evalExpression(e.Values[i], env))
+	}
+	return m
+}
+
+//go:noinline
+func (it *Interpreter) evalChangeExpression(e *ast.ChangeExpression, env *object.Environment) object.Object {
+	if e.TypeName == "matrix" {
+		if _, ok := env.ImportOf("linear"); !ok {
+			fatalKind(kindName, "change ... to matrix needs \"import linear\" first")
+		}
+	}
+	return evalChange(e.TypeName, it.evalExpression(e.Source, env))
+}
+
+//go:noinline
+func unknownExpression(expr ast.Expression) {
+	fatalf("no evaluator for expression type %T", expr)
 }
 
 func evalPrefix(op string, right object.Object) object.Object {
@@ -965,6 +1012,42 @@ func (it *Interpreter) callByNameAt(ce *ast.CallExpression, name string, args []
 	return nil
 }
 
+// The cold paths of callFunction, apart so its frame, which every call
+// takes on the stack, holds only what an ordinary call needs: deep
+// recursion uses that much stack per level.
+
+// callSpecial is a call of an assembled type's maker or a saved scroll.
+//
+//go:noinline
+func (it *Interpreter) callSpecial(fn *object.Function, name string, args []object.Object) object.Object {
+	if fn.Shape != nil {
+		if len(args) != len(fn.Shape.Fields) {
+			fatalf("%s needs %d value(s), one per field (%s), got %d",
+				name, len(fn.Shape.Fields), strings.Join(fn.Shape.Fields, ", "), len(args))
+		}
+		return object.NewAssembly(fn.Shape, args)
+	}
+	if len(args) != 1 {
+		fatalf("scroll %s runs on one value, got %d", scrollName(fn), len(args))
+	}
+	return it.runSavedScroll(fn, args[0])
+}
+
+//go:noinline
+func wrongArgCount(fn *object.Function, name string, args []object.Object) {
+	fatalf("function %q expects %d argument(s), got %d", name, len(fn.Parameters), len(args))
+}
+
+//go:noinline
+func tooManyCalls(name string) {
+	fatalf("recursion too deep: more than %d calls in progress (in %q) — is a recursive function missing its stopping case?", maxCallDepth, name)
+}
+
+//go:noinline
+func (it *Interpreter) debugEnter(name, file string, line int) {
+	it.debug.frames = append(it.debug.frames, debugFrame{name: name, file: file, line: line})
+}
+
 // callFunction runs fn on already-evaluated args in a fresh, isolated
 // call environment (so recursion works) that encloses the
 // function's defining scope, not the caller's — lexical scoping, which is
@@ -974,21 +1057,11 @@ func (it *Interpreter) callFunction(fn *object.Function, name string, args []obj
 	if fn.Name != "" {
 		name = fn.Name
 	}
-	if fn.Shape != nil {
-		if len(args) != len(fn.Shape.Fields) {
-			fatalf("%s needs %d value(s), one per field (%s), got %d",
-				name, len(fn.Shape.Fields), strings.Join(fn.Shape.Fields, ", "), len(args))
-		}
-		return object.NewAssembly(fn.Shape, args)
-	}
-	if fn.Scroll != nil {
-		if len(args) != 1 {
-			fatalf("scroll %s runs on one value, got %d", scrollName(fn), len(args))
-		}
-		return it.runSavedScroll(fn, args[0])
+	if fn.Shape != nil || fn.Scroll != nil {
+		return it.callSpecial(fn, name, args)
 	}
 	if len(args) != len(fn.Parameters) {
-		fatalf("function %q expects %d argument(s), got %d", name, len(fn.Parameters), len(args))
+		wrongArgCount(fn, name, args)
 	}
 	it.inPlace = false // only data's process / keep take it, right away
 	defEnv := fn.Env
@@ -1004,14 +1077,14 @@ func (it *Interpreter) callFunction(fn *object.Function, name string, args []obj
 		currentFile, currentLine, it.inBuiltin, it.funcName = prevFile, prevLine, prevBuiltin, prevFunc
 	}()
 	if it.depth > maxCallDepth {
-		fatalf("recursion too deep: more than %d calls in progress (in %q) — is a recursive function missing its stopping case?", maxCallDepth, name)
+		tooManyCalls(name)
 	}
 	if it.inBuiltin = isBuiltinEnv(defEnv); !it.inBuiltin {
 		currentFile = defEnv.File()
 	}
 	it.funcName = name
 	if it.debug != nil && !it.inBuiltin {
-		it.debug.frames = append(it.debug.frames, debugFrame{name: name, file: prevFile, line: prevLine})
+		it.debugEnter(name, prevFile, prevLine)
 		defer it.debugLeave()
 	}
 	// A scope from a finished call nobody kept stands in for a new one:
