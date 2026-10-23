@@ -83,7 +83,8 @@ func (it *Interpreter) httpSimple(who, method, address string, body object.Objec
 var httpClient = &http.Client{Timeout: 30 * time.Second}
 
 // maxResponse caps how much of a response is read, so a huge download
-// can't exhaust memory.
+// can't exhaust memory. A bigger one is an error, not cut short: a page or
+// JSON read only partly would look whole.
 const maxResponse = 64 << 20
 
 func doHTTP(who, method, address string, body object.Object, headers *object.Map) (*http.Response, string) {
@@ -123,9 +124,12 @@ func doHTTP(who, method, address string, body object.Object, headers *object.Map
 		fatalKind(kindHTTP, "%s %s: %s", who, address, networkProblem(err))
 	}
 	defer resp.Body.Close()
-	data, err := io.ReadAll(io.LimitReader(resp.Body, maxResponse))
+	data, err := io.ReadAll(io.LimitReader(resp.Body, maxResponse+1))
 	if err != nil {
 		fatalKind(kindHTTP, "%s %s: reading the response: %s", who, address, networkProblem(err))
+	}
+	if len(data) > maxResponse {
+		fatalKind(kindHTTP, "%s %s: the response is larger than %d MB, more than Turtle reads", who, address, maxResponse>>20)
 	}
 	return resp, string(data)
 }

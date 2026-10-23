@@ -20,7 +20,8 @@ assembled value is sent as JSON (`application/json`); `none` sends no body.
 problem or a 4xx/5xx status: `http_get https://api.example.com/x: 404 Not
 Found: no such page`. `http_request` only fails on a network problem, and
 hands back any status for you to check. A request with no answer in 30
-seconds fails.
+seconds fails, and so does a response larger than 64 MB (it isn't cut
+short).
 
 ```
 import http

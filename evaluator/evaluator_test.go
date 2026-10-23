@@ -2559,6 +2559,14 @@ show add_time[d, 24, "hours"] .`, "")
 	}
 }
 
+// zeros reads as endless zero bytes.
+type zeros struct{}
+
+func (zeros) Read(p []byte) (int, error) {
+	clear(p)
+	return len(p), nil
+}
+
 func TestHTTPLibrary(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -2576,6 +2584,8 @@ func TestHTTPLibrary(t *testing.T) {
 			http.Error(w, "no such page", 404)
 		case "/boom":
 			w.WriteHeader(500)
+		case "/huge":
+			io.CopyN(w, zeros{}, maxResponse+1)
 		}
 	}))
 	defer srv.Close()
@@ -2591,6 +2601,8 @@ func TestHTTPLibrary(t *testing.T) {
 	cases := []struct{ name, src, want, wantErr string }{
 		{name: "get text", src: `import http
 show http_get[base + "/hello"] .`, want: "hello turtle\n"},
+		{name: "a response past the limit is an error, not cut short", src: `import http
+t = http_get[base + "/huge"]`, wantErr: "the response is larger than 64 MB"},
 		{name: "get JSON into a list of maps", src: `import http
 import json
 users = load[http_get[base + "/users"]]

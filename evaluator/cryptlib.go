@@ -83,9 +83,11 @@ func textArg(fn string, args []object.Object, i int, what string) string {
 
 const (
 	passwordIterations = 600000 // OWASP's 2023 advice for PBKDF2-SHA256
-	encryptIterations  = 200000
-	tokenLetters       = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-	maxTokenLength     = 4096
+	// maxPasswordIterations is the most passwordcheck runs for a stored hash.
+	maxPasswordIterations = 10_000_000
+	encryptIterations     = 200000
+	tokenLetters          = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+	maxTokenLength        = 4096
 )
 
 func (it *Interpreter) callCrypt(name string, args []object.Object) object.Object {
@@ -206,7 +208,10 @@ func (it *Interpreter) callCrypt(name string, args []object.Object) object.Objec
 		iter, err1 := strconv.Atoi(parts[1])
 		salt, err2 := base64.RawStdEncoding.DecodeString(parts[2])
 		want, err3 := base64.RawStdEncoding.DecodeString(parts[3])
-		if err1 != nil || err2 != nil || err3 != nil || iter < 1 || len(want) == 0 {
+		// passwordhash uses passwordIterations and 32 bytes; a stored hash
+		// asking for far more (a changed database row) could make one check
+		// run for minutes or take gigabytes, so it isn't accepted.
+		if err1 != nil || err2 != nil || err3 != nil || iter < 1 || iter > maxPasswordIterations || len(want) == 0 || len(want) > 64 {
 			fatalKind(kindCrypt, "passwordcheck: the second argument isn't something passwordhash made")
 		}
 		got, err := pbkdf2.Key(sha256.New, pw, salt, iter, len(want))

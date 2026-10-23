@@ -60,6 +60,9 @@ func TestCryptMisuse(t *testing.T) {
 		{`token[0]`, "crypt", "the length must be 1 to 4096"},
 		{`token["8"]`, "type", "the length must be a whole number"},
 		{`passwordcheck["a", "plain"]`, "crypt", "isn't something passwordhash made"},
+		// A stored hash asking for far more work than passwordhash does.
+		{`passwordcheck["a", "pbkdf2-sha256$99999999$c2FsdHNhbHQ$a2V5a2V5a2V5"]`, "crypt", "isn't something passwordhash made"},
+		{`passwordcheck["a", "pbkdf2-sha256$600000$c2FsdHNhbHQ$` + strings.Repeat("QUFB", 30) + `"]`, "crypt", "isn't something passwordhash made"},
 		{`decrypt["hello", "k"]`, "crypt", "isn't something encrypt made"},
 		{`decrypt[encrypt["a", "k"], "x"]`, "crypt", "wrong passphrase"},
 		{`encrypt["a", ""]`, "crypt", "the passphrase is empty"},
