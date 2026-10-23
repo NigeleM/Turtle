@@ -175,6 +175,25 @@ func wholeOf(what string, f float64) object.Object {
 	return o
 }
 
+// roundBig is x rounded to places: a whole number already has every
+// decimal place, and to tens, hundreds and so on (places below 0) it
+// rounds exactly, a half away from zero, as round does for a float.
+func roundBig(x *big.Int, places int) object.Object {
+	if places >= 0 {
+		return object.IntOf(x)
+	}
+	scale := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(-places)), nil)
+	q, r := new(big.Int).QuoRem(new(big.Int).Abs(x), scale, new(big.Int))
+	if r.Lsh(r, 1).Cmp(scale) >= 0 {
+		q.Add(q, big.NewInt(1))
+	}
+	q.Mul(q, scale)
+	if x.Sign() < 0 {
+		q.Neg(q)
+	}
+	return object.IntOf(q)
+}
+
 // powBig is b to the power e, exactly (e >= 0). With |b| of at least 2
 // the result has at least (bits of b - 1) * e + 1 bits: past maxIntBits by
 // then, it isn't worked out.

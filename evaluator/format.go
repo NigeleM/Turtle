@@ -29,6 +29,14 @@ func fixedText(method string, receiver object.Object, args []object.Object) obje
 	if !ok || n.Value < 0 || n.Value > 20 {
 		fatalf("'fixed' takes how many decimal places, from 0 to 20, got %s", object.Shown(args[0]))
 	}
+	if b, isBig := receiver.(*object.BigInt); isBig {
+		// Every digit, as a float can't hold them all.
+		text := b.V.String()
+		if n.Value > 0 {
+			text += "." + strings.Repeat("0", int(n.Value))
+		}
+		return &object.String{Value: text}
+	}
 	if math.IsInf(f, 0) || math.IsNaN(f) {
 		return &object.String{Value: strconv.FormatFloat(f, 'f', -1, 64)}
 	}
@@ -48,6 +56,8 @@ func commasText(method string, receiver object.Object, args []object.Object) obj
 		text = strconv.FormatInt(n.Value, 10)
 	case *object.Float:
 		text = strconv.FormatFloat(n.Value, 'f', -1, 64)
+	case *object.BigInt:
+		text = n.V.String()
 	}
 	if len(args) == 1 {
 		text = fixedText("fixed", receiver, args).(*object.String).Value

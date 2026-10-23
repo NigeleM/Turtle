@@ -461,7 +461,7 @@ func (it *Interpreter) applyMethod(mc *ast.MethodCallExpression, receiver object
 		return mapMethod(r, mc.Method, args)
 	case *object.String:
 		return stringMethod(r, mc.Method, args)
-	case *object.Integer, *object.Float:
+	case *object.Integer, *object.Float, *object.BigInt:
 		return it.numberMethod(r, mc.Method, args, env)
 	case *object.Matrix:
 		return matrixMethod(r, mc.Method, args)
@@ -972,7 +972,16 @@ func mathOf(env *object.Environment, method string, receiver object.Object, args
 	requireModule(env, "math", method)
 	requireArgs(method, args, 0)
 	x, _, _ := numeric(receiver)
+	if math.IsInf(x, 0) && isBigInt(receiver) {
+		pastFloat(method)
+	}
 	return &object.Float{Value: f(x)}
+}
+
+// pastFloat stops a float function given a whole number too big for a
+// float (past about 1.8e308), rather than answer inf or nan for it.
+func pastFloat(method string) {
+	fatalKind(kindMath, "'%s' works in floats, and this whole number is too big for one (more than about 1.8e308)", method)
 }
 
 func (it *Interpreter) numberMethod(receiver object.Object, method string, args []object.Object, env *object.Environment) object.Object {
@@ -1037,12 +1046,34 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		if f <= 0 {
 			fatalKind(kindMath, "'log' needs a number above 0, got %v", f)
 		}
+		// A whole number past a float's range: its log from its bits, as
+		// x = m * 2^e (m from 0.5 to 1) is log m + e log 2.
+		var ln, log2, log10 float64
+		huge := math.IsInf(f, 0)
+		if huge {
+			m := new(big.Float)
+			e := new(big.Float).SetInt(receiver.(*object.BigInt).V).MantExp(m)
+			mf, _ := m.Float64()
+			ln, log2, log10 = math.Log(mf)+float64(e)*math.Ln2, math.Log2(mf)+float64(e), math.Log10(mf)+float64(e)*math.Log10(2)
+		}
 		if len(args) == 0 {
+			if huge {
+				return &object.Float{Value: ln}
+			}
 			return &object.Float{Value: math.Log(f)}
 		}
 		base, _, _ := numeric(args[0])
 		if base <= 0 || base == 1 {
 			fatalKind(kindMath, "'log' needs a base above 0 and not 1, got %v", base)
+		}
+		if huge {
+			switch base {
+			case 10:
+				return &object.Float{Value: log10}
+			case 2:
+				return &object.Float{Value: log2}
+			}
+			return &object.Float{Value: ln / math.Log(base)}
 		}
 		// Base 10 and 2 use the exact functions, so 1000 at log[10] is 3.0.
 		switch base {
@@ -1059,15 +1090,24 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		if f < 0 {
 			fatalKind(kindMath, "'sqrt' of a negative number (%v)", f)
 		}
+		if math.IsInf(f, 0) && isBigInt(receiver) {
+			// Too big for a float, its root may not be: 2^2000 has 2^1000.
+			x := new(big.Float).SetPrec(64).SetInt(receiver.(*object.BigInt).V)
+			r, _ := new(big.Float).Sqrt(x).Float64()
+			if math.IsInf(r, 0) {
+				pastFloat(method)
+			}
+			return &object.Float{Value: r}
+		}
 		return &object.Float{Value: math.Sqrt(f)}
 	case "abs":
 		requireModule(env, "math", "abs")
 		requireArgs(method, args, 0)
+		if bb, isBig := receiver.(*object.BigInt); isBig {
+			return object.IntOf(new(big.Int).Abs(bb.V))
+		}
 		f, isInt, _ := numeric(receiver)
 		if isInt {
-			if bb, isBig := object.BigOf(receiver); isBig {
-				return object.IntOf(new(big.Int).Abs(bb))
-			}
 			v := receiver.(*object.Integer).Value
 			if v == math.MinInt64 {
 				return object.IntOf(new(big.Int).Neg(big.NewInt(v)))
@@ -1085,6 +1125,10 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		if len(args) > 1 {
 			fatalf("'round' takes nothing, or how many places (round[2]), got %d arguments", len(args))
 		}
+		bb, isBig := receiver.(*object.BigInt)
+		if isBig && len(args) == 0 {
+			return receiver
+		}
 		f, _, _ := numeric(receiver)
 		if len(args) == 0 {
 			return wholeOf("round", math.Round(f))
@@ -1094,6 +1138,9 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 			fatalf("'round' takes a whole number of places from -15 to 15 (round[2]), got %s", args[0].Inspect())
 		}
 		places := int(p.Value)
+		if isBig {
+			return roundBig(bb.V, places)
+		}
 		if places <= 0 {
 			scale := math.Pow(10, float64(-places))
 			return wholeOf("round", math.Round(f/scale)*scale)
@@ -1109,11 +1156,17 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 	case "floor":
 		requireModule(env, "math", "floor")
 		requireArgs(method, args, 0)
+		if isBigInt(receiver) {
+			return receiver
+		}
 		f, _, _ := numeric(receiver)
 		return wholeOf("floor", math.Floor(f))
 	case "ceil":
 		requireModule(env, "math", "ceil")
 		requireArgs(method, args, 0)
+		if isBigInt(receiver) {
+			return receiver
+		}
 		f, _, _ := numeric(receiver)
 		return wholeOf("ceil", math.Ceil(f))
 	case "pow":
@@ -1150,6 +1203,9 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		requireModule(env, "math", "random")
 		requireArgs(method, args, 0)
 		n, ok := receiver.(*object.Integer)
+		if isBigInt(receiver) {
+			fatalf("%q needs an upper bound below 9223372036854775808, got %s", method, receiver.Inspect())
+		}
 		if !ok {
 			fatalf("%q needs an integer receiver (the exclusive upper bound), got %s", method, typeName(receiver))
 		}

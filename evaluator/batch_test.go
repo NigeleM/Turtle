@@ -380,6 +380,45 @@ func TestIntegerSizeLimit(t *testing.T) {
 	}
 }
 
+// A whole number past 64 bits has the number methods too: exact where the
+// answer is whole, a float as Python's math gives it where it isn't, and
+// an error, not inf, where even the float is too big.
+func TestBigIntegerMethods(t *testing.T) {
+	cases := []struct{ expr, want string }{
+		{"x at abs", "99999999999999999999999"},
+		{"abs[y]", "123456789012345678901500"},
+		{"x at pow 2", "9999999999999999999999800000000000000000000001"},
+		{"x at commas", "-99,999,999,999,999,999,999,999"},
+		{"x at commas[2]", "-99,999,999,999,999,999,999,999.00"},
+		{"x at fixed[2]", "-99999999999999999999999.00"},
+		{"x at floor", "-99999999999999999999999"},
+		{"x at ceil", "-99999999999999999999999"},
+		{"x at round", "-99999999999999999999999"},
+		{"x at round[2]", "-99999999999999999999999"},
+		{"x at round[-3]", "-100000000000000000000000"},
+		{"y at round[-3]", "123456789012345678902000"},
+		{"y at sqrt", "351364182882.01447"},
+		{"y at log", "53.170178161178704"},
+		{"h at sqrt", "1.0715086071862673e+301"},
+		{"h at log", "1386.2943611198905"},
+		{"h at log[10]", "602.0599913279624"},
+		{"h at log[2]", "2000.0"},
+		{"-5 at abs", "5"},
+	}
+	head := "import math\nx = 0 - 99999999999999999999999\ny = 123456789012345678901500\nh = 2 at pow 2000\n"
+	for _, c := range cases {
+		got, err := run(t, head+"show "+c.expr+" .", "")
+		if err != nil || got != c.want+"\n" {
+			t.Errorf("%s: got %q, %v, want %s", c.expr, got, err, c.want)
+		}
+	}
+	for _, expr := range []string{"h at sin", "h at exp", "(2 at pow 4000) at sqrt"} {
+		if _, err := run(t, head+"show "+expr+" .", ""); err == nil || !strings.Contains(err.Error(), "too big for one") {
+			t.Errorf("%s: %v", expr, err)
+		}
+	}
+}
+
 // asin, acos, atan and atan2 give angles in radians, as Python's math does.
 func TestMathInverseTrig(t *testing.T) {
 	got, err := run(t, "import math\nshow 1 at asin, \" \", 0 at acos, \" \", 1 at atan, \" \", 1 at atan2[-1], \" \", -1 at atan2[-1], \" \", 0.5 at asin at sin .", "")
