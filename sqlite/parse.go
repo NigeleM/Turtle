@@ -179,6 +179,21 @@ type sqlParser struct {
 	params int         // ? placeholders seen
 	onCol  func(token) // called with each name that may name a column (ALTER TABLE uses it)
 	onTbl  func(token) // called with each name that names a table
+	depth  int         // levels of the expression being read, toward maxExprDepth
+}
+
+// maxExprDepth is SQLite's own limit on how deep an expression may go:
+// nested brackets, NOTs and signs, and runs of operators (1 + 1 + ...),
+// each a level of the tree that running it walks down.
+const maxExprDepth = 1000
+
+// deeper counts one more level of the expression being read, failing
+// past maxExprDepth with SQLite's message.
+func (p *sqlParser) deeper() {
+	p.depth++
+	if p.depth > maxExprDepth {
+		p.near("Expression tree is too large (maximum depth %d)", maxExprDepth)
+	}
 }
 
 func (p *sqlParser) peek() token { return p.toks[p.pos] }
@@ -517,11 +532,19 @@ func (p *sqlParser) expectName() string {
 	return t.text
 }
 
-func (p *sqlParser) parseExpr() expr { return p.parseOr() }
+func (p *sqlParser) parseExpr() expr {
+	p.deeper()
+	defer func() { p.depth-- }()
+	return p.parseOr()
+}
 
 func (p *sqlParser) parseOr() expr {
 	l := p.parseAnd()
+	levels := 0
+	defer func() { p.depth -= levels }()
 	for p.acceptWord("OR") {
+		p.deeper()
+		levels++
 		l = &binExpr{op: "OR", l: l, r: p.parseAnd()}
 	}
 	return l
@@ -529,7 +552,11 @@ func (p *sqlParser) parseOr() expr {
 
 func (p *sqlParser) parseAnd() expr {
 	l := p.parseNot()
+	levels := 0
+	defer func() { p.depth -= levels }()
 	for p.acceptWord("AND") {
+		p.deeper()
+		levels++
 		l = &binExpr{op: "AND", l: l, r: p.parseNot()}
 	}
 	return l
@@ -537,6 +564,8 @@ func (p *sqlParser) parseAnd() expr {
 
 func (p *sqlParser) parseNot() expr {
 	if p.acceptWord("NOT") {
+		p.deeper()
+		defer func() { p.depth-- }()
 		return &unaryExpr{op: "NOT", x: p.parseNot()}
 	}
 	return p.parseEquality()
@@ -544,7 +573,11 @@ func (p *sqlParser) parseNot() expr {
 
 func (p *sqlParser) parseEquality() expr {
 	l := p.parseComparison()
+	levels := 0
+	defer func() { p.depth -= levels }()
 	for {
+		p.deeper()
+		levels++
 		switch {
 		case p.isOp("=") || p.isOp("==") || p.isOp("!=") || p.isOp("<>"):
 			op := p.next().text
@@ -579,7 +612,9 @@ func (p *sqlParser) parseEquality() expr {
 			l = p.parseNegatable(l, false)
 		case p.isWord("REGEXP", "MATCH"):
 			fail("SQL: %s isn't supported", strings.ToUpper(p.peek().text))
-		default:
+		default: // no operator after all: that level wasn't used
+			p.depth--
+			levels--
 			return l
 		}
 	}
@@ -628,7 +663,11 @@ func (p *sqlParser) parseNegatable(l expr, not bool) expr {
 
 func (p *sqlParser) parseComparison() expr {
 	l := p.parseBits()
+	levels := 0
+	defer func() { p.depth -= levels }()
 	for p.isOp("<") || p.isOp("<=") || p.isOp(">") || p.isOp(">=") {
+		p.deeper()
+		levels++
 		op := p.next().text
 		l = &binExpr{op: op, l: l, r: p.parseBits()}
 	}
@@ -637,7 +676,11 @@ func (p *sqlParser) parseComparison() expr {
 
 func (p *sqlParser) parseBits() expr {
 	l := p.parseAdd()
+	levels := 0
+	defer func() { p.depth -= levels }()
 	for p.isOp("&") || p.isOp("|") || p.isOp("<<") || p.isOp(">>") {
+		p.deeper()
+		levels++
 		op := p.next().text
 		l = &binExpr{op: op, l: l, r: p.parseAdd()}
 	}
@@ -646,7 +689,11 @@ func (p *sqlParser) parseBits() expr {
 
 func (p *sqlParser) parseAdd() expr {
 	l := p.parseMul()
+	levels := 0
+	defer func() { p.depth -= levels }()
 	for p.isOp("+") || p.isOp("-") {
+		p.deeper()
+		levels++
 		op := p.next().text
 		l = &binExpr{op: op, l: l, r: p.parseMul()}
 	}
@@ -655,7 +702,11 @@ func (p *sqlParser) parseAdd() expr {
 
 func (p *sqlParser) parseMul() expr {
 	l := p.parseConcat()
+	levels := 0
+	defer func() { p.depth -= levels }()
 	for p.isOp("*") || p.isOp("/") || p.isOp("%") {
+		p.deeper()
+		levels++
 		op := p.next().text
 		l = &binExpr{op: op, l: l, r: p.parseConcat()}
 	}
@@ -664,7 +715,11 @@ func (p *sqlParser) parseMul() expr {
 
 func (p *sqlParser) parseConcat() expr {
 	l := p.parseUnary()
+	levels := 0
+	defer func() { p.depth -= levels }()
 	for p.isOp("||") || p.isOp("->") || p.isOp("->>") {
+		p.deeper()
+		levels++
 		op := p.next().text
 		l = &binExpr{op: op, l: l, r: p.parseUnary()}
 	}
@@ -674,6 +729,8 @@ func (p *sqlParser) parseConcat() expr {
 func (p *sqlParser) parseUnary() expr {
 	if p.isOp("-") || p.isOp("+") || p.isOp("~") {
 		op := p.next().text
+		p.deeper()
+		defer func() { p.depth-- }()
 		x := p.parseUnary()
 		// Fold -5 into a literal, so ORDER BY -1 isn't a position and
 		// LIMIT -1 reads naturally.

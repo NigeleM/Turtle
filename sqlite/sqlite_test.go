@@ -519,6 +519,32 @@ func TestErrors(t *testing.T) {
 	}
 }
 
+// Expressions deeper than SQLite's limit are refused, however they get
+// deep, rather than exhausting the stack; just under it, they run.
+func TestExpressionDepthLimit(t *testing.T) {
+	db := openFixture(t, 4096)
+	deep := map[string]string{
+		"brackets":  strings.Repeat("(", 5000) + "1" + strings.Repeat(")", 5000),
+		"operators": strings.Repeat("1 + ", 5000) + "1",
+		"NOTs":      strings.Repeat("NOT ", 5000) + "1",
+		"signs":     strings.Repeat("- ", 5000) + "1",
+	}
+	for name, e := range deep {
+		if _, _, err := db.Query("SELECT "+e, nil); err == nil || !strings.Contains(err.Error(), "Expression tree is too large") {
+			t.Errorf("%s: want the depth error, got %v", name, err)
+		}
+	}
+	ok := map[string]string{
+		"brackets":  strings.Repeat("(", 900) + "1" + strings.Repeat(")", 900),
+		"operators": strings.Repeat("1 + ", 900) + "1",
+	}
+	for name, e := range ok {
+		if _, _, err := db.Query("SELECT "+e, nil); err != nil {
+			t.Errorf("%s at 900 deep: %v", name, err)
+		}
+	}
+}
+
 func TestNotADatabase(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "x.db")
 	os.WriteFile(path, []byte("hello, I am not a database file at all......................................................................................."), 0o644)
