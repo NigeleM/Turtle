@@ -210,6 +210,38 @@ unchanged (a loop passing `SigReturn` on through, since a loop doesn't
 know how to "return" — only the enclosing function call does, in
 `evalCall`).
 
+### Compiled bodies (`vm.go`)
+
+The first time a function is called, its body is compiled into Go
+closures over a frame of numbered slots, and a loop at the main program's
+top level is compiled the same way the first time it runs. A compiled body
+looks up none of its own names, keeps whole numbers as plain `int64`s
+between steps (`val`), makes no scope for a call, and passes arguments
+straight into the callee's frame when it calls another compiled body.
+Frames come from `vmStack`, chunks that never move.
+
+What it doesn't cover runs on the tree as before, so a program behaves
+the same either way:
+
+- A body that names a setting a library reads from the caller's scope
+  (`tablerows`, `seed`, `servertimeout`, the log settings, ...; see
+  `settingNames`) isn't compiled.
+- A name the body assigns but hasn't surely set yet reads the outer one
+  until it is set: slots start `unset`.
+- An expression the compiler doesn't know runs on the tree, in the scope
+  the body was made in, when it uses no name held in a slot (`slotFree`);
+  otherwise the body isn't compiled.
+- In a top-level loop, the globals it uses are loaded into slots when it
+  starts, and those it assigns are stored back when it ends, by its end or
+  an error. A global that code running later might read by name (any word
+  in a function body, function value, scroll or theory; `namesInDeferred`)
+  is also stored on every assignment.
+
+`TURTLE_NOVM=1` turns compiling off, to compare; `TURTLE_VMSTATS=1` writes
+which bodies compiled and, for the rest, why not.
+`TestCompiledBodiesMatchTheTree` runs each of its programs both ways and
+requires the same output and errors.
+
 ### Errors
 
 A runtime error is a `fatalError` panic: `fatalf`/`fatalKind`
