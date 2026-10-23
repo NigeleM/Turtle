@@ -2,6 +2,21 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## 0.9.224 (2026-10-23)
+
+Breaking changes (limits on input that could hang or crash Turtle):
+
+- SQL: an expression nested deeper than 1000 levels (brackets, NOTs, signs, or a run of operators such as `1 + 1 + ...`) is an error, `Expression tree is too large (maximum depth 1000)`, as in SQLite. Such a query used to take about 1 GB of stack, and a deeper one would crash.
+- `config_read`: TOML arrays and inline tables nested more than 10,000 deep, or a key with more than 10,000 parts, is a `config` error. Deeply nested inline tables used to take time growing with the square of the depth (200,000 levels never finished).
+- A web response larger than 64 MB is an `http` error. It used to be cut off at 64 MB without a word.
+- `passwordcheck` refuses a stored hash asking for more than 10 million rounds or a key over 64 bytes, as `passwordhash` never makes one; a changed database row could otherwise make a single check run for minutes.
+
+Other changes:
+
+- `json_text` and `json_write` write text directly instead of making an encoder for every key and value: about 4x faster, with a quarter less memory, and the same output byte for byte.
+- Finished loops leave their scope and snapshot for the next loop, so code that runs many short loops (a game search) is about 7% faster.
+- Tables shown with `table` and `.env` files written by `config_write` no longer build a text replacer for every value.
+
 ## 0.9.223 (2026-10-23)
 
 - An assignment remembers where it stored its name, and stores there again while that place is still right, instead of searching the scopes each time: programs that assign in loops run 2 to 6% faster (binary search 6%). New variables, and the error for changing an outer variable from a function, work as before.
