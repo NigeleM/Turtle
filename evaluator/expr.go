@@ -677,6 +677,9 @@ func evalChange(typeName string, val object.Object) object.Object {
 			return wholeOf("change to integer", math.Trunc(v.Value))
 		case *object.String:
 			text := strings.TrimSpace(v.Value)
+			if len(text) > maxIntDigits+1 { // a sign, then the digits
+				fatalKind(kindNumber, "change ... to integer: the text is longer than %d digits, more than Turtle reads as a whole number", maxIntDigits)
+			}
 			// Underscores between digits group them, as in Python and as
 			// change ... to float allows: "1_000" is 1000.
 			if strings.Contains(text, "_") && digitGroups.MatchString(text) {

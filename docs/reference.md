@@ -239,9 +239,13 @@ or assembled value, text is quoted so it can't be mistaken for a number:
 `show list [1, "1"] .` prints `[ 1, "1" ]`. Text on its own isn't quoted:
 `show "hi" .` prints `hi`.
 
-Integers have no limit, as in Python: `2 at pow 100` is
+Integers have no fixed size, as in Python: `2 at pow 100` is
 `1267650600228229401496703205376`, and a literal can be as long as you like.
 The arithmetic is exact (`9223372036854775807 + 1` is `9223372036854775808`).
+A result past 10,000,000 bits (about 3 million digits) is a `math` error,
+raised before the work is done, so one line such as `2 at pow 10000000000`
+can't take all the memory; `change ... to integer` reads at most 1,000,000
+digits.
 Small whole numbers stay on the fast path, so ordinary loops cost no more.
 Conversions from a float keep the whole part exactly: `change 1e19 to integer`
 is `10000000000000000000`.

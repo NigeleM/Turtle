@@ -7,6 +7,7 @@ package evaluator
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 // Raw strings, the pattern library, number and text formatting, data's
@@ -346,6 +347,36 @@ import data
 show call[] .`, "")
 	if err != nil || got != "before\n2.0\n" {
 		t.Errorf("import after a failed call: got %q, %v", got, err)
+	}
+}
+
+// A whole number may grow to maxIntBits; past that, the arithmetic stops
+// before the work is done, as an error safe can handle.
+func TestIntegerSizeLimit(t *testing.T) {
+	for _, src := range []string{
+		"import math\nx = 2 at pow 10000000000",
+		"x = 2\n[loop][i = 0; i < 40; i++]\n    x = x * x\n[loop][end]",
+		"import math\nx = (2 at pow 9000000) * (2 at pow 9000000)",
+	} {
+		start := time.Now()
+		_, err := run(t, src, "")
+		if err == nil || !strings.Contains(err.Error(), "integer too big") {
+			t.Errorf("%q: got %v, want integer too big", src, err)
+		}
+		if took := time.Since(start); took > 5*time.Second {
+			t.Errorf("%q took %s: the limit should stop it before the work", src, took)
+		}
+	}
+	got, err := run(t, "import math\nshow change (2 at pow 1000000) to string at len .", "")
+	if err != nil || got != "301030\n" {
+		t.Errorf("2 at pow 1000000: got %q, %v", got, err)
+	}
+	if _, err := run(t, "t = \"7\"\n[loop][i = 0; i < 20; i++]\n    t = t + t\n[loop][end]\nx = change t to integer", ""); err == nil || !strings.Contains(err.Error(), "longer than 1000000 digits") {
+		t.Errorf("a million-digit text: %v", err)
+	}
+	got, err = run(t, "import math\nsafe\n    x = 2 at pow 10000000000\nhandle [math] e .\n    show kind of e .\nsafe [end]", "")
+	if err != nil || got != "math\n" {
+		t.Errorf("safe: got %q, %v", got, err)
 	}
 }
 

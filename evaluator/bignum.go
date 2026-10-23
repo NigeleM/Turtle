@@ -70,6 +70,23 @@ func numOfBig(z *big.Int) num {
 	return num{isInt: true, big: z}
 }
 
+// maxIntBits is how big a whole number may get: about three million
+// digits. Integers are otherwise unlimited, as in Python, but arithmetic
+// that would pass this stops with an error before doing the work, so one
+// line (2 at pow 10000000000) can't take all the memory or minutes of time.
+const maxIntBits = 10_000_000
+
+// maxIntDigits is how long text may be to read as a whole number. Reading
+// takes time growing with the square of the length (a million digits takes
+// about half a second), so a long enough text from outside could stall a
+// program; Python limits it for the same reason.
+const maxIntDigits = 1_000_000
+
+// tooBig stops a whole number past maxIntBits.
+func tooBig() {
+	fatalKind(kindMath, "integer too big: past %d bits (about 3 million digits), where Turtle stops so one number can't take all the memory", maxIntBits)
+}
+
 // bigArith is + - * div % on whole numbers, exactly.
 func bigArith(op string, a, b num) num {
 	x, y := bigOf(a), bigOf(b)
@@ -80,6 +97,11 @@ func bigArith(op string, a, b num) num {
 	case "-":
 		z.Sub(x, y)
 	case "*":
+		// A product has at least one bit fewer than its two factors
+		// together: past the limit by then, it isn't worked out.
+		if x.Sign() != 0 && y.Sign() != 0 && x.BitLen()+y.BitLen()-1 > maxIntBits {
+			tooBig()
+		}
 		z.Mul(x, y)
 	case "div":
 		if y.Sign() == 0 {
@@ -91,6 +113,9 @@ func bigArith(op string, a, b num) num {
 			fatalKind(kindMath, "modulo by zero")
 		}
 		z.Rem(x, y)
+	}
+	if z.BitLen() > maxIntBits {
+		tooBig()
 	}
 	return numOfBig(z)
 }
@@ -150,9 +175,18 @@ func wholeOf(what string, f float64) object.Object {
 	return o
 }
 
-// powBig is b to the power e, exactly (e >= 0).
+// powBig is b to the power e, exactly (e >= 0). With |b| of at least 2
+// the result has at least (bits of b - 1) * e + 1 bits: past maxIntBits by
+// then, it isn't worked out.
 func powBig(b *big.Int, e int64) object.Object {
-	return object.IntOf(new(big.Int).Exp(b, big.NewInt(e), nil))
+	if bits := int64(b.BitLen()); bits > 1 && e > 0 && bits-1 > maxIntBits/e {
+		tooBig()
+	}
+	z := new(big.Int).Exp(b, big.NewInt(e), nil)
+	if z.BitLen() > maxIntBits {
+		tooBig()
+	}
+	return object.IntOf(z)
 }
 
 // ratFloat is x / y, exact and rounded once to a float.
@@ -165,4 +199,10 @@ func ratFloat(x, y *big.Int) float64 {
 // rounding (up to 2^53).
 func exactAsFloat(i int64) bool {
 	return i >= -(1<<53) && i <= 1<<53
+}
+
+// isBigInt is whether o is a whole number past 64 bits.
+func isBigInt(o object.Object) bool {
+	_, ok := o.(*object.BigInt)
+	return ok
 }

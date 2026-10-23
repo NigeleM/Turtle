@@ -1127,6 +1127,11 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 		// A whole number to a non-negative whole power is a whole number,
 		// computed exactly, however big: 2 at pow 10 is 1024, 3 at pow 40 is
 		// 12157665459056928801.
+		// A whole power too big to be an integer exponent at all (past the
+		// limit for any base of 2 or more) stops before it's converted.
+		if (baseInt || isBigInt(receiver)) && expInt && exp > maxIntBits && math.Abs(base) >= 2 {
+			tooBig()
+		}
 		if baseInt && expInt && exp >= 0 {
 			b := receiver.(*object.Integer).Value
 			if r, fits := powInt(b, int64(exp)); fits {
