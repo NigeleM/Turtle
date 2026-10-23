@@ -1074,7 +1074,9 @@ func (it *Interpreter) numberMethod(receiver object.Object, method string, args 
 			m := new(big.Float)
 			e := new(big.Float).SetInt(receiver.(*object.BigInt).V).MantExp(m)
 			mf, _ := m.Float64()
-			ln, log2, log10 = math.Log(mf)+float64(e)*math.Ln2, math.Log2(mf)+float64(e), math.Log10(mf)+float64(e)*math.Log10(2)
+			// Each product rounded on its own (float64(...)), so no processor
+			// fuses it into the add and every one gives the same last digit.
+			ln, log2, log10 = math.Log(mf)+float64(float64(e)*math.Ln2), math.Log2(mf)+float64(e), math.Log10(mf)+float64(float64(e)*math.Log10(2))
 		}
 		if len(args) == 0 {
 			if huge {

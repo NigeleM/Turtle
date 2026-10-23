@@ -60,11 +60,16 @@ fi
 
 if [ "$QUICK" = 0 ]; then
 	if docker info >/dev/null 2>&1; then
-		# The oldest Go that go.mod allows, and the newest.
-		for v in "$(sed -n 's/^go //p' go.mod)" latest; do
-			step "linux, Go $v (Docker)"
-			docker pull -q "golang:$v" >/dev/null || fail=1
-			out=$(docker run --rm -v "$work":/src:ro "golang:$v" sh -c "
+		# The oldest Go that go.mod allows, on this machine's processor, and
+		# the newest on Intel (amd64), as GitHub's runners are: floats can
+		# differ in the last digit between processors (ARM fuses a*b+c).
+		for vp in "$(sed -n 's/^go //p' go.mod)/native" latest/linux/amd64; do
+			v=${vp%%/*} plat=${vp#*/}
+			platform=""
+			[ "$plat" != native ] && platform="--platform $plat"
+			step "linux, Go $v, ${plat} (Docker)"
+			docker pull -q $platform "golang:$v" >/dev/null || fail=1
+			out=$(docker run --rm $platform -v "$work":/src:ro "golang:$v" sh -c "
 				apt-get update -qq >/dev/null 2>&1 && apt-get install -y -qq sqlite3 >/dev/null 2>&1
 				cp -r /src /w && cd /w && TURTLE_REQUIRE_SQLITE3=1 go test $PKGS 2>&1 | grep -v '^ok\\|no test files'
 				exit 0" 2>&1) || fail=1

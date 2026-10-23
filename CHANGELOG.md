@@ -2,6 +2,10 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## 0.9.227 (2026-10-23)
+
+- The log of a whole number past a float's range gives the same last digit on every processor (ARM fused one step, so 2 at pow 2000 at log ended in 905 there and 907 elsewhere; 907 is the nearer). The 0.9.226 release has only its macOS build, as its Linux and Windows builds stopped on this test.
+
 ## 0.9.226 (2026-10-23)
 
 - Functions and top-level loops are compiled the first time they run: their variables are kept in numbered slots instead of looked up by name, whole numbers stay plain numbers between steps, and a call makes no scope. Over the 17 benchmark programs, 54% less time and 22% less peak memory (loop 71% faster, calls 64%, sieve 57%, search 56%; loop and calls 41% less memory); 100,000 nested calls use 138 MB, not 243 MB. Anything compiling doesn't cover runs as before, and every program's output is the same. `TURTLE_NOVM=1` turns it off.
