@@ -283,26 +283,64 @@ func (e *Environment) Set(name string, val Object) {
 // SetUnlessShadows is Set, except when it would make a new local that
 // hides a variable of an enclosing scope: then it sets nothing and says
 // so (and whether that variable is a global), for the caller to decide.
-// One walk, where Shadows and then Set would take two.
-func (e *Environment) SetUnlessShadows(name string, val Object) (shadows, global bool) {
+// One walk, where Shadows and then Set would take two. When it sets the
+// name, p is where, for StoreAt.
+func (e *Environment) SetUnlessShadows(name string, val Object) (shadows, global bool, p uint64) {
+	depth := 0
 	for e.loop {
-		if e.find(name) >= 0 {
-			e.put(name, val)
-			return false, false
+		if i := e.find(name); i >= 0 {
+			e.store(i, name, val)
+			return false, false, place(depth, i)
 		}
 		e = e.outer
+		depth++
 	}
 	if i := e.find(name); e.outer == nil || i >= 0 {
 		e.store(i, name, val)
-		return false, false
+		return false, false, place(depth, e.stored(i))
 	}
 	for s := e.outer; s != nil; s = s.outer {
 		if s.find(name) >= 0 {
-			return true, s.outer == nil
+			return true, s.outer == nil, 0
 		}
 	}
-	e.put(name, val)
-	return false, false
+	e.store(-1, name, val)
+	return false, false, place(depth, len(e.vars)-1)
+}
+
+// stored is where store put a name it was given index i for: i, or the
+// new last place when i was -1.
+func (e *Environment) stored(i int) int {
+	if i >= 0 {
+		return i
+	}
+	return len(e.vars) - 1
+}
+
+// StoreAt is an assignment to the place SetUnlessShadows gave, when it's
+// still right: only loop scopes, none of which has the name, lie nearer
+// than it (an assignment passes through loop scopes alone), and the place
+// still holds the name. Then it sets the value there and reports true, as
+// SetUnlessShadows would; any other case reports false, and the caller
+// does a full SetUnlessShadows.
+func (e *Environment) StoreAt(name string, p uint64, val Object) bool {
+	if p == 0 {
+		return false
+	}
+	depth := int(p >> 32)
+	idx := int(uint32(p)) - 1
+	s := e
+	for i := 0; i < depth; i++ {
+		if s == nil || !s.loop || s.find(name) >= 0 {
+			return false
+		}
+		s = s.outer
+	}
+	if s == nil || idx >= len(s.vars) || s.vars[idx].name != name {
+		return false
+	}
+	s.store(idx, name, val)
+	return true
 }
 
 // Shadows reports whether a plain assignment to name here would make a

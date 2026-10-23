@@ -471,11 +471,18 @@ func (it *Interpreter) evalStatement(stmt ast.Statement, env *object.Environment
 		if s.Name == seedName {
 			it.rng = nil // seed = 7 again starts the same values again
 		}
-		if shadows, global := env.SetUnlessShadows(s.Name, v); shadows {
-			if assignReads(s) {
-				outerAssignError(s.Name, it.funcName, global)
+		// Where the name was stored last time is usually where it goes
+		// again (see object.Environment.StoreAt); otherwise, a full look.
+		if !env.StoreAt(s.Name, atomic.LoadUint64(&s.Place), v) {
+			shadows, global, p := env.SetUnlessShadows(s.Name, v)
+			if shadows {
+				if assignReads(s) {
+					outerAssignError(s.Name, it.funcName, global)
+				}
+				env.Set(s.Name, v)
+			} else {
+				atomic.StoreUint64(&s.Place, p)
 			}
-			env.Set(s.Name, v)
 		}
 		if trace != nil {
 			it.traceAssign(trace, s.Name, v.Inspect())

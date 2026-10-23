@@ -61,6 +61,9 @@ type AssignStatement struct {
 	// Reads records whether Value reads Name, worked out the first time it
 	// is needed (0: not yet, 1: no, 2: yes); see evaluator.assignReads.
 	Reads int32
+	// Place is where Name was last stored (see object.Environment.StoreAt),
+	// so storing there again needs no search.
+	Place uint64
 }
 
 func (as *AssignStatement) statementNode()       {}
