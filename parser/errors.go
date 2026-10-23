@@ -154,6 +154,9 @@ func (p *Parser) statementStartError() {
 		p.errorAt(cur.Line, cur.Pos, "this ']' has no '[' to close: one too many?")
 	case cur.Type == token.RBRACKET || cur.Type == token.LBRACKET:
 		p.errorAt(cur.Line, cur.Pos, "a line can't start with %s here", describe(cur))
+	case cur.Type == token.ASSIGN && prev.Type == token.RBRACKET && prev.Line == cur.Line:
+		// m["apples"] = 3, as other languages write it.
+		p.errorAt(cur.Line, cur.Pos, "brackets after a name call it; to set a key or an item, write m at put[key, value] (a map) or put value to nums at index . (a list)")
 	case isBitwise(cur.Literal):
 		p.errorAt(cur.Line, cur.Pos, "Turtle has no bitwise operators (& | ^ << >>)")
 	case cur.Type == token.PERIOD && prev.Line == cur.Line:

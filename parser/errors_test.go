@@ -42,6 +42,7 @@ func TestFriendlyParseErrors(t *testing.T) {
 		{"semicolon outside show", "x = 1; 2 .\n", "a line can't start with ';'", 1, 6},
 		{"bitwise operator", "x = 6 & 3\n", "Turtle has no bitwise operators", 1, 7},
 		{"shift operator", "show 1 << 3 .\n", "Turtle has no bitwise operators", 1, 8},
+		{"index assignment, as other languages write it", "m = map [\"a\": 1]\nm[\"a\"] = 3\n", "to set a key or an item, write m at put[key, value]", 2, 8},
 		{"right shift operator", "show 8 >> 1 .\n", "Turtle has no bitwise operators", 1, 8},
 		{"extra full stop", "show \"x\" .\nfail \"stock ran out\" .\n", "this full stop ends nothing", 2, 22},
 		{"brace in string", "show \"{[()()]}\" .\n", "for a plain brace, write \\{)", 1, 6},
