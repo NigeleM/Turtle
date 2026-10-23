@@ -2,6 +2,10 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## 0.9.222 (2026-10-23)
+
+- A call to a library function by name (`abs[d]`, `sqrt[x]`, `mean[nums]`) remembers where it goes, so the next call there skips the search: about 25% faster in a loop of such calls. It looks again after a `def`, an `import`, or a variable taking a function value, so a function of the program's own still wins.
+
 ## 0.9.221 (2026-10-23)
 
 Breaking changes:
