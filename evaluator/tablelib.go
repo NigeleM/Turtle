@@ -329,10 +329,14 @@ func cellText(v object.Object) string {
 	case nil:
 		return ""
 	case *object.String:
-		return strings.NewReplacer("\r", `\r`, "\n", `\n`, "\t", `\t`).Replace(s.Value)
+		return cellEscapes.Replace(s.Value)
 	}
 	return v.Inspect()
 }
+
+// cellEscapes writes line breaks and tabs in a cell as \n, \r and \t; made
+// once, not for every cell.
+var cellEscapes = strings.NewReplacer("\r", `\r`, "\n", `\n`, "\t", `\t`)
 
 // displayWidth is how many terminal columns s takes: combining marks and
 // joiners take none, wide East Asian characters and emoji take two.

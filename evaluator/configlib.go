@@ -188,7 +188,7 @@ func writeConfig(path, format string, m *object.Map) string {
 			text = object.Exact(v)
 		}
 		if text == "" || strings.ContainsAny(text, " \t\n\r\"'#\\") {
-			text = `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", `\n`, "\r", `\r`, "\t", `\t`).Replace(text) + `"`
+			text = `"` + envEscapes.Replace(text) + `"`
 		}
 		b.WriteString(ks.Value + "=" + text + "\n")
 	}
@@ -261,3 +261,7 @@ func toTOML(v object.Object, path []string) (any, error) {
 	}
 	return nil, errors.New(where + " is " + aValue(v) + ", which a settings file can't hold")
 }
+
+// envEscapes writes a quoted .env value's backslashes, quotes, line breaks
+// and tabs as escapes.
+var envEscapes = strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", `\n`, "\r", `\r`, "\t", `\t`)
