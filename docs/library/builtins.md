@@ -134,8 +134,8 @@ methods per type.)
 | `getvalues` | — | a list of values, insertion order |
 | `getkeys` | — | a list of the keys, insertion order, each with its own type |
 | `isempty` | — | Boolean: `true` when the map has no entries |
-| `add` | value, key | the map: the statement `add value to m at key` (a new key gets the value; an existing number adds up, text joins on, a list or set takes the value) |
-| `put` | value, key | the map, with the key set to the value (new or not) |
+| `add` | key, value | the map: `m at add["apples", 3]` adds 3 at `"apples"`, as the statement `add 3 to m at "apples"` does (a new key gets the value; an existing number adds up, text joins on, a list or set takes the value) |
+| `put` | key, value | the map, with the key set to the value, new or not: `m at put["apples", 5]` |
 | `delete` | key | the map, with the entry removed (fatal if not found) |
 | `invert` | — | new map: values become keys, keys become values. When two keys share a value, only one entry survives: the later key in insertion order (`{"Ana": "B", "Eli": "B"}` inverts to `{"B": "Eli"}`), and Turtle prints a warning naming the dropped key |
 | `tostring` | — | display string |

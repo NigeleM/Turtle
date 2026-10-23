@@ -88,7 +88,7 @@ mismatches = list []
             row is row at put["error", name of lang] .
             show "  ", name of lang, " failed: ", errors of out, output of out .
         else ]
-            row is row at put[got at get[1], name of lang] .
+            row is row at put[name of lang, got at get[1]] .
             if ] want == none [
                 want = got at get[0]
             else if ] got at get[0] != want [
@@ -112,7 +112,7 @@ startup = map ["benchmark": "startup (hello)"]
                 best = took
             if [end]
         [loop][end]
-        startup is startup at put[best, name of lang] .
+        startup is startup at put[name of lang, best] .
     if [end]
 [loop][end]
 add startup to rows .

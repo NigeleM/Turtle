@@ -174,7 +174,7 @@ ab = a + b
 check["set + -", ab - set [4], a]
 
 ages = map ["Ana": 30, "Bo": 25]
-ages is ages at put 35, "Cy" .
+ages is ages at put "Cy", 35 .
 check["map get", ages at get["Bo"], 25]
 keys is ages at getkeys .
 check["map keys", keys, list ["Ana", "Bo", "Cy"]]
@@ -224,15 +224,15 @@ show "brackets ok" .
 // A map searches in order up to 32 entries and keeps an index past that;
 // either way 1 and "1" are two keys, and 2 and 2.0 are one.
 row = map ["id": 7, "name": "pen", 1: "one", "1": "text one", 2: "two"]
-row is row at put "two again", 2.0 .
+row is row at put 2.0, "two again" .
 check["row keys", length of row, 5]
 check["1 and \"1\"", row at get[1] + row at get["1"], "onetext one"]
 check["2 and 2.0", row at get[2], "two again"]
 wide = map []
 [loop][i = 0; i < 40; i++]
-    wide is wide at put i, "k{i}" .
+    wide is wide at put "k{i}", i .
 [loop][end]
-wide is wide at put "five", 5 .
+wide is wide at put 5, "five" .
 check["wide map", length of wide, 41]
 check["wide get", wide at get["k39"] + wide at get["k0"], 39]
 check["wide number key", wide at get[5], "five"]

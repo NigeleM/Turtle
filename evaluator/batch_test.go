@@ -489,7 +489,7 @@ func TestBigIntegersLiteralsAndKeys(t *testing.T) {
 	if err != nil || got != "123456789012345678901234567891 246913578024691357802469135780\ntrue true\n" {
 		t.Errorf("got %q, %v", got, err)
 	}
-	got, err = run(t, "m = map [1000000000000000000000: \"a\"]\nm at add[\"b\", 1.0e21]\nshow m at len, \" \", m at get[1000000000000000000000] .", "")
+	got, err = run(t, "m = map [1000000000000000000000: \"a\"]\nm at add[1.0e21, \"b\"]\nshow m at len, \" \", m at get[1000000000000000000000] .", "")
 	if err != nil || got != "1 ab\n" { // 1.0e21 is the same key, so "b" joins "a"
 		t.Errorf("keys: %q, %v", got, err)
 	}

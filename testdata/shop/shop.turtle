@@ -54,7 +54,7 @@ inventory = map []
     t = json_get[entry, "tags"]
     tags = change t to set
     item = Item[sku, json_get[entry, "title"], json_get[entry, "price"], json_get[entry, "stock"], tags]
-    inventory is inventory at put item, sku .
+    inventory is inventory at put sku, item .
 [loop][end]
 check["inventory size", length of inventory, 4]
 check["duplicate tag dropped", length of tags of item, 2]
@@ -108,7 +108,7 @@ everyone = list []
         add map ["id": id, "customer": json_get[order, "customer"], "total": total] to results .
         add "order {id}: {money[total]}" to log_lines .
     handle [key, number, custom] e .
-        problems is problems at put[kind of e, id] .
+        problems is problems at put[id, kind of e] .
         add "order {id}: failed ({kind of e}) {message of e}" to log_lines .
     safe [end]
 [loop][end]

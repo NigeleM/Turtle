@@ -809,14 +809,16 @@ func mapMethod(m *object.Map, method string, args []object.Object) object.Object
 		list.Elements = m.KeyList()
 		return list
 	case "add":
-		// add[value, key] is the statement "add value to m at key".
+		// add[key, value] is the statement "add value to m at key": a new
+		// key gets the value, a number adds up, text joins on.
 		requireArgs(method, args, 2)
-		addAt("map", m, args[1], args[0])
+		addAt("map", m, args[0], args[1])
 		return m
 	case "put":
-		// put[value, key] is the statement "put value to m at key": it sets the key.
+		// put[key, value] is the statement "put value to m at key": it sets
+		// the key, new or not.
 		requireArgs(method, args, 2)
-		m.Put(args[1], args[0])
+		m.Put(args[0], args[1])
 		return m
 	case "delete":
 		requireArgs(method, args, 1)

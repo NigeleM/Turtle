@@ -184,7 +184,7 @@ def [end]
 def test_map_add_and_get_1k[]
     m = map []
     [loop][i = 0; i < 1000; i++]
-        r is m at put[i * 2, i] .
+        r is m at put[i, i * 2] .
     [loop][end]
     [loop][i = 0; i < 1000; i++]
         x = m at get[i]

@@ -424,7 +424,7 @@ func TestMethodStatements(t *testing.T) {
 		{"nums = list [1, 2]\nnums at put[9, 0] .\nshow nums .", "[ 9, 2 ]"},
 		{"nums = list [1, 2]\nnums at put 9, 1 .\nshow nums .", "[ 1, 9 ]"},
 		{"import linear\nm = zeros[2]\nm at put 3, 1, 1 .\nshow m at get[1, 1] .", "3"},
-		{"ages = map [\"a\": 1]\nages at put[2, \"b\"]\nshow ages .", "{ \"a\": 1, \"b\": 2 }"},
+		{"ages = map [\"a\": 1]\nages at put[\"b\", 2]\nshow ages .", "{ \"a\": 1, \"b\": 2 }"},
 		{"import linear\nm = zeros[2]\nm at put[7, 0, 1]\nput 5 to m at 1, 0 .\nshow m .", "[ 0  7 ]\n[ 5  0 ]"},
 		{"import linear\nm = zeros[1]\nput 0.5 to m at 0, 0 .\nshow m at get[0, 0] .", "0.5"},
 	}

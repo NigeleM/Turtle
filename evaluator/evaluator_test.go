@@ -1401,7 +1401,7 @@ f[0]`, wantErr: "recursion too deep"},
 add x to x .
 show x .`, wantErr: "contains itself"},
 		{name: "a map holding itself is a clean error in text", src: `m = map []
-m at put[m, "self"]
+m at put["self", m]
 show "m is {m}" .`, wantErr: "contains itself"},
 		{name: "two lists holding themselves can't be compared", src: `x = list [1]
 add x to x .

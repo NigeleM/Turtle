@@ -42,14 +42,14 @@ rows = list []
     m = filled[n]
     v = range[n]
     row = map ["n": n]
-    row is row at put[best_of[[] give filled[n]], "build (put)"] .
-    row is row at put[best_of[[] give m * m], "multiply"] .
-    row is row at put[best_of[[] give solve[m, v]], "solve"] .
-    row is row at put[best_of[[] give inverse[m]], "inverse"] .
-    row is row at put[best_of[[] give determinant[m]], "determinant"] .
+    row is row at put["build (put)", best_of[[] give filled[n]]] .
+    row is row at put["multiply", best_of[[] give m * m]] .
+    row is row at put["solve", best_of[[] give solve[m, v]]] .
+    row is row at put["inverse", best_of[[] give inverse[m]]] .
+    row is row at put["determinant", best_of[[] give determinant[m]]] .
     if ] n <= 800 [
-        row is row at put[best_of[[] give eigen[m]], "eigen"] .
-        row is row at put[best_of[[] give svd[m]], "svd"] .
+        row is row at put["eigen", best_of[[] give eigen[m]]] .
+        row is row at put["svd", best_of[[] give svd[m]]] .
     if [end]
     add row to rows .
     show "n = ", n, " done" .

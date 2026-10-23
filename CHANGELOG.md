@@ -2,6 +2,12 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## 0.9.221 (2026-10-23)
+
+Breaking changes:
+
+- The map methods `add` and `put` take the key first, as a map is written: `m at add["apples", 3]` adds 3 at `"apples"` (a new key gets the value, so on an empty map it gives `{ "apples": 3 }`; on `{ "apples": 10 }` it gives 13), and `m at put["apples", 5]` sets `"apples"` to 5. In 0.9.216 to 0.9.220 both took the value first; swap the two arguments of map `add[...]` and `put[...]` calls written for those versions. The statements `add 3 to m at "apples" .` and `put 5 to m at "apples" .`, `apples of m = 5`, and list and matrix `put` are unchanged.
+
 ## 0.9.220 (2026-10-23)
 
 Breaking changes:

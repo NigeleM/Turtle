@@ -1560,7 +1560,9 @@ pushes the items from 1 along (the list gets longer); `put 99 to nums at
 only at the start of a line followed by a value; otherwise it's an
 ordinary name. As methods, both take the value first, then the position,
 as the sentences do: `nums at insert[99, 1]`, `nums at put[99, 1]`; both
-give back the list.
+give back the list. On a map, `put` and `add` take the key first, as a map
+is written: `m at put["apples", 5]` sets `"apples"` to 5, and `m at
+add["apples", 3]` adds 3 to it (a new key gets the value).
 
 Lists, sets and maps hold other values by reference, so a list can be put
 inside itself (`add x to x .`). Showing, comparing, sorting, copying with
