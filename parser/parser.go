@@ -2033,21 +2033,24 @@ func (p *Parser) stringExpression(tok token.Token) ast.Expression {
 		return literal(text)
 	}
 	var parts []ast.Expression
-	plain := "" // text so far that's literal, including plain braces
+	// plain is the text so far that's literal, including plain braces;
+	// built up in place, as adding to a string copies it each time (a
+	// long run of plain braces took time growing with its square).
+	var plain strings.Builder
 	for {
 		open := strings.IndexByte(text, '{')
 		if open < 0 {
 			break
 		}
 		if plainBrace(text[open+1:]) {
-			plain += text[:open+1]
+			plain.WriteString(text[:open+1])
 			text = text[open+1:]
 			continue
 		}
-		if s := plain + text[:open]; s != "" {
+		if s := plain.String() + text[:open]; s != "" {
 			parts = append(parts, literal(s))
 		}
-		plain = ""
+		plain.Reset()
 		end := strings.IndexByte(text[open:], '}')
 		if end < 0 {
 			p.errorAt(tok.Line, tok.Pos, "a '{' in a string needs a closing '}' (write \\{ for a plain brace)")
@@ -2057,9 +2060,9 @@ func (p *Parser) stringExpression(tok token.Token) ast.Expression {
 		text = text[open+end+1:]
 	}
 	if len(parts) == 0 {
-		return literal(plain + text)
+		return literal(plain.String() + text)
 	}
-	if s := plain + text; s != "" {
+	if s := plain.String() + text; s != "" {
 		parts = append(parts, literal(s))
 	}
 	return &ast.InterpolatedString{Token: tok, Parts: parts}

@@ -7,6 +7,7 @@ package parser
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"Turtle/ast"
 	"Turtle/lexer"
@@ -493,5 +494,25 @@ func TestOwnTheoriesAreReadOnce(t *testing.T) {
 	}
 	if reads != 1 {
 		t.Errorf("the same file was read %d times, want 1", reads)
+	}
+}
+
+// A long run of plain braces in text is read in time that grows with its
+// length, and keeps every brace.
+func TestManyPlainBracesReadQuickly(t *testing.T) {
+	n := 200000
+	src := `t = "` + strings.Repeat(`{\"a\":`, n) + `1` + strings.Repeat("}", n) + `"`
+	start := time.Now()
+	p := New(lexer.New(src))
+	prog := p.ParseProgram()
+	if took := time.Since(start); took > 2*time.Second {
+		t.Errorf("%d plain braces took %s", n, took)
+	}
+	if len(p.Errors()) > 0 {
+		t.Fatal(p.Errors())
+	}
+	lit, ok := prog.Statements[0].(*ast.AssignStatement).Value.(*ast.StringLiteral)
+	if !ok || len(lit.Value) != 6*n+1 || strings.Count(lit.Value, "{") != n {
+		t.Errorf("the text changed: %T, length %d", prog.Statements[0].(*ast.AssignStatement).Value, len(lit.Value))
 	}
 }
