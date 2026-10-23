@@ -2,6 +2,63 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## 0.9.220 (2026-10-23)
+
+Breaking changes:
+
+- `change "1_000" to integer` is `1000`: single underscores between digits group them, as in Python and as `change ... to float` already allowed. `"1__000"`, `"_1000"` and `"1000_"` are still not numbers.
+- A list, set, map or assembled value equals itself without its contents being compared, as in Python: `x == x` is `true`, even after `add x to x .`, and a list holding `nan` equals itself (two separate lists holding `nan` still don't).
+- `json_text` and `json_write` refuse a value nested more than 10,000 levels deep, the depth `load` can read back.
+
+Other changes:
+
+- A value that holds itself (`add x to x .`), or one nested more than 100,000 levels deep, no longer crashes Turtle when it's shown, compared, sorted, deep-copied, put in text or used as a set item or map key. It's an error that `safe` can handle.
+- `math` has `asin`, `acos`, `atan` (`1 at asin` is `pi / 2`) and `atan2` (`y at atan2[x]`, as Python's `math.atan2(y, x)`). `asin` and `acos` of a number outside -1 to 1 is a math error.
+- `servertimeout` (default 30) is how many seconds a server handler may run. One that runs longer is stopped at its next line and answers 503, and the server goes on; `0` is no limit. A loop with nothing in its body can now be stopped too, by this and by Ctrl+C in the REPL.
+- Sets and maps find whole-number keys without turning them into text: sets are about 50% faster and use about 40% less memory.
+- `1 << 3` and `8 >> 1` say Turtle has no bitwise operators, as `&`, `|` and `^` already did.
+- The note "at round works on v only" no longer appears when brackets already say what the method works on: `2 * (v at round[0])`.
+- The shared integers of 0.9.219 are taken back: programs use about 15% less memory overall, and a few (list indexing in long loops, binary search) run 8–10% slower.
+
+## 0.9.219 (2026-10-21)
+
+- Whole numbers up to a million are shared rather than made one at a time: faster arithmetic in some programs, at about 15 MB more memory. (Taken back in 0.9.220.)
+
+## 0.9.218 (2026-10-21)
+
+Breaking changes:
+
+- Integers have no limit, as in Python: arithmetic is exact past 64 bits (`9223372036854775807 + 1` is `9223372036854775808`), a literal can be as long as you like, and `pow` of whole numbers is exact. What used to stop with "integer overflow" now gives the exact answer. Converting a float keeps its whole part exactly: `change 1e19 to integer` is `10000000000000000000`.
+- Floats past their range give `inf` or `-inf`, and `inf - inf` gives `nan`, as in Python. A power or math function past the range is an error instead: `2.0 at pow 1100`, `0.0 at pow -1.0`, and a power that gives `nan`.
+- `shuffle[x]` as a statement on its own shuffles the list in place (it used to give back a shuffled copy and leave `x` unchanged). `x = shuffle[x]` works as before.
+
+Other changes:
+
+- `shuffle` on a set changes the set; on text or a map, the message says how to write it.
+- In `show`, a semicolon starts the next item, so a sentence call's commas stay its arguments: `show 1 add3 2, 3; " " .`.
+- Messages name the fix: a set operator or method after a bracket call, a text method used on a number, `change ... to float` on text that isn't a number, and a builtin function used without brackets. A number alone in braces in text (`"{2}"`) gets a note saying how to keep the braces.
+- Faster: an assignment looks its name up once, whole-number addition stays on the direct path, and integers and text sort through typed keys.
+- Go 1.27.
+
+## 0.9.217 (2026-10-21)
+
+- Tests and CI only; no change to the language.
+
+## 0.9.216 (2026-10-21)
+
+Breaking changes:
+
+- The map method `add` takes the value first, then the key, as the sentence `add value to m at key` does: `m at add[3, "apples"]` adds 3 to `"apples"`. `m at put[value, key]` sets a key. (In 0.9.215 the method was `add[key, value]` and set the key.) A call written in the old order is not refused: it stores the key under the value.
+
+Other changes:
+
+- `min` and `max` take values in brackets: `min[a, b]`, `max[nums]`.
+- `pop` takes a position: `pop[0]` removes the first item, `pop[i]` the one at `i`.
+- `math` has `sin`, `cos`, `tan`, `exp` and `log` (with an optional base: `1000 at log[10]` is `3.0`).
+- `invert` prints a warning when two keys share a value, naming the entry it drops.
+- A function that assigns a name also used at top level gets a note that the top-level one is not changed.
+- `"straße" at upper` is `"STRASSE"`, as in Python.
+
 ## 0.9.215 (2026-10-21)
 
 Breaking changes:
