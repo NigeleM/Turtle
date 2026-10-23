@@ -147,12 +147,29 @@ func TestParseErrors(t *testing.T) {
 		{"x = { a = 1,\n b = 2 }", "goes on one line"},
 		{"[a", "a [table] header ends with ]"},
 		{"= 1", "expected a key"},
+		{"a = " + strings.Repeat("[", 20000) + strings.Repeat("]", 20000), "nested more than 10000 deep"},
+		{"a = " + strings.Repeat("{b = ", 20000) + "1" + strings.Repeat("}", 20000), "nested more than 10000 deep"},
+		{"a" + strings.Repeat(".b", 20000) + " = 1", "more than 10000 parts"},
 	}
 	for _, c := range cases {
 		_, err := Parse(c.src)
 		if err == nil || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%q: got %v, want %q", c.src, err, c.want)
 		}
+	}
+}
+
+// Deeply nested inline tables read in time that grows with the depth, not
+// its square: each closes once, and freezing doesn't go back into one
+// already closed.
+func TestDeepInlineTablesReadQuickly(t *testing.T) {
+	n := 9000
+	start := time.Now()
+	if _, err := Parse("a = " + strings.Repeat("{b = ", n) + "1" + strings.Repeat("}", n)); err != nil {
+		t.Fatal(err)
+	}
+	if took := time.Since(start); took > 2*time.Second {
+		t.Errorf("%d nested inline tables took %s", n, took)
 	}
 }
 

@@ -121,9 +121,24 @@ func finishValue(v any) any {
 }
 
 type parser struct {
-	src  string
-	pos  int
-	line int
+	src   string
+	pos   int
+	line  int
+	depth int // arrays and inline tables open around the value being read
+}
+
+// maxDepth is how deeply arrays and inline tables may nest, as JSON allows:
+// deeper, a file could exhaust the stack.
+const maxDepth = 10000
+
+// nest opens an array or inline table, failing past maxDepth; the caller
+// defers the returned close.
+func (p *parser) nest() func() {
+	p.depth++
+	if p.depth > maxDepth {
+		p.fail("arrays and inline tables are nested more than %d deep", maxDepth)
+	}
+	return func() { p.depth-- }
 }
 
 func (p *parser) fail(format string, args ...any) {
@@ -276,6 +291,9 @@ func (p *parser) key() []string {
 		if p.peek() != '.' {
 			return keys
 		}
+		if len(keys) >= maxDepth { // each part is a table inside the last
+			p.fail("a key has more than %d parts", maxDepth)
+		}
 		p.pos++
 	}
 }
@@ -417,8 +435,10 @@ func (p *parser) value() any {
 	case c == '\'':
 		return p.literalString()
 	case c == '[':
+		defer p.nest()()
 		return p.array()
 	case c == '{':
+		defer p.nest()()
 		return p.inlineTable()
 	case p.at("true") && !p.bareAfter(4):
 		p.pos += 4
@@ -652,10 +672,13 @@ func (p *parser) inlineTable() *Table {
 }
 
 // freeze marks an inline table and the tables made inside it as closed.
+// An inline table inside it is frozen already, with all it holds, since it
+// closed first: going into it again would make deep nesting take time
+// growing with the square of the depth.
 func freeze(t *Table) {
 	t.inline = true
 	for _, v := range t.Values {
-		if sub, ok := v.(*Table); ok {
+		if sub, ok := v.(*Table); ok && !sub.inline {
 			freeze(sub)
 		}
 	}

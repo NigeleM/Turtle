@@ -53,7 +53,8 @@ name = "Ann"
 - A file that isn't well written, an unknown extension, or a value the
   format can't hold is an error of kind `config`, naming the line:
   `config_read app.toml line 3: "Shop" isn't a value: text needs quotes`.
-  A missing file is a `file` error.
+  So is TOML whose arrays and inline tables nest more than 10,000 deep,
+  or a key with more than 10,000 parts. A missing file is a `file` error.
 
 ---
 
