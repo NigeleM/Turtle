@@ -53,6 +53,12 @@ type Interpreter struct {
 	// freeScopes are scopes of finished calls that no function kept,
 	// ready to stand in for the next call's (see callFunction).
 	freeScopes []*object.Environment
+	// freeLoops are the same for loops (see loopScope), and freeSnapshots
+	// the buffers for-each loops copied what they walk into (see
+	// snapshotBuffer): a program that runs many short loops makes new
+	// ones only now and then.
+	freeLoops     []*object.Environment
+	freeSnapshots [][]object.Object
 
 	// Bundle, when set, holds the files of a program made by turtle build:
 	// its imports are read from it before the disk.
@@ -691,7 +697,8 @@ func (it *Interpreter) evalLoop(s *ast.LoopStatement, env *object.Environment) E
 		return it.evalEach(s, env)
 	}
 	if s.Kind == ast.LoopCStyle && s.Init != nil {
-		loopEnv := object.NewLoopEnvironment(env)
+		loopEnv := it.loopScope(env)
+		defer it.loopDone(loopEnv)
 		if a, ok := s.Init.(*ast.AssignStatement); ok {
 			loopEnv.Define(a.Name, it.evalExpression(a.Value, env))
 		} else {
@@ -743,8 +750,63 @@ func (it *Interpreter) evalLoop(s *ast.LoopStatement, env *object.Environment) E
 // holding just the loop names (see object.NewLoopEnvironment): outside
 // variables of the same name are untouched, and a closure made in a pass
 // keeps that pass's values.
+// The snapshot buffers kept for the next loops: up to maxSnapshots of
+// them, each up to maxSnapshot values (64 KB). Short loops run often and
+// reuse them; a long loop's buffer goes, rather than hold memory for a
+// loop that ran once.
+const (
+	maxSnapshot  = 4096
+	maxSnapshots = 32
+)
+
+// loopScope is a scope for a loop inside env: a finished loop's that no
+// function kept, when there is one, else a new one.
+func (it *Interpreter) loopScope(env *object.Environment) *object.Environment {
+	if n := len(it.freeLoops); n > 0 {
+		s := it.freeLoops[n-1]
+		it.freeLoops = it.freeLoops[:n-1]
+		s.Adopt(env)
+		return s
+	}
+	return object.NewLoopEnvironment(env)
+}
+
+// loopDone keeps a finished loop's scope for the next loop, emptied,
+// unless a function made in the loop keeps it.
+func (it *Interpreter) loopDone(s *object.Environment) {
+	if s != nil && !s.Captured() && len(it.freeLoops) < maxFreeScopes {
+		s.Release()
+		it.freeLoops = append(it.freeLoops, s)
+	}
+}
+
+// snapshotBuffer is an empty buffer for a for-each loop's snapshot, a
+// finished loop's when there is one.
+func (it *Interpreter) snapshotBuffer() []object.Object {
+	if n := len(it.freeSnapshots); n > 0 {
+		b := it.freeSnapshots[n-1]
+		it.freeSnapshots = it.freeSnapshots[:n-1]
+		return b
+	}
+	return nil
+}
+
+// snapshotDone keeps a finished loop's snapshot buffer, emptied so it holds
+// on to no values, unless it's very big.
+func (it *Interpreter) snapshotDone(b []object.Object) {
+	if cap(b) == 0 || cap(b) > maxSnapshot || len(it.freeSnapshots) >= maxSnapshots {
+		return
+	}
+	clear(b)
+	it.freeSnapshots = append(it.freeSnapshots, b[:0])
+}
+
 func (it *Interpreter) evalEach(s *ast.LoopStatement, env *object.Environment) ExecResult {
-	var firsts, seconds []object.Object
+	firsts, seconds := it.snapshotBuffer(), it.snapshotBuffer()
+	defer func() {
+		it.snapshotDone(firsts)
+		it.snapshotDone(seconds)
+	}()
 	isMap := false
 	// [loop][i in range[0, n]] counts without making the list first.
 	from, step, count, counting := it.loopRange(s.Iterable, env)
@@ -772,17 +834,18 @@ func (it *Interpreter) evalEach(s *ast.LoopStatement, env *object.Environment) E
 			fatalf("'[loop][... in ...]' needs a list, set, map, or string, got %s", typeName(c))
 		}
 	}
+	walk := seconds
 	if len(s.Vars) == 1 && isMap {
-		seconds = firsts // one name over a map: its keys
+		walk = firsts // one name over a map: its keys
 	}
-	n := len(seconds)
-	item := func(i int) object.Object { return seconds[i] }
+	n := len(walk)
+	item := func(i int) object.Object { return walk[i] }
 	if counting {
 		n = int(count)
 		item = func(i int) object.Object { return object.Int(from + int64(i)*step) }
 	}
 	first := func(i int) object.Object { // [loop][i, x in nums]: the positions
-		if firsts != nil {
+		if isMap {
 			return firsts[i]
 		}
 		return object.Int(int64(i))
@@ -792,9 +855,10 @@ func (it *Interpreter) evalEach(s *ast.LoopStatement, env *object.Environment) E
 	// keeps the names it saw; a pass's scope nobody kept stands in for
 	// the next one.
 	var pass *object.Environment
+	defer func() { it.loopDone(pass) }()
 	for i := range n {
 		if pass == nil || pass.Captured() {
-			pass = object.NewLoopEnvironment(env)
+			pass = it.loopScope(env)
 		} else {
 			pass.Reuse(env)
 		}
