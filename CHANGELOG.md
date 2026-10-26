@@ -2,6 +2,12 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## 0.9.229 (2026-10-26)
+
+Breaking change (an error where there was text):
+
+- `+` joins text only with text, as in Python. Text and a number, or any other value that isn't text, is a `type` error: `"5" + 0` stops the program instead of quietly giving `"50"`, and so do `"total: " + n` and `5 + "a"`. The message says how to write what was meant: put the value in the text with `{...}` (`"total: {n}"`, `"{h}:{mm}"`), or `change n to string` first; to add, change the text to a number first (`(change t to integer) + 1`). In the Complexity programs this found one that had been wrong all along: comparing a letter with the letter before it plus 1 joined `"a"` and `1` into `"a1"`, so no two letters ever counted as consecutive.
+
 ## 0.9.228 (2026-10-26)
 
 Breaking change (output):
