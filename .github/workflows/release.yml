@@ -15,7 +15,28 @@ permissions:
   contents: write
 
 jobs:
+  # The release is made once, here, before the builds. Each build only
+  # uploads its files to it. When every build made the release itself,
+  # two that finished together could each make one, and every upload to
+  # that tag then failed with already_exists (v0.9.228).
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Create the release if it doesn't exist
+      run: |
+        if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+          echo "release $TAG exists"
+        else
+          flags=""
+          case "$TAG" in v0.*) flags="--prerelease" ;; esac  # 0.x versions are pre-releases
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --notes "" --verify-tag $flags
+        fi
+      env:
+        TAG: ${{ github.ref_name }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build-mac:
+    needs: create-release
     runs-on: macos-latest
 
     steps:
@@ -48,6 +69,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-linux:
+    needs: create-release
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -82,6 +104,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-windows:
+    needs: create-release
     runs-on: windows-latest
     steps:
     - name: Checkout code
