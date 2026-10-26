@@ -2,6 +2,16 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## 0.9.228 (2026-10-26)
+
+Breaking change (output):
+
+- `show` puts a space before a `!` piece, as it does before `?` and as Python's `print` does: `show "Hi, ", name, "!" .` prints `Hi, Ann !`. Write `show "Hi, {name}!" .` (or `"Hi, " + name + "!"`) for `Hi, Ann!`. `, . : ; ) ] }` still sit against the piece before them and `( [ {` against the one after, so `show "x is ", 1, ", y is ", 2 .` is still `x is 1, y is 2` and `show "a", "(", 3, ")" .` is still `a (3)`. The reference had listed `?` as joining tight; it now says both `!` and `?` are spaced.
+
+Other changes:
+
+- A map's `put` or `add` that looks written value first, in a list's order (`m at put[1, "red"]` on a map of text keys), still runs as written but warns once for that line and names the call to write: `put["red", 1]`. It warns when the key is of a type none of the map's keys have and the value is already a key, or every entry is the other way round; across the 2278 corpus programs only the one written to show the mistake warns. Lists and sets keep the value first (`nums at put[99, 1]`), maps the key first, and `help["list"]`, `help["set"]` and `help["map"]` now say so; `help["set"]` also lists `insert`. The reference and the tour teach the sentence `put VALUE to THING at POSITION .`, which is the same for lists and maps.
+
 ## 0.9.227 (2026-10-23)
 
 - The log of a whole number past a float's range gives the same last digit on every processor (ARM fused one step, so 2 at pow 2000 at log ended in 905 there and 907 elsewhere; 907 is the nearer). The 0.9.226 release has only its macOS build, as its Linux and Windows builds stopped on this test.
