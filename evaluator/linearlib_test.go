@@ -49,7 +49,7 @@ func TestLinear(t *testing.T) {
 		{"show matrix [1, 2, 3] * matrix [4; 5; 6] .", "[ 32 ]"},
 		{"show matrix [1, 2; 3, 4] == matrix [1.0, 2.0; 3.0, 4.0], matrix [1, 2] == matrix [1; 2] .", "true false"},
 		{"a = matrix [4, 7; 2, 6]\nshow a * inverse[a] == identity[2], inverse[a] * a .", "false [ 0.9999999999999998  -2.220446049250313e-16 ]\n      [ 0.0                  1.0                   ]"},
-		{"show \"m: \" + matrix [1] .", "m: [ 1 ]"},
+		{"m = matrix [1]\nshow \"m: {m}\" .", "m: [ 1 ]"},
 		// Methods.
 		{"m = matrix [1, 2, 3; 4, 5, 6]\nshow m at rows, m at columns, m at get[1, 2] .", "2 3 6"},
 		{"m = matrix [1, 2, 3; 4, 5, 6]\nshow m at row[1], m at column[0] .", "[ 4, 5, 6 ] [ 1, 4 ]"},
@@ -132,7 +132,7 @@ func normalizeFloats(s string) string {
 }
 
 func TestMatrixInTextStaysAligned(t *testing.T) {
-	src := "import linear\nm = matrix [1, 2; 3, 4]\nshow \"m is \" + m .\nshow \"m: {m}\" .\nshow \"m is \", m, \" and so on\" .\nshow m + \" first\" .\nshow m ."
+	src := "import linear\nm = matrix [1, 2; 3, 4]\nshow \"m is {m}\" .\nshow \"m: {m}\" .\nshow \"m is \", m, \" and so on\" .\nshow \"{m} first\" .\nshow m ."
 	got, err := run(t, src, "")
 	if err != nil {
 		t.Fatal(err)
@@ -659,7 +659,7 @@ sql_run[db, "CREATE TABLE log (what TEXT)"]
 sql_run[db, "CREATE TRIGGER logged AFTER DELETE ON items BEGIN INSERT INTO log VALUES (old.name); END"]
 sql_run[db, "BEGIN"]
 [loop][i = 1; i <= 5000; i++]
-    sql_run[db, "INSERT INTO items VALUES (?, ?, ?)", list [i, "item " + i, i % 97]]
+    sql_run[db, "INSERT INTO items VALUES (?, ?, ?)", list [i, "item {i}", i % 97]]
 [loop][end]
 sql_run[db, "COMMIT"]
 sql_run[db, "UPDATE items SET qty = qty + 1 WHERE id % 3 = 0"]

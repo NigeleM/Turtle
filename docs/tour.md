@@ -24,9 +24,11 @@ y = x + 1
 pi = 3.14159
 ```
 
-Numbers are integers or floats. `+` does double duty: numeric addition when
-both sides are numbers, string concatenation otherwise. (Lists, sets and
-maps only add to their own kind; `list [1] + 1` is an error.)
+Numbers are integers or floats. `+` adds two numbers and joins two pieces
+of text. Text and a number is an error, as in Python: `"5" + 0` stops the
+program instead of giving `"50"`. To put a value in text, write it inside
+the text with `{...}`: `"total: {n}"`. (Lists, sets and maps only add to
+their own kind; `list [1] + 1` is an error.)
 
 ```
 a = 1 + 2 * (3 + 4)     // 15 — normal precedence, parens work
@@ -44,9 +46,10 @@ show 1 + 2 .
 show "x is ", x, ", y is ", y .
 ```
 
-`show` always ends with a period. Multiple comma-separated pieces are
-concatenated with **no separator** — any spacing you want has to be inside
-the string literals themselves:
+`show` always ends with a period. Comma-separated pieces are written with
+one space between them, as Python's `print` does, except that `, . : ; )`
+sit against the piece before them and no space is added where a piece
+already has one (see the reference):
 
 ```
 show "x = ", x, ", y = ", y .

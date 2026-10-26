@@ -18,5 +18,5 @@ theory per_gram
 theory [end]
 
 def label[l]
-    return name of l + " (" + grams of l + " g)"
+    return "{name of l} ({grams of l} g)"
 def [end]

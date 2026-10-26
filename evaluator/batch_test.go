@@ -287,7 +287,7 @@ func TestWarnInAnImportList(t *testing.T) {
 
 // A date writes itself as text with tostring, as show writes it.
 func TestDateTostring(t *testing.T) {
-	out, err := run(t, "import time\nd = make_date[2026, 10, 10]\nshow d at tostring == \"\" + d, \" \", typeof[d at tostring] .", "")
+	out, err := run(t, "import time\nd = make_date[2026, 10, 10]\nshow d at tostring == \"{d}\", \" \", typeof[d at tostring] .", "")
 	if err != nil || out != "true string\n" {
 		t.Errorf("got %q, %v", out, err)
 	}
@@ -599,6 +599,27 @@ show m, e, ids, mixed, nums .`
 	_, stderr, err, _ = runLog(t, quiet)
 	if err != nil || stderr != "" {
 		t.Errorf("correct calls warned: %q, %v", stderr, err)
+	}
+}
+
+// '+' joins text only with text, as in Python, so "5" + 0 can't quietly
+// give "50". The error says how to write what was meant, and both ways it
+// suggests work: the value in the text with {...}, or the text as a number.
+func TestTextPlusValueIsAnError(t *testing.T) {
+	for _, c := range []struct{ src, want string }{
+		{`show "5" + 0 .`, `'+' can't join string and integer ("5" + 0): to add, change the text to a number first`},
+		{"n = 3\nshow \"total: \" + n .", `'+' can't join string and integer ("total: " + 3): write the number inside the text with {...}`},
+		{`show 5 + "a" .`, `'+' can't join integer and string (5 + "a")`},
+		{`show "ok: " + true .`, `'+' can't join string and boolean ("ok: " + true): write the value inside the text with {...}`},
+		{`show 1.5 + "x" .`, `can't join float and string`},
+	} {
+		if _, err := run(t, c.src, ""); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%q: %v, want %q", c.src, err, c.want)
+		}
+	}
+	got, err := run(t, "n = 3\nt = \"5\"\nshow \"a\" + \"b\", \" \", \"total: {n}\", \" \", (change t to integer) + 0, \" \", \"{t}{0}\", \" \", 2 + 3 .", "")
+	if err != nil || got != "ab total: 3 5 50 5\n" {
+		t.Errorf("got %q, %v", got, err)
 	}
 }
 

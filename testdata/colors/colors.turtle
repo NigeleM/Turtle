@@ -36,9 +36,9 @@ def dollars[cents]
     whole = ~whole_part[cents]
     rest = cents % 100
     if ] rest < 10 [
-        return "$" + whole + ".0" + rest
+        return "${whole}.0{rest}"
     if [end]
-    return "$" + whole + "." + rest
+    return "${whole}.{rest}"
 def [end]
 
 def ~whole_part[cents]
@@ -47,7 +47,7 @@ def [end]
 
 def expect[label, got, want]
     if ] got != want [
-        failures at add label + ": got " + got + ", want " + want
+        failures at add "{label}: got {got}, want {want}"
     if [end]
 def [end]
 

@@ -292,7 +292,7 @@ def onebook[req]
     safe
         b = books at get[i]
     handle [index] e .
-        return reply[404, "no book " + i]
+        return reply[404, "no book {i}"]
     safe [end]
     return map ["title": title of b, "author": author of b]
 def [end]

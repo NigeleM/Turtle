@@ -37,7 +37,7 @@ def [end]
 def test_patterns_made_on_the_fly_dont_pile_up[]
     before = memory[]
     [loop][i in range[0, 20000]]
-        ok = matches["item-" + i, "^item-" + i + "$"]
+        ok = matches["item-{i}", "^item-{i}$"]
     [loop][end]
     check memory[] - before < 20000000 .
 def [end]

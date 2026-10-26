@@ -38,8 +38,8 @@ check["modulo", 10 % 3, 1]
 check["float", 7.0 / 2, 3.5]
 check["/ is exact", 7 / 2, 3.5]
 check["div keeps the whole part", 7 div 2, 3]
-check["concat", "a" + 1 + 2, "a12"]
-check["sum first", 1 + 2 + "a", "3a"]
+check["numbers in text", "a{1}{2}", "a12"]
+check["sum in text", "{1 + 2}a", "3a"]
 check["compare strings", "apple" < "banana", true]
 check["logic", !true || true && !false, true]
 check["escapes", length of "a\tb", 3]
@@ -98,7 +98,7 @@ seen = ""
 check["for-each string", seen, "abc"]
 pairs = ""
 [loop][i, w in list ["x", "y"]]
-    pairs = pairs + i + w
+    pairs = pairs + "{i}" + w
 [loop][end]
 check["for-each index", pairs, "0x1y"]
 show "loops ok" .
@@ -255,7 +255,7 @@ big = 3000000
 check["nested whole", big * big % 1000000007 + 1, 999937008]
 check["nested exact /", big / 4 * 2 + 0.5, 1500000.5]
 check["nested div", big * 3 div 7 - 1, 1285713]
-check["nested with text", "n=" + big * 2 + 1, "n=60000001"]
+check["sum in text", "n={big * 2 + 1}", "n=6000001"]
 show "arithmetic ok" .
 
 // ---------- strings ----------
@@ -284,7 +284,7 @@ dup = copy[orig]
 dup process x give x + 1 .
 check["copy", orig, list [1, 2]]
 prices = map ["pen": 1, "pad": 4]
-prices process [item, p] give item + "=" + p .
+prices process [item, p] give "{item}={p}" .
 check["process map", prices at get["pad"], "pad=4"]
 show "data ok" .
 
@@ -352,7 +352,7 @@ safe [end]
 check["no error is none", err, none]
 def careful[n]
     if ] n < 0 [
-        fail "negative: " + n
+        fail "negative: {n}"
     if [end]
     return n
 def [end]

@@ -38,8 +38,8 @@ check["|| short", true || 1 div 0 == 0, true]
 check["&& short", false && 1 div 0 == 0, false]
 check["! ", !(1 > 2), true]
 check["text ordering", "apple" < "banana", true]
-check["mixed concatenation", "a" + 1 + 2, "a12"]
-check["number then text", 1 + 2 + "a", "3a"]
+check["numbers in text", "a{1}{2}", "a12"]
+check["sum in text", "{1 + 2}a", "3a"]
 
 // ---------- text ----------
 name = "Ann"

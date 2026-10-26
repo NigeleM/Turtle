@@ -84,7 +84,7 @@ words process x give x at upper .  // [ "HEY", "DO" ]
 nums process double .               // any function value works
 
 ages = map ["Alice": 30, "Bob": 25]
-labels is ages process [name, age] give name + " is " + age .
+labels is ages process [name, age] give "{name} is {age}" .
 ages keep [name, age] give age > 26 .   // { "Alice": 30 }
 
 rows = list [list [1, 2], list [3, 4]]

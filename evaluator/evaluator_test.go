@@ -109,7 +109,8 @@ show a div b * b + a % b == a .`, "true\n"},
 		{"modulo int", `show 10 % 3 .`, "1\n"},
 		{"modulo float", `show 10.5 % 3 .`, "1.5\n"},
 		{"string concat", `show "a" + "b" .`, "ab\n"},
-		{"mixed concat", `show "x=" + 5 .`, "x=5\n"},
+		{"number in text", `n = 5
+show "x={n}" .`, "x=5\n"},
 		{"unary minus", `show -5 + 8 .`, "3\n"},
 		{"comparison", `show 3 < 5 .`, "true\n"},
 		{"logical", `show true && false .`, "false\n"},
@@ -893,7 +894,7 @@ show vals .`, want: "[ 1, 0 ]\n"},
 ages = map ["Alice": 30, "Bob": 25]
 ages process x give x + 1 .
 show ages .
-ages process [k, v] give k + "=" + v .
+ages process [k, v] give "{k}={v}" .
 show ages .`, want: "{ \"Alice\": 31, \"Bob\": 26 }\n{ \"Alice\": \"Alice=31\", \"Bob\": \"Bob=26\" }\n"},
 		{name: "process set dedups", src: `import data
 s = set [1, 2, 3, 4]
@@ -1521,7 +1522,7 @@ func TestSentenceCallsWithoutParentheses(t *testing.T) {
 	cases := []struct{ name, src, want string }{
 		{"one argument inside brackets", `import strings
 def pair[a, b]
-    return a + "|" + b
+    return "{a}|{b}"
 def [end]
 t = "Hello"
 show pair[t find "l", 7] .`, "2|7\n"},
@@ -1784,7 +1785,7 @@ handle [custom] e .
     show e .
     show kind of e .
 safe [end]`, want: "line 3: not enough money\ncustom\n"},
-		{name: "unhandled fail stops the program", src: `fail "bad input " + 5`, wantErr: "line 1: bad input 5"},
+		{name: "unhandled fail stops the program", src: "n = 5\nfail \"bad input {n}\"", wantErr: "line 2: bad input 5"},
 		{name: "fail in the handle code passes it on", src: `safe
     safe
         x = 1 / 0
@@ -1825,7 +1826,7 @@ show f[0] .`, want: "5.0\n-1\n"},
         x = 10 / k
         show i .
     handle [] e .
-        show "skip " + i .
+        show "skip {i}" .
         continue
     safe [end]
 [loop][end]`, want: "0\nskip 2\n3\n"},
@@ -2472,7 +2473,7 @@ show t == u, " ", time_between[u, t, "seconds"] <= 1, " ", now[] > 0 .`, want: "
 		{name: "dates in text and JSON", src: `import time
 import json
 d = make_date[2026, 3, 2]
-show "Due " + d .
+show "Due " + (change d to string) .
 show "Due {d}" .
 show json_text[map ["due": d]] .
 show change d to string .`,
@@ -3440,7 +3441,7 @@ show r .
 q is nums at get[0] + nums at get[1] + m at get["x"] .
 show q .
 show a at length + w at length == 10 && nums at contains[9] || false .
-show "ab" + "cd" at upper + "ef" at slice[1] + "-" + 5 at abs .`
+show "ab" + "cd" at upper + "ef" at slice[1] + "-{5 at abs}" .`
 	want := "AblWOR\nAblWOR\nHELLO world!\n17\nellHheLLo\n5\n145\n10.0\n48\nANN & bo!\ntrue\n[ 1, 3, 4 ]\n{ 2, 3, 4 }\n9\nTotal: 13\nxhe__o\n23\ntrue\nabCDf-5\n"
 	out, err := run(t, src, "")
 	if err != nil || out != want {

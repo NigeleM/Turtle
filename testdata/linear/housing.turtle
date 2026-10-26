@@ -110,7 +110,7 @@ near["R squared", r2, 0.9954381014441794]
 // The same fit by the normal equations, solved directly.
 again = solve[transpose[x] * x, transpose[x] * prices]
 [loop][i in range[4]]
-    near["normal equations " + i, again at get[i], beta at get[i]]
+    near["normal equations {i}", again at get[i], beta at get[i]]
 [loop][end]
 new_house = list [1, 100, 4, 10]
 guess = dot[new_house, beta]
@@ -147,7 +147,7 @@ moves = matrix [
     0.1, 0.3, 0.6
 ]
 [loop][i in range[3]]
-    near["row " + i + " adds to 1", sum[moves at row[i]], 1]
+    near["row {i} adds to 1", sum[moves at row[i]], 1]
 [loop][end]
 today = list [0, 0, 1]
 later = today * power[moves, 60]
@@ -161,7 +161,7 @@ near["long run: buyer's", steady at get[0], 15 / 38]
 near["long run: balanced", steady at get[1], 11 / 38]
 near["long run: seller's", steady at get[2], 6 / 19]
 [loop][i in range[3]]
-    near["60 months on, state " + i, later at get[i], steady at get[i]]
+    near["60 months on, state {i}", later at get[i], steady at get[i]]
 [loop][end]
 buyers = steady at get[0] * 100
 sellers = steady at get[2] * 100

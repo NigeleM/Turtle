@@ -197,9 +197,13 @@ Precedence, low to high:
 
 Operators on the same level go left to right: `10 - 4 - 3` is `3`.
 
-`+` is overloaded: numeric addition when both operands are numbers; on two
-lists, two sets, or two maps it combines them (below); otherwise string
-concatenation (either side coerced via its natural string form). A list,
+`+` adds two numbers; on two lists, two sets, or two maps it combines them
+(below); on two pieces of text it joins them. Text and any other value is a
+`type` error, as in Python: `"5" + 0` stops the program rather than giving
+`"50"`, and the message says how to write what was meant. To put a value
+in text, write it inside the text with `{...}` (`"total: {n}"`) or
+`change n to string` first; to add, change the text to a number first
+(`(change t to integer) + 1`). A list,
 set or map added to anything else, including text or a different kind of
 collection, is a `type` error: `list [1] + 1` and `"n=" + nums` stop the
 program. `none` only adds to `none` (see §None). Values taken out of a list add like any other value.
@@ -456,8 +460,8 @@ Punctuation is set against the value before it: no space goes before
 gets its space, as in Python's `print`. Everything else does too, such as
 `-`, `/`, `%`, `'` or a letter (`show "20", "-", "45" .` gives `20 - 45`).
 To join pieces with no space at all, write the text with `{...}`
-(`show "did you mean {name}?" .`, `show "{a}-{b}" .`) or use `+`
-(`show "x="+n .` gives `x=3`).
+(`show "did you mean {name}?" .`, `show "{a}-{b}" .`, `show "x={n}" .`
+gives `x=3`) or use `+` between two pieces of text (`show "x=" + name .`).
 
 **Floats show the shortest text that reads back as the same float**, as
 Python's `repr` does. So `0.1 + 0.2` shows `0.30000000000000004`, and

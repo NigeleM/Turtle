@@ -331,6 +331,25 @@ func isCollection(obj object.Object) bool {
 	return false
 }
 
+// textPlusValue stops a '+' of text and another value, and says how to
+// write what was meant: the value in the text, or the text as a number.
+func textPlusValue(left, right object.Object) {
+	text, other := left, right
+	if _, ok := left.(*object.String); !ok {
+		text, other = right, left
+	}
+	fix := "write the value inside the text with {...}, as \"total: {n}\", or change it to string first"
+	if _, _, isNum := numeric(other); isNum {
+		t := text.(*object.String).Value
+		if _, err := strconv.ParseFloat(strings.TrimSpace(t), 64); err == nil {
+			fix = "to add, change the text to a number first, as (change t to integer) + n; to join, write \"{t}{n}\""
+		} else {
+			fix = "write the number inside the text with {...}, as \"total: {n}\", or change it to string first"
+		}
+	}
+	fatalKind(kindType, "'+' can't join %s and %s (%s + %s): %s", typeName(left), typeName(right), object.Shown(left), object.Shown(right), fix)
+}
+
 func evalInfix(op string, left, right object.Object) object.Object {
 	// Two whole numbers, the most common case: straight to the answer,
 	// with the same rules (overflow is an error) as the general path below.
@@ -390,8 +409,9 @@ func evalInfix(op string, left, right object.Object) object.Object {
 			fatalf("'+' can't add %s and %s — none only adds to none; check for it first, e.g. if ] x != none [", typeName(left), typeName(right))
 		}
 	}
-	// '+' overloads to string concatenation whenever either side isn't a
-	// number.
+	// '+' adds two numbers and joins two pieces of text. Text and any other
+	// value is an error, as in Python, so "5" + 0 can't quietly give "50":
+	// "{x}" puts a value in text, and change turns text into a number.
 	if op == "+" {
 		lf, lIsInt, lIsNum := numeric(left)
 		rf, rIsInt, rIsNum := numeric(right)
@@ -400,6 +420,11 @@ func evalInfix(op string, left, right object.Object) object.Object {
 				return numArith("+", num{isInt: true, i: left.(*object.Integer).Value}, num{isInt: true, i: right.(*object.Integer).Value}).box()
 			}
 			return &object.Float{Value: lf + rf}
+		}
+		_, lText := left.(*object.String)
+		_, rText := right.(*object.String)
+		if lText != rText {
+			textPlusValue(left, right)
 		}
 		return &object.String{Value: joinShown(left.Inspect(), right)}
 	}

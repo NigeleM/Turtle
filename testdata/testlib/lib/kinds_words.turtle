@@ -108,7 +108,7 @@ theory all_caps
     definition
         [loop][w in ws]
             if ] !w type string [
-                fail "all_caps: every item must be text, got " + w
+                fail "all_caps: every item must be text, got {w}"
             if [end]
             if ] w != w at upper [
                 return false

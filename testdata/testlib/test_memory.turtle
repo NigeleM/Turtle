@@ -10,7 +10,7 @@ assemble Order [item, qty, notes]
 def orders_for[n]
     out = list []
     [loop][i in range[0, n]]
-        out at add Order["tea", i, "note " + i]
+        out at add Order["tea", i, "note {i}"]
     [loop][end]
     return out
 def [end]
