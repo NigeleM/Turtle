@@ -1028,8 +1028,9 @@ func isTruthy(obj object.Object) bool {
 // needsSpace: show puts a space between two pieces, unless the text so far
 // or the next piece already begins or ends with whitespace ("total: ", n
 // gives "total: 3", not two spaces), the next piece is empty, or the pieces
-// read as one with punctuation ("Hi, ", name, "!" gives "Hi, Ann!", and
-// "(" + x + ")" gives "(1)").
+// read as one with punctuation (", y is ", "x is ", 1 gives "x is 1, y is",
+// and "(", x, ")" gives "(1)"). A "!" or "?" is spaced, as in Python's print:
+// "Hi, ", name, "!" gives "Hi, Ann !"; "Hi, {name}!" joins it.
 func needsSpace(text, shown string) bool {
 	if shown == "" || text == "" {
 		return false
@@ -1039,7 +1040,7 @@ func needsSpace(text, shown string) bool {
 	if unicode.IsSpace(last) || unicode.IsSpace(first) {
 		return false
 	}
-	return !strings.ContainsRune(",.!:;)]}", first) && !strings.ContainsRune("([{", last)
+	return !strings.ContainsRune(",.:;)]}", first) && !strings.ContainsRune("([{", last)
 }
 
 // builtinExportCache is, per name, the builtin modules that provide it as

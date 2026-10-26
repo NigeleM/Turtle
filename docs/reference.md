@@ -438,19 +438,26 @@ whitespace, so text that ends in a space keeps its own:
 | `show 3, 2 .` | `3 2` |
 | `show "total: ", n .` (with `n` = 3) | `total: 3` |
 | `show "a", "b", "c" .` | `a b c` |
-| `show name, "!" .` (with `name` = `Ann`) | `Ann!` |
+| `show name, "!" .` (with `name` = `Ann`) | `Ann !` |
+| `show "{name}!" .` | `Ann!` |
 | `show n, "\|", name .` | `3 \| Ann` |
 | `show "", "empty first" .` | `empty first` |
 | `show list [1, 2], "items" .` | `[ 1, 2 ] items` |
 | `show 1 + 1, 2 + 2 .` | `2 4` |
 | `show "x is ", x, ", y is ", y .` (with `x` = 1, `y` = 2) | `x is 1, y is 2` |
 | `show "a", "(", x, ")" .` | `a (1)` |
+| `show "did you mean ", name, "?" .` | `did you mean Ann ?` |
+| `show "did you mean {name}?" .` | `did you mean Ann?` |
 
 In a `show` line, a semicolon starts the next item, so a sentence call's commas stay its arguments: `show 1 add3 2, 3; " " .` prints the sum, then a space. Elsewhere a semicolon is only for loop headers.
 
 Punctuation is set against the value before it: no space goes before
-`, . ! ? : ; ) ] }` or after `( [ {`. To join pieces with no space at all,
-use `+` (`show "x="+n .` gives `x=3`).
+`, . : ; ) ] }` or after `( [ {`. A `!` or `?` is a piece like any other and
+gets its space, as in Python's `print`. Everything else does too, such as
+`-`, `/`, `%`, `'` or a letter (`show "20", "-", "45" .` gives `20 - 45`).
+To join pieces with no space at all, write the text with `{...}`
+(`show "did you mean {name}?" .`, `show "{a}-{b}" .`) or use `+`
+(`show "x="+n .` gives `x=3`).
 
 **Floats show the shortest text that reads back as the same float**, as
 Python's `repr` does. So `0.1 + 0.2` shows `0.30000000000000004`, and
@@ -1567,6 +1574,27 @@ as the sentences do: `nums at insert[99, 1]`, `nums at put[99, 1]`; both
 give back the list. On a map, `put` and `add` take the key first, as a map
 is written: `m at put["apples", 5]` sets `"apples"` to 5, and `m at
 add["apples", 3]` adds 3 to it (a new key gets the value).
+
+**Setting an item or a key.** The sentence is the same for every kind of
+value, and it names each part, so the two can't be swapped: put the value
+*to* the list or map, *at* the position or key. The method forms differ by
+kind, so learn the sentence first:
+
+| | Sentence | Method |
+|---|---|---|
+| list | `put 99 to nums at 1 .` | `nums at put[99, 1]` (value, position) |
+| list | `insert 99 to nums at 1 .` | `nums at insert[99, 1]` (value, position) |
+| set | | `s at insert["x", 0]` (value, position) |
+| map | `put 5 to m at "apples" .` | `m at put["apples", 5]` (key, value) |
+| map | `add 3 to m at "apples" .` | `m at add["apples", 3]` (key, value) |
+
+A map's `put` or `add` written in a list's order still runs as written, so
+`m at put[1, "red"]` adds the key `1`. When the key is of a type none of the
+map's keys have and the value is already a key, or every entry is the other
+way round, Turtle warns once for that line and names the call to write:
+`warning: put[1, "red"] looks swapped: a map's put takes the key first, so
+this adds the key 1. For the key "red", write put["red", 1] (line 3)`.
+`help["list"]` and `help["map"]` say the order too.
 
 Lists, sets and maps hold other values by reference, so a list can be put
 inside itself (`add x to x .`). Showing, comparing, sorting, copying with

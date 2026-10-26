@@ -60,7 +60,7 @@ func TestTheories(t *testing.T) {
 		{"nums = list [1, 1, 0, 3]\ntally 1 in nums .\nshow tally 1 in nums .", "2"},
 		{"c is tally 1 in list [1, 1] .\nshow c .", "2"},
 		{"c = tally 1 in list [1, 2]\nshow c .", "1"},
-		{"show \"ones: \", tally 1 in list [1, 1], \"!\" .", "ones: 2!"},
+		{"show \"ones: \", tally 1 in list [1, 1], \"!\" .", "ones: 2 !"},
 		// A value reaches through arithmetic, not past a comparison.
 		{"show tally 1 in list [1] + list [1] == 2 .", "true"},
 		// A fixed word that's an ordinary name ends the value before it.

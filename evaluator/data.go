@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode/utf8"
 
 	"Turtle/ast"
@@ -800,6 +801,61 @@ func setMethod(s *object.Set, method string, args []object.Object) object.Object
 	return nil
 }
 
+// swappedPut: m at put[key, value] (or add) that looks written value first,
+// in a list's order: the key's type is none of the map's key types, and the
+// value is already a key, or every entry is the other way round (keys of the
+// value's type, values of the key's type). A key of the usual type returns
+// at once, so a correct put costs one comparison.
+func swappedPut(m *object.Map, key, val object.Object) bool {
+	es := m.Entries()
+	if len(es) == 0 || key.Type() == es[0].Key.Type() {
+		return false
+	}
+	kt, vt := es[0].Key.Type(), es[0].Val.Type()
+	reversed := key.Type() == vt && val.Type() == kt
+	valCouldBeKey := false
+	for _, e := range es {
+		if e.Key.Type() == key.Type() {
+			return false
+		}
+		if e.Key.Type() == val.Type() {
+			valCouldBeKey = true
+		}
+		if e.Key.Type() != kt || e.Val.Type() != vt {
+			reversed = false
+		}
+	}
+	if reversed {
+		return true
+	}
+	if !valCouldBeKey {
+		return false
+	}
+	_, isKey := m.Get(val)
+	return isKey
+}
+
+// swapWarned holds the lines already warned about, so a loop warns once.
+var swapWarned sync.Map
+
+// warnIfSwapped warns, once per line, about a map put or add whose key and
+// value look swapped. The call still runs as written.
+func warnIfSwapped(m *object.Map, method string, key, val object.Object) {
+	if !swappedPut(m, key, val) {
+		return
+	}
+	if _, seen := swapWarned.LoadOrStore(fmt.Sprintf("%s:%d", currentFile, currentLine), true); seen {
+		return
+	}
+	k, v := object.Shown(key), object.Shown(val)
+	does := "adds the key " + k
+	if method == "add" {
+		does = "adds to the key " + k
+	}
+	stderrLine(fmt.Sprintf("warning: %s[%s, %s] looks swapped: a map's %s takes the key first, so this %s. For the key %s, write %s[%s, %s] (line %d)",
+		method, k, v, method, does, v, method, v, k, currentLine))
+}
+
 func mapMethod(m *object.Map, method string, args []object.Object) object.Object {
 	switch method {
 	case "len", "length":
@@ -832,12 +888,14 @@ func mapMethod(m *object.Map, method string, args []object.Object) object.Object
 		// add[key, value] is the statement "add value to m at key": a new
 		// key gets the value, a number adds up, text joins on.
 		requireArgs(method, args, 2)
+		warnIfSwapped(m, method, args[0], args[1])
 		addAt("map", m, args[0], args[1])
 		return m
 	case "put":
 		// put[key, value] is the statement "put value to m at key": it sets
 		// the key, new or not.
 		requireArgs(method, args, 2)
+		warnIfSwapped(m, method, args[0], args[1])
 		m.Put(args[0], args[1])
 		return m
 	case "delete":

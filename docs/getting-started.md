@@ -92,7 +92,7 @@ Create `hello.turtle`:
 
 ```
 name = "World"
-show "Hello, ", name, "!" .
+show "Hello, {name}!" .
 ```
 
 Run it:

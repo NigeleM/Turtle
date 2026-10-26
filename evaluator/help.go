@@ -36,7 +36,7 @@ var typeMethods = map[string][]string{
 	"list": {"add[value]", "get[index]", "put[value, index]", "insert[value, index]", "remove[value]",
 		"pop", "slice[start, end]", "contains[value]", "index[value]", "count[value]",
 		"sort", "reverse", "clear", "len", "isempty", "tostring"},
-	"set": {"add[value]", "remove[value]", "contains[value]", "union[other]", "intersection[other]",
+	"set": {"add[value]", "insert[value, index]", "remove[value]", "contains[value]", "union[other]", "intersection[other]",
 		"difference[other]", "subset[other]", "superset[other]", "pop", "sort", "clear",
 		"len", "isempty", "tostring"},
 	"map": {"get[key]", "add[key, value]", "put[key, value]", "delete[key]", "contains[key]", "getkeys", "getvalues",
@@ -206,6 +206,14 @@ func valueHelp(v object.Object, name string) string {
 	return strings.TrimRight(sb.String(), "\n")
 }
 
+// orderNotes say which comes first in the methods that take two values,
+// since a list's and a map's put differ.
+var orderNotes = map[string]string{
+	"list": "  (put and insert take the value first, then the position: put[99, 1];\n   the sentence names each: put 99 to nums at 1 .)\n",
+	"set":  "  (insert takes the value first, then the position: insert[\"x\", 0])\n",
+	"map":  "  (put and add take the key first, then the value: put[\"apples\", 5];\n   the sentence names each: put 5 to m at \"apples\" .)\n",
+}
+
 // typeHelp is the methods of a kind of value, written on name, and the
 // libraries that work on it.
 func typeHelp(kind, name string) string {
@@ -219,6 +227,9 @@ func typeHelp(kind, name string) string {
 		sb.WriteString(wrapList(ms, "  ", 72))
 		if kind == "integer" || kind == "float" {
 			sb.WriteString("  (sqrt to random need import math)\n")
+		}
+		if note := orderNotes[kind]; note != "" {
+			sb.WriteString(note)
 		}
 	}
 	if libs := typeLibraries[kind]; len(libs) > 0 {

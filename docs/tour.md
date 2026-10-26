@@ -65,7 +65,7 @@ quotes in it: `show 'She said "hi"' .`
 
 ```
 name = ? "What's your name? "
-show "Hi, ", name, "!" .
+show "Hi, {name}!" .
 ```
 
 Prints the prompt, reads one line from stdin, stores it as a string. No
@@ -295,6 +295,7 @@ sort nums .
 reverse nums .
 insert 99 to nums at 0 .
 put 7 to nums at 1 .   // replaces the item at 1
+put 31 to ages at "Alice" .   // sets a key
 delete "Bob" from ages .
 length of nums .    // prints
 min of nums .        // prints
@@ -317,6 +318,11 @@ a = list [1, 2]
 b = list [10, 20]
 show a at get[0] + b at get[1] .     // 21
 ```
+
+`put VALUE to THING at POSITION .` is the same for lists and maps. As
+methods the order differs: a list takes the value first (`nums at put[7, 1]`),
+a map the key first, as it's written (`ages at put["Alice", 31]`). A map put
+that looks swapped gets a warning.
 
 See [the library docs](library/index.md) for the full method list per type.
 

@@ -160,7 +160,7 @@ n = change raw to integer
 show raw .
 show n + 1 .`, "7\n8\n"},
 		{"string to float", `show change "3.5" to float .`, "3.5\n"},
-		{"number to string", `show change 255 to string , "!" .`, "255!\n"},
+		{"number to string", `show change 255 to string , "!" .`, "255 !\n"},
 		{"ascii", `show change "A" to ascii .`, "65\n"},
 		{"char", `show change 66 to char .`, "B\n"},
 		{"hex from integer", `show change 255 to hex .`, "ff\n"},

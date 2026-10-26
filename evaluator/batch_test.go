@@ -539,6 +539,69 @@ func TestShowSemicolonSeparatesItems(t *testing.T) {
 	}
 }
 
+// In show, , . : ; ) ] } sit against the piece before and ( [ { against the
+// one after; ! and ? are spaced, as in Python's print, and "{x}" joins them.
+func TestShowSpacesSentenceEnds(t *testing.T) {
+	got, err := run(t, "name = \"Ann\"\nshow \"Hi, \", name, \"!\" .\nshow \"did you mean \", name, \"?\" .\nshow \"Hi, {name}! Ann?\" .\nshow \"x is \", 1, \", y is \", 2, \".\" .\nshow \"a\", \"(\", 3, \")\", \":\" .", "")
+	want := "Hi, Ann !\ndid you mean Ann ?\nHi, Ann! Ann?\nx is 1, y is 2.\na (3):\n"
+	if err != nil || got != want {
+		t.Errorf("got %q, %v, want %q", got, err, want)
+	}
+}
+
+// A map's put and add take the key first; one written value first, in a
+// list's order, runs as written but warns, once per line. Correct calls,
+// mixed maps and lists stay quiet.
+func TestMapPutSwappedWarns(t *testing.T) {
+	src := `m = map ["red": 0, "blue": 0]
+[loop][i = 0; i < 3; i++]
+    m at put[i, "red"]
+[loop][end]
+c = map ["apple": 3, "kiwi": 1]
+c at put[2, "pear"]
+d = map ["apple": 3]
+d at add[5, "apple"]
+show m .
+show c .
+show d .`
+	stdout, stderr, err, _ := runLog(t, src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stdout != "{ \"red\": 0, \"blue\": 0, 0: \"red\", 1: \"red\", 2: \"red\" }\n{ \"apple\": 3, \"kiwi\": 1, 2: \"pear\" }\n{ \"apple\": 3, 5: \"apple\" }\n" {
+		t.Errorf("stdout %q", stdout)
+	}
+	for _, want := range []string{
+		`warning: put[0, "red"] looks swapped: a map's put takes the key first, so this adds the key 0. For the key "red", write put["red", 0] (line 3)`,
+		`put[2, "pear"] looks swapped`,
+		`warning: add[5, "apple"] looks swapped: a map's add takes the key first, so this adds to the key 5.`,
+	} {
+		if !strings.Contains(stderr, want) {
+			t.Errorf("stderr %q lacks %q", stderr, want)
+		}
+	}
+	if n := strings.Count(stderr, "put[1, "); n != 0 {
+		t.Errorf("a loop warned more than once: %q", stderr)
+	}
+
+	quiet := `m = map ["apple": 3]
+m at put["kiwi", 2]
+m at add["apple", 1]
+e = map []
+e at put[1, "one"]
+ids = map [1: "Ann", 2: "Ben"]
+ids at put[3, "Cy"]
+mixed = map ["a": 1, 2: "b"]
+mixed at put[3, "a"]
+nums = list [10, 20, 30]
+nums at put[99, 1]
+show m, e, ids, mixed, nums .`
+	_, stderr, err, _ = runLog(t, quiet)
+	if err != nil || stderr != "" {
+		t.Errorf("correct calls warned: %q, %v", stderr, err)
+	}
+}
+
 // Numbers past their limits are errors, not silent clamps or infinities, and
 // whole-number powers are exact up to the integer limit.
 func TestNumericLimitsAreExact(t *testing.T) {
