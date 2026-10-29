@@ -3083,6 +3083,44 @@ table_write["no/such/x.csv", list [1]]`, wantErr: "table_write no/such/x.csv"},
 	}
 }
 
+// Text saved on Windows, with CRLF line ends and a byte order mark at the
+// start (Notepad, Windows PowerShell), reads as the same text saved
+// anywhere else: programs, imports, files, JSON and piped-in input.
+func TestWindowsText(t *testing.T) {
+	const bom = "\ufeff"
+	dir := t.TempDir()
+	write := func(name, text string) {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("crlf.txt", "apple\r\nbanana\r\n")
+	write("bom.txt", bom+"apple\r\nbanana\r\n")
+	write("bom.json", bom+`{"name": "ann"}`)
+	write("bomconfig.json", bom+`{"port": 8080}`)
+	write("winlib.turtle", bom+"def twice[n]\r\n    return n * 2\r\ndef [end]\r\n")
+	cases := []struct{ name, src, stdin, want string }{
+		{"[read] a CRLF file", "[read] crlf.txt to lines [end]\nshow lines .", "", `[ "apple", "banana" ]` + "\n"},
+		{"[read] a file with a BOM", "[read] bom.txt to lines [end]\nshow lines at get 0 == \"apple\" .", "", "true\n"},
+		{"a program with a BOM", bom + "show 1 + 2 .\r\n", "", "3\n"},
+		{"an import with a BOM", "import winlib [twice]\nshow twice[21] .", "", "42\n"},
+		{"json_read", "import json\nshow json_read[\"bom.json\"] .", "", `{ "name": "ann" }` + "\n"},
+		{"config_read", "import config\nshow config_read[\"bomconfig.json\"] .", "", `{ "port": 8080 }` + "\n"},
+		{"input piped in with a BOM", "n = ?\nshow n == \"7\" .", bom + "7\r\n", "true\n"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, err := runIn(t, dir, c.src, c.stdin)
+			if err != nil {
+				t.Fatalf("unexpected error: %v (output %q)", err, out)
+			}
+			if out != c.want {
+				t.Errorf("got %q, want %q", out, c.want)
+			}
+		})
+	}
+}
+
 func TestColumnTypes(t *testing.T) {
 	dir := t.TempDir()
 	write := func(name, text string) {

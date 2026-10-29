@@ -273,6 +273,18 @@ func TestServerMisuse(t *testing.T) {
 	if want := `Reply { status: 404, body: "gone", headers: {} } | 404 | Reply | true | localhost`; strings.TrimSpace(got) != want {
 		t.Errorf("got %q, want %q", got, want)
 	}
+	// A port something else has is said plainly, on Windows too, where
+	// the error isn't syscall.EADDRINUSE.
+	taken, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer taken.Close()
+	port := taken.Addr().(*net.TCPAddr).Port
+	got, _ = run(t, fmt.Sprintf("import server\nsafe\n    serve[map [], %d]\nhandle [] e .\n    show kind of e, \"|\", message of e .\nsafe [end]", port), "")
+	if want := fmt.Sprintf("server | serve: port %d is in use", port); !strings.HasPrefix(strings.TrimSpace(got), want) {
+		t.Errorf("a port in use: got %q, want %q", got, want)
+	}
 }
 
 // TestServerSafety: hidden files and links out of a static folder aren't

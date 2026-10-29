@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -233,6 +234,14 @@ func (r route) match(path []string) (map[string]string, bool) {
 	return params, true
 }
 
+// addrInUse reports whether listening failed because the port is taken:
+// EADDRINUSE, or on Windows WSAEADDRINUSE (10048), which Go's
+// syscall.EADDRINUSE there doesn't match.
+func addrInUse(err error) bool {
+	var errno syscall.Errno
+	return errors.As(err, &errno) && (errno == syscall.EADDRINUSE || runtime.GOOS == "windows" && errno == 10048)
+}
+
 // serve answers requests until the program is stopped (Ctrl+C), or a
 // handler calls exit[].
 func (it *Interpreter) serve(routes []route, port int64, env *object.Environment) {
@@ -251,7 +260,7 @@ func (it *Interpreter) serve(routes []route, port int64, env *object.Environment
 	it.requestLimit = requestLimitOf(env)
 	ln, err := net.Listen("tcp", net.JoinHostPort(host, strconv.FormatInt(port, 10)))
 	if err != nil {
-		if errors.Is(err, syscall.EADDRINUSE) {
+		if addrInUse(err) {
 			fatalKind(kindServer, "serve: port %d is in use (is another server running?); pick another port", port)
 		}
 		fatalKind(kindServer, "serve: %v", err)

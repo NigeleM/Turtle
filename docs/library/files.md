@@ -18,7 +18,9 @@ fatal error. Check first with `system`'s `exists[path]`.
 ```
 
 Reads the whole file, splits on newlines, assigns the result as a `list`
-of strings (one per line) to `<ident>`.
+of strings (one per line) to `<ident>`. A file saved on Windows reads the
+same: `\r\n` line ends split like `\n`, and a byte order mark at the start
+is dropped.
 
 ```
 [write] <path>

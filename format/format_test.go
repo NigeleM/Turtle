@@ -82,6 +82,10 @@ func TestFormat(t *testing.T) {
 	if crlf, _ := Format("if ] 1 > 0 [\r\nshow 1 .\r\nif [end]\r\n"); crlf != "if ] 1 > 0 [\r\n    show 1 .\r\nif [end]\r\n" {
 		t.Errorf("CRLF: got %q", crlf)
 	}
+	// So does a byte order mark at the start.
+	if bom, err := Format("\ufeffif ] 1 > 0 [\r\nshow 1 .\r\nif [end]\r\n"); bom != "\ufeffif ] 1 > 0 [\r\n    show 1 .\r\nif [end]\r\n" {
+		t.Errorf("BOM: got %q (%v)", bom, err)
+	}
 	// validate's rule, one step in.
 	test := "import test\ndef test_a[]\nvalidate f[n] with n as integer\nthat result > 0 .\ndef [end]\n"
 	if got, _ := Format(test); !strings.Contains(got, "\n    validate f[n] with n as integer\n        that result > 0 .\n") {

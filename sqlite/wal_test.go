@@ -17,7 +17,7 @@ import (
 // TestWALMadeBySQLite: sqlite3 leaves changes in the WAL (copied while
 // it's open, as after a crash); Turtle reads them, then writes.
 func TestWALMadeBySQLite(t *testing.T) {
-	bin := unixSQLite3(t)
+	bin := sqlite3Tool(t)
 	dir := t.TempDir()
 	path := filepath.Join(dir, "w.db")
 	copyPath := filepath.Join(dir, "copy.db")
@@ -26,7 +26,7 @@ PRAGMA wal_autocheckpoint = 0;
 CREATE TABLE t (id INTEGER PRIMARY KEY, v TEXT);
 WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 300) INSERT INTO t SELECT i, printf('%.*c', 50, 'w') FROM n;
 UPDATE t SET v = 'changed' WHERE id % 10 = 0;
-.shell cp ` + path + ` ` + copyPath + ` && cp ` + path + `-wal ` + copyPath + `-wal
+` + shellCopy(path, copyPath, path+"-wal", copyPath+"-wal") + `
 `
 	cmd := exec.Command(bin, "-cmd", "PRAGMA auto_vacuum = NONE", path)
 	cmd.Stdin = strings.NewReader(script)
@@ -53,7 +53,8 @@ UPDATE t SET v = 'changed' WHERE id % 10 = 0;
 	mustCheck(t, db)
 	db.Close()
 	out, err := exec.Command(bin, copyPath, "SELECT count(*), max(v) FROM t; PRAGMA integrity_check; PRAGMA journal_mode").CombinedOutput()
-	if err != nil || strings.TrimSpace(string(out)) != "251|wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww\nok\nwal" {
+	// sqlite3 on Windows ends its lines with \r\n.
+	if err != nil || strings.ReplaceAll(strings.TrimSpace(string(out)), "\r\n", "\n") != "251|wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww\nok\nwal" {
 		t.Fatalf("sqlite3 after Turtle's writes: %v\n%s", err, out)
 	}
 }
@@ -103,7 +104,7 @@ func TestWALSwitchAndCrash(t *testing.T) {
 // TestWALOpenElsewhere: while sqlite3 has a WAL database open, Turtle
 // waits, then says so.
 func TestWALOpenElsewhere(t *testing.T) {
-	bin := unixSQLite3(t)
+	bin := sqlite3Tool(t)
 	old := busyTimeout
 	busyTimeout = 300 * time.Millisecond
 	defer func() { busyTimeout = old }()
@@ -113,7 +114,7 @@ func TestWALOpenElsewhere(t *testing.T) {
 	db.Close()
 	marker := filepath.Join(t.TempDir(), "open")
 	cmd := exec.Command(bin, "-cmd", "PRAGMA auto_vacuum = NONE", path)
-	cmd.Stdin = strings.NewReader("SELECT count(*) FROM t;\n.shell touch " + marker + " && sleep 2\n")
+	cmd.Stdin = strings.NewReader("SELECT count(*) FROM t;\n" + shellHold(marker) + "\n")
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}

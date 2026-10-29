@@ -36,7 +36,7 @@ func (it *Interpreter) callConfig(name string, args []object.Object) object.Obje
 		if err != nil {
 			fatalKind(kindFile, "config_read %s: %s", path, fileProblem(err))
 		}
-		return readConfig(path, format, string(data))
+		return readConfig(path, format, strings.TrimPrefix(string(data), "\ufeff"))
 	case "config_write":
 		argCount(name, args, 2, 2, "a file (.toml, .json or .env) and a map of settings")
 		path := textArg(name, args, 0, "the file")

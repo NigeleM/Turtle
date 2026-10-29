@@ -45,7 +45,7 @@ func (it *Interpreter) callJSON(name string, args []object.Object) object.Object
 		if err != nil {
 			fatalKind(kindFile, "json_read %s: %s", path, fileProblem(err))
 		}
-		return parseJSON("json_read "+path, string(data))
+		return parseJSON("json_read "+path, strings.TrimPrefix(string(data), "\ufeff"))
 	case "json_write":
 		requireFuncArgs(name, args, 2)
 		path := asStringArg(name, args[0])

@@ -30,7 +30,10 @@ func (l *Lexer) Source() string { return l.input }
 
 // New is a lexer for input. A file saved with Windows line ends (CRLF) reads
 // as if it had plain newlines, so a line break in a text value is one "\n".
+// A byte order mark at the start (Notepad's "UTF-8 with BOM", Windows
+// PowerShell's utf8 and its pipes) is skipped.
 func New(input string) *Lexer {
+	input = strings.TrimPrefix(input, "\ufeff")
 	if strings.Contains(input, "\r\n") {
 		input = strings.ReplaceAll(input, "\r\n", "\n")
 	}

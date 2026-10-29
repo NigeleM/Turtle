@@ -80,7 +80,10 @@ func (it *Interpreter) evalFileRead(s *ast.FileReadStatement, env *object.Enviro
 	if err != nil {
 		fatalKind(kindFile, "[read] %s: %s", name, fileProblem(err))
 	}
-	text := strings.TrimRight(string(data), "\n")
+	// A file saved on Windows (CRLF line ends, perhaps a byte order mark)
+	// gives the same lines as one saved anywhere else.
+	text := strings.TrimPrefix(string(data), "\ufeff")
+	text = strings.TrimRight(strings.ReplaceAll(text, "\r\n", "\n"), "\n")
 	list := &object.List{}
 	if text != "" {
 		for _, line := range strings.Split(text, "\n") {

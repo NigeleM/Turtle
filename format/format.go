@@ -34,6 +34,10 @@ func Format(src string) (string, error) {
 // phrases of an imported file's theories are read as phrases, private ones
 // too in a test file (test_*.turtle), which may test them.
 func FormatFile(src, path string) (string, error) {
+	// A byte order mark at the start is kept, as Windows line ends are;
+	// the lines are laid out without it.
+	bom := strings.HasPrefix(src, "\ufeff")
+	src = strings.TrimPrefix(src, "\ufeff")
 	p := parser.New(lexer.New(src))
 	dir := ""
 	if path != "" {
@@ -135,6 +139,9 @@ func FormatFile(src, path string) (string, error) {
 	}
 	if crlf {
 		result = strings.ReplaceAll(result, "\n", "\r\n")
+	}
+	if bom && result != "" {
+		result = "\ufeff" + result
 	}
 	return result, nil
 }

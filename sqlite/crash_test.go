@@ -5,6 +5,7 @@
 package sqlite
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,13 +16,9 @@ import (
 	"time"
 )
 
-// unixSQLite3 finds the sqlite3 tool for tests that also use its .shell
-// command with cp, sleep and touch.
-func unixSQLite3(t *testing.T) string {
+// sqlite3Tool finds the sqlite3 tool, for tests that run it beside Turtle.
+func sqlite3Tool(t *testing.T) string {
 	t.Helper()
-	if runtime.GOOS == "windows" {
-		t.Skip("uses Unix shell commands")
-	}
 	bin, err := exec.LookPath("sqlite3")
 	if err != nil {
 		if os.Getenv("TURTLE_REQUIRE_SQLITE3") != "" {
@@ -30,6 +27,30 @@ func unixSQLite3(t *testing.T) string {
 		t.Skip("sqlite3 isn't installed")
 	}
 	return bin
+}
+
+// shellHold is a sqlite3 .shell line that makes marker, then waits two
+// seconds, holding whatever lock sqlite3 has. sqlite3 runs .shell with sh,
+// or with cmd on Windows (where ping -n 3 is the two-second wait).
+func shellHold(marker string) string {
+	if runtime.GOOS == "windows" {
+		return ".shell type nul > " + marker + " && ping -n 3 127.0.0.1 > nul"
+	}
+	return ".shell touch " + marker + " && sleep 2"
+}
+
+// shellCopy is a sqlite3 .shell line that copies each from, to pair of
+// files while sqlite3 has them open.
+func shellCopy(pairs ...string) string {
+	cp := "cp %s %s"
+	if runtime.GOOS == "windows" {
+		cp = "copy /y %s %s > nul"
+	}
+	var steps []string
+	for i := 0; i+1 < len(pairs); i += 2 {
+		steps = append(steps, fmt.Sprintf(cp, pairs[i], pairs[i+1]))
+	}
+	return ".shell " + strings.Join(steps, " && ")
 }
 
 // forget drops a database as if its program had died: no rollback, no
@@ -135,7 +156,7 @@ func TestSQLiteRecoversOurJournal(t *testing.T) {
 // TestWeRecoverSQLiteJournal: sqlite3 dies in the middle of a
 // transaction that already changed the file; Turtle repairs it.
 func TestWeRecoverSQLiteJournal(t *testing.T) {
-	bin := unixSQLite3(t)
+	bin := sqlite3Tool(t)
 	dir := t.TempDir()
 	path := filepath.Join(dir, "s.db")
 	crash := filepath.Join(dir, "crash.db")
@@ -147,7 +168,7 @@ PRAGMA cache_spill = 10;
 BEGIN;
 UPDATE c SET v = printf('%.*c', 150, 'w');
 DELETE FROM c WHERE id > 1500;
-.shell cp ` + path + ` ` + crash + ` && cp ` + path + `-journal ` + crash + `-journal
+` + shellCopy(path, crash, path+"-journal", crash+"-journal") + `
 ROLLBACK;
 `
 	cmd := exec.Command(bin, "-cmd", "PRAGMA auto_vacuum = NONE", path)
@@ -185,7 +206,7 @@ ROLLBACK;
 // TestLocksWithSQLite: while sqlite3 holds a write lock Turtle waits and
 // then gives up, and the other way round.
 func TestLocksWithSQLite(t *testing.T) {
-	bin := unixSQLite3(t)
+	bin := sqlite3Tool(t)
 	old := busyTimeout
 	busyTimeout = 300 * time.Millisecond
 	defer func() { busyTimeout = old }()
@@ -196,7 +217,7 @@ func TestLocksWithSQLite(t *testing.T) {
 	// holds the lock for two seconds.
 	marker := filepath.Join(t.TempDir(), "locked")
 	cmd := exec.Command(bin, "-cmd", "PRAGMA auto_vacuum = NONE", path)
-	cmd.Stdin = strings.NewReader("BEGIN EXCLUSIVE;\nINSERT INTO l VALUES (2);\n.shell touch " + marker + " && sleep 2\nCOMMIT;\n")
+	cmd.Stdin = strings.NewReader("BEGIN EXCLUSIVE;\nINSERT INTO l VALUES (2);\n" + shellHold(marker) + "\nCOMMIT;\n")
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -266,7 +287,7 @@ func TestSeesOtherProgramsChanges(t *testing.T) {
 // TestCommitWaitsForReaders: while sqlite3 reads, COMMIT can't finish;
 // the transaction stays open, and COMMIT works once the reader is done.
 func TestCommitWaitsForReaders(t *testing.T) {
-	bin := unixSQLite3(t)
+	bin := sqlite3Tool(t)
 	old := busyTimeout
 	busyTimeout = 200 * time.Millisecond
 	defer func() { busyTimeout = old }()
@@ -274,7 +295,7 @@ func TestCommitWaitsForReaders(t *testing.T) {
 	mustExec(t, db, "CREATE TABLE w (v)")
 	marker := filepath.Join(t.TempDir(), "reading")
 	cmd := exec.Command(bin, "-cmd", "PRAGMA auto_vacuum = NONE", path)
-	cmd.Stdin = strings.NewReader("BEGIN;\nSELECT count(*) FROM w;\n.shell touch " + marker + " && sleep 2\nCOMMIT;\n")
+	cmd.Stdin = strings.NewReader("BEGIN;\nSELECT count(*) FROM w;\n" + shellHold(marker) + "\nCOMMIT;\n")
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -337,7 +358,7 @@ func TestCrashDuringVacuum(t *testing.T) {
 // pointer-map pages; Check counts them, and Turtle reads the file but
 // refuses to change it.
 func TestCheckAutoVacuum(t *testing.T) {
-	bin := unixSQLite3(t)
+	bin := sqlite3Tool(t)
 	for _, mode := range []string{"FULL", "INCREMENTAL"} {
 		path := filepath.Join(t.TempDir(), "av.db")
 		cmd := exec.Command(bin, "-cmd", "PRAGMA page_size = 1024; PRAGMA auto_vacuum = "+mode, path)

@@ -625,7 +625,9 @@ func (it *Interpreter) evalInput(s *ast.InputStatement, env *object.Environment)
 		// terminating.
 		fatalKind(kindFile, "unexpected end of input reading %q", s.Name)
 	}
-	env.Set(s.Name, &object.String{Value: it.stdin.Text()})
+	// Windows PowerShell can put a byte order mark before what it pipes
+	// in; it's never part of what was typed.
+	env.Set(s.Name, &object.String{Value: strings.TrimPrefix(it.stdin.Text(), "\ufeff")})
 	return noneResult
 }
 

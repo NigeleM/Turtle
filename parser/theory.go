@@ -684,7 +684,7 @@ func (p *Parser) importTheories(tok token.Token, path string, names []string) {
 			return err == nil
 		})
 		if data, rerr := fs.ReadFile(p.Modules, path+ext); err == nil && ext != "" && rerr == nil {
-			src := strings.ReplaceAll(string(data), "\r\n", "\n")
+			src := moduleText(data)
 			p.learnImported(tok, path, names, ownTheories(src, func() *Parser {
 				sub := New(lexer.New(src))
 				sub.Modules = p.Modules
@@ -712,7 +712,7 @@ func (p *Parser) importTheories(tok token.Token, path string, names []string) {
 	if err != nil {
 		return
 	}
-	src := strings.ReplaceAll(string(data), "\r\n", "\n")
+	src := moduleText(data)
 	p.learnImported(tok, path, names, ownTheories(src, func() *Parser {
 		sub := New(lexer.New(src))
 		sub.ModuleDir = p.ModuleDir
@@ -722,6 +722,12 @@ func (p *Parser) importTheories(tok token.Token, path string, names []string) {
 		}
 		return sub
 	}))
+}
+
+// moduleText is an imported file's text as the lexer reads it: plain
+// newlines, and no byte order mark at the start.
+func moduleText(data []byte) string {
+	return strings.ReplaceAll(strings.TrimPrefix(string(data), "\ufeff"), "\r\n", "\n")
 }
 
 // theoryCache keeps each file's own theories by its text, so a file
