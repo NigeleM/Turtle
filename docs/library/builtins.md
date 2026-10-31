@@ -31,7 +31,7 @@ arbitrary expression).
 | `add <expr> to <target> at <position> .` | list of lists | Changes the item at that position by the same rules (`add 9 to rows at 1` appends 9 to row 1). Fatal if the position is out of range. |
 | `remove <expr> from <target> .` | list, set | Removes the first matching element. No-op if not found. |
 | `delete <expr> from <target> .` | map | Deletes the key. **Fatal error if the key doesn't exist.** |
-| `sort <target> .` | list, set | Sorts in place, as Python does: numbers with numbers, text with text (capitals first), lists element by element. Mixing kinds is an error. |
+| `sort <target> .` | list, set | Sorts in place: numbers with numbers, text with text (capitals first), lists element by element. Mixing kinds is an error. |
 | `reverse <target> .` | list, set | Reverses in place. |
 | `insert <expr> to <target> at <expr> .` | list | Inserts at the given index. Fatal if index is out of range (`0..length` inclusive). |
 | `put <expr> to <target> at <expr> .` | list, map | A list: replaces the item at the given index (`0..length-1`); the length stays the same. A map: sets the key to the value, new or not (`put 0 to ages at "Ann"`). |
@@ -80,6 +80,7 @@ takes its arguments the way the `is` form does, with or without
 brackets:
 
 ```
+nums = list [3, 1, 2]
 nums at add 4
 nums at sort
 nums at put 9, 0 .
@@ -109,20 +110,26 @@ nums at put[9, 0]
 
 ### set
 
-All list methods above except `count`/`find`/`copy` behave the same way
-(see note below), plus:
+A set has its own methods. The list methods that depend on position (`get`,
+`insert`, `put`, `slice`, `reverse`, `sort`) are not part of a set and are not
+used with one. `put` is not available on a set.
 
 | Method | Args | Returns |
 |---|---|---|
+| `add` | value | the set, with the value added (a value already present is not added twice) |
+| `remove` | value | the set, with the value removed (no error if it is not there) |
+| `length`, `len` | — | number of items |
+| `isempty` | — | Boolean: `true` when the set is empty |
+| `contains`, `find` | value | Boolean: whether the value is in the set |
+| `count` | value | `1` when the value is in the set, otherwise `0` |
+| `clear` | — | the set, now empty |
+| `pop` | — | removes and gives back the last item added |
+| `tostring` | — | display string |
 | `union` | other set | new set: everything in either |
 | `intersection` | other set | new set: only what's in both |
 | `difference` | other set | new set: in this set but not the other |
 | `subset` | other set | Boolean: is this set ⊆ the other |
 | `superset` | other set | Boolean: is this set ⊇ the other |
-
-(In practice `count`/`find`/`insert`/`get` etc. all work on sets too — the
-implementation shares logic between list and set rather than restricting
-methods per type.)
 
 ### map
 
@@ -140,6 +147,10 @@ methods per type.)
 | `invert` | — | new map: values become keys, keys become values. When two keys share a value, only one entry survives: the later key in insertion order (`{"Ana": "B", "Eli": "B"}` inverts to `{"B": "Eli"}`), and Turtle prints a warning naming the dropped key |
 | `tostring` | — | display string |
 
+Maps have no `remove`. A key is removed with the `delete` statement or the
+`delete` method, and removing a key that is not there is an error:
+`delete "Bob" from ages .`.
+
 ### string
 
 All indices are Unicode code points (runes), not bytes — consistent with
@@ -149,7 +160,7 @@ All indices are Unicode code points (runes), not bytes — consistent with
 | Method | Args | Returns |
 |---|---|---|
 | `len` / `length` | — | how many characters (Integer), like `length of s` |
-| `upper` / `lower` | — | case-converted string. `upper` turns `ß` into `SS`, as Python does (`"straße" at upper` is `"STRASSE"`) |
+| `upper` / `lower` | — | case-converted string. `upper` turns `ß` into `SS` (`"straße" at upper` is `"STRASSE"`) |
 | `reverse` | — | the text backwards, character by character: `"héllo" at reverse` is `"olléh"` |
 | `isempty` | — | Boolean: `true` for `""` |
 | `trim` | — | leading/trailing whitespace stripped |
@@ -173,6 +184,8 @@ show "ab" at padright[5, "."], "|" . // ab...|
 `isnumber` exists so you can validate untrusted input (from `?`) before
 converting it, instead of letting a bad `change` crash the program:
 
+> *Illustrative.* This example reads a line from the keyboard, so it waits for input and is not run as a test.
+
 ```
 raw = ? "Enter a number: "
 ok is raw at isnumber .
@@ -183,7 +196,7 @@ else ]
 if [end]
 ```
 
-`slice` is Python-style but without a step: a negative bound counts from
+`slice` takes no step: a negative bound counts from
 the end (`-1` is the last character), an omitted `end` defaults to the
 string's length, and out-of-range bounds clamp instead of erroring
 (unlike `get`, which is a strict single-index lookup):

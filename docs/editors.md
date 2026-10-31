@@ -13,8 +13,7 @@ Protocol get Turtle support from it.
 | Outline | the file's functions, assembled types and top-level variables |
 | Format Document | `turtle fmt`'s layout |
 
-It's built into `turtle` (no extra install) and uses only Go's standard
-library. Files end in `.turtle` (or `.trt`, the earlier ending).
+It's built into `turtle` (no extra install). Files end in `.turtle` (or `.trt`, the earlier ending).
 
 ## VS Code
 

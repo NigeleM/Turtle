@@ -19,7 +19,7 @@ non-terminal; `[x]` is optional; `{x}` is zero-or-more; `|` is alternation.
 - **Comments**: `// ...` runs to end of line. `//* ... *//` is a block
   comment that may span multiple lines. Both are stripped by the lexer.
 - **Identifiers**: `<letter|_> {letter|digit|_}`, where a letter may be
-  any language's (`café`, `größe`, `名前`), as in Python. Turtle's own names are
+  any language's (`café`, `größe`, `名前`). Turtle's own names are
   all lowercase (`isempty`, `scriptfolder`, `sql_open`).
 - **Numbers**: `<digits>` (integer) or `<digits>.<digits>` (float), and
   scientific notation, always a float: `1e-18`, `2.5e6`, `6.02E+23`.
@@ -199,7 +199,7 @@ Operators on the same level go left to right: `10 - 4 - 3` is `3`.
 
 `+` adds two numbers; on two lists, two sets, or two maps it combines them
 (below); on two pieces of text it joins them. Text and any other value is a
-`type` error, as in Python: `"5" + 0` stops the program rather than giving
+`type` error: `"5" + 0` stops the program rather than giving
 `"50"`, and the message says how to write what was meant. To put a value
 in text, write it inside the text with `{...}` (`"total: {n}"`) or
 `change n to string` first; to add, change the text to a number first
@@ -216,7 +216,7 @@ program. `none` only adds to `none` (see §None). Values taken out of a list add
 | `7 / 2` | `3.5` | `/` always gives the exact answer, a float |
 | `6 / 3` | `2.0` | even when it comes out whole |
 | `7 div 2` | `3` | `div` gives the whole part, an integer |
-| `-7 div 2` | `-3` | toward zero (Python's `//` gives `-4`) |
+| `-7 div 2` | `-3` | toward zero |
 | `7.9 div 2` | `3` | works on floats too; still an integer |
 | `7 % 2` | `1` | the remainder |
 | `-7 % 2` | `-1` | the remainder that goes with `div`: `(a div b) * b + a % b` is `a` |
@@ -243,7 +243,7 @@ or assembled value, text is quoted so it can't be mistaken for a number:
 `show list [1, "1"] .` prints `[ 1, "1" ]`. Text on its own isn't quoted:
 `show "hi" .` prints `hi`.
 
-Integers have no fixed size, as in Python: `2 at pow 100` is
+Integers have no fixed size: `2 at pow 100` is
 `1267650600228229401496703205376`, and a literal can be as long as you like.
 The arithmetic is exact (`9223372036854775807 + 1` is `9223372036854775808`).
 A result past 10,000,000 bits (about 3 million digits) is a `math` error,
@@ -255,11 +255,10 @@ Conversions from a float keep the whole part exactly: `change 1e19 to integer`
 is `10000000000000000000`.
 
 Floats are the usual 64-bit ones. Arithmetic past their range gives `inf` or
-`-inf`, and `inf - inf` gives `nan`, as in Python (`show 1e308 * 10` shows
-`inf`). A power or a math function past the range is an error instead, as
-`math.exp` is in Python. Division by zero is always an error.
+`-inf`, and `inf - inf` gives `nan` (`show 1e308 * 10` shows
+`inf`). A power or a math function past the range is an error instead. Division by zero is always an error.
 
-Truthiness (conditions, `&&`, `||`, `!`), the Python rule: `false`,
+Truthiness (conditions, `&&`, `||`, `!`): `false`,
 `none`, `0`, `0.0`, `""`, and an empty list, set or map are falsy;
 everything else is truthy. So `if ] matches [` means "if there are any
 matches". `matches at isempty` asks the same thing explicitly.
@@ -290,22 +289,22 @@ goes in brackets (`x at slice[0, 3]`), except in the statement form,
 `r is x at slice 0, 3 .`, which takes them unbracketed.
 
 **A method works on the value right before it**, with or without
-brackets, the way Python's `a.invert()` does. Use `( )` to apply it to a
+brackets. Use `( )` to apply it to a
 whole calculation:
 
-| Turtle | Means | Python |
-|---|---|---|
-| `a at invert == b at invert` | both maps inverted, then compared | `a.invert() == b.invert()` |
-| `"a" + "b" at upper` | `"aB"` | `"a" + "b".upper()` |
-| `"+" + "-" at padright[5] + "+"` | `"+-    +"`: only `"-"` is padded | `"+" + "-".ljust(5) + "+"` |
-| `("+" + "-") at padright[5] + "+"` | `"+-   +"`: the whole text is padded first | `("+" + "-").ljust(5) + "+"` |
-| `("a" + "b") at upper` | `"AB"` | `("a" + "b").upper()` |
-| `2 + 16 at sqrt * 2` | `10.0` | `2 + sqrt(16) * 2` |
-| `nums at get[0] + nums at get[2]` | adds two items | `nums[0] + nums[2]` |
-| `-7 at abs` | `7`: `-7` is one number | `abs(-7)` |
-| `-x at abs` | `-(x at abs)` | `-abs(x)` |
-| `!r at isempty` | "r is not empty" | `not r.isempty()` |
-| `title of b at upper` | the title, upper-cased (`title of b` is one value) | `b.title.upper()` |
+| Turtle | Means |
+|---|---|
+| `a at invert == b at invert` | both maps inverted, then compared |
+| `"a" + "b" at upper` | `"aB"` |
+| `"+" + "-" at padright[5] + "+"` | `"+-    +"`: only `"-"` is padded |
+| `("+" + "-") at padright[5] + "+"` | `"+-   +"`: the whole text is padded first |
+| `("a" + "b") at upper` | `"AB"` |
+| `2 + 16 at sqrt * 2` | `10.0` |
+| `nums at get[0] + nums at get[2]` | adds two items |
+| `-7 at abs` | `7`: `-7` is one number |
+| `-x at abs` | `-(x at abs)` |
+| `!r at isempty` | "r is not empty" |
+| `title of b at upper` | the title, upper-cased (`title of b` is one value) |
 
 The same rule holds in the statement form: `r is "a" + "b" at upper .`
 is `"aB"`, like `r = "a" + "b" at upper`. Methods that give a new value
@@ -341,7 +340,7 @@ under Functions.
 
 ## Variables
 
-```
+```text
 <ident> = <expr>
 <ident> = <expr> .
 ```
@@ -351,13 +350,12 @@ naturally after a sentence: `big = nums keep n give n > 10 .`
 
 ## Input
 
-```
+```text
 <ident> = ?
 <ident> = ? <string>
 ```
 
-Reads one line from stdin and assigns it as a string, like Python's
-`input()`. With a string, prints it first as the prompt. A closing period
+Reads one line from stdin and assigns it as a string. With a string, prints it first as the prompt. A closing period
 is optional:
 
 ```
@@ -368,7 +366,7 @@ n = change age to integer
 
 ## Type conversion
 
-```
+```text
 change <ident> to <type> .            // mutates <ident> in place
 <ident> = change <expr> to <type>     // expression form, no mutation
 ```
@@ -384,6 +382,8 @@ in place. The expression form works anywhere an expression can — assigned
 to a different variable, nested inside a larger expression, passed as a
 call argument — and never mutates its source:
 
+> *Illustrative.* This example waits for keyboard input, so it is shown for reading and is not run as a test.
+
 ```
 raw = ? "Enter a number: "
 n = change raw to integer
@@ -395,7 +395,7 @@ target name covers both directions of a pair:
 
 | Target | From | Result |
 |---|---|---|
-| `integer` | string | parsed as base-10, with single underscores allowed between digits as in Python (`"1_000"` is 1000); fatal if invalid |
+| `integer` | string | parsed as base-10, with single underscores allowed between digits (`"1_000"` is 1000); fatal if invalid |
 | `integer` | float | truncated toward zero |
 | `float` | string | parsed as a float |
 | `float` | integer | widened |
@@ -429,7 +429,7 @@ years = change ages to values   // [ 30, 25 ]
 
 ## Show
 
-```
+```text
 show <expr> {, <expr>} .
 ```
 
@@ -457,21 +457,20 @@ In a `show` line, a semicolon starts the next item, so a sentence call's commas 
 
 Punctuation is set against the value before it: no space goes before
 `, . : ; ) ] }` or after `( [ {`. A `!` or `?` is a piece like any other and
-gets its space, as in Python's `print`. Everything else does too, such as
+gets its space. Everything else does too, such as
 `-`, `/`, `%`, `'` or a letter (`show "20", "-", "45" .` gives `20 - 45`).
 To join pieces with no space at all, write the text with `{...}`
 (`show "did you mean {name}?" .`, `show "{a}-{b}" .`, `show "x={n}" .`
 gives `x=3`) or use `+` between two pieces of text (`show "x=" + name .`).
 
-**Floats show the shortest text that reads back as the same float**, as
-Python's `repr` does. So `0.1 + 0.2` shows `0.30000000000000004`, and
+**Floats show the shortest text that reads back as the same float**. So `0.1 + 0.2` shows `0.30000000000000004`, and
 `list [1, 2, 3] process x give x * 0.2` shows
 `[ 0.2, 0.4, 0.6000000000000001 ]`. Very big and very small floats show in
-scientific notation, where Python switches too: `1e+16` and up, and below
+scientific notation: `1e+16` and up, and below
 `0.0001` (`1e-05`). Writing to a file (JSON, CSV) or a database keeps every
 digit as well.
 
-Floats compare exactly, as they do in Python, JavaScript, Java and Go:
+Floats compare exactly:
 `0.1 + 0.2 == 0.3` is `false`, because the two are different floats (the
 first is `0.30000000000000004`). Sets, map keys, `contains` and `index`
 agree: two floats are one key only when they are the same float. A matrix's
@@ -484,7 +483,14 @@ places on screen, use `x at fixed[2]` (`"0.30"`).
 `{<expr>}` inside a string puts the value of `<expr>` there, shown the
 way `show` shows it:
 
-```
+```turtle
+import strings
+assemble Point [x, y]
+p = Point[1, 2]
+nums = list [1, 2]
+w = "word"
+name = "Ann"
+qty = 3
 name = "Ann"
 show "Hi {name}, you have {qty * 2} items" .   // Hi Ann, you have 6 items
 show "{x of p} {nums at len} {w substring 3}" .
@@ -530,7 +536,7 @@ quote that ends them differs.
 
 ## Return / break / continue
 
-```
+```text
 return <expr>
 return
 break
@@ -544,7 +550,7 @@ outside a loop they're a no-op.
 
 ## Functions
 
-```
+```text
 def <name>[<param>, ...]
     <statement>
     ...
@@ -580,7 +586,7 @@ functions are all defined before its first line runs, so the main code
 can come first and the helpers below it, and functions can call each
 other in any order:
 
-```
+```text
 orders = load_orders["orders.csv"]
 report[orders]
 
@@ -613,7 +619,8 @@ total = addtax[100]        // the caller decides what changes
 
 For several results, give back a list or an assembled value:
 
-```
+```turtle
+scores = list [4, 9, 2]
 def minmax[nums]
     return list [min of nums, max of nums]
 def [end]
@@ -695,7 +702,7 @@ show tick[] .               // 2
 
 ### Anonymous functions: `give`
 
-```
+```text
 x give <expr>             // one parameter
 [a, b] give <expr>        // several, bracketed like a def
 [] give <expr>            // none
@@ -707,7 +714,10 @@ give [end]
 `give` makes a function without a name. It's a value like any other
 function, and it can read the variables around it (it's a closure).
 
-```
+```turtle
+def apply[f, v]
+    return f[v]
+def [end]
 double = x give x * 2
 show double[4] .                     // 8
 plus = [a, b] give a + b
@@ -735,7 +745,7 @@ the same name comes first. Methods that need an import (`round` needs
 
 ### Sentence-style calls
 
-```
+```text
 <variable> <function> [<arg>, ...]
 ```
 
@@ -743,10 +753,15 @@ calls `<function>[<variable>, <arg>, ...]`: the variable on the left
 becomes the first argument. It works with any function: your own, an
 imported one, or a builtin like `data`'s `process`.
 
-```
+```turtle
+def scale[xs, f, k]
+    return xs process f
+def [end]
+import data
+nums = list [1, 2]
 nums process x give x + 1 .         // process[nums, x give x + 1]
 r = nums scale x give x + 1, 10     // scale[nums, x give x + 1, 10]
-show nums total .                    // total[nums]
+show nums sum .                      // sum[nums]
 ```
 
 - The left side is a variable name, a literal (`"lo" isinstring line`,
@@ -761,8 +776,8 @@ show nums total .                    // total[nums]
   call's result, as in most languages:
 
   ```
-  if ] s has "urt" && ok [         // (s has "urt") && ok
-  done = nums total > 100 || late  // (nums total > 100) || late
+  if ] "urt" isinstring s && ok [  // ("urt" isinstring s) && ok
+  done = nums sum > 100 || late    // (nums sum > 100) || late
   x = a solve b == y               // (a solve b) == y
   ```
 - A `give` function takes the rest of its line, as a lambda does in other
@@ -772,6 +787,19 @@ show nums total .                    // total[nums]
 - A negative first argument works when the `-` is attached to it:
   `s substring -5`. A spaced `-` (`a b - 1`) or one attached to the name
   (`a b-1`) means subtraction.
+- **`;` ends a call's arguments inside `show`.** With a comma, the next
+  item belongs to the call; with `;`, it is a separate item:
+
+  ```
+  def fix[a, b]
+      return a + b
+  def [end]
+  x = 1
+  show x fix 2 ; "The answer" .     // 3 The answer
+  show x fix 2, "The answer" .      // error: fix expects 2 argument(s), got 3
+  ```
+
+  Outside `show`, `;` is not a separator: `y = x fix 2 ; 10` is an error.
 - A trailing `.` is optional when the call is a whole statement.
 - `a b` is ambiguous with a module-qualified name (`time now`). It's
   settled when the code runs: if `a` is an imported module, it's that
@@ -788,7 +816,7 @@ show nums total .                    // total[nums]
 
 ## Assembled types
 
-```
+```text
 assemble <Name> [<field>, ...]
 
 <Name>[<expr>, ...]          // make one: exactly one value per field, in order
@@ -839,6 +867,26 @@ qty of o = 10
   value; and `show Order .` prints `assemble Order`.
 - Field names must be distinct, and can't be reserved words.
 
+**Changing a field.** A field is changed by an assignment that names it, and the
+assembly is changed in place, so every name for it sees the change. A function that
+receives an assembly can change its fields too:
+
+```turtle
+assemble Order [item, qty, price]
+orders = list [Order["pen", 3, 1.5], Order["ink", 1, 4.0]]
+def discount[o, pct]
+    price of o = price of o * (100 - pct) / 100
+def [end]
+discount[orders at get 0, 10]
+show orders at get 0 .
+qty of (orders at get 1) = 2
+show orders at get 1 .
+```
+
+A field name that the assembly does not have is an error that lists the fields it
+has. A field's value is not checked against any type, so keep each field's type
+consistent in your own code.
+
 ## The kind of a value: `typeof`, `type`
 
 `typeof[x]` gives the kind of any value as text, and needs no import:
@@ -848,7 +896,7 @@ value's type name (`"order"`), or `"assembled type"` for a type itself.
 
 `<value> type <kind>` is `true` or `false`, and reads as a condition:
 
-```
+```text
 assemble order [item, qty]
 o = order ["tea", 2]
 
@@ -898,6 +946,9 @@ show version .          // 0.9.171
 works without brackets: `help m`, `help linear`.
 
 ## Scrolls
+
+The full guide, with the functional and sentence forms side by side, is in
+[scrolls.md](scrolls.md).
 
 A scroll is a value going through steps in order, each step's result
 feeding the next. It reads top to bottom, instead of inside-out like
@@ -1054,7 +1105,7 @@ diagnose [end]
 show "after: ", total .
 ```
 
-```
+```text
 diagnose (lines 3-7)
   line 3       total = 0                    total = 0
   line 4       [loop][x in nums]
@@ -1094,7 +1145,7 @@ hypothesis prices each p give p > 0 (line 4)
 
 Used as a value it only answers, so a program can act on it:
 
-```
+```text
 if ] hypothesis[rows each r give r type Sale] [
     show "every row is a sale" .
 if [end]
@@ -1166,7 +1217,7 @@ A theory brings a new word into Turtle: how it's written, what it means,
 and what it promises. Once a file has a theory, its phrases read like
 the rest of the language.
 
-```
+```turtle
 theory tally
     abstract
         tally says how many times b appears in the list a.
@@ -1186,6 +1237,7 @@ theory tally
         tally 9 in list [] . is 0
 theory [end]
 
+nums = list [1, 1, 0, 3]
 tally 1 in nums .                  // on its own line
 c is tally 1 in nums .             // its result, named
 show "ones: ", tally 1 in nums .   // inside other sentences
@@ -1222,7 +1274,7 @@ show "ones: ", tally 1 in nums .   // inside other sentences
 
 A proof can set things up, and check them in turn:
 
-```
+```text
 proof
     nums = list [1, 1, 0, 3]
     tally 1 in nums . is 2
@@ -1234,7 +1286,7 @@ proof
 A check must start its own line; setup lines run before the next check.
 A theorem can be a sentence and can have a condition:
 
-```
+```text
 theorem result each x give x >= 0
 theorem result >= lo if lo <= hi
 ```
@@ -1304,6 +1356,48 @@ its result, each theorem for it, and how long it took. `diagnose[tally]`
 runs the theory's proof and its theorems, as `turtle test` does, and
 shows where they fail. Neither stops the program.
 
+**Several theories, and theories built from theories.** A program may use any
+number of theories, and a theory's definition may use another theory. The
+theory used must come first in the file, and a theory must be written at the top
+level of a file, not inside another theory or a function. Here `small_square` is
+written with `within` and `squared`:
+
+```turtle
+theory squared
+    abstract
+        squared x says the square of x.
+    notation squared x .
+    definition
+        return x * x
+    theorem result >= 0
+    proof
+        squared 3 . is 9
+theory [end]
+theory within
+    abstract
+        within x, lo, hi says whether x lies from lo to hi inclusive.
+    notation within x, lo, hi .
+    definition
+        return x >= lo && x <= hi
+    theorem result == (x >= lo && x <= hi)
+    proof
+        within 5, 1, 10 . is true
+theory [end]
+theory small_square
+    abstract
+        small_square x says whether the square of x lies within 0 and 100.
+    notation small_square x .
+    definition
+        return within squared x, 0, 100
+    theorem result == (squared x >= 0 && squared x <= 100)
+    proof
+        small_square 5 . is false
+        small_square 3 . is true
+theory [end]
+show small_square 3 .
+show small_square 5 .
+```
+
 ## None
 
 `none` is Turtle's "no value". It's what a function returns when it has no
@@ -1320,7 +1414,7 @@ When a file has a mistake Turtle can't read past, it shows the first one,
 with the line and a `^` under the spot, and says how to fix the usual
 ones:
 
-```
+```text
 turtle: report.turtle, line 2: this line needs a '.' at the end
   2 | show x
     |       ^
@@ -1333,7 +1427,7 @@ seen again.
 Turtle runs them as written and shows a note first (editors underline
 them):
 
-```
+```text
 turtle: note: report.turtle, line 4: at round works on b only, not on the whole / expression; to round the whole value, store it first: v = ... / b, then v at round
 ```
 
@@ -1349,7 +1443,7 @@ same spot.
 
 ## Errors: `safe` / `handle` / `fail`
 
-```
+```text
 safe
     <statement> ...
 handle [<kind>, ...] <name> .
@@ -1441,7 +1535,7 @@ def [end]
 
 ## Conditionals
 
-```
+```text
 if ] <expr> [
     <statement> ...
 {else if ] <expr> [
@@ -1458,7 +1552,7 @@ then `[`.
 enclosing clause's body, with one extra leading `[` on every keyword of the
 nested chain:
 
-```
+```text
 [if ] <expr> [
     ...
 {[else if ] <expr> [
@@ -1474,7 +1568,7 @@ appear in any known real program).
 
 ## Loops
 
-```
+```text
 [loop][<header>]
     <statement> ...
 [loop][end]
@@ -1482,7 +1576,7 @@ appear in any known real program).
 
 `<header>` is one of:
 
-```
+```text
 <ident> = <expr> ; <expr> ; <post>      // C-style: init; condition; post
 <expr>                                   // while-style: condition only
 <ident> in <expr>                        // for-each
@@ -1493,7 +1587,9 @@ For-each walks a list or set (each element), a string (each character),
 or a map (each key). With two names it gives `index, element`, or
 `key, value` for a map:
 
-```
+```turtle
+nums = list [1, 2]
+ages = map ["Ann": 30]
 [loop][x in nums]
     show x .
 [loop][end]
@@ -1527,7 +1623,7 @@ outside variable of that name is untouched, and it's gone after the loop.
 
 See [the library docs](library/index.md) for full method tables. Declaration:
 
-```
+```text
 <ident> = list [<expr>, ...]
 <ident> = set [<expr>, ...]
 <ident> = map [<expr>:<expr>, ...]
@@ -1535,7 +1631,7 @@ See [the library docs](library/index.md) for full method tables. Declaration:
 
 Statement-form operations (all require a trailing `.`):
 
-```
+```text
 add <expr> to <ident> .
 add <expr> to <ident> at <key> .  // map: a new key gets the value; an existing one changes by its type (5 + 12 is 17)
 add <expr> to <ident> at <position> .  // list of lists: adds to the item there
@@ -1553,14 +1649,14 @@ min[<expr>] .  or  min[<a>, <b>, ...] .   // the same as min of, without of; max
 
 Method-call form:
 
-```
+```text
 <ident> is <expr> [at <method> [<expr> {, <expr>}]] .
 ```
 
 `sort` puts numbers in number order and text in character order (capitals
-first, as Python does). A list of lists sorts element by element, then by
+first). A list of lists sorts element by element, then by
 length: `[2, "c"]` comes before `[9, "a"]`. Mixing numbers and text in one
-list is an error, as in Python: `sort [1, "a"]` stops with "can't sort string
+list is an error: `sort [1, "a"]` stops with "can't sort string
 and integer together". A boolean sorts with a boolean (false first). `import
 sort` has key functions and other algorithms, such as case-insensitive text
 (see [sort](library/sort.md)).
@@ -1606,14 +1702,14 @@ inside itself (`add x to x .`). Showing, comparing, sorting, copying with
 end: one that holds itself, or one nested more than 100,000 levels deep,
 stops with an error ("this value is nested more than 100000 levels deep,
 or contains itself") that `safe` can handle, rather than running forever.
-A value always equals itself without that walk, as in Python: `x == x` is
+A value always equals itself without that walk: `x == x` is
 `true` even after `add x to x .`, and so is it for a list holding `nan`
 compared with itself (two separate lists holding `nan` are not equal).
 JSON is written at most 10,000 levels deep, the depth `load` can read.
 
 ## Files
 
-```
+```text
 [read] <path> to <ident> [end]
 
 [write] <path>
@@ -1654,7 +1750,7 @@ current value; items are newline-joined.
 
 ## Modules
 
-```
+```text
 import <name>                  // everything the module exports
 import <name> [<f>, <g>, ...]  // only the listed names
 import <name> as <alias>       // the module is called <alias> in this file
@@ -1734,6 +1830,23 @@ export is a fatal error at the `import` line. `import m []` is a parse
 error. Importing the same module again merges: lists accumulate, and a
 full import makes everything available.
 
+**Settings in the import line.** A `name = value` inside the brackets sets a
+variable of the importing file, once the import has run, exactly as a line
+`name = value` after the import would:
+
+```
+import data [tablerows = 50]              // everything, with 50 rows shown
+import data [tablerows = 50, process]     // only process, with 50 rows shown
+import log [loglevel = "debug"]
+import random [seed = 7]
+```
+
+Plain names still choose what is imported. With settings and no plain
+names, the whole module is imported. The value is any expression, evaluated
+in the importing file, and the setting can be changed on a later line as
+usual. A setting replaces the library's default, and a missing value is a
+parse error.
+
 Imports apply per file: the main program and each module only see what
 they themselves imported. A circular import (`a` imports `b` imports `a`)
 is a fatal error that shows the chain.
@@ -1750,6 +1863,8 @@ def now[]
     return "shop's now"
 def [end]
 ```
+
+> *Illustrative.* This example needs a module file (shop.turtle) that is not in the repository, so it is shown for reading and is not run as a test.
 
 ```
 import math                     // a built-in library
@@ -1829,6 +1944,8 @@ language for that file (`random`, `check`, `log`, `matrix`): see
 Using a math method or `now`/`sleep` without the matching import is a fatal
 error naming exactly which import is missing.
 
+> *Illustrative.* This example needs files that the example does not create, so it is shown for reading and is not run as a test.
+
 ```
 import time
 import mylib [binary, now]
@@ -1841,7 +1958,7 @@ sleep[0.5]             // only time has sleep
 
 ## Shell escape
 
-```
+```text
 sys <rest of line>
 ```
 
@@ -1854,7 +1971,7 @@ file paths resolve too).
 
 In a file with `import log` (settings and examples: [the `log` docs](library/log.md)):
 
-```
+```text
 log [debug | info | warn | error] <expr> {, <expr>} .
 ```
 
@@ -1868,7 +1985,7 @@ still assigns.
 In a file with `import test`, three more statements (full guide:
 [`testing.md`](testing.md)):
 
-```
+```text
 check <expr> .                                  // true or false; == explains a difference
 check <expr> is [not] <kind> .                  // integer float number string boolean list set map date none function empty, or an assembled type
 check <expr> is [not] close to <expr> [within <expr>] .
@@ -1906,7 +2023,7 @@ code, and exits with 1 if any failed.
 standard error, shows each line as it runs. A line that sets a variable
 shows the value it got:
 
-```
+```text
 line 1   nums = list [5, 7]               nums = [ 5, 7 ]
 line 2   total = 0                        total = 0
 line 3   [loop][x in nums]
@@ -1928,7 +2045,7 @@ so `turtle trace report.turtle 2> trace.txt` keeps the two apart.
 `turtle debug script.turtle [args]` runs the program a line at a time. It
 stops before the first line, shows the line it's on, and waits:
 
-```
+```text
 → line 9      r = n * 2
 (debug) p n
 12
@@ -2028,12 +2145,11 @@ turtle doc lib/shop.turtle      # the functions of your own file
 ```
 
 Document your own functions with comments **directly above** the `def`
-(or `assemble`), or **first in the function's body** (as Python's
-docstrings are), either kind: `//` lines or a `//* ... *//` block. The `//`
+(or `assemble`), or **first in the function's body**, either kind: `//` lines or a `//* ... *//` block. The `//`
 lines at the very top of a file describe the file. Say what each
 parameter is and what the function gives back:
 
-```
+```text
 // shop.turtle: helpers for the bookshop database.
 
 // add_tax adds rate percent to an amount, rounded to the cent.
@@ -2048,7 +2164,7 @@ def [end]
 A function without them is listed as having no description. The same
 comment can go inside, as the first thing in the body:
 
-```
+```text
 def add_tax[cents, rate]
     //* adds rate percent to an amount, rounded to the cent.
         Gives back the new amount in cents. *//

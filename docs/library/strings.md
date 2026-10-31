@@ -36,3 +36,73 @@ literal on the left: `"wor" isinstring line`.
 
 Copyright 2017-2026 Nigele McCoy. Licensed under the
 [Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).
+
+<!-- generated: turtle doc `strings` (regenerate with the script; do not edit by hand) -->
+## Function reference
+
+The entries below are copied from the binary's own documentation (`turtle doc strings`), so they match the version you run.
+
+```text
+import strings
+```
+
+### `Text functions that read well as sentences. Positions count`
+
+```text
+Text functions that read well as sentences. Positions count
+characters from 0.
+```
+
+### `find[text, part]`
+
+```text
+find[text, part]        (import strings)
+  Where part first appears in text.
+  Gives back: its position, or -1 if it isn't there.
+  Example:
+    line = "a word here"
+    show line find "wor" .
+    show line substring 0, 5 .
+    if ] "wor" isinstring line [
+        show "found" .
+    if [end]
+    words = list ["red", "green"]
+    show words join ", " .
+```
+
+### `substring[text, start, end]`
+
+```text
+substring[text, start, end]        (import strings)
+  The characters from start up to (not including) end. end is optional
+  (to the end); a negative position counts from the end.
+  Example:
+    line = "a word here"
+    show line substring 0, 5 .
+```
+
+### `isinstring[part, text]`
+
+```text
+isinstring[part, text]        (import strings)
+  Does text contain part?
+  Gives back: true or false.
+  Example:
+    line = "a word here"
+    if ] "wor" isinstring line [
+        show "found" .
+    if [end]
+```
+
+### `join[items, separator]`
+
+```text
+join[items, separator]        (import strings)
+  Joins a list (or set) into one text, with separator between the items
+  (optional: nothing by default).
+  Example:
+    words = list ["red", "green"]
+    show words join ", " .
+```
+
+<!-- end generated -->

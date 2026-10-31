@@ -42,7 +42,7 @@ go build -o turtle ./cmd/turtle
 ```
 
 This produces a `turtle` binary in the current directory. On Windows,
-name it `turtle.exe` (Go doesn't add the `.exe` for you), and run it as
+name it `turtle.exe` (the build doesn't add the `.exe` for you), and run it as
 `.\turtle.exe` wherever this page says `./turtle`:
 
 ```powershell

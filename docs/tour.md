@@ -25,7 +25,7 @@ pi = 3.14159
 ```
 
 Numbers are integers or floats. `+` adds two numbers and joins two pieces
-of text. Text and a number is an error, as in Python: `"5" + 0` stops the
+of text. Text and a number is an error: `"5" + 0` stops the
 program instead of giving `"50"`. To put a value in text, write it inside
 the text with `{...}`: `"total: {n}"`. (Lists, sets and maps only add to
 their own kind; `list [1] + 1` is an error.)
@@ -41,23 +41,29 @@ Standard comparison and logical operators work in conditions:
 ## Printing: `show`
 
 ```
+x = 4
+y = 9
 show "Hello, world" .
 show 1 + 2 .
 show "x is ", x, ", y is ", y .
 ```
 
 `show` always ends with a period. Comma-separated pieces are written with
-one space between them, as Python's `print` does, except that `, . : ; )`
+one space between them, except that `, . : ; )`
 sit against the piece before them and no space is added where a piece
 already has one (see the reference):
 
 ```
+x = 4
+y = 9
 show "x = ", x, ", y = ", y .
 ```
 
 Put a value straight into a string with `{...}`:
 
 ```
+x = 4
+y = 9
 show "x = {x}, y = {y}, total = {x + y}" .
 ```
 
@@ -65,6 +71,8 @@ Strings can also use single quotes, handy when the text has double
 quotes in it: `show 'She said "hi"' .`
 
 ## Reading input
+
+> *Illustrative.* This example waits for keyboard input, so it is shown for reading and is not run as a test.
 
 ```
 name = ? "What's your name? "
@@ -79,6 +87,8 @@ trailing period.
 Input from `?` is always a string, so `change` converts it (or any value)
 to another type. As a statement it mutates a variable in place; as an
 expression it produces a new value without touching the source:
+
+> *Illustrative.* This example waits for keyboard input, so it is shown for reading and is not run as a test.
 
 ```
 raw = ? "Enter a number: "
@@ -114,6 +124,7 @@ Turtle's if/else uses **reversed brackets** — the condition is wrapped
 `] ... [`, not `[ ... ]`:
 
 ```
+x = 12
 if ] x > 10 [
     show "big" .
 else if ] x > 0 [
@@ -131,13 +142,16 @@ work like you'd expect.
 A nested if goes inside another clause's body, and every keyword of the
 nested chain gets one extra leading `[`:
 
-```
+```turtle
+a = 1
+b = 2
 if ] a > 0 [
     show "a is positive" .
-    [if ] b > 0 [
+    if ] b > 0 [
         show "both positive" .
-    [else ]
+    else ]
         show "a positive, b not" .
+    if [end]
 else ]
     show "a not positive" .
 if [end]
@@ -291,7 +305,9 @@ ages = map ["Alice": 30, "Bob": 25]
 
 Statement-form operations (all take a trailing period):
 
-```
+```turtle
+nums = list [3, 1, 2]
+ages = map ["Alice": 30, "Bob": 25]
 add 4 to nums .
 remove 1 from nums .
 sort nums .
@@ -307,10 +323,13 @@ max of nums .         // prints
 
 Method-call form, for everything else (`get`, `union`, `invert`, ...):
 
-```
+```turtle
+nums = list [3, 1, 2]
+otherSet = set [3, 4]
 first is nums at get 0 .
-combined is letters at union otherSet .
+combined is set [1, 2] at union otherSet .
 show first .
+show combined .
 ```
 
 Inside an expression, `get[...]` and `slice[...]` take brackets and bind
@@ -374,6 +393,8 @@ with `fail "message"`. See the reference for the list of kinds.
 
 `import time` gives dates you can add to and compare:
 
+> *Illustrative.* This example depends on values set elsewhere on the page, so it is shown for reading and is not run as a test.
+
 ```
 import time
 now_day = today[]
@@ -387,7 +408,9 @@ every[1, "hours", check_inbox]              // run a function every hour
 
 `import json` reads and writes JSON, as maps and lists:
 
-```
+```turtle
+import json
+json_write["user.json", map ["name": "Ann"]]
 import json
 user = json_read["user.json"]
 show json_get[user, "address", "city"] .   // none if it isn't there
@@ -400,6 +423,8 @@ data = load['{"name": "Ann", "tags": ["a", "b"]}']
 `import http` fetches pages and talks to APIs; JSON answers go straight
 into `load`:
 
+> *Illustrative.* This example needs a network address, so it is shown for reading and is not run as a test.
+
 ```
 import http
 import json
@@ -411,7 +436,11 @@ reply = http_post["https://api.example.com/users", map ["name": "Ann"]]
 
 `import sql` reads SQLite databases; rows come back as a list of maps:
 
+> *Illustrative.* This example needs an import that the example does not include, so it is shown for reading and is not run as a test.
+
 ```
+db = sql_create["shop.db"]
+sql_close[db]
 import sql
 db = sql_open["shop.db"]
 cheap = sql_query[db, "SELECT title FROM books WHERE price < ?", list [1000]]
@@ -419,21 +448,22 @@ cheap = sql_query[db, "SELECT title FROM books WHERE price < ?", list [1000]]
 
 ## Files
 
-```
+```turtle
+[write] notes.txt
+"first line"
+[end]
 [read] notes.txt to lines [end]
-show lines .                 // a list, one element per line
-
+show lines .
+someVariable = "second line"
 [write] out.txt
 "first line"
 someVariable
 [end]
-
 [append] out.txt
 "more text"
 [end]
-
 [directory] . to entries [end]
-show entries .
+show length of entries > 0 .
 ```
 
 ## Shell escape
@@ -443,7 +473,7 @@ sys echo hello from turtle
 ```
 
 Runs the rest of the line as a shell command, inheriting stdin/stdout/
-stderr. Deliberately dangerous — same idea as Python's `os.system` — so use
+stderr. Deliberately dangerous, so use
 it only when you mean to.
 
 ## Tables, CSV files and statistics
@@ -451,6 +481,11 @@ it only when you mean to.
 `import data` works on whole collections, and reads and writes tables:
 
 ```
+[write] sales.csv
+"copies,price"
+"12,9.5"
+"4,7"
+[end]
 import data
 
 sales = table_read["sales.csv"]       // a list of maps; plain numbers come back as numbers
@@ -489,6 +524,8 @@ Numbers can be written the scientific way too: `1e-9`, `6.02e23`.
 `import` brings in a library that comes with Turtle, or a `.turtle` file of
 your own:
 
+> *Illustrative.* This example needs a module file (shop.turtle) that is not in the repository, so it is shown for reading and is not run as a test.
+
 ```
 import data                    // a library that comes with Turtle
 import time [now, sleep]       // only some of its names
@@ -506,6 +543,8 @@ def withtax[amount]
     return amount + amount * taxrate
 def [end]
 ```
+
+> *Illustrative.* This example needs a module file (shop.turtle) that is not in the repository, so it is shown for reading and is not run as a test.
 
 ```
 import shop
@@ -527,7 +566,10 @@ Some imports turn on words of the language, in that file only:
 Using a library's function without its import is an error that names the
 import to add:
 
+> *Illustrative.* This example needs an import that the example does not include, so it is shown for reading and is not run as a test.
+
 ```
+nums = list [1, 2]
 x = sum[nums]                  // "sum" needs "import data" first
 ```
 

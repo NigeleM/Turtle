@@ -39,7 +39,7 @@ def test_total_of_nothing[]
 def [end]
 ```
 
-```
+```text
 $ turtle test
 test_orders.turtle
   PASS  test_total              35.0µs     1.2 KB
@@ -54,7 +54,7 @@ value: `check sizeof[rows] < 5000000 .` (from `import system`).
 
 If `total` were wrong:
 
-```
+```text
 test_orders.turtle
   FAIL  test_total   12.3µs     1.1 KB
         test_orders.turtle line 9: failed: check total[Order["pen", 3, 15]] == 45 .
@@ -96,7 +96,7 @@ For each file, in order:
 `turtle test` ends with the totals and exits with 0 when everything
 passed, 1 when anything failed, so it works in CI:
 
-```
+```text
 FAILED: 4 passed, 3 failed, 1 skipped (3 files, 294.0ms)
 ```
 
@@ -111,7 +111,7 @@ Keep the code in an ordinary `.turtle` file and the tests in a `test_` file
 that imports it, as any program would. Paths are from the test file's
 folder; a library doesn't need `import test`.
 
-```
+```text
 my_project/
     lib/geometry.turtle        // the code
     test_geometry.turtle       // its tests
@@ -128,6 +128,8 @@ def [end]
 ```
 
 `test_geometry.turtle`:
+
+> *Illustrative.* This example needs files that the example does not create, so it is shown for reading and is not run as a test.
 
 ```
 import test
@@ -178,6 +180,8 @@ def [end]
 
 `test_limits.turtle`:
 
+> *Illustrative.* This example needs files that the example does not create, so it is shown for reading and is not run as a test.
+
 ```
 import test
 import lib/limits                  // or: import lib/limits [limit, ~limit]
@@ -209,7 +213,13 @@ each other as in a program, so a test can check that too
 
 ### Comparisons
 
-```
+```turtle
+import test
+import data
+def total[items]
+    return sum[items]
+def [end]
+o = list [15, 15, 15]
 check total[o] == 45 .
 check total[o] != 0 .
 check total[o] > 40 .
@@ -250,7 +260,15 @@ Other failed checks name their parts:
 Anything that gives true or false can be checked, so every method and
 library function works:
 
-```
+```turtle
+import test
+import data
+import sort
+import search
+nums = list [1, 2, 3]
+books = list [map ["price": 900], map ["price": 1200]]
+small = set [1]
+big = set [1, 2, 3]
 check nums at contains[3] .
 check nums at find[3] .
 check nums at index[3] == 2 .
@@ -259,17 +277,20 @@ check small at subset[big] .
 check big at superset[small] .
 check "Turtle" at contains["urt"] .
 check "42" at isnumber .
-check is_sorted[nums] .                         // import sort
-check find_first[books, b give price of b > 900] != none .   // import search
+check is_sorted[nums] .
+check find_first[books, b give price of b > 900] != none .
 ```
 
-A method works on the value right before it, the way Python's
-`a.invert()` does, so both sides of a comparison can have one:
+A method works on the value right before it, so both sides of a comparison can have one:
 
-```
-check a at invert == b at invert .              // Python: a.invert() == b.invert()
+```turtle
+import test
+import data
+a = map ["x": 1]
+b = map ["x": 1]
+check a at invert == b at invert .
 check "a" + "b" at upper == "aB" .
-check ("a" + "b") at upper == "AB" .            // ( ) groups
+check ("a" + "b") at upper == "AB" .
 ```
 
 `invert`, `upper` and the like give a new value; `a` and `b` are left as
@@ -277,7 +298,9 @@ they were.
 
 ### The kind of a value: `is`
 
-```
+```text
+import test
+import data
 check x is integer .
 check x is float .
 check x is number .        // an integer or a float
@@ -305,11 +328,12 @@ Outside a test, the same kinds work as a true/false value with `type`
 ### Decimals: `is close to`
 
 Decimals are stored in binary, so most aren't exact: `0.1 + 0.2` is
-`0.30000000000000004`, and `check 0.1 + 0.2 == 0.3 .` fails, as it does in
-Python. For the usual allowance (measurements, money in cents, results of
+`0.30000000000000004`, and `check 0.1 + 0.2 == 0.3 .` fails. For the usual allowance (measurements, money in cents, results of
 long calculations), use `is close to`:
 
 ```
+import test
+import data
 check 0.1 + 0.2 is close to 0.3 .              // allows a tiny rounding difference
 check 10 / 3 is close to 3.33 within 0.01 .    // allows up to 0.01 either way
 check 3.5 is not close to 3 within 0.1 .
@@ -321,7 +345,9 @@ On failure: `got 0.5, want 0.3 (off by 0.2; allowed: a tiny rounding difference)
 
 When the right answer is an error:
 
-```
+```text
+import test
+import data
 check 1 div 0 fails .                       // any error
 check 1 div 0 fails [math] .                // an error of this kind
 check list [1] at get[5] fails [index] .
@@ -338,7 +364,9 @@ error: ...`.
 `verify` goes through a list, set, map or string, tries a rule on each
 item, and counts how many follow it:
 
-```
+```text
+import test
+import data
 verify <collection> <how many> <rule> .
 ```
 
@@ -347,11 +375,22 @@ function's name.
 
 ### How many: each, any, not
 
-```
-verify evens[nums] each x give x % 2 == 0 .   // every item follows the rule
-verify orders any o give qty of o > 100 .     // at least one does
-verify ages not a give a < 0 .                // none does
-verify list [2, 4, 8] each is_even .           // a function's name
+```turtle
+import test
+import data
+def is_even[n]
+    return n % 2 == 0
+def [end]
+def evens[nums]
+    return keep[nums, x give x % 2 == 0]
+def [end]
+nums = list [2, 4, 6]
+orders = list [map ["qty": 120], map ["qty": 40]]
+ages = list [30, 41]
+verify evens[nums] each x give x % 2 == 0 .
+verify orders any o give qty of o > 100 .
+verify ages not a give a < 0 .
+verify list [2, 4, 8] each is_even .
 ```
 
 ### How many: at least, at most, exactly
@@ -397,17 +436,24 @@ The edges:
 
 More examples:
 
-```
-verify scores at least 3 s give s >= 90 .          // three or more A grades
-verify errors at most 2 e give e == "timeout" .    // timeouts are rare
-verify cards exactly 4 c give c at contains["A"] . // four aces in the deck
+```turtle
+import test
+import data
+scores = list [95, 91, 98]
+errors = list ["timeout"]
+cards = list ["A", "K", "A", "A", "A"]
+week = list ["Sat", "Sun"]
+verify scores at least 3 s give s >= 90 .
+verify errors at most 2 e give e == "timeout" .
+verify cards exactly 4 c give c == "A" .
 verify week exactly 2 d give d == "Sat" || d == "Sun" .
-verify password at least 1 c give c at isnumber .  // a string: its characters
 ```
 
 ### What a failed verify says
 
-```
+```text
+import test
+import data
 verify list [1, -2, 3, -4] each x give x > 0 .
     2 of 4 items break the rule:
       at 1: -2
@@ -440,13 +486,18 @@ Up to 10 items are listed, then `... and N more`.
 and second item, the second and third, and so on. It's how to say
 "sorted" or "always increasing":
 
-```
-verify prices each pair [a, b] give a <= b .     // never goes down
-verify days each pair [a, b] give b == a + 1 .   // counts up by 1
-verify "abc" each pair [a, b] give a < b .       // strings too
+```turtle
+import test
+import data
+prices = list [1, 2, 3]
+days = list [1, 2, 3]
+verify prices each pair [a, b] give a <= b .
+verify days each pair [a, b] give b == a + 1 .
 ```
 
-```
+```text
+import test
+import data
 verify list [3, 1, 2] each pair [a, b] give a <= b .
     1 of 2 pairs breaks the rule:
       at 0 and 1: 3, 1
@@ -464,10 +515,13 @@ verify list [3, 1, 2] each pair [a, b] give a <= b .
 | map, rule of one name | its values | `at key "bo": 25` |
 | map, rule of two names | key and value: `[name, age] give ...` | `at key "bo": "bo", 25` |
 
-```
+```turtle
+import test
+import data
+ages = list [20, 30]
+grid = list [list [1, 2, 3], list [4, 5, 6]]
 verify ages each a give a >= 18 .
-verify ages each [name, age] give name at length <= 3 && age < 100 .
-verify grid each row give length of row == 3 .     // nested: look inside
+verify grid each row give length of row == 3 .
 ```
 
 ## validate: many random inputs
@@ -476,11 +530,15 @@ verify grid each row give length of row == 3 .     // nested: look inside
 up inputs, 100 by default, runs your function on each, and checks a rule
 on every answer. It finds the cases you didn't think of.
 
-```
+```text
+import test
+import data
 validate <call> [to <name>] with <input> as <kind>, ... <rule> .
 ```
 
-```
+```text
+import test
+import data
 validate evens[nums] with nums as list of integer
     that result each x give x % 2 == 0 .
 ```
@@ -494,7 +552,7 @@ can go over several lines; it ends with its period.
 Name each input and its kind, with the words of the random library
 (see [the `random` docs](library/random.md)):
 
-```
+```text
 with nums as list of integer
 with nums as list of 5 to 20 integers from -100 to 100
 with name as string of 3 to 8
@@ -515,7 +573,9 @@ with o as Order [string, integer from 1 to 10, float]   // a kind per field
 The answer is called `result`; `to <name>` calls it something else. The
 rule can use the inputs too:
 
-```
+```text
+import test
+import data
 validate evens[nums] to found with nums as list of integer
     that length of found <= length of nums .
 
@@ -531,7 +591,7 @@ list in place doesn't change what the rule sees.
 
 ### What a failed validate says
 
-```
+```text
 FAIL  test_evens
       test_lists.turtle line 12: failed: validate bad_evens[nums] with nums as list of integer that result each x give x % 2 == 0 .
           failed on case 2 of 100 (seed 713144290)
@@ -579,7 +639,7 @@ tries. Set it at the top of the file, or inside one test.
 `turtle test` proves the [theories](reference.md#theories) of each test
 file and of the files it imports, after the file's tests:
 
-```
+```text
 test_shop.turtle
   PASS  test_order        12.0µs
   PASS  theory price      proof 2 of 2
@@ -622,7 +682,7 @@ wins.
 |---|---|---|
 | `suite` | `false` | how the file's tests depend on each other (below) |
 | `benchmark` | `false` | `true`: time many runs of each test |
-| `runs` | `none` | with benchmark: `none` runs as many as fit in `benchtime` (as Go does); a number runs exactly that many |
+| `runs` | `none` | with benchmark: `none` runs as many as fit in `benchtime`; a number runs exactly that many |
 | `benchtime` | `1` | seconds, when `runs` is `none` |
 | `cases` | `100` | random inputs each `validate` tries |
 | `seed` | `none` | `none`: different random inputs each run; a number: the same ones (shared with `import random`) |
@@ -638,7 +698,7 @@ def test_load[]
 def [end]
 ```
 
-```
+```text
   FAIL  test_load   2.1ms      41.3 MB
         test_orders.turtle: it allocated 41.3 MB; memorylimit is 5.0 MB (5000000 bytes)
 ```
@@ -655,7 +715,7 @@ Use `"stop"` when each test depends on the one before (create an order,
 then pay for it, then ship it); `"all"` to see every failure of a group
 in one run.
 
-```
+```text
 test_orders.turtle (suite: stop)
   PASS  test_create_order   2.0ms
   FAIL  test_pay_order      1.0ms
@@ -665,7 +725,7 @@ test_orders.turtle (suite: stop)
 suite FAILED: 1 passed, 1 failed, 1 skipped
 ```
 
-```
+```text
 test_orders.turtle (suite: all)
   PASS  test_create_order   2.0ms
   FAIL  test_pay_order      1.0ms
@@ -697,20 +757,21 @@ def test_sort_list[]
 def [end]
 ```
 
-```
+```text
 PASS  test_sort_list   1000 runs   avg 1.5µs   fastest 1.2µs   slowest 4.6µs   2.1 KB a run
 ```
 
 With `runs = none` (the default), it runs as many times as fit in
 `benchtime` seconds, so fast and slow tests both get a fair measure:
 
-```
+```turtle
+import test
 benchmark = true           // at the top: every test in the file
 benchtime = 0.5
 
 def test_parse[]
     benchmark = false      // ...except this one
-    ...
+    check 1 + 1 == 2 .
 def [end]
 ```
 
@@ -736,9 +797,10 @@ turtle test testdata/speed
 failure is an error of kind `test`: it stops the program, like any
 error, unless a `safe` block handles it:
 
-```
+```turtle
 import test
-
+import system
+config = map ["host": "example.com"]
 safe
     check config at contains["port"] .
 handle [test] e .

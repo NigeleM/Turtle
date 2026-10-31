@@ -9,6 +9,8 @@ Serving a web API or pages from a map of routes.
 to what answers them, and handlers are ordinary functions: no new
 keywords.
 
+> *Illustrative.* This example needs a folder that the example does not create, so it is shown for reading and is not run as a test.
+
 ```
 import server
 
@@ -118,3 +120,79 @@ That's fine for tools, dashboards and small sites.
 
 Copyright 2017-2026 Nigele McCoy. Licensed under the
 [Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).
+
+<!-- generated: turtle doc `server` (regenerate with the script; do not edit by hand) -->
+## Function reference
+
+The entries below are copied from the binary's own documentation (`turtle doc server`), so they match the version you run.
+
+```text
+import server
+```
+
+### `A web server. Routes are a map from "METHOD /path" to what answers`
+
+```text
+A web server. Routes are a map from "METHOD /path" to what answers
+it: a function (a handler), a fixed value, or, on a /* route, a folder
+whose files it serves. A handler gets the request as a map and gives back
+text (a page), a map or list (JSON), reply[...] or redirect[...]. An
+error in a handler answers 500 and is shown; the server goes on.
+Requests take turns. Ctrl+C stops it.
+```
+
+### `The request: method, path, params (from :name parts, and * for the rest`
+
+```text
+The request: method, path, params (from :name parts, and * for the rest
+of a /* route), query, headers (lowercase names), body (text), json (the
+body read as JSON, or none), form (a posted form), ip.
+```
+
+### `Settings ("import server" makes them):`
+
+```text
+Settings ("import server" makes them):
+    serverlog = true            show a line per request: GET /users/7 200 3ms
+    serverhost = "localhost"    "0.0.0.0" to answer other computers too
+    servertimeout = 30          seconds a handler may run before it's stopped
+                                with 503; 0 is no limit
+```
+
+### `serve[routes, port]`
+
+```text
+serve[routes, port]        (import server)
+  Starts the server and answers requests until the program is stopped.
+  routes   a map: "GET /": home, "GET /users/:id": showuser,
+           "POST /users": adduser, "GET /health": "ok",
+           "GET /static/*": "public"
+  port     optional: 8080 by default
+  Example:
+    serve[app, 8080]
+    app serve 8080
+```
+
+### `reply[status, body, headers]`
+
+```text
+reply[status, body, headers]        (import server)
+  An answer with its own status, and optionally headers.
+  status   200 ok, 201 made, 404 not found, ...
+  body     optional: text, or a map or list (JSON)
+  headers  optional: a map, like map ["Cache-Control": "no-store"]
+  Gives back: a Reply { status, body, headers }.
+  Example:
+    return reply[404, "no such user"]
+```
+
+### `redirect[address, status]`
+
+```text
+redirect[address, status]        (import server)
+  Sends the visitor to another address (302, or 301, 303, 307, 308).
+  Example:
+    return redirect["/login"]
+```
+
+<!-- end generated -->

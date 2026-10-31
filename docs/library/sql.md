@@ -23,7 +23,7 @@ MariaDB) servers, through the same functions; the address given to
 
 For SQLite, that's the file format, B-trees, the journal that makes
 changes crash-safe, file locking, and the SQL engine. The files are
-ordinary SQLite files: the `sqlite3` tool, DB Browser, Python and every
+ordinary SQLite files: the `sqlite3` tool, DB Browser and every
 other SQLite program can open them, and Turtle can open theirs. For the
 servers, it's their network protocols, logins and TLS; the server runs
 the SQL (see [Servers](#servers-postgresql-and-mysql)).
@@ -96,6 +96,8 @@ nothing at all (an error of kind `sql`): `NOT NULL`, `UNIQUE`,
 `ON DELETE CASCADE / SET NULL / SET DEFAULT / RESTRICT`) are enforced
 after `PRAGMA foreign_keys = ON`; as in SQLite, they're off until then.
 
+> *Illustrative.* This example needs a database that the example does not create, so it is shown for reading and is not run as a test.
+
 ```
 safe
     sql_run[db, "INSERT INTO books (title) VALUES (NULL)"]
@@ -108,6 +110,8 @@ safe [end]
 
 Each statement is saved on its own, and is all-or-nothing. To save
 several together, or to undo them:
+
+> *Illustrative.* This example needs a database that the example does not create, so it is shown for reading and is not run as a test.
 
 ```
 sql_run[db, "BEGIN"]
@@ -205,6 +209,8 @@ a missing `NOT NULL` value), no line of that file is kept, even inside
 | `sql_delete[db, table, key, path]` | removes the records whose `key` matches a line (other columns are ignored) |
 | `sql_upsert[db, table, key, path]` | adds the lines whose key is new and changes the ones already there (`key` must be `UNIQUE` or the `PRIMARY KEY`) |
 
+> *Illustrative.* This example needs files that the example does not create, so it is shown for reading and is not run as a test.
+
 ```
 import sql
 
@@ -247,6 +253,8 @@ B5,"I, Robot",650
   a whole number, a float if every one is a number, else text. If the
   file is then refused, the new table is dropped again. When the table
   is already there, its own column types and key stay (see above).
+
+> *Illustrative.* This example needs a database that the example does not create, so it is shown for reading and is not run as a test.
 
 ```
 types = map ["code": "text", "missions": "integer", "joined": "date", "primary_key": "code"]
@@ -307,6 +315,8 @@ not changed.
 Give `sql_open` a server address instead of a file. Every other
 function is the same, including the CSV ones:
 
+> *Illustrative.* This example needs a running database server, so it is shown for reading and is not run as a test.
+
 ```
 import sql
 import data
@@ -352,3 +362,237 @@ file is kind `file`.
 
 Copyright 2017-2026 Nigele McCoy. Licensed under the
 [Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).
+
+<!-- generated: turtle doc `sql` (regenerate with the script; do not edit by hand) -->
+## Function reference
+
+The entries below are copied from the binary's own documentation (`turtle doc sql`), so they match the version you run.
+
+```text
+import sql
+```
+
+### `Databases: SQLite files, and PostgreSQL and MySQL servers, all through`
+
+```text
+Databases: SQLite files, and PostgreSQL and MySQL servers, all through
+the same functions; sql_open's address picks which. Read and change
+them, and move CSV files in and out. SQLite files work with every other
+SQLite program. Values for ? in a statement are given as a list. A bad
+statement, or a change the database refuses, is an sql error.
+```
+
+### `sql_open[address]`
+
+```text
+sql_open[address]        (import sql)
+  Opens a database.
+  address   a SQLite file ("shop.db", or "sqlite:shop.db"), or a server:
+            "postgres://user:password@host:5432/database"
+            "mysql://user:password@host:3306/database"
+  Gives back: the database, to pass to the other sql_ functions.
+  A missing file is a file error (sql_create makes a new one). A server
+  that can't be reached, or a wrong password, is an sql error.
+  Server options go after a ?: for PostgreSQL sslmode=disable, require
+  or prefer (the default) and connect_timeout=10; for MySQL tls=false,
+  true, skip-verify or preferred (the default) and timeout=10.
+  Example:
+    db = sql_create["shop.db"]
+    sql_close[db]
+    db = sql_open["shop.db"]
+    sql_close[db]
+```
+
+### `sql_create[path]`
+
+```text
+sql_create[path]        (import sql)
+  Makes a new, empty SQLite database file and opens it. Fails if the
+  file is already there. (A server's databases are made on the server,
+  with CREATE DATABASE.)
+  Gives back: the database.
+  Example:
+    db = sql_create["new.db"]
+```
+
+### `sql_query[db, query, values]`
+
+```text
+sql_query[db, query, values]        (import sql)
+  Asks the database for rows: runs a SELECT.
+  db       the database
+  query    a SELECT statement, with ? where values go
+  values   optional: a list, one value for each ?
+  Gives back: a list of maps, one per row: column name to value.
+  NULL is none; a server's booleans and dates come back as booleans
+  and dates. An INSERT, UPDATE or DELETE ending in RETURNING also
+  works here, giving back the rows it changed.
+  Example:
+    db = sql_create["shop.db"]
+    sql_run[db, "CREATE TABLE books (title TEXT, price INTEGER)", list []]
+    sql_run[db, "INSERT INTO books VALUES (?, ?)", list ["Emma", 900]]
+    rows = sql_query[db, "SELECT title FROM books WHERE price < ?", list [1000]]
+    show rows .
+    sql_close[db]
+```
+
+### `sql_run[db, statement, values]`
+
+```text
+sql_run[db, statement, values]        (import sql)
+  Changes the database: INSERT, UPDATE, DELETE, CREATE TABLE, ALTER,
+  DROP, BEGIN, COMMIT, ROLLBACK, ... Each statement is saved at once
+  (or with COMMIT, inside BEGIN). Several statements separated by ; can
+  run together when no values are given.
+  db          the database
+  statement   the SQL, with ? where values go
+  values      optional: a list, one value for each ?
+  Gives back: how many rows it added, changed or removed (0 for others).
+  Example:
+    db = sql_create["shop.db"]
+    sql_run[db, "CREATE TABLE books (sku TEXT PRIMARY KEY, price INTEGER)", list []]
+    sql_run[db, "INSERT INTO books VALUES (?, ?)", list ["B1", 800]]
+    n = sql_run[db, "UPDATE books SET price = ? WHERE sku = ?", list [900, "B1"]]
+    show n .
+    sql_close[db]
+```
+
+### `sql_tables[db]`
+
+```text
+sql_tables[db]        (import sql)
+  The names of the database's tables.
+  Gives back: a list of text.
+```
+
+### `sql_save[db, query, path, values]`
+
+```text
+sql_save[db, query, path, values]        (import sql)
+  Runs a query and saves its rows to a file: the first line names the
+  columns, then one line per row. The file's ending picks the format:
+  .csv (comma-separated), .tsv (tab-separated), .txt (an aligned table)
+  or .json (a list of objects, one per row).
+  db       the database
+  query    a SELECT, with ? where values go
+  path     where to save; an existing file is replaced
+  values   optional: a list, one value for each ?
+  Gives back: how many rows were saved.
+  Example:
+    import data
+    db = sql_create["shop.db"]
+    sql_run[db, "CREATE TABLE books (sku TEXT PRIMARY KEY, price INTEGER)", list []]
+    sql_run[db, "INSERT INTO books VALUES (?, ?)", list ["B1", 800]]
+    sql_save[db, "SELECT * FROM books", "books.csv", list []]
+    show table[table_read["books.csv"]] .
+    sql_close[db]
+```
+
+### `sql_load[db, table, path [, types]]`
+
+```text
+sql_load[db, table, path [, types]]        (import sql)
+  Adds a record to a table for each line of a .csv, .tsv or .json file.
+  If the table isn't there, makes it from the file's columns first.
+  db      the database
+  table   the table's name
+  path    the file; its first line names the table's columns
+  types   optional: a map of column name to type, as table_read takes
+          (string, text, integer, float, boolean, date, or a SQL type).
+          A new table gets these types (a column left out: integer,
+          float or text, from its values), and "primary_key": "column"
+          becomes its PRIMARY KEY.
+  Gives back: how many records were added.
+  A table that's already there decides the types: each cell becomes its
+  column's type (950 in a TEXT column is "950"), or the load stops
+  at the row and column that can't (a number, date or type error).
+  All or nothing: if one line is refused (say, a duplicate key), no line
+  is added, and a table it made is dropped again. An empty cell is NULL.
+  Example:
+    db = sql_create["shop.db"]
+    sql_run[db, "CREATE TABLE books (sku TEXT PRIMARY KEY, price INTEGER)", list []]
+    [write] new_books.csv
+    "sku,price"
+    "B2,700"
+    [end]
+    sql_load[db, "books", "new_books.csv"]
+    show sql_query[db, "SELECT * FROM books", list []] .
+    sql_close[db]
+```
+
+### `sql_update[db, table, key, path]`
+
+```text
+sql_update[db, table, key, path]        (import sql)
+  Changes records from a .csv, .tsv or .json file: for each line, finds the
+  record whose key column has the line's key, and sets the line's other
+  columns.
+  db      the database
+  table   the table's name
+  key     the column that says which record (like "sku" or "id")
+  path    a .csv, .tsv or .json file; it needs the key column and at least one other
+  Gives back: how many records changed. A key not in the table changes
+  nothing. All or nothing, as with sql_load.
+  Example (prices.csv has sku,price):
+    db = sql_create["shop.db"]
+    sql_run[db, "CREATE TABLE books (sku TEXT PRIMARY KEY, price INTEGER)", list []]
+    sql_run[db, "INSERT INTO books VALUES (?, ?)", list ["B1", 800]]
+    [write] prices.csv
+    "sku,price"
+    "B1,950"
+    [end]
+    sql_update[db, "books", "sku", "prices.csv"]
+    show sql_query[db, "SELECT * FROM books", list []] .
+    sql_close[db]
+```
+
+### `sql_delete[db, table, key, path]`
+
+```text
+sql_delete[db, table, key, path]        (import sql)
+  Removes the records whose key column matches a line of a .csv, .tsv or .json file. The file's other columns are ignored.
+  Gives back: how many records were removed. All or nothing.
+  Example (gone.csv has sku):
+    db = sql_create["shop.db"]
+    sql_run[db, "CREATE TABLE books (sku TEXT PRIMARY KEY, price INTEGER)", list []]
+    sql_run[db, "INSERT INTO books VALUES (?, ?)", list ["B1", 800]]
+    [write] gone.csv
+    "sku"
+    "B1"
+    [end]
+    sql_delete[db, "books", "sku", "gone.csv"]
+    show sql_query[db, "SELECT * FROM books", list []] .
+    sql_close[db]
+```
+
+### `sql_upsert[db, table, key, path]`
+
+```text
+sql_upsert[db, table, key, path]        (import sql)
+  Adds or changes, from a .csv, .tsv or .json file: a line whose key isn't in
+  the table becomes a new record; a line whose key is there changes that
+  record. The key column must be the table's PRIMARY KEY or UNIQUE.
+  Gives back: how many records were added or changed. All or nothing.
+  Example:
+    import data
+    db = sql_create["shop.db"]
+    sql_run[db, "CREATE TABLE books (sku TEXT PRIMARY KEY, price INTEGER)", list []]
+    sql_run[db, "INSERT INTO books VALUES (?, ?)", list ["B1", 800]]
+    [write] restock.csv
+    "sku,price"
+    "B1,950"
+    [end]
+    sql_upsert[db, "books", "sku", "restock.csv"]
+    show sql_query[db, "SELECT * FROM books", list []] .
+    sql_close[db]
+```
+
+### `sql_close[db]`
+
+```text
+sql_close[db]        (import sql)
+  Closes the database. A transaction not yet committed is undone.
+  Closing twice is fine.
+```
+
+<!-- end generated -->

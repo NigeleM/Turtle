@@ -6,7 +6,7 @@ interpreter. If you just want to write Turtle programs, see
 
 ## Pipeline
 
-```
+```text
 source text
    |  lexer.New / (*Lexer).NextToken
    v

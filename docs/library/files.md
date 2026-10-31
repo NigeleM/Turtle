@@ -61,17 +61,16 @@ stdout, and stderr; its exit status is not checked or reported back to
 the Turtle program (`runall` in `import schedule` gives back the output
 and exit code).
 
-This is a deliberately dangerous, unsandboxed feature — the Turtle
-equivalent of Python's `os.system`. Only use it with trusted script
+This is a deliberately dangerous, unsandboxed feature. Only use it with trusted script
 content.
 
 ## Modules: `import`
 
-```
+```text
 import <name>
 ```
 
-```
+```text
 import <name> [<f>, <g>]
 ```
 

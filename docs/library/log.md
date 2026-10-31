@@ -9,6 +9,12 @@ Log lines with levels and timestamps, to the screen or a file.
 where it came from, written to the console and, if you like, a file.
 
 ```
+port = 8080
+row = "r1"
+pct = 91
+host = "db1"
+name = "ann"
+ip = "10.0.0.4"
 import log
 
 log "server started on port ", port .            // info, the default level
@@ -18,7 +24,7 @@ log error "lost connection to ", host .
 log info "login", map ["user": name, "ip": ip] .  // a map adds fields
 ```
 
-```
+```text
 2026-10-06 19:48:04 INFO  server started on port 8080
 2026-10-06 19:48:04 WARN  disk at 91%
 2026-10-06 19:48:04 ERROR lost connection to db1
@@ -50,6 +56,7 @@ function, for that function. An imported library that logs uses its own.
 | `outputfile` | `none` | a file that also gets everything `show` and `warn` print, to look at a run later |
 
 ```
+import log
 logfile = "app.log"
 logparts = list ["time", "level", "where", "message"]
 log warn "retrying" .                  // 2026-10-06 19:48:04 WARN  main.turtle:14 retrying
@@ -71,3 +78,48 @@ outputfile = "run.txt"                 // show still prints; run.txt keeps a cop
 
 Copyright 2017-2026 Nigele McCoy. Licensed under the
 [Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).
+
+<!-- generated: turtle doc `log` (regenerate with the script; do not edit by hand) -->
+## Function reference
+
+The entries below are copied from the binary's own documentation (`turtle doc log`), so they match the version you run.
+
+```text
+import log
+```
+
+### `Log lines: a level, a time and where they came from, to the console`
+
+```text
+Log lines: a level, a time and where they came from, to the console
+(stderr) and, if you like, a file. In a file with "import log":
+```
+
+```text
+    log "server started on port ", port .         info, the default level
+    log debug "row ", row .                       also: info, warn, error
+    log info "login", map ["user": name] .        a map adds fields: user=ann
+```
+
+### `Settings (variables; set at the top of a file, or inside a function for it):`
+
+```text
+Settings (variables; set at the top of a file, or inside a function for it):
+    loglevel = "info"        the lowest level shown; "debug" ... "error", "off"
+    logconsole = true        print log lines to stderr
+    logfile = none           a file to add lines to (kept across runs)
+    logtime = "YYYY-MM-DD hh:mm:ss"   format_date's patterns; none for no time
+    logparts = list ["time", "level", "message"]   also file, line, where
+    logformat = "text"       or "json": one JSON object per line
+    logmaxsize = none        rotate the file past this many bytes (app.log.1 ...)
+    logkeep = 3              rotated files to keep
+    outputfile = none        a file that also gets what show and warn print
+```
+
+### `An error that stops the program is written to logfile too.`
+
+```text
+An error that stops the program is written to logfile too.
+```
+
+<!-- end generated -->

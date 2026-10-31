@@ -15,6 +15,8 @@ JSON text and files to Turtle values and back.
 | `json_write[path, value]` | file path, value | writes the value as indented JSON; returns `none` |
 | `json_get[value, step, ...]` | a value, then keys and indexes | the value at the end of the path, or `none` if any step is missing |
 
+> *Illustrative.* This example needs files that the example does not create, so it is shown for reading and is not run as a test.
+
 ```
 import json
 
@@ -54,6 +56,9 @@ character '}' looking for beginning of value`. A missing file is kind
 `file`.
 
 ```
+import json
+import system
+
 safe
     cfg = json_read["config.json"]
 handle [file, json] e .
@@ -69,3 +74,65 @@ no escape and braces before a quote are plain: `'{"a": [1, 2]}'`.
 
 Copyright 2017-2026 Nigele McCoy. Licensed under the
 [Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).
+
+<!-- generated: turtle doc `json` (regenerate with the script; do not edit by hand) -->
+## Function reference
+
+The entries below are copied from the binary's own documentation (`turtle doc json`), so they match the version you run.
+
+```text
+import json
+```
+
+### `Reading and writing JSON. Objects become maps, arrays lists, null none.`
+
+```text
+Reading and writing JSON. Objects become maps, arrays lists, null none.
+```
+
+### `load[text]`
+
+```text
+load[text]        (import json)
+  Reads JSON text.
+  Gives back: the Turtle value (a map, list, number, text, ...).
+  Example:
+    user = load['{"name": "Ann"}']
+```
+
+### `json_text[value]`
+
+```text
+json_text[value]        (import json)
+  Writes a value as JSON, on one line.
+  Gives back: text.
+```
+
+### `json_read[path]`
+
+```text
+json_read[path]        (import json)
+  Reads a JSON file.
+  Gives back: the Turtle value. Bad JSON is a json error.
+```
+
+### `json_write[path, value]`
+
+```text
+json_write[path, value]        (import json)
+  Saves a value to a file as indented JSON.
+```
+
+### `json_get[value, step, step, ...]`
+
+```text
+json_get[value, step, step, ...]        (import json)
+  Follows a path of map keys and list positions into a value.
+  Gives back: what's at the end, or none if any step is missing.
+  Example:
+    config = load['{"server": {"port": 8080}}']
+    port = json_get[config, "server", "port"]
+    show port .
+```
+
+<!-- end generated -->

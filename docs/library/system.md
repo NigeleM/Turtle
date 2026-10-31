@@ -32,6 +32,8 @@ Arguments, environment variables, files and folders, and the program itself.
 
 **Files and folders:**
 
+> *Illustrative.* This example needs files that the example does not create, so it is shown for reading and is not run as a test.
+
 ```
 import system
 
@@ -59,6 +61,8 @@ API_KEY=abc123
 NAME="Ann Lee"
 ```
 
+> *Illustrative.* This example needs files that the example does not create, so it is shown for reading and is not run as a test.
+
 ```
 settings = loadenv[]                     // { "API_KEY": "abc123", "NAME": "Ann Lee" }
 key = env["API_KEY"]
@@ -66,11 +70,13 @@ key = env["API_KEY"]
 
 **Memory.** Turtle frees a value by itself once nothing refers to it:
 a function's own values when it's done, a variable's old value when it
-changes. Go collects them in batches, though, so between big steps (a
+changes. Collection happens in batches, though, so between big steps (a
 whole file loaded, then a report built) `freememory[]` collects now and
 hands the memory back. Set what you're done with to `none` first; a value
 a variable still holds can't be freed. `diagnose`, `hypothesis` and
 `turtle test` show how much each step allocated.
+
+> *Illustrative.* This example needs files that the example does not create, so it is shown for reading and is not run as a test.
 
 ```
 import system
@@ -124,6 +130,8 @@ period, but the line goes to standard error, so it isn't mixed into
 output that's piped or saved to a file. It needs `import system` (or
 `import system [warn]`).
 
+> *Illustrative.* This example needs files that the example does not create, so it is shown for reading and is not run as a test.
+
 ```
 import system
 warn "can't read ", name, ", skipping" .
@@ -138,6 +146,8 @@ different: it always looks next to the script, so a program and its
 libraries can be moved together.) To use a file that sits next to the
 script, build its path from `scriptfolder[]`:
 
+> *Illustrative.* This example needs files that the example does not create, so it is shown for reading and is not run as a test.
+
 ```
 import system
 config = scriptfolder[] + "/config.txt"
@@ -145,6 +155,8 @@ config = scriptfolder[] + "/config.txt"
 ```
 
 A complete tool, with usage message and exit codes:
+
+> *Illustrative.* This example needs command-line arguments, so it is shown for reading and is not run as a test.
 
 ```
 // turtle count.turtle notes.txt
@@ -167,6 +179,8 @@ show lines join " | " .
 ```
 
 Listing a folder:
+
+> *Illustrative.* This example needs files that the example does not create, so it is shown for reading and is not run as a test.
 
 ```
 import system
@@ -204,3 +218,268 @@ import system
 
 Copyright 2017-2026 Nigele McCoy. Licensed under the
 [Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).
+
+<!-- generated: turtle doc `system` (regenerate with the script; do not edit by hand) -->
+## Function reference
+
+The entries below are copied from the binary's own documentation (`turtle doc system`), so they match the version you run.
+
+```text
+import system
+```
+
+### `The command line, environment, files and folders, and the program itself.`
+
+```text
+The command line, environment, files and folders, and the program itself.
+Paths start from the folder turtle was run in (scriptfolder[] gives the
+script's own folder).
+```
+
+### `args[]`
+
+```text
+args[]        (import system)
+  The words typed after the script's name: turtle report.turtle a.txt b.txt
+  Gives back: a list of text (empty if none).
+```
+
+### `exists[path]`
+
+```text
+exists[path]        (import system)
+  Is there a file or folder at path?
+  Gives back: true or false.
+```
+
+### `isfile[path]`
+
+```text
+isfile[path]        (import system)
+  Is path a file?
+  Gives back: true or false.
+```
+
+### `isfolder[path]`
+
+```text
+isfolder[path]        (import system)
+  Is path a folder?
+  Gives back: true or false.
+```
+
+### `exit[code]`
+
+```text
+exit[code]        (import system)
+  Ends the program now. code is optional: 0 (the default) means it went
+  well, anything else that it failed.
+  Example:
+    exit[1]
+```
+
+### `env[name]`
+
+```text
+env[name]        (import system)
+  An environment variable's value.
+  Gives back: text, or none if it isn't set.
+  Example:
+    home = env["HOME"]
+```
+
+### `scriptfolder[]`
+
+```text
+scriptfolder[]        (import system)
+  The full path of the folder the running script is in.
+  Example:
+    data = "{scriptfolder[]}/data.csv"
+```
+
+### `contents[path]`
+
+```text
+contents[path]        (import system)
+  The names of the files and folders in a folder (path is optional, "."
+  by default).
+  Gives back: a sorted list of names.
+```
+
+### `erase[path]`
+
+```text
+erase[path]        (import system)
+  Deletes a file, or a folder and everything in it. There is no undo.
+  A missing path is a file error.
+```
+
+### `warn ... .`
+
+```text
+warn ... .        (import system)
+  Like show, but to standard error, so it isn't mixed with output that's
+  piped or saved.
+  Example:
+    import system
+    name = "report.csv"
+    warn "can't read ", name .
+```
+
+### `copyto[from, to, replace]`
+
+```text
+copyto[from, to, replace]        (import system)
+  Copies a file, or a folder and everything in it, to the path to
+  (missing folders on the way are made).
+  replace    optional: true replaces what's already at to; without it,
+             something there is an error
+  Example:
+    [write] report.csv
+    "data"
+    [end]
+    copyto["report.csv", "backup/report.csv"]
+    show exists["backup/report.csv"] .
+```
+
+### `moveto[from, to, replace]`
+
+```text
+moveto[from, to, replace]        (import system)
+  Moves (or renames) a file or folder; replace as for copyto. Works
+  across disks.
+  Example:
+    [write] old.txt
+    "data"
+    [end]
+    moveto["old.txt", "archive/old.txt"]
+    show exists["archive/old.txt"] .
+```
+
+### `makefolder[path]`
+
+```text
+makefolder[path]        (import system)
+  Makes a folder, and any missing folders above it. Fine if it's there.
+  Example:
+    makefolder["out/2026/october"]
+```
+
+### `walk[folder]`
+
+```text
+walk[folder]        (import system)
+  Every file under the folder, in its subfolders too, sorted; each path
+  starts with folder and uses /. "." if left out.
+  Gives back: a list of text.
+  Example:
+    makefolder["src"]
+    [write] src/a.txt
+    "text"
+    [end]
+    [loop][f in walk["src"]]
+        show f .
+    [loop][end]
+```
+
+### `pack[from, archive, replace]`
+
+```text
+pack[from, archive, replace]        (import system)
+  Puts a file, or a folder and everything in it, into an archive. The
+  kind comes from the name: .zip, .tar, .tar.gz or .tgz. A folder goes in
+  under its own name, so unpacking gives the folder back.
+  Example:
+    makefolder["src"]
+    [write] src/a.txt
+    "text"
+    [end]
+    pack["src", "src.zip"]
+    unpack["src.zip", "restored"]
+    show walk["restored"] .
+```
+
+### `unpack[archive, folder, replace]`
+
+```text
+unpack[archive, folder, replace]        (import system)
+  Puts an archive's files into folder. A file already there is an error
+  unless replace is true; an entry that would land outside the folder is
+  refused.
+  Example:
+    makefolder["src"]
+    [write] src/a.txt
+    "text"
+    [end]
+    pack["src", "src.zip"]
+    unpack["src.zip", "restored"]
+    show walk["restored"] .
+```
+
+### `loadenv[file]`
+
+```text
+loadenv[file]        (import system)
+  Reads a .env file (".env" if left out): KEY=value lines, # comments,
+  "quoted" or 'quoted' values. Each key is also set for env[...], unless
+  the environment already has it.
+  Gives back: a map of the file's keys and values (all text).
+  Example:
+    [write] app.env
+    "KEY=value"
+    [end]
+    settings = loadenv["app.env"]
+    show settings at get "KEY" .
+```
+
+### `options[name: default, ...]`
+
+```text
+options[name: default, ...]        (import system)
+  Named options from the command line. Each default sets the option's
+  kind: false is an on/off switch (-v), a number takes a number (--count
+  5), text takes text (--out file.csv or --out=file.csv). -- ends the
+  options; --help shows them and ends the program. What isn't an option
+  is left for args[].
+  Gives back: a map of every option and its value.
+  Example:
+    opts = options["--out": "result.csv", "-v": false]
+    out = opts at get["--out"]
+```
+
+### `memory[]`
+
+```text
+memory[]        (import system)
+  How much memory the program's values hold now, in bytes. It collects
+  first, so values already let go don't count.
+  Example:
+    show memory[] / 1048576, " MB" .
+```
+
+### `sizeof[x]`
+
+```text
+sizeof[x]        (import system)
+  About how many bytes x takes, with everything in it (an estimate: a
+  value inside it twice counts once).
+  Example:
+    import test
+    rows = list [1, 2, 3]
+    check sizeof[rows] < 5000000 .
+```
+
+### `freememory[]`
+
+```text
+freememory[]        (import system)
+  Collects the values nothing refers to now, and gives that memory back
+  to the system: worth it between big steps, not after every small one.
+  Turtle frees such values by itself; this does it now.
+  Gives back: how many bytes it freed.
+  Example:
+    rows = none
+    freed = freememory[]
+```
+
+<!-- end generated -->

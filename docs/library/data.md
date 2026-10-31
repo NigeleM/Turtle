@@ -38,7 +38,7 @@ when the caller's should stay as it was.
 | `table_row` | rows, n | row `n` of a table, counted from 0, as the record itself |
 | `copy` | collection [, deep] | a new list/set/map/assembled value. `copy[x]`: the same items, so lists, maps or assembled values *inside* are shared; `copy[x, true]`: everything inside is copied too, so nothing is shared |
 
-| `range` | [from,] to [, step] | a list of the whole numbers from `from` (0 if left out) up to `to`, **not including** `to`, as in Python and Go: `range[5]` is 0 to 4. `step` counts by that much; a negative step counts down (`range[5, 0, -1]` is 5 to 1). Empty when the start is already past the end |
+| `range` | [from,] to [, step] | a list of the whole numbers from `from` (0 if left out) up to `to`, **not including** `to`: `range[5]` is 0 to 4. `step` counts by that much; a negative step counts down (`range[5, 0, -1]` is 5 to 1). Empty when the start is already past the end |
 | `reduce` | collection, start, function | one value: a running total that begins as `start` and, for each item (a map's values), becomes what `[total, x] give ...` gives. Changes nothing |
 | `sum` | collection | the numbers of a list or set (a map's values) added up: an `integer` if they all are, else a `float`; `0` when empty. Anything that isn't a number is an error |
 
@@ -72,6 +72,9 @@ Where `process` gives one new item for each item, `reduce` gives one value
 for the whole collection.
 
 ```
+def double[x]
+    return x * 2
+def [end]
 import data
 
 nums = list [5, 3, 8, 1]
@@ -114,13 +117,15 @@ or a map (its values), or a list of rows (maps or assembled values, what
 | `mean[x]` | the average, a float |
 | `median[x]` | the middle number once sorted (the number itself, so an integer stays one); with an even count, the average of the two middle ones |
 | `mode[x]` | the value that appears most often, on a tie the one seen first; works on any values, not only numbers |
-| `variance[x]`, `stdev[x]` | the **sample** variance and standard deviation, dividing by n − 1, as Python's `statistics` and spreadsheets do; need 2 numbers |
+| `variance[x]`, `stdev[x]` | the **sample** variance and standard deviation, dividing by n − 1 (the usual choice for a sample); need 2 numbers |
 | `pvariance[x]`, `pstdev[x]` | the **population** forms, dividing by n: for when the numbers are the whole population |
 | `percentile[x, p]` | `p` from 0 to 100: the number that much of the data is below, between the two nearest when it falls between (numpy's default, a spreadsheet's `PERCENTILE`); `percentile[x, 50]` is the median |
 | `covariance[xs, ys]` | how two lists move together, the sample form |
 | `correlation[xs, ys]` | Pearson's correlation, from −1 through 0 to 1 |
 | `zscores[x]` | a new list: each number's distance from the mean, in (sample) standard deviations |
 | `describe[x]` | a map: `count`, `mean`, `stdev`, `min`, `25%`, `median`, `75%`, `max` |
+
+> *Illustrative.* This example needs a database that already exists or a server, so it is shown for reading and is not run as a test.
 
 ```
 import data
@@ -164,6 +169,8 @@ read. It works on:
 | one map | one per entry | `key` and `value` |
 | one assembled value | one per field | `field` and `value` |
 
+> *Illustrative.* This example needs a database that already exists or a server, so it is shown for reading and is not run as a test.
+
 ```
 import sql
 import data
@@ -172,11 +179,11 @@ shelf = sql_open["books.db"]
 show table[sql_query[shelf, "SELECT * FROM books"]] .
 ```
 
-```
+```text
 id  sku  title        price  rating  added
 --  ---  -----------  -----  ------  ----------
  1  B1   Dune           950     4.5  2026-01-15
- 2  B2   The Go Book   3000    none  2026-02-01
+ 2  B2   Long Book     3000    none  2026-02-01
  3  B3   Gone Girl     1225     3.9  2026-02-20
 ```
 
@@ -194,9 +201,13 @@ id  sku  title        price  rating  added
 
 **How many rows.** `import data` also creates a variable, `tablerows`,
 set to `20`. A table shows at most that many rows, then a line such as
-`... 480 more rows`. Change it like any variable:
+`... 480 more rows`. Set it in the import line, or change it like any
+variable afterwards:
 
 ```
+rows = list [1, 2, 3, 4, 5, 6, 7, 8]
+import data [tablerows = 50]          // from the start
+import data [tablerows = 50, process] // the same, and only process imported
 tablerows = 50        // up to 50 rows from now on
 tablerows = none      // every row
 show table[rows, 5] . // at most 5 rows, for this table only
@@ -280,6 +291,8 @@ right kind of value: `"007"` stays text, `"24"` becomes a number, and no
 `change` is needed later. The map can be written in place or kept in a
 variable.
 
+> *Illustrative.* This example needs files that the example does not create, so it is shown for reading and is not run as a test.
+
 ```
 import data
 
@@ -320,3 +333,388 @@ For `sql_load`, see [Files: CSV in and out](sql.md#files-csv-in-and-out).
 
 Copyright 2017-2026 Nigele McCoy. Licensed under the
 [Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).
+
+<!-- generated: turtle doc `data` (regenerate with the script; do not edit by hand) -->
+## Function reference
+
+The entries below are copied from the binary's own documentation (`turtle doc data`), so they match the version you run.
+
+```text
+import data
+```
+
+### `Working with collections (lists, sets, maps), and with tables of rows:`
+
+```text
+Working with collections (lists, sets, maps), and with tables of rows:
+showing them, and saving them to and reading them from files.
+"import data" also makes the variable tablerows (20): how many rows
+table[...] shows. Change it like any variable; none shows every row.
+```
+
+### `process[collection, function]`
+
+```text
+process[collection, function]        (import data)
+  Replaces every element (of a list or set) or every value (of a map)
+  with what the function gives for it.
+  collection   a list, set or map
+  function     x give ...  (for a map: x give ..., or [key, value] give ...)
+  As a sentence on its own it changes the collection itself; used as a
+  value (assigned, or in an expression) it gives a new collection and
+  leaves the original alone.
+  Example:
+    nums = list [1, 2, 3]
+    bigger = nums process x give x * 10
+    show bigger .
+```
+
+### `unique[collection]`
+
+```text
+unique[collection]        (import data)
+  A new list with each value once, in the order they first appear (2 and
+  2.0 are one value). A set is already unique: its copy comes back.
+  Example:
+    unique[list [3, 1, 3, 2]] .        // [ 3, 1, 2 ]
+```
+
+### `group[collection, function]`
+
+```text
+group[collection, function]        (import data)
+  A map from each result of the function to the list of the items that
+  gave that result, in their order in the collection. Example:
+    group[list ["ant", "bee", "ape"], x give x at get[0]] .
+    // { "a": [ "ant", "ape" ], "b": [ "bee" ] }
+```
+
+### `table_column[rows, name]`
+
+```text
+table_column[rows, name]        (import data)
+  The values of one column of a table, one per row, in row order. A row
+  is an assembled value or a map; the name is the field or key. Example:
+    people = list [map ["first": "Ann", "last": "Lee"], map ["first": "Bob", "last": "Park"]]
+    show table_column[people, "last"] .
+    show table_row[people, 1] .
+```
+
+### `table_row[rows, n]`
+
+```text
+table_row[rows, n]        (import data)
+  Row n of a table, counted from 0, as the record itself. Example:
+    people = list [map ["first": "Ann", "last": "Lee"], map ["first": "Bob", "last": "Park"]]
+    show table_row[people, 1] .
+```
+
+### `keep[collection, function]`
+
+```text
+keep[collection, function]        (import data)
+  Keeps only the elements (or map entries) for which the function gives
+  true: a filter. As a sentence on its own it changes the collection
+  itself; used as a value it gives a new one and leaves the original.
+  Example:
+    nums = list [1, 2, 3, 4, 5]
+    big = nums keep x give x > 3
+    show big .
+```
+
+### `copy[value, deep]`
+
+```text
+copy[value, deep]        (import data)
+  A new list, set, map or assembled value with the same contents.
+  value   what to copy
+  deep    optional: true copies what's inside too (lists in a list, maps
+          in a list, an assembled value's lists), so nothing is shared;
+          false or left out shares what's inside
+  Example:
+    rows = list [1, 2]
+    outer = copy[rows]
+    full = copy[rows, true]
+    show full .
+```
+
+### `range[from, to, step]`
+
+```text
+range[from, to, step]        (import data)
+  The whole numbers from from up to, not including, to, as a list.
+  Sentence form: 1 range 5.
+  from       optional: 0 if left out (range[5] is 0 to 4)
+  to         where it stops, not included
+  step       optional: 2 counts by twos; a negative step counts down
+  Example:
+    show range[5] .
+    show range[1, 5] .
+    show range[0, 10, 2] .
+    show range[5, 0, -1] .
+```
+
+### `reduce[collection, start, function]`
+
+```text
+reduce[collection, start, function]        (import data)
+  Boils a collection down to one value: a running total that starts at
+  start, and for each item (a map's values) becomes what the function
+  gives for the total so far and the item. Changes nothing.
+  function   [total, x] give ...
+  Example:
+    nums = list [1, 2, 3]
+    total = nums reduce 0, [t, x] give t + x
+    show total .
+```
+
+### `sum[collection]`
+
+```text
+sum[collection]        (import data)
+  Adds up a list's or set's numbers (a map's values): an integer if they
+  all are, 0 when there are none. Sentence form: nums sum.
+  Example:
+    prices = list [4, 9, 6]
+    total = sum[prices]
+    avg = mean[prices]
+    spread = stdev[prices]
+    show total, " ", avg, " ", spread .
+```
+
+### `Statistics: each takes a list, a set or a map (its values), or a list of`
+
+```text
+Statistics: each takes a list, a set or a map (its values), or a list of
+rows (maps or assembled values, as sql_query and table_read give) and a
+column name. none is skipped, as a missing value; anything else that
+isn't a number is an error. Sentence form: prices mean.
+```
+
+### `mean[numbers, column]`
+
+```text
+mean[numbers, column]        (import data)
+  The average: the numbers added up, divided by how many there are.
+  column   optional: with a list of rows, the column to use
+  Gives back: a float.
+  Example:
+    prices = list [4, 9, 6]
+    avg = mean[prices]
+    show avg .
+```
+
+### `median[numbers, column]`
+
+```text
+median[numbers, column]        (import data)
+  The middle number once sorted; with an even count, the average of the
+  two in the middle.
+  Gives back: the middle number itself (an integer stays one), or a float.
+  Example:
+    mid = median[list [3, 1, 2]]          // 2
+```
+
+### `mode[values, column]`
+
+```text
+mode[values, column]        (import data)
+  The value that appears most often; a tie goes to the one seen first.
+  Works on any values, not only numbers.
+  Example:
+    top = mode[list ["tea", "coffee", "tea"]]   // "tea"
+```
+
+### `variance[numbers, column]`
+
+```text
+variance[numbers, column]        (import data)
+  The sample variance: the average squared distance from the mean,
+  dividing by n - 1, the usual choice for a sample. Needs 2 numbers.
+  Example:
+    prices = list [4, 9, 6]
+    prices = list [4, 9, 6]
+    v = variance[prices]
+    show v .
+```
+
+### `stdev[numbers, column]`
+
+```text
+stdev[numbers, column]        (import data)
+  The sample standard deviation: the square root of variance. Needs 2
+  numbers.
+  Example:
+    prices = list [4, 9, 6]
+    spread = stdev[prices]
+    show spread .
+```
+
+### `pvariance[numbers, column]`
+
+```text
+pvariance[numbers, column]        (import data)
+  The population variance: like variance, dividing by n. Use it when the
+  numbers are the whole population, not a sample of it.
+  Example:
+    scores = list [2, 4, 4, 4, 5, 5, 7, 9]
+    v = pvariance[scores]
+    spread = pstdev[scores]
+    show v, " ", spread .
+```
+
+### `pstdev[numbers, column]`
+
+```text
+pstdev[numbers, column]        (import data)
+  The population standard deviation: the square root of pvariance.
+  Example:
+    scores = list [2, 4, 4, 4, 5, 5, 7, 9]
+    spread = pstdev[scores]
+    show spread .
+```
+
+### `percentile[numbers, column, percent]`
+
+```text
+percentile[numbers, column, percent]        (import data)
+  The number below which that percent of the numbers fall, between the
+  two nearest when it lands between them (as numpy and a spreadsheet's
+  PERCENTILE give). percentile[x, 50] is the median.
+  percent   0 to 100
+  Example:
+    times = list [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    p90 = percentile[times, 90]
+    show p90 .
+```
+
+### `covariance[xs, ys]`
+
+```text
+covariance[xs, ys]        (import data)
+  How two lists of numbers move together, the sample form (n - 1):
+  positive when they rise together. Also covariance[rows, "a", "b"]. A
+  pair with none on either side is skipped.
+  Example:
+    heights = list [150, 160, 170, 180]
+    weights = list [50, 58, 70, 81]
+    c = covariance[heights, weights]
+    show c .
+```
+
+### `correlation[xs, ys]`
+
+```text
+correlation[xs, ys]        (import data)
+  Pearson's correlation, from -1 (one falls as the other rises) through 0
+  (no straight-line link) to 1 (they rise together). Also
+  correlation[rows, "a", "b"].
+  Example:
+    ads = list [1, 2, 3, 4]
+    sales = list [2, 4, 5, 8]
+    r = correlation[ads, sales]
+    show r .
+```
+
+### `zscores[numbers, column]`
+
+```text
+zscores[numbers, column]        (import data)
+  Each number's distance from the mean, counted in (sample) standard
+  deviations.
+  Gives back: a new list of floats, in the same order.
+  Example:
+    z = zscores[list [1, 2, 3]]          // [ -1.0, 0.0, 1.0 ]
+```
+
+### `describe[numbers, column]`
+
+```text
+describe[numbers, column]        (import data)
+  A summary: count, mean, stdev (none with one number), min, 25%, median,
+  75%, max.
+  Gives back: a map; show table[describe[x]] . lays it out.
+  Example:
+    books = list [map ["price": 900], map ["price": 1500]]
+    show table[describe[books, "price"]] .
+```
+
+### `table[rows, limit]`
+
+```text
+table[rows, limit]        (import data)
+  Lays rows out as a text table, one row per line, columns lined up.
+  rows    a list of maps (what sql_query gives), a list of assembled
+          values, a list of lists, a plain list, a set, one map, or one
+          assembled value
+  limit   optional: at most this many rows for this call (else tablerows)
+  Gives back: text, so show it: show table[rows] .
+  A row without one of the columns leaves that cell blank; none shows as
+  none. Numbers line up on the right, and so does text written as a number
+  ("$1,250.50", "12%"). Rows past the limit end with a
+  line like "... 12 more rows".
+  Example:
+    import sql
+    db = sql_create["shop.db"]
+    sql_run[db, "CREATE TABLE books (title TEXT, price INTEGER)", list []]
+    show table[sql_query[db, "SELECT * FROM books"]] .
+    sql_close[db]
+```
+
+### `table_write[path, rows, options]`
+
+```text
+table_write[path, rows, options]        (import data)
+  Saves rows to a file, in the layout table[...] shows. The file's
+  ending picks the format: .csv (comma-separated, also any other ending),
+  .tsv (tab-separated), .txt (the aligned table, every row), or .json
+  (a list of objects, one per row, keeping numbers and true/false).
+  path     where to save; an existing file is replaced
+  rows     anything table[...] takes
+  options  optional: map ["quote": "text"] quotes every text value of a
+           .csv or .tsv file ("007", not 007). The default, "needed",
+           quotes text only where it must (it holds a comma, a quote or
+           a line break).
+  Numbers are never quoted, so they read back as numbers.
+  Gives back: how many rows were written.
+  Example:
+    orders = list [map ["item": "pen", "qty": 3]]
+    table_write["orders.csv", orders]
+    codes = list [map ["code": "007"]]
+    table_write["codes.csv", codes, map ["quote": "text"]]
+```
+
+### `table_read[path [, types]]`
+
+```text
+table_read[path [, types]]        (import data)
+  Reads a .csv, .tsv or .json file. A .csv or .tsv file's first line
+  names the columns; a .json file is a list of objects, one per row.
+  path   the file
+  types  optional: a map of column name to type, to say what a
+         column is: "code": "text", "qty": "integer". Types: string,
+         text, integer, float, boolean, date, or a SQL type
+         (VARCHAR(10), NUMERIC(10, 2), ...). Columns left out keep what
+         the file has. "primary_key": "column" checks every row has a
+         different one.
+  Gives back: a list of maps, one per row, keyed by the column names
+  (the same shape sql_query gives). From .csv and .tsv, what a cell holds
+  decides, quoted or not (as in pandas): a plain number (950, "950",
+  -2.5, 1e5) is a number; 007 and other text is text; an empty cell is
+  none. From .json, values keep their kind.
+  A badly formed file is a csv error (json for a .json file); a cell
+  that isn't its type is a number, date or type error.
+  Example:
+    [write] orders.csv
+    "item,qty"
+    "pen,3"
+    [end]
+    [write] orders.csv
+    "item,qty"
+    "pen,3"
+    [end]
+    rows = table_read["orders.csv"]
+    show table[rows] .
+```
+
+<!-- end generated -->

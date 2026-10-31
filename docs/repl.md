@@ -3,7 +3,7 @@
 Run `turtle` with no file to get Turtle's interactive prompt: type a line,
 press Enter, see the result. The code is colored as you type.
 
-```
+```text
 $ turtle
 Turtle v0.9.166 — type help for help, quit to leave
 >>> nums = list [3, 1, 2]
@@ -62,7 +62,7 @@ takes the functions color.
 Type `colors` for the picker: the schemes down the left, and a short
 program on the right in the colors of the one the cursor is on.
 
-```
+```text
 >>> colors
   shade: ← auto (dark) →
 
@@ -178,8 +178,7 @@ program as `help["linear"]` or `help[m]`; see
 
 ## Not a terminal
 
-With input piped in, `turtle` runs it as a program, the way `python`
-does: `echo 'show 1 + 2 .' | turtle` prints `3`.
+With input piped in, `turtle` runs it as a program: `echo 'show 1 + 2 .' | turtle` prints `3`.
 
 ---
 

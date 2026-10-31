@@ -54,8 +54,7 @@ var moduleDocs = map[string]string{
 
 ### number at atan2 x
   The angle, in radians, of the point (x, y), where y is the number it's
-  called on: from -pi to pi, right in every quadrant, as Python's
-  math.atan2(y, x).
+  called on: from -pi to pi, right in every quadrant.
   x          the point's x.
   Example:
     a is 1 at atan2[-1] .                  // 2.356194490192345 (3 pi / 4)
@@ -97,7 +96,13 @@ var moduleDocs = map[string]string{
              rounds to hundreds (1234 -> 1200). -15 to 15.
   Example:
     r is 4.5 at round .
+    prices = list [10, 20]
+    import data
+    prices = list [10, 20]
+    import data
+    prices = list [10, 20]
     c is prices process p give p * 1.08 at round[2] .
+    show c .
 
 ### number at floor
   The whole number at or below it (4.7 becomes 4, -4.2 becomes -5).
@@ -163,17 +168,28 @@ row[r], column[c], flatten, reshape[r, c]. change rows to matrix makes one from 
 ### shape[m]
   The size: list [rows, columns].
   Example:
-    size = shape[m]                 // [ 2, 3 ]
+    m = matrix [1, 2, 3; 4, 5, 6]
+    show shape[m] .
+    first = row[m, 0]
+    show first .
+    prices = column[m, 2]
+    show prices .
+    t = transpose[m]
+    show t .
 
 ### row[m, r]
   Row r (from 0) as a list.
   Example:
+    m = matrix [1, 2, 3; 4, 5, 6]
     first = row[m, 0]
+    show first .
 
 ### column[m, c]
   Column c (from 0) as a list.
   Example:
+    m = matrix [1, 2, 3; 4, 5, 6]
     prices = column[m, 2]
+    show prices .
 
 ### flatten[m]
   The numbers of m in one row, read row by row: a 1 x n matrix. m is
@@ -196,12 +212,17 @@ row[r], column[c], flatten, reshape[r, c]. change rows to matrix makes one from 
 ### transpose[m]
   The matrix with its rows as columns. Sentence form: m transpose.
   Example:
+    m = matrix [1, 2, 3; 4, 5, 6]
     t = transpose[m]
+    show t .
 
 ### trace[m]
   The sum of the diagonal of a square matrix.
   Example:
-    t = trace[m]
+    square = matrix [2, 1; 1, 3]
+    show trace[square] .
+    inv = inverse[square]
+    show all_close[inv * square, identity[2]] .
 
 ### determinant[m]
   The determinant of a square matrix: 0 when it has no inverse. An integer
@@ -213,7 +234,10 @@ row[r], column[c], flatten, reshape[r, c]. change rows to matrix makes one from 
   The matrix that multiplies m to the identity. A singular matrix (its
   determinant is 0) is a linear error.
   Example:
+    m = matrix [2, 1; 1, 3]
+    m = matrix [2, 1; 1, 3]
     inv = inverse[m]
+    show inv .
 
 ### rank[m]
   How many rows (or columns) are independent: none of them a mix of the
@@ -225,12 +249,17 @@ row[r], column[c], flatten, reshape[r, c]. change rows to matrix makes one from 
   m multiplied by itself k times; power[m, 0] is the identity, and a
   negative k is a power of the inverse.
   Example:
+    steps = matrix [1, 1; 0, 1]
     later = power[steps, 10]
+    show later .
 
 ### multiply_each[a, b]
   Element by element: each number times the one in the same place.
   Example:
+    a = matrix [1, 2; 3, 4]
+    b = matrix [5, 6; 7, 8]
     c = multiply_each[a, b]
+    show c .
 
 ### solve[a, b]
   The x with a * x == b, for a square a. b is a list (x is a list) or a
@@ -242,7 +271,10 @@ row[r], column[c], flatten, reshape[r, c]. change rows to matrix makes one from 
   The x that brings a * x closest to b, for more equations (rows) than
   unknowns (columns): the line or curve of best fit.
   Example:
+    points = matrix [1, 1; 2, 1; 3, 1]
+    ys = list [2, 4, 6]
     fit = least_squares[points, ys]
+    show fit .
 
 ### all_close[a, b]
   Whether two matrices of the same size, or two lists of the same length,
@@ -250,8 +282,10 @@ row[r], column[c], flatten, reshape[r, c]. change rows to matrix makes one from 
   sizes or lengths give false.
   tolerance  optional third argument: the most each pair may differ.
   Example:
-    same is all_close[inverse[m] * m, identity[2]]
-    same is all_close[u, v, 0.001]
+    square = matrix [2, 1; 1, 3]
+    square = matrix [2, 1; 1, 3]
+    same is all_close[inverse[square] * square, identity[2]] .
+    show same .
 
 ### dot[u, v]
   The dot product of two lists of the same length.
@@ -278,27 +312,35 @@ row[r], column[c], flatten, reshape[r, c]. change rows to matrix makes one from 
   The LU decomposition of a square matrix: a map with "l" (lower, 1s on
   the diagonal), "u" (upper) and "p" (row order), where p * m == l * u.
   Example:
-    parts = lu[m]
+    square = matrix [2, 1; 1, 3]
+    parts = lu[square]
+    show length of parts .
 
 ### qr[m]
   The QR decomposition: a map with "q" (orthonormal columns) and "r"
   (upper triangular), where q * r == m. Needs at least as many rows as
   columns.
   Example:
+    m = matrix [1, 2; 3, 4; 5, 6]
     parts = qr[m]
+    show length of parts .
 
 ### eigen[m]
   The eigenvalues and eigenvectors of a symmetric matrix: a map with
   "values" (a list, largest first) and "vectors" (a matrix, one vector
   per column, each of length 1).
   Example:
+    covariances = matrix [2, 0; 0, 3]
     e = eigen[covariances]
+    show length of e .
 
 ### svd[m]
   The singular value decomposition, any shape: a map with "u", "s" (a
   list, largest first) and "v", where m == u * diagonal[s] * transpose[v].
   Example:
+    m = matrix [1, 2; 3, 4]
     parts = svd[m]
+    show length of parts .
 `,
 
 	"time": `The clock, dates, time zones, date arithmetic, and waiting.
@@ -336,8 +378,8 @@ moments, whatever their zones.
   The same moment, on another zone's clock.
   Gives back: a date (== the original: it's the same moment).
   Example:
+    d = make_date[2026, 1, 15, 12, 0]
     ny = to_zone[d, "America/New_York"]
-    ny = d to_zone "America/New_York"
     show zone of ny .
 
 ### today_utc[]
@@ -377,7 +419,9 @@ moments, whatever their zones.
   How many whole units from date a to date b (negative if b is earlier).
   Gives back: an integer.
   Example:
+    due = add_time[today[], 7, "days"]
     left = time_between[today[], due, "days"]
+    show left .
 
 ### format_date[date, pattern]
   Writes a date with a pattern: YYYY year, MM or M month, DD or D day,
@@ -391,7 +435,8 @@ moments, whatever their zones.
 ### wait_until[date]
   Pauses until that moment (at once if it's past).
   Example:
-    wait_until[add_time[today[], 1, "hours"]]
+    wait_until[today[]]
+    show "the date has come" .
 
 ### every[amount, unit, job]
   Runs job now, and then again every amount units, until job returns false.
@@ -416,8 +461,9 @@ table[...] shows. Change it like any variable; none shows every row.
   value (assigned, or in an expression) it gives a new collection and
   leaves the original alone.
   Example:
-    nums process x give x * 10 .
-    bigger is nums process x give x * 10 .
+    nums = list [1, 2, 3]
+    bigger = nums process x give x * 10
+    show bigger .
 
 ### unique[collection]
   A new list with each value once, in the order they first appear (2 and
@@ -434,19 +480,23 @@ table[...] shows. Change it like any variable; none shows every row.
 ### table_column[rows, name]
   The values of one column of a table, one per row, in row order. A row
   is an assembled value or a map; the name is the field or key. Example:
-    table_column[people, "last"]        // [ "Lee", "Park" ]
+    people = list [map ["first": "Ann", "last": "Lee"], map ["first": "Bob", "last": "Park"]]
+    show table_column[people, "last"] .
+    show table_row[people, 1] .
 
 ### table_row[rows, n]
   Row n of a table, counted from 0, as the record itself. Example:
-    table_row[people, 1]                // Person { first: "Bob", last: "Park" }
+    people = list [map ["first": "Ann", "last": "Lee"], map ["first": "Bob", "last": "Park"]]
+    show table_row[people, 1] .
 
 ### keep[collection, function]
   Keeps only the elements (or map entries) for which the function gives
   true: a filter. As a sentence on its own it changes the collection
   itself; used as a value it gives a new one and leaves the original.
   Example:
-    nums keep x give x > 3 .
-    big is nums keep x give x > 3 .
+    nums = list [1, 2, 3, 4, 5]
+    big = nums keep x give x > 3
+    show big .
 
 ### copy[value, deep]
   A new list, set, map or assembled value with the same contents.
@@ -455,21 +505,22 @@ table[...] shows. Change it like any variable; none shows every row.
           in a list, an assembled value's lists), so nothing is shared;
           false or left out shares what's inside
   Example:
+    rows = list [1, 2]
     outer = copy[rows]
     full = copy[rows, true]
+    show full .
 
 ### range[from, to, step]
-  The whole numbers from from up to, not including, to, as a list (as in
-  Python and Go). Sentence form: 1 range 5.
+  The whole numbers from from up to, not including, to, as a list.
+  Sentence form: 1 range 5.
   from       optional: 0 if left out (range[5] is 0 to 4)
   to         where it stops, not included
   step       optional: 2 counts by twos; a negative step counts down
   Example:
-    range[5]             // [ 0, 1, 2, 3, 4 ]
-    range[1, 5]          // [ 1, 2, 3, 4 ]
-    range[0, 10, 2]      // [ 0, 2, 4, 6, 8 ]
-    range[5, 0, -1]      // [ 5, 4, 3, 2, 1 ]
-    [loop][i in 1 range 4] ... [loop][end]
+    show range[5] .
+    show range[1, 5] .
+    show range[0, 10, 2] .
+    show range[5, 0, -1] .
 
 ### reduce[collection, start, function]
   Boils a collection down to one value: a running total that starts at
@@ -477,14 +528,19 @@ table[...] shows. Change it like any variable; none shows every row.
   gives for the total so far and the item. Changes nothing.
   function   [total, x] give ...
   Example:
+    nums = list [1, 2, 3]
     total = nums reduce 0, [t, x] give t + x
-    word = letters reduce "", [w, c] give w + c
+    show total .
 
 ### sum[collection]
   Adds up a list's or set's numbers (a map's values): an integer if they
   all are, 0 when there are none. Sentence form: nums sum.
   Example:
+    prices = list [4, 9, 6]
     total = sum[prices]
+    avg = mean[prices]
+    spread = stdev[prices]
+    show total, " ", avg, " ", spread .
 
 Statistics: each takes a list, a set or a map (its values), or a list of
 rows (maps or assembled values, as sql_query and table_read give) and a
@@ -496,8 +552,9 @@ isn't a number is an error. Sentence form: prices mean.
   column   optional: with a list of rows, the column to use
   Gives back: a float.
   Example:
+    prices = list [4, 9, 6]
     avg = mean[prices]
-    avg = mean[books, "price"]
+    show avg .
 
 ### median[numbers, column]
   The middle number once sorted; with an even count, the average of the
@@ -514,26 +571,36 @@ isn't a number is an error. Sentence form: prices mean.
 
 ### variance[numbers, column]
   The sample variance: the average squared distance from the mean,
-  dividing by n - 1 (as Python and spreadsheets do). Needs 2 numbers.
+  dividing by n - 1, the usual choice for a sample. Needs 2 numbers.
   Example:
+    prices = list [4, 9, 6]
+    prices = list [4, 9, 6]
     v = variance[prices]
+    show v .
 
 ### stdev[numbers, column]
   The sample standard deviation: the square root of variance. Needs 2
   numbers.
   Example:
+    prices = list [4, 9, 6]
     spread = stdev[prices]
+    show spread .
 
 ### pvariance[numbers, column]
   The population variance: like variance, dividing by n. Use it when the
   numbers are the whole population, not a sample of it.
   Example:
+    scores = list [2, 4, 4, 4, 5, 5, 7, 9]
     v = pvariance[scores]
+    spread = pstdev[scores]
+    show v, " ", spread .
 
 ### pstdev[numbers, column]
   The population standard deviation: the square root of pvariance.
   Example:
+    scores = list [2, 4, 4, 4, 5, 5, 7, 9]
     spread = pstdev[scores]
+    show spread .
 
 ### percentile[numbers, column, percent]
   The number below which that percent of the numbers fall, between the
@@ -541,22 +608,29 @@ isn't a number is an error. Sentence form: prices mean.
   PERCENTILE give). percentile[x, 50] is the median.
   percent   0 to 100
   Example:
+    times = list [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     p90 = percentile[times, 90]
-    p90 = percentile[rows, "ms", 90]
+    show p90 .
 
 ### covariance[xs, ys]
   How two lists of numbers move together, the sample form (n - 1):
   positive when they rise together. Also covariance[rows, "a", "b"]. A
   pair with none on either side is skipped.
   Example:
+    heights = list [150, 160, 170, 180]
+    weights = list [50, 58, 70, 81]
     c = covariance[heights, weights]
+    show c .
 
 ### correlation[xs, ys]
   Pearson's correlation, from -1 (one falls as the other rises) through 0
   (no straight-line link) to 1 (they rise together). Also
   correlation[rows, "a", "b"].
   Example:
+    ads = list [1, 2, 3, 4]
+    sales = list [2, 4, 5, 8]
     r = correlation[ads, sales]
+    show r .
 
 ### zscores[numbers, column]
   Each number's distance from the mean, counted in (sample) standard
@@ -570,6 +644,7 @@ isn't a number is an error. Sentence form: prices mean.
   75%, max.
   Gives back: a map; show table[describe[x]] . lays it out.
   Example:
+    books = list [map ["price": 900], map ["price": 1500]]
     show table[describe[books, "price"]] .
 
 ### table[rows, limit]
@@ -584,7 +659,11 @@ isn't a number is an error. Sentence form: prices mean.
   ("$1,250.50", "12%"). Rows past the limit end with a
   line like "... 12 more rows".
   Example:
+    import sql
+    db = sql_create["shop.db"]
+    sql_run[db, "CREATE TABLE books (title TEXT, price INTEGER)", list []]
     show table[sql_query[db, "SELECT * FROM books"]] .
+    sql_close[db]
 
 ### table_write[path, rows, options]
   Saves rows to a file, in the layout table[...] shows. The file's
@@ -600,7 +679,9 @@ isn't a number is an error. Sentence form: prices mean.
   Numbers are never quoted, so they read back as numbers.
   Gives back: how many rows were written.
   Example:
+    orders = list [map ["item": "pen", "qty": 3]]
     table_write["orders.csv", orders]
+    codes = list [map ["code": "007"]]
     table_write["codes.csv", codes, map ["quote": "text"]]
 
 ### table_read[path [, types]]
@@ -621,9 +702,16 @@ isn't a number is an error. Sentence form: prices mean.
   A badly formed file is a csv error (json for a .json file); a cell
   that isn't its type is a number, date or type error.
   Example:
+    [write] orders.csv
+    "item,qty"
+    "pen,3"
+    [end]
+    [write] orders.csv
+    "item,qty"
+    "pen,3"
+    [end]
     rows = table_read["orders.csv"]
-    types = map ["code": "text", "qty": "integer", "primary_key": "code"]
-    rows = table_read["orders.csv", types]
+    show table[rows] .
 `,
 
 	"system": `The command line, environment, files and folders, and the program itself.
@@ -676,6 +764,8 @@ script's own folder).
   Like show, but to standard error, so it isn't mixed with output that's
   piped or saved.
   Example:
+    import system
+    name = "report.csv"
     warn "can't read ", name .
 
 ### copyto[from, to, replace]
@@ -684,13 +774,21 @@ script's own folder).
   replace    optional: true replaces what's already at to; without it,
              something there is an error
   Example:
+    [write] report.csv
+    "data"
+    [end]
     copyto["report.csv", "backup/report.csv"]
+    show exists["backup/report.csv"] .
 
 ### moveto[from, to, replace]
   Moves (or renames) a file or folder; replace as for copyto. Works
   across disks.
   Example:
+    [write] old.txt
+    "data"
+    [end]
     moveto["old.txt", "archive/old.txt"]
+    show exists["archive/old.txt"] .
 
 ### makefolder[path]
   Makes a folder, and any missing folders above it. Fine if it's there.
@@ -702,21 +800,39 @@ script's own folder).
   starts with folder and uses /. "." if left out.
   Gives back: a list of text.
   Example:
-    [loop][f in walk["src"]] ... [loop][end]
+    makefolder["src"]
+    [write] src/a.txt
+    "text"
+    [end]
+    [loop][f in walk["src"]]
+        show f .
+    [loop][end]
 
 ### pack[from, archive, replace]
   Puts a file, or a folder and everything in it, into an archive. The
   kind comes from the name: .zip, .tar, .tar.gz or .tgz. A folder goes in
   under its own name, so unpacking gives the folder back.
   Example:
+    makefolder["src"]
+    [write] src/a.txt
+    "text"
+    [end]
     pack["src", "src.zip"]
+    unpack["src.zip", "restored"]
+    show walk["restored"] .
 
 ### unpack[archive, folder, replace]
   Puts an archive's files into folder. A file already there is an error
   unless replace is true; an entry that would land outside the folder is
   refused.
   Example:
-    unpack["src.zip", "restored"]       // restored/src/...
+    makefolder["src"]
+    [write] src/a.txt
+    "text"
+    [end]
+    pack["src", "src.zip"]
+    unpack["src.zip", "restored"]
+    show walk["restored"] .
 
 ### loadenv[file]
   Reads a .env file (".env" if left out): KEY=value lines, # comments,
@@ -724,8 +840,11 @@ script's own folder).
   the environment already has it.
   Gives back: a map of the file's keys and values (all text).
   Example:
-    settings = loadenv[]
-    key = env["API_KEY"]
+    [write] app.env
+    "KEY=value"
+    [end]
+    settings = loadenv["app.env"]
+    show settings at get "KEY" .
 
 ### options[name: default, ...]
   Named options from the command line. Each default sets the option's
@@ -748,6 +867,8 @@ script's own folder).
   About how many bytes x takes, with everything in it (an estimate: a
   value inside it twice counts once).
   Example:
+    import test
+    rows = list [1, 2, 3]
     check sizeof[rows] < 5000000 .
 
 ### freememory[]
@@ -767,24 +888,36 @@ characters from 0.
   Where part first appears in text.
   Gives back: its position, or -1 if it isn't there.
   Example:
+    line = "a word here"
     show line find "wor" .
+    show line substring 0, 5 .
+    if ] "wor" isinstring line [
+        show "found" .
+    if [end]
+    words = list ["red", "green"]
+    show words join ", " .
 
 ### substring[text, start, end]
   The characters from start up to (not including) end. end is optional
   (to the end); a negative position counts from the end.
   Example:
+    line = "a word here"
     show line substring 0, 5 .
 
 ### isinstring[part, text]
   Does text contain part?
   Gives back: true or false.
   Example:
+    line = "a word here"
     if ] "wor" isinstring line [
+        show "found" .
+    if [end]
 
 ### join[items, separator]
   Joins a list (or set) into one text, with separator between the items
   (optional: nothing by default).
   Example:
+    words = list ["red", "green"]
     show words join ", " .
 `,
 
@@ -811,7 +944,9 @@ characters from 0.
   Follows a path of map keys and list positions into a value.
   Gives back: what's at the end, or none if any step is missing.
   Example:
+    config = load['{"server": {"port": 8080}}']
     port = json_get[config, "server", "port"]
+    show port .
 `,
 
 	"http": `Web requests. A map, list or assembled value sent as a body goes as JSON.
@@ -837,15 +972,18 @@ characters from 0.
 which keep { } and \ exactly as typed: \d is a digit, \s a space, \w an
 English letter, digit or _ (\p{L} is a letter in any language: é, ß, я);
 {3} three of the one before, + one or more, * any number, ? maybe; [abc]
-one of; ^ start, $ end; ( ) a group. The syntax is
-Go's (RE2), so no pattern can take forever. A pattern that isn't valid is
+one of; ^ start, $ end; ( ) a group. Patterns
+cannot take forever, so every match finishes. A pattern that isn't valid is
 an error of kind pattern.
 
 ### matches[text, pattern]
   Whether the pattern is found anywhere in text (^ and $ for all of it).
   Gives back: true or false.
   Example:
-    if ] matches[code, ` + "`" + `^[A-Z]{3}-\d{4}$` + "`" + `] [ ... if [end]
+    code = "ABC-1234"
+    if ] matches[code, ` + "`" + `^[A-Z]{3}-\d{4}$` + "`" + `] [
+        show "valid code" .
+    if [end]
 
 ### findall[text, pattern]
   Every match, in order.
@@ -890,14 +1028,21 @@ unknown algorithm) is an error of kind crypt.
 ### filehash[path, algorithm]
   hash of a file's contents (a checksum), read a piece at a time.
   Example:
+    [write] release.zip
+    "release"
+    [end]
     sum = filehash["release.zip"]
+    show length of sum .
 
 ### hmac[text, key, algorithm]
   A signature: the hash of text with a secret key, as web APIs and
   webhooks use. algorithm as for hash.
   Gives back: hex text.
   Example:
+    body = "hello"
+    secret = "key"
     sig = body hmac secret
+    show length of sig .
 
 ### encode[text, how]
   how: "base64" (the default), "base64url" (for links, no padding) or
@@ -923,13 +1068,21 @@ unknown algorithm) is an error of kind crypt.
   What to store instead of a password: salted PBKDF2-SHA256 (600,000
   rounds), different each time for the same password.
   Example:
+    pw = "secret"
     stored = passwordhash[pw]
+    typed = "secret"
+    if ] passwordcheck[typed, stored] [
+        show "password accepted" .
+    if [end]
 
 ### passwordcheck[password, stored]
   Whether password is the one stored was made from.
   Gives back: true or false.
   Example:
-    if ] passwordcheck[typed, stored] [ ... if [end]
+    pw = "secret"
+    stored = passwordhash[pw]
+    show passwordcheck["wrong", stored] .
+    show passwordcheck["secret", stored] .
 
 ### encrypt[text, passphrase]
   Locks text with a passphrase (AES-256-GCM, the key made from the
@@ -937,13 +1090,21 @@ unknown algorithm) is an error of kind crypt.
   same passphrase opens it.
   Gives back: text starting "turtle1:", safe to save or send.
   Example:
+    notes = "my note"
+    phrase = "pass"
     box = encrypt[notes, phrase]
+    notes = decrypt[box, phrase]
+    show notes .
 
 ### decrypt[box, passphrase]
   Opens what encrypt made. A wrong passphrase, or a box that was
   changed, is an error.
   Example:
+    notes = "my note"
+    phrase = "pass"
+    box = encrypt[notes, phrase]
     notes = decrypt[box, phrase]
+    show notes .
 `,
 
 	"log": `Log lines: a level, a time and where they came from, to the console
@@ -1049,15 +1210,18 @@ written is an error of kind config naming its line.
   Gives back: a map ([sections] and objects as maps inside it; a .env
   file's values are text).
   Example:
+    settings = map ["server": map ["port": 8080]]
+    config_write["app.toml", settings]
     settings = config_read["app.toml"]
-    port = port of server of settings
-    settings = "app.toml" config_read
+    show settings at get "server" .
 
 ### config_write[path, settings]
   Writes a map as a settings file, by the file's extension. TOML has no
   none, and a .env file holds only single values.
   Example:
+    settings = map ["server": map ["port": 8080]]
     config_write["app.toml", settings]
+    show "saved" .
 `,
 
 	"schedule": `Many web requests, shell commands or database queries at once. The
@@ -1086,8 +1250,10 @@ error of kind schedule.
   Gives back: a list of the pages' text, in the same order. A failed
   request (no answer, a 4xx/5xx status) is an http error naming the item.
   Example:
+    skipschedule_error = true
+    urls = list ["http://127.0.0.1:1/a"]
     pages = fetchall[urls]
-    pages = urls fetchall
+    show pages .
 
 ### runall[commands, settings]
   Runs every shell command (sh -c; cmd /C on Windows) in the folder
@@ -1154,7 +1320,10 @@ first hybrid library; see evaluator/lib/random.turtle); shuffle and sample are G
   x   a list, set, map (its keys) or string
   Gives back: a new list (a string, for a string); x is left as it was.
   Example:
+    cards = list ["A", "K", "Q", "J"]
     deck = shuffle[cards]
+    hand = sample[deck, 2]
+    show length of hand .
 
 ### sample[x, n]
   n different items (different positions), chosen at random.
@@ -1162,7 +1331,10 @@ first hybrid library; see evaluator/lib/random.turtle); shuffle and sample are G
   n   how many; more than x has is an index error
   Gives back: a list.
   Example:
-    hand = sample[deck, 5]
+    cards = list ["A", "K", "Q", "J"]
+    deck = shuffle[cards]
+    hand = sample[deck, 2]
+    show length of hand .
 
 ### chance[p]
   true with probability p.
@@ -1195,14 +1367,16 @@ maps (entry by entry).
                For a map, "first" gives the key; a number, a smaller map.
   Gives back: a new list (or map), equal items in their first order.
   Example:
+    books = list [map ["price": 900], map ["price": 1500]]
     cheap = min_sort[books, b give price of b]
-    cheapest = min_sort[books, "price", "first"]
-    youngest = min_sort[ages, a give a, "first"]
+    show cheap .
 
 ### max_sort[collection, key, how]
   Like min_sort, largest first: max_sort[x, key, "first"] is the largest.
   Example:
+    scores = list [70, 95, 88, 60]
     top3 = max_sort[scores, s give s, 3]
+    show top3 .
 
 ### is_sorted[collection, key]
   Whether it's already in order, smallest first (equal items allowed).
@@ -1212,7 +1386,9 @@ maps (entry by entry).
   The items in the opposite order (a map: its entries). The reverse
   statement (reverse nums .) changes a list in place instead.
   Example:
+    log = list ["first", "second"]
     newest_first = reverse_list[log]
+    show newest_first .
 
 ### bubble_sort[collection, key]
   The same answer as min_sort, by bubble sort: swaps neighbours that are
@@ -1260,7 +1436,11 @@ them, like the sort library. Over a map, a function gets the value
   test   a function giving true or false: b give price of b < 1000
   Gives back: the item (for a map, its key), or none if nothing matches.
   Example:
+    books = list [map ["title": "Emma", "price": 900, "stock": 0], map ["title": "Ida", "price": 1500, "stock": 4]]
     cheap = find_first[books, b give price of b < 1000]
+    show cheap .
+    out_of_stock = find_all[books, b give stock of b == 0]
+    show length of out_of_stock .
 
 ### find_last[collection, test]
   The last item for which test says yes, or none.
@@ -1269,7 +1449,9 @@ them, like the sort library. Over a map, a function gets the value
   Every item for which test says yes, in order.
   Gives back: a new list (for a map, a new map of the matching entries).
   Example:
+    books = list [map ["title": "Emma", "stock": 0], map ["title": "Ida", "stock": 4]]
     out_of_stock = find_all[books, b give stock of b == 0]
+    show length of out_of_stock .
 
 ### find_index[collection, test]
   The position (from 0) of the first item for which test says yes, or -1.
@@ -1280,7 +1462,9 @@ them, like the sort library. Over a map, a function gets the value
 ### find_key[map, value]
   The first key whose value is value, or none.
   Example:
+    ages = map ["Ann": 30, "Bo": 25]
     who = find_key[ages, 30]
+    show who .
 
 ### linear_search[collection, value, key]
   The position of the first item equal to value (by key, if given),
@@ -1292,15 +1476,23 @@ them, like the sort library. Over a map, a function gets the value
           gets the value (v give ...) or the key and value ([k, v] give ...).
           Leave it out (or none) to order the items themselves.
   Example:
-    at = linear_search[names, "Ann"]
+    names = list ["Ann", "Bo"]
+    pos = linear_search[names, "Ann"]
+    show pos .
 
 ### binary_search[sorted, value, key]
   Like linear_search, on a collection sorted smallest first by the same
   key (min_sort makes one): halves the range each step, about 20 steps
   for a million items. Gives the first match's position, or -1.
   Example:
+    books = list [map ["price": 900], map ["price": 1500]]
+    import sort
+    books = list [map ["price": 900], map ["price": 1500]]
+    import sort
+    books = list [map ["price": 900], map ["price": 1500]]
     by_price = min_sort[books, "price"]
-    spot = binary_search[by_price, 950, "price"]
+    spot = binary_search[by_price, 1500, "price"]
+    show spot .
 
 ### jump_search[sorted, value, key]
   binary_search's answer, by jumping ahead in blocks of about the square
@@ -1322,8 +1514,11 @@ them, like the sort library. Over a map, a function gets the value
   Where value would go to keep a sorted collection in order: the
   position of the first item not smaller than it.
   Example:
+    scores = list [60, 70, 90]
     pos = insert_position[scores, 75]
+    show pos .
     insert 75 to scores at pos .
+    show scores .
 `,
 	"sql": `Databases: SQLite files, and PostgreSQL and MySQL servers, all through
 the same functions; sql_open's address picks which. Read and change
@@ -1343,8 +1538,10 @@ statement, or a change the database refuses, is an sql error.
   or prefer (the default) and connect_timeout=10; for MySQL tls=false,
   true, skip-verify or preferred (the default) and timeout=10.
   Example:
+    db = sql_create["shop.db"]
+    sql_close[db]
     db = sql_open["shop.db"]
-    db = sql_open["postgres://ann:secret@localhost:5432/shop"]
+    sql_close[db]
 
 ### sql_create[path]
   Makes a new, empty SQLite database file and opens it. Fails if the
@@ -1364,7 +1561,12 @@ statement, or a change the database refuses, is an sql error.
   and dates. An INSERT, UPDATE or DELETE ending in RETURNING also
   works here, giving back the rows it changed.
   Example:
+    db = sql_create["shop.db"]
+    sql_run[db, "CREATE TABLE books (title TEXT, price INTEGER)", list []]
+    sql_run[db, "INSERT INTO books VALUES (?, ?)", list ["Emma", 900]]
     rows = sql_query[db, "SELECT title FROM books WHERE price < ?", list [1000]]
+    show rows .
+    sql_close[db]
 
 ### sql_run[db, statement, values]
   Changes the database: INSERT, UPDATE, DELETE, CREATE TABLE, ALTER,
@@ -1376,7 +1578,12 @@ statement, or a change the database refuses, is an sql error.
   values      optional: a list, one value for each ?
   Gives back: how many rows it added, changed or removed (0 for others).
   Example:
+    db = sql_create["shop.db"]
+    sql_run[db, "CREATE TABLE books (sku TEXT PRIMARY KEY, price INTEGER)", list []]
+    sql_run[db, "INSERT INTO books VALUES (?, ?)", list ["B1", 800]]
     n = sql_run[db, "UPDATE books SET price = ? WHERE sku = ?", list [900, "B1"]]
+    show n .
+    sql_close[db]
 
 ### sql_tables[db]
   The names of the database's tables.
@@ -1393,7 +1600,13 @@ statement, or a change the database refuses, is an sql error.
   values   optional: a list, one value for each ?
   Gives back: how many rows were saved.
   Example:
-    sql_save[db, "SELECT * FROM books", "books.csv"]
+    import data
+    db = sql_create["shop.db"]
+    sql_run[db, "CREATE TABLE books (sku TEXT PRIMARY KEY, price INTEGER)", list []]
+    sql_run[db, "INSERT INTO books VALUES (?, ?)", list ["B1", 800]]
+    sql_save[db, "SELECT * FROM books", "books.csv", list []]
+    show table[table_read["books.csv"]] .
+    sql_close[db]
 
 ### sql_load[db, table, path [, types]]
   Adds a record to a table for each line of a .csv, .tsv or .json file.
@@ -1413,8 +1626,15 @@ statement, or a change the database refuses, is an sql error.
   All or nothing: if one line is refused (say, a duplicate key), no line
   is added, and a table it made is dropped again. An empty cell is NULL.
   Example:
+    db = sql_create["shop.db"]
+    sql_run[db, "CREATE TABLE books (sku TEXT PRIMARY KEY, price INTEGER)", list []]
+    [write] new_books.csv
+    "sku,price"
+    "B2,700"
+    [end]
     sql_load[db, "books", "new_books.csv"]
-    sql_load[db, "agents", "agents.csv", map ["code": "text", "missions": "integer", "primary_key": "code"]]
+    show sql_query[db, "SELECT * FROM books", list []] .
+    sql_close[db]
 
 ### sql_update[db, table, key, path]
   Changes records from a .csv, .tsv or .json file: for each line, finds the
@@ -1427,13 +1647,31 @@ statement, or a change the database refuses, is an sql error.
   Gives back: how many records changed. A key not in the table changes
   nothing. All or nothing, as with sql_load.
   Example (prices.csv has sku,price):
+    db = sql_create["shop.db"]
+    sql_run[db, "CREATE TABLE books (sku TEXT PRIMARY KEY, price INTEGER)", list []]
+    sql_run[db, "INSERT INTO books VALUES (?, ?)", list ["B1", 800]]
+    [write] prices.csv
+    "sku,price"
+    "B1,950"
+    [end]
     sql_update[db, "books", "sku", "prices.csv"]
+    show sql_query[db, "SELECT * FROM books", list []] .
+    sql_close[db]
 
 ### sql_delete[db, table, key, path]
   Removes the records whose key column matches a line of a .csv, .tsv or .json file. The file's other columns are ignored.
   Gives back: how many records were removed. All or nothing.
   Example (gone.csv has sku):
+    db = sql_create["shop.db"]
+    sql_run[db, "CREATE TABLE books (sku TEXT PRIMARY KEY, price INTEGER)", list []]
+    sql_run[db, "INSERT INTO books VALUES (?, ?)", list ["B1", 800]]
+    [write] gone.csv
+    "sku"
+    "B1"
+    [end]
     sql_delete[db, "books", "sku", "gone.csv"]
+    show sql_query[db, "SELECT * FROM books", list []] .
+    sql_close[db]
 
 ### sql_upsert[db, table, key, path]
   Adds or changes, from a .csv, .tsv or .json file: a line whose key isn't in
@@ -1441,7 +1679,17 @@ statement, or a change the database refuses, is an sql error.
   record. The key column must be the table's PRIMARY KEY or UNIQUE.
   Gives back: how many records were added or changed. All or nothing.
   Example:
+    import data
+    db = sql_create["shop.db"]
+    sql_run[db, "CREATE TABLE books (sku TEXT PRIMARY KEY, price INTEGER)", list []]
+    sql_run[db, "INSERT INTO books VALUES (?, ?)", list ["B1", 800]]
+    [write] restock.csv
+    "sku,price"
+    "B1,950"
+    [end]
     sql_upsert[db, "books", "sku", "restock.csv"]
+    show sql_query[db, "SELECT * FROM books", list []] .
+    sql_close[db]
 
 ### sql_close[db]
   Closes the database. A transaction not yet committed is undone.

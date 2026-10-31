@@ -8,6 +8,8 @@ Reading and writing settings in TOML, JSON and .env files.
 `import config` reads and writes settings files. The file's extension
 picks the format: `.toml`, `.json` or `.env`.
 
+> *Illustrative.* This example needs files that the example does not create, so it is shown for reading and is not run as a test.
+
 ```
 import config
 
@@ -60,3 +62,50 @@ name = "Ann"
 
 Copyright 2017-2026 Nigele McCoy. Licensed under the
 [Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).
+
+<!-- generated: turtle doc `config` (regenerate with the script; do not edit by hand) -->
+## Function reference
+
+The entries below are copied from the binary's own documentation (`turtle doc config`), so they match the version you run.
+
+```text
+import config
+```
+
+### `Settings files, the format chosen by the file's extension: .toml,`
+
+```text
+Settings files, the format chosen by the file's extension: .toml,
+.json or .env. TOML's [sections] become maps inside the map; numbers,
+booleans, dates and lists keep their kinds. A file that isn't well
+written is an error of kind config naming its line.
+```
+
+### `config_read[path]`
+
+```text
+config_read[path]        (import config)
+  Reads a settings file.
+  path      a .toml, .json or .env file
+  Gives back: a map ([sections] and objects as maps inside it; a .env
+  file's values are text).
+  Example:
+    settings = map ["server": map ["port": 8080]]
+    config_write["app.toml", settings]
+    settings = config_read["app.toml"]
+    show settings at get "server" .
+```
+
+### `config_write[path, settings]`
+
+```text
+config_write[path, settings]        (import config)
+  Writes a map as a settings file, by the file's extension. TOML has no
+  none, and a .env file holds only single values.
+  Example:
+    settings = map ["server": map ["port": 8080]]
+    config_write["app.toml", settings]
+    show "saved" .
+```
+
+<!-- end generated -->

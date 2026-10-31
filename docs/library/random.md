@@ -64,7 +64,7 @@ orders = random list of 20 Order [string, integer, float]
 
 **Choosing from your own values** (`pick` and `chance` are written in
 Turtle, in `evaluator/lib/random.turtle`, on the `random` sentence; `shuffle`
-and `sample`, which go through every item, are in Go for speed):
+and `sample`, which go through every item, are built in for speed):
 
 | Function | Gives |
 |---|---|
@@ -74,6 +74,8 @@ and `sample`, which go through every item, are in Go for speed):
 | `chance[p]` | `true` with probability `p` (0 to 1) |
 
 ```
+import random
+deck = list ["A", "K", "Q", "J", "10"]
 color = pick[list ["red", "green", "blue"]]
 hand = sample[shuffle[deck], 5]
 if ] chance[0.3] [
@@ -99,3 +101,102 @@ b = random list of 3 integers      // the same as a
 
 Copyright 2017-2026 Nigele McCoy. Licensed under the
 [Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).
+
+<!-- generated: turtle doc `random` (regenerate with the script; do not edit by hand) -->
+## Function reference
+
+The entries below are copied from the binary's own documentation (`turtle doc random`), so they match the version you run.
+
+```text
+import random
+```
+
+### `Random values of any shape, written as a sentence after "random":`
+
+```text
+Random values of any shape, written as a sentence after "random":
+```
+
+```text
+    die = random integer from 1 to 6
+    nums = random list of 5 integers from 0 to 9
+    price = random float from 0.5 to 99.99 rounded to 2
+    code = random string of 8                    pin = random digits of 4
+    id = random string of 6 from "ABCDEF0123456789"
+    day = random date from "2026-01-01" to "2026-12-31"
+    grid = random list of 3 lists of 3 integers
+    ages = random map of string to integer from 0 to 99
+    order = random Order [string, integer from 1 to 10, float]
+```
+
+### `Kinds: integer (-1000 to 1000 unless from A to B), float (0 up to 1),`
+
+```text
+Kinds: integer (-1000 to 1000 unless from A to B), float (0 up to 1),
+string (1 to 10 letters; of N, of N to M, from "chars"), digits of N,
+digit, letter, boolean, date and time (2000 through 2030), list of,
+set of (all different), map of K to V, and an assembled type with a kind
+for each field. Plurals work too (integers, lists). A count comes before
+the item's kind: list of 5 integers, list of 2 to 8 integers, list of n
+integers; without one, 0 to 10 items.
+"import random" also makes the variable seed, none: different values
+each run. seed = 42 gives the same values every run from there on, to
+repeat a run exactly; setting it again starts them over.
+random is a sentence word only in a file with "import random".
+pick and chance are written in Turtle, on the Go-written sentence (the
+first hybrid library; see evaluator/lib/random.turtle); shuffle and sample are Go.
+```
+
+### `pick[x]`
+
+```text
+pick[x]        (import random)
+  One item, chosen at random.
+  x   a list, set, map (one of its keys) or string (one character)
+  An empty one is an error.
+  Example:
+    color = pick[list ["red", "green", "blue"]]
+```
+
+### `shuffle[x]`
+
+```text
+shuffle[x]        (import random)
+  The items in a random order.
+  x   a list, set, map (its keys) or string
+  Gives back: a new list (a string, for a string); x is left as it was.
+  Example:
+    cards = list ["A", "K", "Q", "J"]
+    deck = shuffle[cards]
+    hand = sample[deck, 2]
+    show length of hand .
+```
+
+### `sample[x, n]`
+
+```text
+sample[x, n]        (import random)
+  n different items (different positions), chosen at random.
+  x   a list, set, map (its keys) or string
+  n   how many; more than x has is an index error
+  Gives back: a list.
+  Example:
+    cards = list ["A", "K", "Q", "J"]
+    deck = shuffle[cards]
+    hand = sample[deck, 2]
+    show length of hand .
+```
+
+### `chance[p]`
+
+```text
+chance[p]        (import random)
+  true with probability p.
+  p   a number from 0 to 1: 0.3 is true 30% of the time
+  Example:
+    if ] chance[0.3] [
+        show "rain" .
+    if [end]
+```
+
+<!-- end generated -->
