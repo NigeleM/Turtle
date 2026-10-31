@@ -202,6 +202,41 @@ func TestImportList(t *testing.T) {
 	}
 }
 
+func TestImportSettings(t *testing.T) {
+	p := New(lexer.New("import data [tablerows = 50, process]\n"))
+	prog := p.ParseProgram()
+	if errs := p.Errors(); len(errs) > 0 {
+		t.Fatalf("parse errors: %v", errs)
+	}
+	is := prog.Statements[0].(*ast.ImportStatement)
+	if len(is.Names) != 1 || is.Names[0] != "process" {
+		t.Fatalf("names: got %v, want [process]", is.Names)
+	}
+	if len(is.Settings) != 1 || is.Settings[0].Name != "tablerows" {
+		t.Fatalf("settings: got %#v", is.Settings)
+	}
+}
+
+func TestImportSettingsOnlyImportsEverything(t *testing.T) {
+	p := New(lexer.New("import data [tablerows = 50]\n"))
+	prog := p.ParseProgram()
+	if errs := p.Errors(); len(errs) > 0 {
+		t.Fatalf("parse errors: %v", errs)
+	}
+	is := prog.Statements[0].(*ast.ImportStatement)
+	if is.Names != nil || len(is.Settings) != 1 {
+		t.Fatalf("got names %v, settings %#v", is.Names, is.Settings)
+	}
+}
+
+func TestImportSettingMissingValueIsAnError(t *testing.T) {
+	p := New(lexer.New("import data [tablerows = ]\n"))
+	p.ParseProgram()
+	if errs := p.Errors(); len(errs) == 0 || !strings.Contains(errs[0], "expected a value") {
+		t.Fatalf("want an 'expected a value' error, got %v", errs)
+	}
+}
+
 func TestEmptyImportListIsAnError(t *testing.T) {
 	p := New(lexer.New("import time []\n"))
 	p.ParseProgram()

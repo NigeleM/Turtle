@@ -199,6 +199,15 @@ func (it *Interpreter) evalImport(s *ast.ImportStatement, env *object.Environmen
 	if isBuiltin(mod, "server") {
 		defineServerSettings(env)
 	}
+	// The settings in the brackets replace the defaults the libraries just
+	// made, exactly as a line "name = value" after the import would.
+	for _, st := range s.Settings {
+		v := it.evalExpression(st.Value, env)
+		if st.Name == seedName {
+			it.rng = nil // seed = 7 again starts the same values again
+		}
+		env.Set(st.Name, v)
+	}
 }
 
 func (it *Interpreter) loadModule(name string) *object.Module {

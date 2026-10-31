@@ -2827,6 +2827,32 @@ show table[list [1]] .`, wantErr: "tablerows must be a whole number of 0 or more
 		{name: "bad argument", src: `import data
 show table[5] .`, wantErr: "'table' needs a list, set, map, or assembled value, got integer"},
 		{name: "needs import", src: `show table[list [1]] .`, wantErr: `"table" needs "import data" first`},
+		{name: "import setting replaces the default", src: `import data [tablerows = 1]
+show tablerows .
+show table[list ["a", "b"]] .`, want: "1\n#  value\n-  -----\n0  a\n... 1 more row\n"},
+		{name: "import setting with names", src: `import data [tablerows = 1, table]
+show tablerows .
+show table[list ["a", "b"]] .`, want: "1\n#  value\n-  -----\n0  a\n... 1 more row\n"},
+		{name: "import setting with names, names only", src: `import data [tablerows = 2, process]
+show tablerows .
+show process[list [1, 2], x give x * 10] .`, want: "2\n[ 10, 20 ]\n"},
+		{name: "import setting can be changed afterwards", src: `import data [tablerows = 1]
+tablerows = 2
+show table[list ["a", "b", "c"]] .`, want: "#  value\n-  -----\n0  a\n1  b\n... 1 more row\n"},
+		{name: "import setting none shows every row", src: `import data [tablerows = none]
+show table[list ["a", "b"]] .`, want: "#  value\n-  -----\n0  a\n1  b\n"},
+		{name: "import setting of a log setting", src: `import log [loglevel = "error"]
+log info "hidden" .
+log error "shown" .`, want: ""},
+		{name: "import setting with no names imports everything", src: `import data [tablerows = 1]
+show sum[list [1, 2]] .`, want: "3\n"},
+		{name: "import setting value can use a variable", src: `n = 3
+import data [tablerows = n]
+show tablerows .`, want: "3\n"},
+		{name: "import setting value is an expression", src: `import data [tablerows = 2 + 1]
+show tablerows .`, want: "3\n"},
+		{name: "import setting with a bad value", src: `import data [tablerows = "ten"]
+show table[list [1]] .`, wantErr: "tablerows must be a whole number of 0 or more"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

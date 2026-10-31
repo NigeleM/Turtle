@@ -1,0 +1,45 @@
+// import_settings.turtle: settings written inside an import's brackets. Each
+// one replaces the library's default, names beside it still choose what is
+// imported, the setting can be changed on a later line, and a seed setting
+// makes the random values repeat. Run from this folder:
+// turtle import_settings.turtle
+
+import data [tablerows = 2, process, table]
+import strings
+import random [seed = 7]
+
+failures = list []
+
+def expect[label, got, want]
+    if ] got != want [
+        add label to failures .
+        show "  FAIL ", label, ": got ", got, ", want ", want .
+    if [end]
+def [end]
+
+// ---------- tablerows from the import line ----------
+expect["tablerows is 2 from the import line", tablerows, 2]
+
+text = table[list ["a", "b", "c"]]
+expect["the table shows 2 rows", isinstring["... 1 more row", text], true]
+
+// ---------- a plain name beside settings is imported ----------
+expect["process was imported", process[list [1, 2], x give x * 10], list [10, 20]]
+
+// ---------- the setting can be changed afterwards ----------
+tablerows = none
+expect["tablerows none shows every row", isinstring["more row", table[list ["a", "b", "c"]]], false]
+tablerows = 1
+expect["tablerows 1 shows one row", isinstring["... 2 more rows", table[list ["a", "b", "c"]]], true]
+
+// ---------- seed from the import line repeats the random values ----------
+seed = 7
+first = random integer from 1 to 1000
+seed = 7
+second = random integer from 1 to 1000
+expect["the same seed gives the same value", first, second]
+
+show "failures: ", length of failures .
+if ] length of failures > 0 [
+    fail "import_settings: some checks failed"
+if [end]

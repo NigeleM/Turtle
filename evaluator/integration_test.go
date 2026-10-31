@@ -126,3 +126,11 @@ func TestProgramMathRandomMatrix(t *testing.T) {
 func TestProgramFilesAndFolders(t *testing.T) {
 	runIntegration(t, "programs/files_and_folders.turtle", "")
 }
+
+func TestProgramImportSettings(t *testing.T) {
+	runIntegration(t, "programs/import_settings.turtle", "")
+}
+
+func TestProgramShowArgumentTerminator(t *testing.T) {
+	runIntegration(t, "programs/show_argument_terminator.turtle", "")
+}

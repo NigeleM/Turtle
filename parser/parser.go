@@ -933,6 +933,7 @@ func (p *Parser) parseImportStatement() ast.Statement {
 	}
 	var names []string
 	var aliases map[string]string
+	var settings []ast.ImportSetting
 	if p.peekTokenIs(token.LBRACKET) && p.peekToken.Line == p.curToken.Line {
 		p.nextToken() // -> '['
 		if p.peekTokenIs(token.RBRACKET) {
@@ -950,6 +951,21 @@ func (p *Parser) parseImportStatement() ast.Statement {
 				return nil
 			}
 			name := p.curToken.Literal
+			// import data [tablerows = 50]: a setting, not a name to import.
+			if p.peekTokenIs(token.ASSIGN) {
+				p.nextToken() // -> '='
+				p.nextToken() // -> the value's first token
+				value := p.parseExpression(LOWEST)
+				if value == nil {
+					return nil
+				}
+				settings = append(settings, ast.ImportSetting{Name: name, Value: value})
+				if p.trailingComma() || !p.peekTokenIs(token.COMMA) {
+					break
+				}
+				p.nextToken()
+				continue
+			}
 			names = append(names, name)
 			// import data [mean as average]: the name is average in this file.
 			if p.peekIsAs(p.curToken) {
@@ -973,7 +989,7 @@ func (p *Parser) parseImportStatement() ast.Statement {
 	}
 	p.importTheories(tok, path, names)
 	p.nextToken()
-	return &ast.ImportStatement{Token: tok, Path: path, Alias: alias, Names: names, Aliases: aliases}
+	return &ast.ImportStatement{Token: tok, Path: path, Alias: alias, Names: names, Aliases: aliases, Settings: settings}
 }
 
 // peekIsAs: the next word on this line is "as" (after a module or a name).

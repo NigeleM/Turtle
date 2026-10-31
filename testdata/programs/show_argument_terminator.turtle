@@ -1,0 +1,47 @@
+// show_argument_terminator.turtle: the ";" that ends a call's arguments inside
+// show. "show x fix 2 ; "The answer" ." calls fix with x and 2 only, then
+// shows "The answer" as the next item. Without the ";" the comma would be
+// part of the call. The program reads back what show printed (outputfile
+// from import log) and compares it with the lines it should be. Run from
+// this folder: turtle show_argument_terminator.turtle
+
+import log
+
+outputfile = "show_out.txt"
+
+failures = list []
+
+def expect[label, got, want]
+    if ] got != want [
+        add label to failures .
+        show "  FAIL ", label, ": got ", got, ", want ", want .
+    if [end]
+def [end]
+
+def fix[a, b]
+    return a + b
+def [end]
+
+x = 1
+
+// ---------- each line below is one show, and its output is recorded ----------
+show x fix 2 ; "The answer" .
+show x fix 2 ; x fix 5 .
+show x fix 2 ; 7 ; 8 .
+show fix[1, 2] ; "The answer" .
+show "plain text" .
+
+[read] show_out.txt to lines [end]
+shown = lines
+
+expect["a call followed by ; then text", shown at get 0, "3 The answer"]
+expect["two calls separated by ;", shown at get 1, "3 6"]
+expect["several items after ;", shown at get 2, "3 7 8"]
+expect["a bracket call followed by ;", shown at get 3, "3 The answer"]
+expect["plain show is unchanged", shown at get 4, "plain text"]
+expect["one line per show", length of shown, 5]
+
+show "failures: ", length of failures .
+if ] length of failures > 0 [
+    fail "show_argument_terminator: some checks failed"
+if [end]

@@ -256,6 +256,16 @@ type ImportStatement struct {
 	// Aliases renames a listed name: "import data [mean as average]" maps
 	// mean to average.
 	Aliases map[string]string
+	// Settings sets variables of the importing file once the import has
+	// run: "import data [tablerows = 50]" is "import data" then
+	// "tablerows = 50". Plain names still choose what is imported.
+	Settings []ImportSetting
+}
+
+// ImportSetting is one "name = value" inside an import's brackets.
+type ImportSetting struct {
+	Name  string
+	Value Expression
 }
 
 func (is *ImportStatement) statementNode()       {}
