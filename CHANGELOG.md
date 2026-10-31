@@ -2,6 +2,18 @@
 
 Turtle is pre-release (0.x). Breaking changes are listed first.
 
+## 0.9.230 (2026-10-31)
+
+New:
+
+- Settings in an import line: `import data [tablerows = 50]` sets the library's `tablerows` for the file before any code runs; `import log [loglevel = "debug"]` and `import random [seed = 7]` work the same way. A setting replaces the library's default, and a plain name in the same brackets still chooses what is imported: `import data [tablerows = 50, process]` imports only `process`. With settings and no names, the whole module is imported.
+
+Docs:
+
+- The library reference on each page includes the function reference copied from `turtle doc`, and every example in it runs.
+- `docs/scrolls.md` shows scrolls in their functional and sentence forms.
+- The language reference covers several theories used together, theories built from other theories, and changing assembly fields.
+
 ## 0.9.229 (2026-10-26)
 
 Breaking change (an error where there was text):
