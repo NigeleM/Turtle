@@ -1,6 +1,12 @@
 # Changelog
 
-Turtle is pre-release (0.x). Breaking changes are listed first.
+Turtle 1.0.0 is the first stable release. Breaking changes are listed first.
+
+## 1.0.0 (2026-11-03)
+
+New:
+
+- The first stable release. It has the same language, standard library and installers as 0.9.231, and the book and docs are updated for it.
 
 ## 0.9.231 (2026-11-03)
 

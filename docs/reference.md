@@ -938,7 +938,7 @@ help[]                  // every library, and how to ask
 libs = stdlib[]         // map: library name -> its function names
 show libs at get["linear"] at contains["flatten"] .   // true
 
-show version .          // 0.9.171
+show version .          // 1.0.0
 ```
 
 `help` shows its text and gives `none`. Text names what to look up, so
