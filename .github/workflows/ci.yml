@@ -134,6 +134,7 @@ jobs:
           $env:CGO_ENABLED="0"
           go build -o turtle.exe ./cmd/turtle
           choco install innosetup -y --no-progress
+          bash installer/license.sh installer/license.txt
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /Q "/DOutputDir=$env:RUNNER_TEMP" installer\turtle.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
