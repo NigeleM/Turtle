@@ -7,7 +7,7 @@ Turtle is pre-release (0.x). Breaking changes are listed first.
 Installers:
 
 - One Windows installer, `turtle-windows-setup.exe`, for Intel/AMD and Arm PCs.
-- Windows Arm64 builds are in each release, and CI installs and checks both Windows installers.
+- Windows Arm64 builds are in each release, and CI installs and checks the Windows installer on Intel/AMD and Arm PCs.
 - New Turtle icons on every installer, a licence page with NOTICE first, and a Linux desktop entry.
 
 ## 0.9.230 (2026-10-31)
