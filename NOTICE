@@ -1,9 +1,47 @@
 Turtle
 Copyright 2017-2026 Nigele McCoy
 
-Turtle was created by Nigele McCoy (https://github.com/NigeleM/Turtle)
-and is licensed under the Apache License, Version 2.0 (see LICENSE).
-The Turtle name and logo are not licensed (section 6).
+Authorship and ownership
+------------------------
+Turtle was created by Nigele McCoy (https://github.com/NigeleM/Turtle).
+Authorship and ownership of Turtle, including its design, its language
+and its original work, belong solely to Nigele McCoy. Anyone who changes
+or extends the code keeps credit only for what they add. They do not
+become the author or owner of Turtle or of anything in it that they did
+not write.
 
-Programs that you write in Turtle, including programs made with
-`turtle build`, are yours.
+Code
+----
+The code of Turtle is licensed under the Apache License, Version 2.0
+(see LICENSE). The Turtle name and logo are not licensed (section 6 of
+that license).
+
+Book, documentation, logo and icons
+-----------------------------------
+The Turtle book, the documentation (the docs folder and the text of this
+repository's guides), the logo, the icons and all other artwork are NOT
+licensed under the Apache License. They are copyright Nigele McCoy, all
+rights reserved.
+
+You may read them, link to them, and quote short passages with credit to
+Nigele McCoy and Turtle. You may not copy, adapt, translate or republish
+them. You may not use them, or anything derived from them, as your own
+work, and you may not sell a book, guide, product or program that uses
+them, including one with a new name or icon, without written permission.
+
+If you fork Turtle's code, you must write your own documentation, book,
+logo and icons. You may not reuse, retitle or re-skin Turtle's.
+
+Programs
+--------
+Programs written in Turtle, including programs made with `turtle build`,
+belong to their authors. Nigele McCoy claims no rights in them, and they
+may be sold.
+
+Warranty and liability
+----------------------
+Turtle is provided as it is, without warranty, and no contributor is
+liable for damage to your system or data, as set out in sections 7 and 8
+of the Apache License. Some places do not allow such limits for
+consumers, and where they do not apply, these limits apply only to the
+extent the law allows.

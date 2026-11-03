@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Turtle
+Comment=The Turtle prompt and programs
+Exec=turtle %f
+Icon=turtle
+Terminal=true
+Categories=Development;
+MimeType=application/x-turtle;

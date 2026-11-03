@@ -14,10 +14,20 @@
 ;   iscc /DAppVersion=0.9.170 /DTurtleExe=..\release\turtle-windows-amd64.exe installer\turtle.iss
 ;
 ; IconFile is the icon for the installer, .turtle files, the Start menu
-; and Apps & features: the test icon until the final logo is ready.
+; and Apps & features: installer\icons\turtle-app.ico (the same turtle as
+; the macOS app).
 
 #ifndef IconFile
-  #define IconFile "..\test-icons\shell-one.ico"
+  #define IconFile "..\installer\icons\turtle-app.ico"
+#endif
+; LicenseText is the licence page: NOTICE and LICENSE in one file, made by
+; "bash installer/license.sh installer/license.txt" from the repo root.
+#ifndef LicenseText
+  #define LicenseText "..\installer\license.txt"
+#endif
+; FileIconFile is the icon for .turtle files (the page with the turtle).
+#ifndef FileIconFile
+  #define FileIconFile "..\installer\icons\turtle-file.ico"
 #endif
 #define HasIcon FileExists(AddBackslash(SourcePath) + IconFile)
 #ifndef AppVersion
@@ -66,6 +76,10 @@ WizardStyle=modern
 #if HasIcon
 SetupIconFile={#IconFile}
 #endif
+; The licence page shows NOTICE and then the licence (Apache 2.0), and the
+; installer installs only if the user accepts it. The page is made by
+; installer/license.sh (the release does this before building).
+LicenseFile={#LicenseText}
 
 [Files]
 Source: "{#TurtleExe}"; DestDir: "{app}"; DestName: "turtle.exe"; Flags: ignoreversion
@@ -74,6 +88,7 @@ Source: "..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"; Flags: ignoreve
 Source: "..\NOTICE"; DestDir: "{app}"; DestName: "NOTICE.txt"; Flags: ignoreversion
 #if HasIcon
 Source: "{#IconFile}"; DestDir: "{app}"; DestName: "turtle.ico"; Flags: ignoreversion
+Source: "{#FileIconFile}"; DestDir: "{app}"; DestName: "turtle-file.ico"; Flags: ignoreversion
 #endif
 
 [Icons]
@@ -90,7 +105,7 @@ Name: "{autoprograms}\Turtle\Turtle documentation"; Filename: "https://github.co
 ; below, so Explorer shows it once.
 Root: HKLM; Subkey: "Software\Classes\{#ProgId}"; ValueType: string; ValueData: "Turtle script"; Flags: uninsdeletekey
 #if HasIcon
-Root: HKLM; Subkey: "Software\Classes\{#ProgId}\DefaultIcon"; ValueType: string; ValueData: "{app}\turtle.ico"
+Root: HKLM; Subkey: "Software\Classes\{#ProgId}\DefaultIcon"; ValueType: string; ValueData: "{app}\turtle-file.ico"
 #endif
 Root: HKLM; Subkey: "Software\Classes\{#ProgId}\shell"; ValueType: string; ValueData: "turtlerun"
 Root: HKLM; Subkey: "Software\Classes\{#ProgId}\shell\turtlerun"; ValueType: string; ValueData: "Run with Turtle"
@@ -107,7 +122,7 @@ Root: HKLM; Subkey: "Software\Classes\.trt\OpenWithProgids"; ValueType: string; 
 ; Run with Turtle on right-click, whatever program opens .turtle files.
 Root: HKLM; Subkey: "Software\Classes\SystemFileAssociations\.turtle\shell\turtlerun"; ValueType: string; ValueData: "Run with Turtle"; Flags: uninsdeletekey
 #if HasIcon
-Root: HKLM; Subkey: "Software\Classes\SystemFileAssociations\.turtle\shell\turtlerun"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\turtle.ico"
+Root: HKLM; Subkey: "Software\Classes\SystemFileAssociations\.turtle\shell\turtlerun"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\turtle-file.ico"
 #endif
 Root: HKLM; Subkey: "Software\Classes\SystemFileAssociations\.turtle\shell\turtlerun\command"; ValueType: string; ValueData: """{app}\turtle-run.cmd"" ""%1"" %*"
 

@@ -45,6 +45,16 @@ Description: The Turtle programming language
  A simple language that reads like sentences, with a standard library
  for data, SQL, the web and more, a prompt, a formatter and a debugger.
 CONTROL
+	# Icons, the menu entry and the .turtle file type. The desktop's icon
+	# and MIME caches update from the package triggers.
+	for size in 16 24 32 48 64 128 256 512; do
+		install -d "$root/usr/share/icons/hicolor/${size}x${size}/apps" "$root/usr/share/icons/hicolor/${size}x${size}/mimetypes"
+		install -m 644 "installer/linux/icons/hicolor/${size}x${size}/apps/turtle.png" "$root/usr/share/icons/hicolor/${size}x${size}/apps/turtle.png"
+		install -m 644 "installer/linux/icons/hicolor/${size}x${size}/mimetypes/application-x-turtle.png" "$root/usr/share/icons/hicolor/${size}x${size}/mimetypes/application-x-turtle.png"
+	done
+	install -d "$root/usr/share/mime/packages" "$root/usr/share/applications"
+	install -m 644 installer/linux/turtle.xml "$root/usr/share/mime/packages/turtle.xml"
+	install -m 644 installer/linux/turtle.desktop "$root/usr/share/applications/turtle.desktop"
 	dpkg-deb --root-owner-group --build "$root" "$out/turtle-linux-$arch.deb" >/dev/null
 	echo "built $out/turtle-linux-$arch.deb and .tar.gz"
 done

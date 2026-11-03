@@ -6,7 +6,8 @@
 #
 #   installer/macos/build-pkg.sh <version> [output folder]
 #
-# The icons are the test icons until the final logo is ready.
+# The icons are installer/icons: turtle-app.png (1024px, Turtle app and
+# its applet icon) and turtle-file.icns (.turtle files).
 set -eu
 version=${1:?usage: build-pkg.sh <version> [output folder]}
 version=${version#v}
@@ -36,13 +37,13 @@ osacompile -o "$app" "$here/Turtle.applescript" 2>/dev/null
 iconset="$work/app.iconset"
 mkdir -p "$iconset"
 for n in 16 32 128 256 512; do
-	sips -z $n $n test-icons/shell-one-mark.png --out "$iconset/icon_${n}x${n}.png" >/dev/null
-	sips -z $((n * 2)) $((n * 2)) test-icons/shell-one-mark.png --out "$iconset/icon_${n}x${n}@2x.png" >/dev/null
+	sips -z $n $n installer/icons/turtle-app.png --out "$iconset/icon_${n}x${n}.png" >/dev/null
+	sips -z $((n * 2)) $((n * 2)) installer/icons/turtle-app.png --out "$iconset/icon_${n}x${n}@2x.png" >/dev/null
 done
 plist="$app/Contents/Info.plist"
 icon=$(plutil -extract CFBundleIconFile raw "$plist") # droplet, for an app that takes files
 iconutil -c icns "$iconset" -o "$app/Contents/Resources/${icon%.icns}.icns"
-cp test-icons/shell-one.icns "$app/Contents/Resources/turtle-file.icns"
+cp installer/icons/turtle-file.icns "$app/Contents/Resources/turtle-file.icns"
 rm -f "$app/Contents/Resources/Assets.car" # the applet's own icon, which would win
 plutil -replace CFBundleIdentifier -string "com.genesys.turtle.app" "$plist"
 plutil -replace CFBundleName -string "Turtle" "$plist"
@@ -76,9 +77,21 @@ plutil -replace CFBundleDocumentTypes -json '[{
 	"LSItemContentTypes": ["com.genesys.turtle.trt"]
 }]' "$plist"
 plutil -lint "$plist" >/dev/null
-# The edits above break the applet's seal: sign it again (ad hoc, until
-# the release signs it for real).
-codesign --force --sign - "$app"
+# Signing. With TURTLE_SIGN_APP (a "Developer ID Application: ..." name),
+# TURTLE_SIGN_PKG ("Developer ID Installer: ...") and TURTLE_NOTARY_PROFILE
+# (a notarytool keychain profile) set, the package is signed, notarized and
+# stapled, so Gatekeeper accepts it. Without them it's signed ad hoc, as
+# before: the edits above break the applet's seal, so it's signed again.
+sign_app=${TURTLE_SIGN_APP:-}
+sign_pkg=${TURTLE_SIGN_PKG:-}
+notary=${TURTLE_NOTARY_PROFILE:-}
+if [ -n "$sign_app" ]; then
+	codesign --force --options runtime --timestamp --sign "$sign_app" "$cli/bin/turtle"
+	codesign --force --options runtime --timestamp --sign "$sign_app" "$app"
+	codesign --verify --strict --deep "$app"
+else
+	codesign --force --sign - "$app"
+fi
 
 # The app installs where it's built to go, not "relocated" to another copy.
 pkgbuild --analyze --root "$work/apps" "$work/components.plist" >/dev/null
@@ -90,5 +103,27 @@ pkgbuild --root "$work/apps" --component-plist "$work/components.plist" \
 pkgbuild --root "$cli" --identifier com.genesys.turtle \
 	--version "$version" --install-location /usr/local --ownership recommended \
 	"$work/cli.pkg" >/dev/null
-productbuild --package "$work/cli.pkg" --package "$work/app.pkg" "$out/turtle.pkg" >/dev/null
+# The installer's licence page shows NOTICE and then the licence (LICENSE,
+# Apache 2.0), and installs only if the user agrees.
+res="$work/resources"
+mkdir -p "$res"
+# One licence page: NOTICE first, then the Apache licence.
+installer/license.sh "$res/LICENSE.txt"
+productbuild --synthesize --package "$work/cli.pkg" --package "$work/app.pkg" "$work/distribution.xml"
+sed -i '' '/<installer-gui-script/a\
+    <license file="LICENSE.txt" mime-type="text/plain"/>
+' "$work/distribution.xml"
+xmllint --noout "$work/distribution.xml"
+productbuild --distribution "$work/distribution.xml" --package-path "$work" --resources "$res" "$work/turtle.pkg" >/dev/null
+if [ -n "$sign_pkg" ]; then
+	productsign --sign "$sign_pkg" --timestamp "$work/turtle.pkg" "$out/turtle.pkg"
+	if [ -n "$notary" ]; then
+		xcrun notarytool submit "$out/turtle.pkg" --keychain-profile "$notary" --wait
+		xcrun stapler staple "$out/turtle.pkg"
+		xcrun stapler validate "$out/turtle.pkg"
+	fi
+	pkgutil --check-signature "$out/turtle.pkg" | head -4
+else
+	mv "$work/turtle.pkg" "$out/turtle.pkg"
+fi
 echo "built $out/turtle.pkg"

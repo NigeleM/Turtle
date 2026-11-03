@@ -19,3 +19,6 @@ __pycache__/
 
 # local test programs and their output (not part of the repo)
 /Complexity/
+
+# the licence page the Windows installer shows (made by installer/license.sh)
+/installer/license.txt

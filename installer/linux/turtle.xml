@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Turtle program files (.turtle). Installed to /usr/share/mime/packages. -->
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-turtle">
+    <comment>Turtle program</comment>
+    <icon name="application-x-turtle"/>
+    <sub-class-of type="text/plain"/>
+    <glob pattern="*.turtle"/>
+  </mime-type>
+</mime-info>

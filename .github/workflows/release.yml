@@ -133,6 +133,7 @@ jobs:
         # installer/turtle.iss: Program Files, PATH, .turtle files, Start menu.
         choco install innosetup -y --no-progress
         $version = "${{ github.ref_name }}".TrimStart("v")
+        bash installer/license.sh installer/license.txt
         & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /Q "/DAppVersion=$version" "/DTurtleExe=..\release\turtle-windows-amd64.exe" "/DOutputDir=..\release" installer\turtle.iss
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
