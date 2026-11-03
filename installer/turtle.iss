@@ -1,5 +1,7 @@
-; The Windows installer: turtle-windows-amd64-setup.exe.
+; The Windows installer: turtle-windows-setup.exe.
 ;
+; One installer for Intel and AMD PCs (x64) and Arm PCs (Arm64): it carries
+; both builds of turtle.exe and installs the one the PC runs natively.
 ; Installs turtle.exe for all users in Program Files and puts it on the
 ; system PATH; makes .turtle Turtle's file type (double-click runs the
 ; script in its own folder; right-click has Run with Turtle and Edit);
@@ -11,7 +13,8 @@
 ;
 ; Built by the release (release.yml) with Inno Setup 6:
 ;
-;   iscc /DAppVersion=0.9.170 /DTurtleExe=..\release\turtle-windows-amd64.exe installer\turtle.iss
+;   iscc /DAppVersion=0.9.170 /DTurtleExe=..\release\turtle-windows-amd64.exe
+;        /DTurtleExeArm64=..\release\turtle-windows-arm64.exe installer\turtle.iss
 ;
 ; IconFile is the icon for the installer, .turtle files, the Start menu
 ; and Apps & features: installer\icons\turtle-app.ico (the same turtle as
@@ -36,6 +39,10 @@
 #ifndef TurtleExe
   #define TurtleExe "..\turtle.exe"
 #endif
+; TurtleExeArm64 is the Arm64 build (GOARCH=arm64), for Arm PCs.
+#ifndef TurtleExeArm64
+  #define TurtleExeArm64 "..\turtle-arm64.exe"
+#endif
 #ifndef OutputDir
   #define OutputDir "..\release"
 #endif
@@ -55,8 +62,10 @@ AppUpdatesURL=https://github.com/NigeleM/Turtle/releases
 DefaultDirName={autopf}\Turtle
 DisableProgramGroupPage=yes
 PrivilegesRequired=admin
-ArchitecturesAllowed=x64compatible
-ArchitecturesInstallIn64BitMode=x64compatible
+; Intel and AMD PCs, and Arm PCs: Windows 11 on Arm also counts as
+; x64compatible (it runs x64 programs), Windows 10 on Arm only as arm64.
+ArchitecturesAllowed=x64compatible or arm64
+ArchitecturesInstallIn64BitMode=x64compatible or arm64
 ; Windows 10 and later: the prompt's colors need them.
 MinVersion=10.0
 ChangesEnvironment=yes
@@ -69,7 +78,7 @@ UninstallDisplayIcon={app}\turtle.exe
 #endif
 UninstallDisplayName=Turtle
 OutputDir={#OutputDir}
-OutputBaseFilename=turtle-windows-amd64-setup
+OutputBaseFilename=turtle-windows-setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -82,7 +91,9 @@ SetupIconFile={#IconFile}
 LicenseFile={#LicenseText}
 
 [Files]
-Source: "{#TurtleExe}"; DestDir: "{app}"; DestName: "turtle.exe"; Flags: ignoreversion
+; The build the PC runs natively, as turtle.exe either way.
+Source: "{#TurtleExe}"; DestDir: "{app}"; DestName: "turtle.exe"; Check: not IsArm64; Flags: ignoreversion
+Source: "{#TurtleExeArm64}"; DestDir: "{app}"; DestName: "turtle.exe"; Check: IsArm64; Flags: ignoreversion
 Source: "turtle-run.cmd"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"; Flags: ignoreversion
 Source: "..\NOTICE"; DestDir: "{app}"; DestName: "NOTICE.txt"; Flags: ignoreversion

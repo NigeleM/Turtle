@@ -2,11 +2,12 @@
 
 ## Install on Windows
 
-Run `turtle-windows-amd64-setup.exe` from a
-[release](https://github.com/NigeleM/Turtle/releases). It puts `turtle` on
-the PATH; double-clicking a `.turtle` file runs it in its own folder. It
-isn't signed yet: if Windows says it "protected your PC", choose More
-info, then Run anyway.
+Run `turtle-windows-setup.exe` from a
+[release](https://github.com/NigeleM/Turtle/releases). It works on Intel
+and AMD PCs and on Arm PCs, installing the build each one runs natively.
+It puts `turtle` on the PATH; double-clicking a `.turtle` file runs it in
+its own folder. It isn't signed yet: if Windows says it "protected your
+PC", choose More info, then Run anyway.
 
 ## Install on macOS
 

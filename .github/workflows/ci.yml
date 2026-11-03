@@ -126,17 +126,62 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: installer/macos/build-pkg.sh 0.0.0-ci "$RUNNER_TEMP"
 
-      # The installer the release makes, built (not installed) so a mistake
-      # in installer/turtle.iss shows up now, not on release day.
+      # The installer the release makes, with the x64 and Arm64 builds,
+      # built and installed so a mistake in installer/turtle.iss shows up
+      # now, not on release day. It's installed here (x64) and on an Arm
+      # PC (windows-arm, below).
       - name: Build the Windows installer
         if: matrix.os == 'windows-latest'
         run: |
           $env:CGO_ENABLED="0"
-          go build -o turtle.exe ./cmd/turtle
+          $env:GOOS="windows"
+          foreach ($arch in "amd64", "arm64") {
+            $env:GOARCH=$arch
+            go build -o "$env:RUNNER_TEMP\turtle-windows-$arch.exe" ./cmd/turtle
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
           choco install innosetup -y --no-progress
           bash installer/license.sh installer/license.txt
-          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /Q "/DOutputDir=$env:RUNNER_TEMP" installer\turtle.iss
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /Q "/DOutputDir=$env:RUNNER_TEMP\installer" "/DTurtleExe=$env:RUNNER_TEMP\turtle-windows-amd64.exe" "/DTurtleExeArm64=$env:RUNNER_TEMP\turtle-windows-arm64.exe" installer\turtle.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Install it and run Turtle (x64)
+        if: matrix.os == 'windows-latest'
+        run: installer/test-install.ps1 "$env:RUNNER_TEMP\installer\turtle-windows-setup.exe" x64
+
+      - name: Keep the installer for the Arm PC
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-installer
+          path: ${{ runner.temp }}/installer/turtle-windows-setup.exe
+          retention-days: 1
+
+  # The same installer on an Arm PC: it must install the Arm64 build, which
+  # must pass the tests there natively.
+  windows-arm:
+    needs: other-systems
+    runs-on: windows-11-arm
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: '1.27'
+
+      - name: Test
+        run: go test ./ast/... ./cmd/... ./docs/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/...
+
+      - name: Get the installer
+        uses: actions/download-artifact@v8
+        with:
+          name: windows-installer
+          path: ${{ runner.temp }}/installer
+
+      - name: Install it and run Turtle (Arm64)
+        run: installer/test-install.ps1 "$env:RUNNER_TEMP\installer\turtle-windows-setup.exe" arm64
 
   # No change may make Turtle slower or hungrier: bench/ run with the
   # commit before and with this one, taking turns on the same machine

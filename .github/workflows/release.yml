@@ -120,21 +120,26 @@ jobs:
         go vet ./ast/... ./cmd/... ./docs/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/...
         go test ./ast/... ./cmd/... ./docs/... ./evaluator/... ./lexer/... ./object/... ./parser/... ./postgres/... ./mysql/... ./sqlite/... ./toml/... ./token/... ./syntax/... ./format/... ./lsp/... ./repl/...
 
-    - name: Build the binary for Windows
+    - name: Build the binaries for Windows
+      # x64 for Intel and AMD PCs, Arm64 for Arm PCs.
       run: |
         mkdir -p release
         $env:CGO_ENABLED="0"
         $env:GOOS="windows"
-        $env:GOARCH="amd64"
-        go build -ldflags "-s -w -X main.version=${{ github.ref_name }}" -o release/turtle-windows-amd64.exe ./cmd/turtle
+        foreach ($arch in "amd64", "arm64") {
+          $env:GOARCH=$arch
+          go build -ldflags "-s -w -X main.version=${{ github.ref_name }}" -o release/turtle-windows-$arch.exe ./cmd/turtle
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        }
 
     - name: Create Windows Installer
       run: |
-        # installer/turtle.iss: Program Files, PATH, .turtle files, Start menu.
+        # installer/turtle.iss: Program Files, PATH, .turtle files, Start menu;
+        # both builds, each PC getting the one it runs natively.
         choco install innosetup -y --no-progress
         $version = "${{ github.ref_name }}".TrimStart("v")
         bash installer/license.sh installer/license.txt
-        & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /Q "/DAppVersion=$version" "/DTurtleExe=..\release\turtle-windows-amd64.exe" "/DOutputDir=..\release" installer\turtle.iss
+        & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /Q "/DAppVersion=$version" "/DTurtleExe=..\release\turtle-windows-amd64.exe" "/DTurtleExeArm64=..\release\turtle-windows-arm64.exe" "/DOutputDir=..\release" installer\turtle.iss
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
     - name: Upload Windows Release
@@ -144,8 +149,9 @@ jobs:
         # 0.x versions are pre-releases: GitHub shows the badge.
         prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
         files: |
-          release/turtle-windows-amd64-setup.exe
+          release/turtle-windows-setup.exe
           release/turtle-windows-amd64.exe
+          release/turtle-windows-arm64.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
