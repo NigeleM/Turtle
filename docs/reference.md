@@ -865,10 +865,23 @@ show apple 1,2; " is the sum" .    // in show, ';' ends the arguments: 3 is the 
 - **The first argument** may be a literal (a number, text, `true`, `false`, `none`, or
   a `list`, `set` or `map`), or a variable. Each argument may use arithmetic, as in
   `apple 1, 2 + 3`, and `tens i div 3` is `tens[i div 3]`.
-- **A negative first argument** works for a function. `apple -4, 2` is `apple[-4, 2]`.
-  A name is read as a function when the program defines it, or when it is a library
-  function (`abs`, `sqrt`, `round` ...). A variable is never a function, so `x -1`
-  stays subtraction. A variable with the same name as a function is a variable.
+- **A negative first argument** works for a function the program defines, or for a
+  library function (`abs`, `sqrt`, `round` ...): `apple -4, 2` is `apple[-4, 2]`. A
+  name that is a variable is read as a value, so `x -1` is subtraction.
+- **A negative argument to a function value** (`f = x give ...`, an alias, or a
+  function passed in as a parameter) uses one of these forms, each verified:
+
+  ```turtle
+  f = x give x * 3
+  g = f
+  show f[-1] .        // -3, the brackets
+  show -1 f .         // -3, the value first
+  show -1 g .         // -3, the value first, for an alias
+  show f - 1 .        // subtraction: spaces on both sides
+  ```
+
+  `f -1` with no space before the `-` and a function value is read as subtraction and is
+  an error when `f` is a function value, so use one of the forms above.
 - **In `show`**, a comma followed by a name starts the next item: `show one x, y .`
   is the call `one[x]` and then `y`, so `one` takes one argument. A comma followed by
   a literal stays an argument (`show apple x, 10 .` is `apple[x, 10]`). A `;` always
