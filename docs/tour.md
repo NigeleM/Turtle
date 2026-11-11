@@ -295,6 +295,24 @@ show factorial[5] .    // 120
 (`x = plus[1, 2] + 3`), and a call with no arguments still needs the
 brackets: `def greet[] ... def [end]`, called as `greet[]`.
 
+### Three ways to call a function
+
+A call can be written in three forms that mean the same thing, so a program can use the
+one that reads best:
+
+```turtle
+def apple[a, b]
+    return a + b
+def [end]
+show apple[1, 2] .          // bracket form: 3
+show 1 apple 2 .            // value first: 3
+show apple 1, 2 .           // name first: 3
+```
+
+In `show`, a `;` ends the arguments, so the next item is printed separately:
+`show apple 1, 2; " is the sum" .` prints `3 is the sum`. Inside a list, `;` ends a
+call's arguments and also separates items: `list[apple 1,2; apple 3,4;]` is `[ 3, 7 ]`.
+
 ## Data structures
 
 ```

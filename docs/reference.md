@@ -814,6 +814,32 @@ show nums sum .                      // sum[nums]
 - To call an imported function qualified in this style, use the bracket
   form instead: `data process[nums, f]`.
 
+### Ways to call a function
+
+Turtle lets a call be written in more than one form. Each form has the same meaning,
+so a program can use the form that reads best for the task:
+
+| Form | Example | Meaning |
+|---|---|---|
+| bracket | `apple[1, 2]` | the arguments inside `[ ]`, separated by commas |
+| value first | `1 apple 2` | the value before the name is the first argument |
+| name first | `apple 1, 2` | the arguments follow the name, separated by commas |
+
+All three give `3` for an `apple` that adds its two arguments. The bracket form is the
+clearest when a call sits inside a larger expression, and the name-first form reads most
+naturally as a plain statement.
+
+**The semicolon `;`** marks where a call's arguments end. It is used in two places:
+
+- In `show`, `;` ends the arguments, and the item after it is printed separately:
+  `show apple 1, 2; " is the sum" .` prints `3 is the sum`.
+- Inside `[ ]` (a list, set, map or call's brackets), `;` ends a call's arguments, and it
+  also separates items: `list[apple -4,2; apple 3,2; 1,2,3]` is `[ -2, 5, 1, 2, 3 ]`.
+  A comma may follow the `;`, as in `;,`.
+
+Without a `;`, a name-first call inside brackets takes every comma after it, so
+`list [apple 1, 2]` is `[ 3 ]`.
+
 ### Calls with the arguments after the name
 
 ```text
