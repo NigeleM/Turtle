@@ -2,6 +2,25 @@
 
 Turtle 1.0.0 is the first stable release. Breaking changes are listed first.
 
+## 0.9.232 (2026-11-10)
+
+New:
+
+- A function can be called with its arguments after its name, with no value before it: `apple 1, 2` is `apple[1, 2]`. It works in every place a value can go (`show`, assignments, `return`, conditions, loops, text braces, arithmetic), next to the value-first form `1 apple 2` and the bracket form `apple[1, 2]`.
+- A negative first argument for a function: `apple -4, 2` and `abs -3`. A variable is never a function, so `x -1` stays subtraction. The parser reads the program's `def` names and assignments to tell them apart.
+- Inside brackets, the commas after a call are its arguments until a `;` ends them, and `;` separates items in a list: `list[apple -4,2; apple 3,2; 1,2,3]` is `[ -2, 5, 1, 2, 3 ]`. A `;,` works too.
+- A variable can be the first argument with more arguments after it: `apple x, 10`. In `show`, a comma then a name still starts a new item.
+
+Fixed:
+
+- A function that is called with a variable inside a function body, or inside a loop, reads the right variable (`return sq m`).
+- Text braces read the names of the file they are in: `"{apple -4, 2}"`.
+
+Tests and programs:
+
+- `TestBareArgumentCall`, `TestBareNegativeArgument`, `TestBareCallInsideBrackets` and `TestBareCallInsideFunction` cover the forms.
+- Round eight of the local program corpus (2751 to 2800) checks the forms, each program with its own expected results.
+
 ## 1.0.0 (2026-11-03)
 
 New:

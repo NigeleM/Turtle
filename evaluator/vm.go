@@ -964,8 +964,15 @@ func (c *compiler) extreme(arg ast.Expression, args []ast.Expression, wantMin bo
 func (c *compiler) sentenceName(x *ast.Identifier) exprFn {
 	mod := x.Module
 	slot, ok := c.resolve(mod)
+	// "apple x" where apple is a function: the value of x, read from its slot.
+	argFn := c.expr(&ast.Identifier{Token: x.Token, Value: x.Value})
 	if !ok && !c.assigned[mod] && !c.top {
-		return func(it *Interpreter, _ []val) val { return valOf(it.evalExpression(x, it.vmEnv)) }
+		return func(it *Interpreter, s []val) val {
+			if fn, ok := userFunctionNamed(it.vmEnv, mod); ok {
+				return valOf(it.callFunction(fn, mod, []object.Object{argFn(it, s).box()}))
+			}
+			return valOf(it.evalExpression(x, it.vmEnv))
+		}
 	}
 	if !ok {
 		slot = c.local(mod)
@@ -978,6 +985,9 @@ func (c *compiler) sentenceName(x *ast.Identifier) exprFn {
 		}
 		v := s[slot]
 		if v == unset {
+			if fn, ok := userFunctionNamed(it.vmEnv, mod); ok {
+				return valOf(it.callFunction(fn, mod, []object.Object{argFn(it, s).box()}))
+			}
 			return valOf(it.evalExpression(x, it.vmEnv))
 		}
 		if _, isModule := it.vmEnv.FindImport(mod); isModule {
@@ -1038,6 +1048,25 @@ func (c *compiler) sentenceCall(ce *ast.CallExpression, statement bool) exprFn {
 		return func() { it.inPlace = false }
 	}
 	if ce.Subject != nil {
+		// "apple nums" as a statement, with apple a function: the subject is the
+		// function, and nums is the one argument. Checked before the subject is
+		// compiled, since compiling it reserves a slot for the name.
+		if id, ok := ce.Subject.(*ast.Identifier); ok && id.Module == "" {
+			if _, local := c.resolve(id.Value); !local && !c.assigned[id.Value] {
+				argFn := c.expr(&ast.Identifier{Token: ce.Token, Value: ce.Name})
+				return func(it *Interpreter, s []val) val {
+					if fn, ok := userFunctionNamed(it.vmEnv, id.Value); ok {
+						a := boxed(it, s, nil)
+						defer inPlace(it)()
+						return valOf(it.callFunction(fn, id.Value, append([]object.Object{argFn(it, s).box()}, a...)))
+					}
+					subj := c.expr(ce.Subject)
+					a := boxed(it, s, nil) // the arguments first, then the subject, as applyCall
+					defer inPlace(it)()
+					return valOf(it.callByName(ce.Name, append([]object.Object{subj(it, s).box()}, a...), it.vmEnv))
+				}
+			}
+		}
 		subj := c.expr(ce.Subject)
 		return func(it *Interpreter, s []val) val {
 			a := boxed(it, s, nil) // the arguments first, then the subject, as applyCall
@@ -1050,6 +1079,8 @@ func (c *compiler) sentenceCall(ce *ast.CallExpression, statement bool) exprFn {
 	if !ok && (c.assigned[mod] || c.top) {
 		slot, ok = c.local(mod), true
 	}
+	// "apple x, 10" with apple a function: the value of x is the first argument.
+	nameFn := c.expr(&ast.Identifier{Token: ce.Token, Value: ce.Name})
 	return func(it *Interpreter, s []val) val {
 		a := boxed(it, s, nil)
 		defer inPlace(it)()
@@ -1060,6 +1091,9 @@ func (c *compiler) sentenceCall(ce *ast.CallExpression, statement bool) exprFn {
 				}
 				return valOf(it.callByName(ce.Name, append([]object.Object{v.box()}, a...), it.vmEnv))
 			}
+		}
+		if fn, ok := userFunctionNamed(it.vmEnv, mod); ok {
+			return valOf(it.callFunction(fn, mod, append([]object.Object{nameFn(it, s).box()}, a...)))
 		}
 		return valOf(it.applyCall(ce, a, it.vmEnv))
 	}

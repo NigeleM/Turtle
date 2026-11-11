@@ -159,6 +159,11 @@ func (it *Interpreter) evalInterpolated(e *ast.InterpolatedString, env *object.E
 //go:noinline
 func (it *Interpreter) evalName(e *ast.Identifier, env *object.Environment) object.Object {
 	if e.Module != "" {
+		// "apple nums": a function called with one value, written without brackets.
+		if fn, ok := userFunctionNamed(env, e.Module); ok {
+			arg := it.evalName(&ast.Identifier{Token: e.Token, Value: e.Value}, env)
+			return it.callFunction(fn, e.Module, []object.Object{arg})
+		}
 		if e.Module == "math" {
 			if c, ok := mathConstant(env, e.Value); ok {
 				return c
@@ -895,10 +900,22 @@ func (it *Interpreter) takeInPlace() bool {
 
 // applyCall calls ce's function on arguments already worked out.
 func (it *Interpreter) applyCall(ce *ast.CallExpression, args []object.Object, env *object.Environment) object.Object {
+	if id, ok := ce.Subject.(*ast.Identifier); ok && id.Module == "" {
+		// "apple nums ." as a statement: the subject is the function, not a value.
+		if fn, ok := userFunctionNamed(env, id.Value); ok {
+			arg := it.evalName(&ast.Identifier{Token: ce.Token, Value: ce.Name}, env)
+			return it.callFunction(fn, id.Value, append([]object.Object{arg}, args...))
+		}
+	}
 	if ce.Subject != nil {
 		return it.callByName(ce.Name, append([]object.Object{it.evalExpression(ce.Subject, env)}, args...), env)
 	}
 	if ce.Module != "" {
+		// "apple x, 10" with apple a function: x is the first argument.
+		if fn, ok := userFunctionNamed(env, ce.Module); ok {
+			first := it.evalExpression(&ast.Identifier{Token: ce.Token, Value: ce.Name}, env)
+			return it.callFunction(fn, ce.Module, append([]object.Object{first}, args...))
+		}
 		if subject, ok := sentenceSubject(env, ce.Module); ok {
 			return it.callByName(ce.Name, append([]object.Object{subject}, args...), env)
 		}
@@ -947,6 +964,18 @@ func knownFunction(ce *ast.CallExpression, env *object.Environment) *object.Func
 	}
 	ce.Cache = &callCache{epoch: epoch, root: root, fn: fn}
 	return fn
+}
+
+// userFunctionNamed reports whether name is a function defined in the program,
+// and not a variable or an imported module, so "name value" is a call on it.
+func userFunctionNamed(env *object.Environment, name string) (*object.Function, bool) {
+	if _, isVar := env.Get(name); isVar {
+		return nil, false
+	}
+	if _, isModule := env.FindImport(name); isModule {
+		return nil, false
+	}
+	return env.GetFunction(name)
 }
 
 // sentenceSubject reports whether name, in front of a function name, is

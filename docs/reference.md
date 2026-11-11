@@ -814,6 +814,57 @@ show nums sum .                      // sum[nums]
 - To call an imported function qualified in this style, use the bracket
   form instead: `data process[nums, f]`.
 
+### Calls with the arguments after the name
+
+```text
+<function> <arg>, ...
+```
+
+calls `<function>[<arg>, ...]`, with no value before the name. It works for any
+function, including one the program defines, and in every place a value can go:
+
+```turtle
+def apple[a, b]
+    return a + b
+def [end]
+show apple 1, 2 .                  // apple[1, 2]: 3
+show apple "a", "b" .              // apple["a", "b"]: ab
+x = 5
+r = apple x, 10                    // a variable first: apple[x, 10]
+show r .                           // 15
+show apple 1, 2 + 3 .              // the arithmetic is part of the argument: apple[1, 5]: 6
+show apple 1,2; " is the sum" .    // in show, ';' ends the arguments: 3 is the sum
+```
+
+- **The first argument** may be a literal (a number, text, `true`, `false`, `none`, or
+  a `list`, `set` or `map`), or a variable. Each argument may use arithmetic, as in
+  `apple 1, 2 + 3`, and `tens i div 3` is `tens[i div 3]`.
+- **A negative first argument** works for a function. `apple -4, 2` is `apple[-4, 2]`.
+  A name is read as a function when the program defines it, or when it is a library
+  function (`abs`, `sqrt`, `round` ...). A variable is never a function, so `x -1`
+  stays subtraction. A variable with the same name as a function is a variable.
+- **In `show`**, a comma followed by a name starts the next item: `show one x, y .`
+  is the call `one[x]` and then `y`, so `one` takes one argument. A comma followed by
+  a literal stays an argument (`show apple x, 10 .` is `apple[x, 10]`). A `;` always
+  ends the arguments: `show apple 1, 2; "x" .`.
+- **Inside `[...]`** (a list, set, map or call's brackets), the commas after a call are
+  its arguments until a `;` ends them. The `;` also separates items, so a list can
+  be written with `;` between calls, and `;,` works too:
+
+  ```turtle
+  show list [apple -4,2;] .                 // [ -2 ]
+  show list[apple -4,2; apple 3,2; 1,2,3] . // [ -2, 5, 1, 2, 3 ]
+  show list [apple 1,2;, apple 3,4;, 5] .   // [ 3, 7, 5 ]
+  ```
+
+  Without a `;`, all the commas belong to the call, so `list [apple 1, 2]` is `[ 3 ]`,
+  and a call with too many arguments reports the count. A plain `;` between values
+  (`list [1; 2]`) is still an error.
+- **The sentence form** `x fix 2` inside `[...]` still takes one argument, as above.
+- A leading `(` or `[` is not part of the form: `apple (1)` is an error. Use brackets.
+- A `.` is optional at the end of a whole statement: `apple 3, 4` on its own line calls
+  `apple`.
+
 ## Assembled types
 
 ```text

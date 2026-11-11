@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io/fs"
 	"math/big"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -89,6 +90,13 @@ type Parser struct {
 	// call takes only one argument, so the list's own commas aren't
 	// swallowed: check["x", t find "W", 7] is check["x", find[t, "W"], 7].
 	inBrackets bool
+	// inShow is set while a show statement reads its items, where a comma
+	// after a name separates items.
+	inShow bool
+
+	// funcNames and varNames are found in the source before parsing, so a name
+	// can be read as a function or a variable where the parser meets it.
+	funcNames, varNames map[string]bool
 
 	// inIsReceiver is true while parsing the receiver of
 	// "r is x at m args ." at its top level, where the statement itself
@@ -179,6 +187,7 @@ type Parser struct {
 
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{l: l}
+	p.funcNames, p.varNames = scanNames(l.Source())
 
 	p.prefixParseFns = map[token.Type]prefixParseFn{
 		token.IDENT:  p.parseIdentifier,
@@ -586,7 +595,7 @@ func (p *Parser) parseIdentifierLeadStatement() ast.Statement {
 	if p.peekTokenIs(token.IS) {
 		return p.parseIsStatement()
 	}
-	if p.peekTokenIs(token.LBRACKET) || p.isQualifiedName() {
+	if p.peekTokenIs(token.LBRACKET) || p.isQualifiedName() || p.peekStartsBareArgument() {
 		tok := p.curToken
 		expr := p.parseExpression(LOWEST)
 		p.nextToken()
@@ -782,6 +791,9 @@ func (p *Parser) parseLogStatement() ast.Statement {
 func (p *Parser) parseShowStatement() ast.Statement {
 	tok := p.curToken
 	p.nextToken()
+	savedShow := p.inShow
+	p.inShow = true
+	defer func() { p.inShow = savedShow }()
 	exprs := []ast.Expression{p.parseExpression(LOWEST)}
 	for p.peekTokenIs(token.COMMA) || p.peekTokenIs(token.SEMI) {
 		p.nextToken()
@@ -1781,6 +1793,26 @@ func (p *Parser) parseIdentifier() ast.Expression {
 		args := p.parseCallArguments()
 		return p.maybeSentence(&ast.CallExpression{Token: tok, Module: module, Name: name.Literal, Arguments: args})
 	}
+	// "tens i div 3" with tens a function: i is the first argument, and the
+	// arithmetic after it belongs to that argument, as in "tens 4 div 3".
+	if module != "" && p.isFunctionName(module) && !p.varNames[module] && name.Type == token.IDENT && !p.peekTokenIs(token.LBRACKET) && !p.inBareArg {
+		var left ast.Expression = &ast.Identifier{Token: name, Value: name.Literal}
+		for SENTENCEARG < p.peekPrecedence() {
+			infix := p.infixParseFns[p.peekToken.Type]
+			if infix == nil {
+				break
+			}
+			p.nextToken()
+			left = infix(left)
+		}
+		args := []ast.Expression{left}
+		for p.peekTokenIs(token.COMMA) && (!p.inShow || literalStartsAt(p.peekN(2))) {
+			p.nextToken()
+			p.nextToken()
+			args = append(args, p.parseExpression(SENTENCEARG))
+		}
+		return &ast.CallExpression{Token: tok, Name: module, Arguments: args}
+	}
 	if module != "" && p.peekStartsArgument() {
 		var args []ast.Expression
 		p.nextToken()
@@ -1792,7 +1824,113 @@ func (p *Parser) parseIdentifier() ast.Expression {
 		}
 		return &ast.CallExpression{Token: tok, Module: module, Name: name.Literal, Arguments: args}
 	}
+	// "apple x, 10": with apple a function, x is its first argument and the
+	// commas after it are the rest. In show, a comma then a name is a new item
+	// ("show nums sum, total ." is two items), so there the comma must be
+	// followed by a literal.
+	if module != "" && !p.inBrackets && p.peekTokenIs(token.COMMA) && p.peekToken.Line == name.Line && (!p.inShow || literalStartsAt(p.peekN(2))) {
+		var args []ast.Expression
+		for !p.inBrackets && p.peekTokenIs(token.COMMA) {
+			p.nextToken()
+			p.nextToken()
+			args = append(args, p.parseExpression(SENTENCEARG))
+		}
+		return &ast.CallExpression{Token: tok, Module: module, Name: name.Literal, Arguments: args}
+	}
+	// "apple 1, 2": a function called with its arguments after its name, with
+	// no value before it. The name must be a function: the evaluator reports
+	// a variable used this way.
+	if module == "" && p.peekStartsBareArgument() {
+		var args []ast.Expression
+		p.nextToken()
+		args = append(args, p.parseExpression(SENTENCEARG))
+		// Inside [...] too: the commas are the call's arguments until a ';'
+		// ends them, as in show: list [apple 1, 2;, 9] is [3, 9].
+		for p.peekTokenIs(token.COMMA) {
+			p.nextToken()
+			p.nextToken()
+			args = append(args, p.parseExpression(SENTENCEARG))
+		}
+		if p.inBrackets && p.peekTokenIs(token.SEMI) {
+			p.nextToken()
+		}
+		return &ast.CallExpression{Token: tok, Name: name.Literal, Arguments: args}
+	}
 	return &ast.Identifier{Token: tok, Module: module, Value: name.Literal}
+}
+
+var (
+	reDef     = regexp.MustCompile(`(?m)^\s*def\s+(~?[A-Za-z_]\w*)\s*\[([^\]]*)\]`)
+	reAssign  = regexp.MustCompile(`(?m)^\s*([A-Za-z_]\w*)\s*(?:=[^=]|is\s)`)
+	reLoop    = regexp.MustCompile(`\[loop\]\[\s*([A-Za-z_]\w*)(?:\s*,\s*([A-Za-z_]\w*))?\s*(?:=|in\s)`)
+	reIdentRE = regexp.MustCompile(`[A-Za-z_]\w*`)
+)
+
+// scanNames reads the source for the names a program defines as functions
+// (def name[...], library functions) and as variables (assignments, loop
+// names, parameters). A name that is both is a variable: a variable shadows
+// a function of the same name.
+func scanNames(src string) (funcs, vars map[string]bool) {
+	funcs = map[string]bool{}
+	vars = map[string]bool{}
+	for _, w := range syntax.Methods {
+		funcs[w] = true
+	}
+	for _, m := range reDef.FindAllStringSubmatch(src, -1) {
+		funcs[m[1]] = true
+		for _, param := range reIdentRE.FindAllString(m[2], -1) {
+			vars[param] = true
+		}
+	}
+	for _, m := range reAssign.FindAllStringSubmatch(src, -1) {
+		vars[m[1]] = true
+	}
+	for _, m := range reLoop.FindAllStringSubmatch(src, -1) {
+		for _, name := range m[1:] {
+			if name != "" {
+				vars[name] = true
+			}
+		}
+	}
+	return funcs, vars
+}
+
+// isFunctionName reports whether name is a function here: defined by the
+// program or a library function, and not also a variable.
+func (p *Parser) isFunctionName(name string) bool {
+	return p.funcNames[name] && !p.varNames[name]
+}
+
+// literalStartsAt reports whether t is a literal value: a number, text,
+// a truth value, none, or a list, set or map.
+func literalStartsAt(t token.Token) bool {
+	switch t.Type {
+	case token.INT, token.FLOAT, token.STRING, token.RAWSTRING, token.TRUE, token.FALSE,
+		token.NONE, token.LIST, token.SET, token.MAP:
+		return true
+	}
+	return false
+}
+
+// peekStartsBareArgument reports whether the next token starts the first
+// argument of a call written as "apple 1, 2" with no value before the name.
+// A '-', '(' or '[' does not: "x -1" stays subtraction, "x (1)" stays an error,
+// and "x [" opens a bracket form.
+func (p *Parser) peekStartsBareArgument() bool {
+	t := p.peekToken
+	if t.Line != p.curToken.Line {
+		return false
+	}
+	if literalStartsAt(t) {
+		return true
+	}
+	// "abs -3": a negative first argument, but only for a function. For a
+	// variable "x -1" stays subtraction.
+	if t.Type == token.MINUS && t.SpaceBefore && p.isFunctionName(p.curToken.Literal) {
+		next := p.peekN(2)
+		return !next.SpaceBefore && next.Line == t.Line && (next.Type == token.INT || next.Type == token.FLOAT || next.Type == token.IDENT)
+	}
+	return false
 }
 
 // peekStartsArgument reports whether the next token, on the same line,
@@ -2106,6 +2244,8 @@ func (p *Parser) interpolatedPart(tok token.Token, src string) ast.Expression {
 		return fail("put a name or expression inside the braces")
 	}
 	sub := New(lexer.New(src))
+	// The braces read the names of the file they are in, not just their own text.
+	sub.funcNames, sub.varNames = p.funcNames, p.varNames
 	if sub.curTokenIs(token.EOF) {
 		return fail("put a name or expression inside the braces")
 	}
@@ -2291,7 +2431,17 @@ func (p *Parser) parseExpressionList(end token.Type) []ast.Expression {
 	}
 	p.nextToken()
 	list = append(list, p.parseExpression(LOWEST))
-	for !p.trailingComma() && p.peekTokenIs(token.COMMA) {
+	for {
+		// A bare call ends with ';' inside brackets (list [apple 1,2; 3]), and
+		// that ';' also separates the items: the next item follows it.
+		if p.curTokenIs(token.SEMI) && !p.peekTokenIs(end) && !p.peekTokenIs(token.COMMA) {
+			p.nextToken()
+			list = append(list, p.parseExpression(LOWEST))
+			continue
+		}
+		if p.trailingComma() || !p.peekTokenIs(token.COMMA) {
+			break
+		}
 		p.nextToken()
 		p.nextToken()
 		list = append(list, p.parseExpression(LOWEST))

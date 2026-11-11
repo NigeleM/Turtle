@@ -677,3 +677,59 @@ func TestBigIntegersLiteralsAndKeys(t *testing.T) {
 		t.Errorf("keys: %q, %v", got, err)
 	}
 }
+
+// A function is called with its arguments after its name, with no value
+// before the name: "apple 1, 2" is apple[1, 2]. In show, ; ends the arguments,
+// so "show apple 1, 2; \"x\" ." prints the call, then the text. A name that is
+// a variable, not a function, is still an error when followed by a value.
+func TestBareArgumentCall(t *testing.T) {
+	def := "def apple[a, b]\n    return a + b\ndef [end]\n"
+	got, err := run(t, def+"show apple 1, 2 .\nshow apple 1,2; \"the answer is\" .\nshow apple[1, 2] .\nshow 1 apple 2 .\napple \"a\", \"b\" .\nshow apple \"a\", \"b\" .", "")
+	if err != nil || got != "3\n3 the answer is\n3\n3\nab\n" {
+		t.Errorf("got %q, %v", got, err)
+	}
+	if _, err := run(t, "x = 5\nshow x 1 .", ""); err == nil {
+		t.Errorf("a variable followed by a value should be an error")
+	}
+	if got, err := run(t, "x = 5\nshow x -1 .", ""); err != nil || got != "4\n" {
+		t.Errorf("subtraction should stay subtraction: got %q, %v", got, err)
+	}
+}
+
+// A negative first argument is read as an argument only when the name is a
+// function: "apple -4, 2" calls apple, while "x -1" with x a variable is
+// subtraction. A library function (abs) needs its import, as it always did.
+func TestBareNegativeArgument(t *testing.T) {
+	def := "def apple[a, b]\n    return a + b\ndef [end]\n"
+	got, err := run(t, def+"x = 5\nshow x -1 .\nshow x - 1 .\nshow apple -4, 2 .\nshow apple[-4, 2] .\nshow -4 apple 2 .", "")
+	if err != nil || got != "4\n4\n-2\n-2\n-2\n" {
+		t.Errorf("got %q, %v", got, err)
+	}
+	if got, err := run(t, "import math\nshow abs -3 .", ""); err != nil || got != "3\n" {
+		t.Errorf("abs: got %q, %v", got, err)
+	}
+}
+
+// Inside [...] the commas after a bare call are its arguments until a ';'
+// ends them, as in show: list [apple 1, 2;, 9] is [3, 9]. The list's own
+// commas separate items after the ';'.
+func TestBareCallInsideBrackets(t *testing.T) {
+	def := "def apple[a, b]\n    return a + b\ndef [end]\n"
+	got, err := run(t, def+"show list [apple -4,2;] .\nshow list [apple 1, 2;, 9] .\nshow list [apple 1, 2] .\nshow list [1, apple 2,3;] .", "")
+	if err != nil || got != "[ -2 ]\n[ 3, 9 ]\n[ 3 ]\n[ 1, 5 ]\n" {
+		t.Errorf("got %q, %v", got, err)
+	} // ';' alone separates items, and ';,' works too.
+	got, err = run(t, def+"show list[apple -4,2; apple 3,2; 1,2,3] .\nshow list [apple 1,2;, apple 3,4;, 5] .", "")
+	if err != nil || got != "[ -2, 5, 1, 2, 3 ]\n[ 3, 7, 5 ]\n" {
+		t.Errorf("separators: got %q, %v", got, err)
+	}
+}
+
+// A name-first call on a variable inside a function body reads the function's
+// own variable: sq m, where m is a local or a parameter.
+func TestBareCallInsideFunction(t *testing.T) {
+	src := "def sq[n]\n    return n * n\ndef [end]\ndef g[n]\n    m = n + 1\n    return sq m\ndef [end]\ndef h[k]\n    return sq k\ndef [end]\nshow g[2] .\nshow h[5] ."
+	if got, err := run(t, src, ""); err != nil || got != "9\n25\n" {
+		t.Errorf("got %q, %v", got, err)
+	}
+}
