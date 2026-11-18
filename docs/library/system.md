@@ -102,6 +102,18 @@ The default sets the option's kind:
 What isn't an option (`data.csv`) stays for `args[]`, which then gives
 only those. `--` ends the options: everything after it goes to `args[]`.
 An option that isn't listed is an error naming the ones that are.
+
+Rules for reading the command line:
+
+- A value is the next word, even when it starts with a dash, so
+  `--out --count 3` sets `--out` to `"--count"`. Write `--out=--count` to
+  avoid this.
+- A lone `-`, and a dash followed by a number such as `-5`, go to `args[]`.
+  A negative number is accepted as a value: `--count -3`.
+- A repeated option takes its last value: `--count 1 --count 2` gives `2`.
+- `-v=false` turns a flag off; `-v` alone turns it on.
+- A number option given text is an error, and a text option needs a value
+  (`--out` alone is an error).
 `--help` (or `-h`) shows the options and ends the program, unless you
 list your own.
 
