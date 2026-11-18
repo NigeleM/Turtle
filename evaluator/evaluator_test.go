@@ -135,7 +135,7 @@ func TestFatalErrorsHaveLineNumbers(t *testing.T) {
 		{"undefined variable", "a = 1\nshow b .", `line 2: undefined variable "b"`},
 		{"math not imported", `r is 5 at sqrt .`, `line 1: "sqrt" needs "import math" first`},
 		{"time not imported", "t = now[]", `line 1: "now" needs "import time" first`},
-		{"sort text and a number", "x = list [1, \"a\"]\nsort x .", "line 2: can't sort string and integer together: sort compares numbers with numbers, text with text and lists with lists, as Python does"},
+		{"sort text and a number", "x = list [1, \"a\"]\nsort x .", "line 2: can't sort string and integer together: sort compares numbers with numbers, text with text and lists with lists"},
 		{"list called like a function", "pow2 = list [1, 2]\nx = pow2[1]", `line 2: "pow2" is a value, not a function: to get an item, write pow2 at get[index]`},
 	}
 	for _, c := range cases {

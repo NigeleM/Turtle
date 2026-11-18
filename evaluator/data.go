@@ -275,9 +275,9 @@ func orderAt(a, b object.Object, depth int) int {
 	case isBool(a) && isBool(b):
 		return cmp.Compare(boolRank(a), boolRank(b))
 	case ta == tb:
-		fatalKind(kindType, "can't sort %s values with each other: sort compares numbers with numbers, text with text and lists with lists, as Python does", ta)
+		fatalKind(kindType, "can't sort %s values with each other: sort compares numbers with numbers, text with text and lists with lists", ta)
 	}
-	fatalKind(kindType, "can't sort %s and %s together: sort compares numbers with numbers, text with text and lists with lists, as Python does", ta, tb)
+	fatalKind(kindType, "can't sort %s and %s together: sort compares numbers with numbers, text with text and lists with lists", ta, tb)
 	return 0
 }
 
@@ -941,7 +941,7 @@ func stringMethod(s *object.String, method string, args []object.Object) object.
 		return object.Bool(err == nil)
 	case "upper":
 		requireArgs(method, args, 0)
-		// ß has no single capital letter, so it becomes SS, as Python does.
+		// ß has no single capital letter, so it becomes SS.
 		return &object.String{Value: strings.ReplaceAll(strings.ToUpper(s.Value), "ß", "SS")}
 	case "lower":
 		requireArgs(method, args, 0)
