@@ -36,7 +36,7 @@ var typeMethods = map[string][]string{
 	"list": {"add[value]", "get[index]", "put[value, index]", "insert[value, index]", "remove[value]",
 		"pop", "slice[start, end]", "contains[value]", "index[value]", "count[value]",
 		"sort", "reverse", "clear", "len", "isempty", "tostring"},
-	"set": {"add[value]", "insert[value, index]", "remove[value]", "contains[value]", "union[other]", "intersection[other]",
+	"set": {"add[value]", "insert[value, index]", "get[index]", "remove[value]", "contains[value]", "union[other]", "intersection[other]",
 		"difference[other]", "subset[other]", "superset[other]", "pop", "sort", "clear",
 		"len", "isempty", "tostring"},
 	"map": {"get[key]", "add[key, value]", "put[key, value]", "delete[key]", "contains[key]", "getkeys", "getvalues",
