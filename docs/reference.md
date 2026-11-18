@@ -814,6 +814,14 @@ show nums sum .                      // sum[nums]
 - To call an imported function qualified in this style, use the bracket
   form instead: `data process[nums, f]`.
 
+**Every argument must be given.** A call must pass a value for each parameter. A `def`
+line has no default values, so `def f[a, b = 2]` is an error, and a call that leaves out an
+argument stops with "expects 2 argument(s), got 1". The usual stand-in is `none`: the
+caller passes `none`, and the function puts its own value in its place. A function can also
+take its settings in a map and read each key with a fallback. Library settings work
+differently: they are variables set in the import line or changed inside a call. See
+[Modules](#modules).
+
 ### Ways to call a function
 
 Turtle lets a call be written in more than one form. Each form has the same meaning,
@@ -1774,7 +1782,7 @@ kind, so learn the sentence first:
 |---|---|---|
 | list | `put 99 to nums at 1 .` | `nums at put[99, 1]` (value, position) |
 | list | `insert 99 to nums at 1 .` | `nums at insert[99, 1]` (value, position) |
-| set | | `s at insert["x", 0]` (value, position) |
+| set | | `s at insert["x", 0]` (value, position); `s at get[0]` reads by position |
 | map | `put 5 to m at "apples" .` | `m at put["apples", 5]` (key, value) |
 | map | `add 3 to m at "apples" .` | `m at add["apples", 3]` (key, value) |
 
@@ -1796,6 +1804,656 @@ A value always equals itself without that walk: `x == x` is
 `true` even after `add x to x .`, and so is it for a list holding `nan`
 compared with itself (two separate lists holding `nan` are not equal).
 JSON is written at most 10,000 levels deep, the depth `load` can read.
+
+### Every method, with examples
+
+Each method on lists, sets and maps, with an example and the output it prints.
+Each example is a complete program, and was run on Turtle v0.9.232 (source commit
+84f9a10). A method called after `at` changes the collection only when the entry says
+so. The errors at the end show what happens when a method is misused.
+
+#### Lists
+
+**`add`** adds a value at the end of the list (changes the list).
+
+```turtle
+nums = list [4, 9]
+nums at add[7]
+show nums .
+```
+
+```
+[ 4, 9, 7 ]
+```
+
+**`get`** gives back the item at an index. Positions start at 0.
+
+```turtle
+nums = list [4, 9, 2]
+show nums at get[1] .
+```
+
+```
+9
+```
+
+**`put`** replaces the item at an index (changes the list). The value comes first, then the index.
+
+```turtle
+nums = list [4, 9, 2]
+nums at put[99, 1]
+show nums .
+```
+
+```
+[ 4, 99, 2 ]
+```
+
+**`insert`** inserts a value before an index, so the items after it move up (changes the list).
+
+```turtle
+nums = list [4, 9, 2]
+nums at insert[0, 1]
+show nums .
+```
+
+```
+[ 4, 0, 9, 2 ]
+```
+
+**`remove`** removes the first item equal to the value (changes the list). A value that is not there is not an error.
+
+```turtle
+nums = list [4, 9, 2, 9]
+nums at remove[9]
+show nums .
+nums at remove[42]
+show nums .
+```
+
+```
+[ 4, 2, 9 ]
+[ 4, 2, 9 ]
+```
+
+**`pop`** removes an item and gives it back. With no index it takes the last item; with an index it takes that item.
+
+```turtle
+nums = list [4, 9, 2]
+show nums at pop .
+show nums at pop[0] .
+show nums .
+```
+
+```
+2
+4
+[ 9 ]
+```
+
+**`slice`** gives a new list of the items from a start position up to, but not including, an end position. With no end, it goes to the end of the list. The original list is unchanged.
+
+```turtle
+nums = list [4, 9, 2, 9]
+show nums at slice[1, 3] .
+show nums at slice[1] .
+show nums .
+```
+
+```
+[ 9, 2 ]
+[ 9, 2, 9 ]
+[ 4, 9, 2, 9 ]
+```
+
+**`contains`** gives `true` when the value is in the list. `find` is another name for `contains`.
+
+```turtle
+nums = list [4, 9, 2]
+show nums at contains[2] .
+show nums at find[7] .
+```
+
+```
+true
+false
+```
+
+**`index`** gives the position of the first item equal to the value, or `-1` when there is none.
+
+```turtle
+nums = list [4, 9, 2, 9]
+show nums at index[9] .
+show nums at index[7] .
+```
+
+```
+1
+-1
+```
+
+**`count`** gives how many items are equal to the value.
+
+```turtle
+nums = list [4, 9, 2, 9]
+show nums at count[9] .
+```
+
+```
+2
+```
+
+**`sort`** sorts the list in place (changes the list).
+
+```turtle
+nums = list [4, 9, 2]
+nums at sort
+show nums .
+```
+
+```
+[ 2, 4, 9 ]
+```
+
+**`reverse`** reverses the list in place (changes the list).
+
+```turtle
+nums = list [4, 9, 2]
+nums at reverse
+show nums .
+```
+
+```
+[ 2, 9, 4 ]
+```
+
+**`clear`** removes every item (changes the list).
+
+```turtle
+nums = list [4, 9, 2]
+nums at clear
+show nums .
+```
+
+```
+[]
+```
+
+**`len`** gives the number of items. `length` is another name for `len`.
+
+```turtle
+nums = list [4, 9, 2]
+show nums at len .
+show nums at length .
+```
+
+```
+3
+3
+```
+
+**`isempty`** gives `true` when the list has no items.
+
+```turtle
+nums = list []
+show nums at isempty .
+nums at add[1]
+show nums at isempty .
+```
+
+```
+true
+false
+```
+
+**`tostring`** gives the list as text.
+
+```turtle
+nums = list [4, 9]
+text = nums at tostring
+show "the list is {text}" .
+```
+
+```
+the list is [ 4, 9 ]
+```
+
+#### Sets
+
+**`add`** adds a value. A value already in the set is not added twice (changes the set).
+
+```turtle
+colors = set ["red", "blue"]
+colors at add["red"]
+colors at add["green"]
+show colors .
+```
+
+```
+{ "red", "blue", "green" }
+```
+
+**`insert`** puts a value at a position in the set's order (changes the set). The value comes first, then the position. Sets have no order that means anything, so the book uses `add` instead.
+
+```turtle
+colors = set ["red", "blue"]
+colors at insert["green", 0]
+show colors .
+```
+
+```
+{ "green", "red", "blue" }
+```
+
+**`get`** gives the item at a position in the set's order. Positions start at 0. Sets have no order that means anything, so use `get` only to look at the items one by one.
+
+```turtle
+colors = set ["red", "blue", "green"]
+show colors at get[0] .
+show colors at get[2] .
+```
+
+```
+red
+green
+```
+
+**`remove`** removes a value (changes the set). A value that is not there is not an error.
+
+```turtle
+colors = set ["red", "blue"]
+colors at remove["red"]
+colors at remove["pink"]
+show colors .
+```
+
+```
+{ "blue" }
+```
+
+**`contains`** gives `true` when the value is in the set. `find` is another name for `contains`.
+
+```turtle
+colors = set ["red", "blue"]
+show colors at contains["red"] .
+show colors at find["pink"] .
+```
+
+```
+true
+false
+```
+
+**`count`** gives `1` when the value is in the set, and `0` when it is not.
+
+```turtle
+colors = set ["red", "blue"]
+show colors at count["blue"] .
+show colors at count["pink"] .
+```
+
+```
+1
+0
+```
+
+**`union`** gives a new set with the items of both sets. The original sets are unchanged.
+
+```turtle
+a = set [1, 2]
+b = set [2, 3]
+show a at union[b] .
+show a .
+```
+
+```
+{ 1, 2, 3 }
+{ 1, 2 }
+```
+
+**`intersection`** gives a new set with the items that are in both sets.
+
+```turtle
+a = set [1, 2]
+b = set [2, 3]
+show a at intersection[b] .
+```
+
+```
+{ 2 }
+```
+
+**`difference`** gives a new set with the items of this set that are not in the other set.
+
+```turtle
+a = set [1, 2]
+b = set [2, 3]
+show a at difference[b] .
+```
+
+```
+{ 1 }
+```
+
+**`subset`** gives `true` when every item of this set is in the other set.
+
+```turtle
+a = set [1, 2]
+b = set [1, 2, 3]
+show a at subset[b] .
+show b at subset[a] .
+```
+
+```
+true
+false
+```
+
+**`superset`** gives `true` when every item of the other set is in this set.
+
+```turtle
+a = set [1, 2]
+b = set [1, 2, 3]
+show b at superset[a] .
+show a at superset[b] .
+```
+
+```
+true
+false
+```
+
+**`pop`** removes an item and gives it back. It takes the item added most recently (changes the set).
+
+```turtle
+colors = set ["red", "blue"]
+show colors at pop .
+show colors .
+```
+
+```
+blue
+{ "red" }
+```
+
+**`sort`** sorts the items (changes the set). The result is the same set, shown in sorted order.
+
+```turtle
+nums = set [4, 8, 1]
+nums at sort
+show nums .
+```
+
+```
+{ 1, 4, 8 }
+```
+
+**`clear`** removes every item (changes the set).
+
+```turtle
+colors = set ["red", "blue"]
+colors at clear
+show colors .
+```
+
+```
+{}
+```
+
+**`len`** gives the number of items. `length` is another name for `len`.
+
+```turtle
+colors = set ["red", "blue"]
+show colors at len .
+```
+
+```
+2
+```
+
+**`isempty`** gives `true` when the set has no items.
+
+```turtle
+colors = set []
+show colors at isempty .
+```
+
+```
+true
+```
+
+**`tostring`** gives the set as text.
+
+```turtle
+colors = set ["red"]
+text = colors at tostring
+show "the set is {text}" .
+```
+
+```
+the set is { "red" }
+```
+
+#### Maps
+
+**`get`** gives the value for a key. A key that is not in the map is an error, so check with `contains` first when it may be missing.
+
+```turtle
+ages = map ["Alice": 30, "Bob": 25]
+show ages at get["Alice"] .
+```
+
+```
+30
+```
+
+**`add`** adds to the value at a key (changes the map). For a number, the amount is added to the value, and a new key starts from the amount.
+
+```turtle
+ages = map ["Alice": 30]
+ages at add["Alice", 1]
+ages at add["Cy", 5]
+show ages .
+```
+
+```
+{ "Alice": 31, "Cy": 5 }
+```
+
+**`put`** sets the value at a key, whether or not the key is there (changes the map).
+
+```turtle
+ages = map ["Alice": 30]
+ages at put["Alice", 31]
+ages at put["Dee", 19]
+show ages .
+```
+
+```
+{ "Alice": 31, "Dee": 19 }
+```
+
+**`delete`** removes a key and its value (changes the map). A key that is not there is an error.
+
+```turtle
+ages = map ["Alice": 30, "Bob": 25]
+ages at delete["Alice"]
+show ages .
+```
+
+```
+{ "Bob": 25 }
+```
+
+**`contains`** gives `true` when the key is in the map.
+
+```turtle
+ages = map ["Alice": 30]
+show ages at contains["Alice"] .
+show ages at contains["Zed"] .
+```
+
+```
+true
+false
+```
+
+**`getkeys`** gives a list of the keys, in the order they were added.
+
+```turtle
+ages = map ["Bob": 25, "Alice": 30]
+show ages at getkeys .
+```
+
+```
+[ "Bob", "Alice" ]
+```
+
+**`getvalues`** gives a list of the values, in the same order as the keys.
+
+```turtle
+ages = map ["Bob": 25, "Alice": 30]
+show ages at getvalues .
+```
+
+```
+[ 25, 30 ]
+```
+
+**`invert`** gives a new map with each key and value exchanged. The values become the keys. When two keys share a value, Turtle prints a warning and keeps only the last key.
+
+```turtle
+ages = map ["Bob": 25, "Alice": 30]
+show ages at invert .
+show ages .
+```
+
+```
+{ 25: "Bob", 30: "Alice" }
+{ "Bob": 25, "Alice": 30 }
+```
+
+**`len`** gives the number of entries. `length` is another name for `len`.
+
+```turtle
+ages = map ["Bob": 25, "Alice": 30]
+show ages at len .
+```
+
+```
+2
+```
+
+**`isempty`** gives `true` when the map has no entries.
+
+```turtle
+ages = map []
+show ages at isempty .
+```
+
+```
+true
+```
+
+**`tostring`** gives the map as text.
+
+```turtle
+ages = map ["Bob": 25]
+text = ages at tostring
+show "the map is {text}" .
+```
+
+```
+the map is { "Bob": 25 }
+```
+
+#### Errors and limits
+
+Each of these stops the program with an error. The message names the problem, and the line shows where it happened.
+
+A list position past the end is an error.
+
+```turtle
+nums = list [4]
+show nums at get[5] .
+```
+
+```
+turtle: line 2: index 5 out of range for list (length 1)
+  2 | show nums at get[5] .
+```
+
+`pop` on an empty list is an error.
+
+```turtle
+nums = list []
+show nums at pop .
+```
+
+```
+turtle: line 2: 'pop' called on an empty list
+  2 | show nums at pop .
+```
+
+A map key that is not there is an error for `get` and for `delete`.
+
+```turtle
+ages = map ["Bob": 25]
+show ages at get["Zed"] .
+```
+
+```
+turtle: line 2: key "Zed" not found in map
+  2 | show ages at get["Zed"] .
+```
+
+`put` is not a method of a set.
+
+```turtle
+colors = set ["red"]
+colors at put["blue", 0]
+```
+
+```
+turtle: line 2: unknown set method "put"
+  2 | colors at put["blue", 0]
+```
+
+`clear` is not a method of a map.
+
+```turtle
+ages = map ["Bob": 25]
+ages at clear
+```
+
+```
+turtle: line 2: unknown map method "clear"
+  2 | ages at clear
+```
+
+A set position past the end is an error.
+
+```turtle
+colors = set ["red", "blue"]
+show colors at get[5] .
+```
+
+```
+turtle: line 2: index 5 out of range for set (length 2)
+  2 | show colors at get[5] .
+```
+
+When two keys in a map share a value, `invert` warns and keeps only the last key.
+
+```turtle
+ages = map ["Bob": 25, "Ann": 25]
+show ages at invert .
+```
+
+```
+warning: 25 is the value of both "Bob" and "Ann", so the inverted map keeps only "Ann" (line 2)
+{ 25: "Ann" }
+```
 
 ## Files
 
