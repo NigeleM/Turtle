@@ -89,3 +89,16 @@ documentSymbol and semanticTokens/full.
 
 Copyright 2017-2026 Nigele McCoy. Licensed under the
 [Apache License 2.0](../LICENSE); see [NOTICE](../NOTICE).
+
+## Example: a session with the language server
+
+`turtle lsp` speaks the Language Server Protocol over standard input and output, so an editor starts it for you. This is the exchange an editor makes: it asks the server to start, and then asks it to shut down. Each message has a `Content-Length` header. The server's reply to `initialize` lists what it can do, such as completion, hover, formatting and semantic tokens.
+
+```text
+$ turtle lsp   (messages sent on standard input)
+Content-Length: 564
+
+{"id":1,"jsonrpc":"2.0","result":{"capabilities":{"completionProvider":{"triggerCharacters":[]},"definitionProvider":true,"documentFormattingProvider":true,"documentSymbolProvider":true,"hoverProvider":true,"positionEncoding":"utf-16","semanticTokensProvider":{"full":true,"legend":{"tokenModifiers":["declaration","defaultLibrary","test"],"tokenTypes":["keyword","string","number","comment","function","type","namespace","struct","event","macro","method"]}},"textDocumentSync":{"change":1,"openClose":true}},"serverInfo":{"name":"turtle","version":"v1.0.0-dev"}}}Content-Length: 38
+
+{"id":2,"jsonrpc":"2.0","result":null}
+```

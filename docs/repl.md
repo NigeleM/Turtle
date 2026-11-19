@@ -184,3 +184,13 @@ With input piped in, `turtle` runs it as a program: `echo 'show 1 + 2 .' | turtl
 
 Copyright 2017-2026 Nigele McCoy. Licensed under the
 [Apache License 2.0](../LICENSE); see [NOTICE](../NOTICE).
+
+## Example
+
+A session can be typed in, or piped in. Each line runs as it is read; `show` prints its value. Here three lines are piped in, the first two define and print a value:
+
+```text
+$ printf 'x = 5\nshow x * 2 .\nshow "hi" .\n' | turtle
+10
+hi
+```

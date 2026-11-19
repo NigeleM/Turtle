@@ -1,4 +1,4 @@
-# Language reference
+# Full reference
 
 The complete, formal syntax and semantics of Turtle, as implemented by the
 `token`/`lexer`/`ast`/`parser`/`object`/`evaluator` packages. For a gentler,
@@ -179,6 +179,22 @@ or `here`.
 | `is ... [at ...]` | **Yes** |
 | `import`, `sys`, `break`, `continue`, `def`/`if`/`loop` headers and `[end]` markers | No |
 
+Assignments have no period; `show` does.
+
+**Example.**
+
+```turtle
+x = 1
+show x .
+show "done" .
+```
+
+```
+1
+done
+```
+
+
 ## Expressions
 
 Precedence, low to high:
@@ -338,6 +354,23 @@ Function calls: `<name>[<expr>, ...]` — Turtle uses `[...]` for call and
 definition argument lists, not `(...)`. See also sentence-style calls
 under Functions.
 
+**Example.**
+
+```turtle
+show 2 + 3 * 4 .
+show (2 + 3) * 4 .
+show 7 % 3 .
+show "n=" + "5" .
+```
+
+```
+14
+20
+1
+n=5
+```
+
+
 ## Variables
 
 ```text
@@ -347,6 +380,22 @@ under Functions.
 
 The closing period is optional, as after a function call; it reads
 naturally after a sentence: `big = nums keep n give n > 10 .`
+
+**Example.**
+
+```turtle
+total = 12
+name is "Ann" .
+show total, name .
+total = total + 1
+show total .
+```
+
+```
+12 Ann
+13
+```
+
 
 ## Input
 
@@ -363,6 +412,20 @@ a = ?
 age = ? "Age for {name}? " .
 n = change age to integer
 ```
+
+The program reads a line from standard input. Here the input is `Ann`.
+
+**Example.**
+
+```turtle
+a = ?
+show "hello ", a .
+```
+
+```
+hello Ann
+```
+
 
 ## Type conversion
 
@@ -427,6 +490,22 @@ names = change ages to keys     // [ "ann", "bo" ]
 years = change ages to values   // [ 30, 25 ]
 ```
 
+**Example.**
+
+```turtle
+n = change "42" to integer
+show n + 1 .
+show change 3.9 to integer .
+show change 7 to string .
+```
+
+```
+43
+3
+7
+```
+
+
 ## Show
 
 ```text
@@ -477,6 +556,19 @@ agree: two floats are one key only when they are the same float. A matrix's
 `==` is exact too. For a match within a margin, use `is close to` in a test,
 or round first (`x at round[2] == y at round[2]`). For a fixed number of
 places on screen, use `x at fixed[2]` (`"0.30"`).
+
+**Example.**
+
+```turtle
+show "total: ", 12, " items" .
+show list [1, 2] .
+```
+
+```
+total: 12 items
+[ 1, 2 ]
+```
+
 
 ## Strings
 
@@ -547,6 +639,28 @@ continue
 the call site. A bare `return` (nothing else on the line), or reaching the
 end of the body without a `return`, yields `none`. `break`/`continue` only affect the nearest enclosing loop;
 outside a loop they're a no-op.
+
+`continue` skips the rest of a pass; `break` leaves the loop.
+
+**Example.**
+
+```turtle
+[loop][i in list [1, 2, 3, 4, 5]]
+    if ] i == 2 [
+        continue
+    if [end]
+    if ] i == 4 [
+        break
+    if [end]
+    show i .
+[loop][end]
+```
+
+```
+1
+3
+```
+
 
 ## Functions
 
@@ -1013,6 +1127,26 @@ map date none function empty` and assembled type names. A kind that
 doesn't exist (`n type intger`) is an error. `type` is only special
 between a value and a kind, so it still works as a variable name.
 
+**Example.**
+
+```turtle
+show typeof[3.5] .
+show typeof["hi"] .
+show typeof[list [1]] .
+n = 5
+if ] n type integer [
+    show "n is an integer" .
+if [end]
+```
+
+```
+float
+string
+list
+n is an integer
+```
+
+
 ## Finding things out: `help`, `stdlib`, `version`
 
 Three names that need no import. `help` knows every library, function,
@@ -1045,6 +1179,19 @@ show version .          // 1.0.0
 `help` shows its text and gives `none`. Text names what to look up, so
 `help["resahpe"]` says `did you mean reshape?`. In the REPL the same
 works without brackets: `help m`, `help linear`.
+
+**Example.**
+
+```turtle
+show version .
+show stdlib[] at getkeys .
+```
+
+```
+1.0.0-dev
+[ "config", "crypt", "data", "http", "json", "linear", "log", "math", "pattern", "random", "schedule", "search", "server", "sort", "sql", "strings", "system", "test", "time" ]
+```
+
 
 ## Scrolls
 
@@ -1311,6 +1458,23 @@ hypothesis prices each p give p > 0 (line 2)
   ...
 ```
 
+**Example.**
+
+```turtle
+def add1[x]
+    return x + 1
+def [end]
+def double[x]
+    return x * 2
+def [end]
+r is scroll 3 into add1, double .
+show r .
+```
+
+```
+8
+```
+
 
 ## Theories
 
@@ -1509,6 +1673,22 @@ returns. It shows as `none`, is falsy, and equals only itself.
 comparisons on `none`. To put it in text, use interpolation or `show`:
 `"x={x}"`, `show "x=", x .`.
 
+**Example.**
+
+```turtle
+x = none
+show x .
+if ] x == none [
+    show "x has no value" .
+if [end]
+```
+
+```
+none
+x has no value
+```
+
+
 ## Mistakes in the code
 
 When a file has a mistake Turtle can't read past, it shows the first one,
@@ -1541,6 +1721,20 @@ the error says so and how to write it: `v = params of req`, then
 (`x at upper`), `f(1)` (`f[1]`), `for x in` (`[loop][x in nums]`), a
 block or a quote never closed. Editors show the same message, under the
 same spot.
+
+This program stops with an error. Turtle names the line and says how to fix it.
+
+**Example.**
+
+```turtle
+show 1 + "a" .
+```
+
+```
+turtle: line 1: '+' can't join integer and string (1 + "a"): write the number inside the text with {...}, as "total: {n}", or change it to string first
+  1 | show 1 + "a" .
+```
+
 
 ## Errors: `safe` / `handle` / `fail`
 
@@ -1634,6 +1828,28 @@ def [end]
   local.
 - Parse errors are never handled; neither is `system`'s `exit[code]`.
 
+**Example.** `safe` runs code that may fail. The first `handle` catches a failed conversion; the second catches an error the program raises with `fail`:
+
+```turtle
+safe
+    x = change "abc" to integer
+    show x .
+handle [] e .
+    show "could not convert" .
+safe [end]
+safe
+    fail "no stock"
+handle [] e .
+    show "error: ", e .
+safe [end]
+```
+
+```
+could not convert
+error: line 8: no stock
+```
+
+
 ## Conditionals
 
 ```text
@@ -1666,6 +1882,24 @@ A nested chain has no `[end]` of its own — it implicitly ends the moment a
 clause at the same-or-shallower bracket depth appears. This generalizes to
 arbitrary depth by adding another leading `[` per level (only depth 0 and 1
 appear in any known real program).
+
+**Example.**
+
+```turtle
+n = 7
+if ] n > 10 [
+    show "big" .
+else if ] n > 5 [
+    show "medium" .
+else ]
+    show "small" .
+if [end]
+```
+
+```
+medium
+```
+
 
 ## Loops
 
@@ -1719,6 +1953,27 @@ Every `[loop][...]` — nested or not — requires its own matching
 expressions on every pass. Like for-each names, it belongs to the loop: a
 nested loop reusing the same name doesn't clobber its parent's counter, an
 outside variable of that name is untouched, and it's gone after the loop.
+
+**Example.**
+
+```turtle
+[loop][i = 0; i < 3; i++]
+    show i .
+[loop][end]
+nums = list [5, 7]
+[loop][n in nums]
+    show n .
+[loop][end]
+```
+
+```
+0
+1
+2
+5
+7
+```
+
 
 ## Data structures
 
@@ -1811,8 +2066,9 @@ JSON is written at most 10,000 levels deep, the depth `load` can read.
 ### Every method, with examples
 
 Each method on lists, sets and maps, with an example and the output it prints.
-Each example is a complete program, and was run on Turtle v0.9.232 (source commit
-84f9a10). A method called after `at` changes the collection only when the entry says
+Each example is a complete program. The list, set and map examples were run on Turtle
+v0.9.232 (source commit 84f9a10). The string, number, matrix and date examples were run on
+v1.0.0-dev (source commit d8d3499). A method called after `at` changes the collection only when the entry says
 so. The errors at the end show what happens when a method is misused.
 
 #### Lists
@@ -2370,6 +2626,423 @@ show "the map is {text}" .
 the map is { "Bob": 25 }
 ```
 
+#### Strings
+
+**`upper`** gives back the text in capital letters.
+
+```turtle
+show "turtle" at upper .
+```
+
+```
+TURTLE
+```
+
+**`lower`** gives back the text in small letters.
+
+```turtle
+show "TURTLE" at lower .
+```
+
+```
+turtle
+```
+
+**`reverse`** gives back the text with its characters in reverse order.
+
+```turtle
+show "turtle" at reverse .
+```
+
+```
+eltrut
+```
+
+**`trim`** gives back the text with spaces removed from both ends.
+
+```turtle
+show "  hello  " at trim .
+```
+
+```
+hello
+```
+
+**`get`** gives back the character at an index. Positions start at 0; an index past the end is an error.
+
+```turtle
+show "turtle" at get[1] .
+```
+
+```
+u
+```
+
+**`slice`** gives back the part of the text from `start` up to, but not including, `end`.
+
+```turtle
+show "turtle" at slice[0, 3] .
+```
+
+```
+tur
+```
+
+**`split`** gives back a list of the pieces between each `separator`.
+
+```turtle
+show "a,b,c" at split[","] .
+```
+
+```
+[ "a", "b", "c" ]
+```
+
+**`contains`** gives back `true` if the text contains `text`.
+
+```turtle
+show "turtle" at contains["urt"] .
+```
+
+```
+true
+```
+
+**`indexof`** gives back the position of the first `text` in the string, or `-1` if it is not there.
+
+```turtle
+show "turtle" at indexof["rt"] .
+show "turtle" at indexof["q"] .
+```
+
+```
+2
+-1
+```
+
+**`replace`** gives back the text with every `old` changed to `new`.
+
+```turtle
+show "a-b-c" at replace["-", "+"] .
+```
+
+```
+a+b+c
+```
+
+**`padleft`** gives back the text padded with spaces on the left to at least `width` characters.
+
+```turtle
+show "7" at padleft[3] .
+```
+
+```
+  7
+```
+
+**`padright`** gives back the text padded with spaces on the right to at least `width` characters.
+
+```turtle
+show "7" at padright[3] .
+```
+
+```
+7  
+```
+
+**`isnumber`** gives back `true` if the text is a number, such as `"42"` or `"3.5"`.
+
+```turtle
+show "42" at isnumber .
+show "x3" at isnumber .
+```
+
+```
+true
+false
+```
+
+**`len`** gives back how many characters the text has.
+
+```turtle
+show "turtle" at len .
+```
+
+```
+6
+```
+
+**`isempty`** gives back `true` if the text has no characters.
+
+```turtle
+show "" at isempty .
+```
+
+```
+true
+```
+
+#### Numbers
+
+**`fixed`** gives back the number as text with `places` digits after the point.
+
+```turtle
+show 3.14159 at fixed[2] .
+```
+
+```
+3.14
+```
+
+**`commas`** gives back a whole number as text with commas every three digits.
+
+```turtle
+show 1234567 at commas .
+```
+
+```
+1,234,567
+```
+
+**`commas[places]`** gives back a number as text with commas in the whole part and `places` digits after the point.
+
+```turtle
+show 1234567.891 at commas[2] .
+```
+
+```
+1,234,567.89
+```
+
+**`sqrt`** gives back the square root as a float. It needs `import math`. A negative number is a math error.
+
+```turtle
+import math
+show 16 at sqrt .
+```
+
+```
+4.0
+```
+
+**`abs`** gives back the number without its sign. It needs `import math`.
+
+```turtle
+import math
+show -7 at abs .
+```
+
+```
+7
+```
+
+**`round`** gives back the number rounded to the nearest whole number. It needs `import math`.
+
+```turtle
+import math
+show 2.6 at round .
+```
+
+```
+3
+```
+
+**`floor`** gives back the largest whole number that is not more than the number. It needs `import math`.
+
+```turtle
+import math
+show 2.6 at floor .
+```
+
+```
+2
+```
+
+**`ceil`** gives back the smallest whole number that is not less than the number. It needs `import math`.
+
+```turtle
+import math
+show 2.1 at ceil .
+```
+
+```
+3
+```
+
+**`pow`** gives back the number raised to `power`. It needs `import math`.
+
+```turtle
+import math
+show 2 at pow[10] .
+```
+
+```
+1024
+```
+
+**`random`** gives back a random whole number from 0 up to, but not including, the number. It needs `import math`. The example checks the range rather than printing the value, because the value changes each run.
+
+```turtle
+import math
+r = 10 at random
+show r >= 0 && r < 10 .
+```
+
+```
+true
+```
+
+#### Matrices
+
+**`rows`** gives back how many rows the matrix has. It needs `import linear`.
+
+```turtle
+import linear
+m = matrix [1, 2; 3, 4]
+show m at rows .
+```
+
+```
+2
+```
+
+**`columns`** gives back how many columns the matrix has.
+
+```turtle
+import linear
+m = matrix [1, 2; 3, 4]
+show m at columns .
+```
+
+```
+2
+```
+
+**`shape`** gives back the rows and columns together, as a list `[rows, columns]`.
+
+```turtle
+import linear
+m = matrix [1, 2; 3, 4]
+show m at shape .
+```
+
+```
+[ 2, 2 ]
+```
+
+**`get`** gives back the item at row `r` and column `c`. Both start at 0.
+
+```turtle
+import linear
+m = matrix [1, 2; 3, 4]
+show m at get[0, 1] .
+```
+
+```
+2
+```
+
+**`put`** puts `value` at row `r` and column `c`. It changes the matrix.
+
+```turtle
+import linear
+m = matrix [1, 2; 3, 4]
+m at put[9, 0, 0]
+show m .
+```
+
+```
+[ 9  2 ]
+[ 3  4 ]
+```
+
+**`row`** gives back row `r` as a matrix.
+
+```turtle
+import linear
+m = matrix [1, 2; 3, 4]
+show m at row[1] .
+```
+
+```
+[ 3, 4 ]
+```
+
+**`column`** gives back column `c` as a matrix.
+
+```turtle
+import linear
+m = matrix [1, 2; 3, 4]
+show m at column[0] .
+```
+
+```
+[ 1, 3 ]
+```
+
+**`flatten`** gives back all the items in one row.
+
+```turtle
+import linear
+m = matrix [1, 2; 3, 4]
+show m at flatten .
+```
+
+```
+[ 1  2  3  4 ]
+```
+
+**`reshape`** gives back the same items arranged in `rows` rows and `columns` columns. The item count must match.
+
+```turtle
+import linear
+m = matrix [1, 2; 3, 4]
+show m at reshape[1, 4] .
+```
+
+```
+[ 1  2  3  4 ]
+```
+
+**`isempty`** gives back `true` if the matrix has no items.
+
+```turtle
+import linear
+m = matrix [1, 2; 3, 4]
+show m at isempty .
+```
+
+```
+false
+```
+
+**`tostring`** gives back the matrix as text.
+
+```turtle
+import linear
+m = matrix [1, 2; 3, 4]
+show m at tostring .
+```
+
+```
+[ 1  2 ]
+[ 3  4 ]
+```
+
+#### Dates
+
+**`tostring`** gives back the date as text, as `show` writes it. No import is needed.
+
+```turtle
+import time
+d = make_date[2026, 10, 10]
+show d at tostring .
+```
+
+```
+2026-10-10 00:00:00
+```
+
 #### Errors and limits
 
 Each of these stops the program with an error. The message names the problem, and the line shows where it happened.
@@ -2498,6 +3171,29 @@ Relative paths resolve from the folder `turtle` was run in (see
 `[write]`/`[append]` body lines are one item each: a quoted string is
 written verbatim, a bare identifier is replaced with that variable's
 current value; items are newline-joined.
+
+The program writes `notes.txt` in the folder it is run from, then reads it back.
+
+**Example.**
+
+```turtle
+[write] notes.txt
+"first line"
+"second line"
+[end]
+[append] notes.txt
+"third line"
+[end]
+[read] notes.txt to lines [end]
+show length of lines .
+show lines at get[2] .
+```
+
+```
+3
+third line
+```
+
 
 ## Modules
 
@@ -2707,6 +3403,44 @@ m = mylib now[]
 sleep[0.5]             // only time has sleep
 ```
 
+The module is the file `lib/utils.turtle`, next to the program. Its functions are called with the module's name in front: `utils half[4]`.
+
+**Example.**
+
+```turtle
+import lib/utils
+show utils half[4] .
+```
+
+```
+2.0
+```
+
+
+## Database servers: `queryall`
+
+`queryall` runs several queries on a PostgreSQL or MySQL server at once, each over its own connection. This example creates a table, adds three rows, and runs two queries in one call. Put your own server address in `sql_open`; this one is a local PostgreSQL server.
+
+**Example.**
+
+```turtle
+import sql
+import schedule
+db = sql_open["postgres://postgres:pw@127.0.0.1:55432/shop?sslmode=disable"]
+sql_run[db, "DROP TABLE IF EXISTS books"]
+sql_run[db, "CREATE TABLE books (title TEXT, price INTEGER)"]
+sql_run[db, "INSERT INTO books VALUES ('Dune', 900), ('Emma', 1200), ('Ulysses', 800)"]
+r = queryall[db, list ["SELECT count(*) AS n FROM books", list ["SELECT * FROM books WHERE price < ?", list [1000]]]]
+show r .
+sql_close[db]
+```
+
+```
+[ [ { "n": 3 } ], [ { "title": "Dune", "price": 900 }, { "title": "Ulysses", "price": 800 } ] ]
+```
+
+The result is one list per query: the count, then the rows under 1000.
+
 ## Shell escape
 
 ```text
@@ -2717,6 +3451,19 @@ sys <rest of line>
 verbatim to end of line, runs through a shell (`sh`, or `cmd` on Windows)
 with inherited stdin/stdout/stderr, in the folder turtle was run in (where
 file paths resolve too).
+
+`sys` runs a command in the shell and waits for it to finish.
+
+**Example.**
+
+```turtle
+sys echo hello from the shell
+```
+
+```
+hello from the shell
+```
+
 
 ## Logging: `log`
 
@@ -2730,6 +3477,22 @@ The values are joined as `show` joins them; a map among them adds
 `key=value` fields. Without a level word it's `info`. `log` begins a
 statement only when a value or a level word follows it, so `log = 5`
 still assigns.
+
+Each line has the time it was written, so the times here will differ on your run.
+
+**Example.**
+
+```turtle
+import log
+log info "starting" .
+log warn "disk at ", 91, "%" .
+```
+
+```
+2026-11-19 01:11:49 INFO  starting
+2026-11-19 01:11:49 WARN  disk at 91%
+```
+
 
 ## Tests: `check`, `verify`, `validate`, `turtle test`
 
@@ -2768,6 +3531,36 @@ validate <call> [to <name>] [with <name> as <kind>, ...] matches <call> .
 (no arguments) in every `test_*.turtle` file, after the file's own top-level
 code, and exits with 1 if any failed.
 
+The second check is false, so the program stops with a test error that says what was expected.
+
+**Example.**
+
+```turtle
+import test
+def sum_two[a, b]
+    return a + b
+def [end]
+check sum_two[2, 3] == 5 .
+check sum_two[2, 3] == 6 .
+```
+
+```
+turtle: line 6: failed: check sum_two[2, 3] == 6 .
+    got 5, want 6 (1 less)
+  6 | check sum_two[2, 3] == 6 .
+```
+
+**Example.** `turtle test` runs each `test_` function in the `test_*.turtle` files of a folder:
+
+```text
+$ turtle test tests
+tests/test_math.turtle
+  PASS  test_sum   23.6µs     99.4 KB
+
+ok: 1 passed, 0 failed (1 file, 156.5µs)
+```
+
+
 ## Watching it run: `turtle trace`
 
 `turtle trace script.turtle [args]` runs the program as usual and, on
@@ -2790,6 +3583,22 @@ value follows on a `...` line. Lines of an imported file are named with
 the file (`utils.turtle:4`). `def` lines are left out: functions are defined
 before the file runs. The program's own output stays on standard output,
 so `turtle trace report.turtle 2> trace.txt` keeps the two apart.
+
+**Example.** Run the program with `trace` and read the lines it shows on standard error:
+
+```text
+$ turtle trace main.turtle
+12
+line 1  nums = list [5, 7]                nums = [ 5, 7 ]
+line 2  total = 0                         total = 0
+line 3  [loop][x in nums]
+                                          pass 1: x = 5
+line 4      total = total + x             total = 5
+                                          pass 2: x = 7
+line 4      total = total + x             total = 12
+line 6  show total .
+```
+
 
 ## Stepping through it: `turtle debug`
 
@@ -2829,6 +3638,22 @@ in what you type is shown and the program carries on. The debugger
 writes to standard error and reads standard input, like the program's
 `?` prompts. If the input ends, the program runs to the end.
 
+**Example.** Step four lines, look at `total`, then run to the end. The typed commands are the ones after `(debug)`:
+
+```text
+$ turtle debug main.turtle
+12
+turtle debug: stopped before the first line. Enter steps; h shows the commands.
+→ line 1  nums = list [5, 7]
+(debug) → line 2  total = 0
+(debug) → line 3  [loop][x in nums]
+(debug) → line 4      total = total + x
+(debug) → line 4      total = total + x
+(debug) 5
+(debug) 
+```
+
+
 ## Layout: `turtle fmt`
 
 `turtle fmt` lays `.turtle` files out the standard way: each block's lines
@@ -2848,6 +3673,23 @@ them (in Turtle a space can matter: `nums get -1` isn't `a - 1`). Lines
 inside a `` `raw string` `` or a `//* *//` comment are left as they are. A
 file that doesn't parse is reported and left alone. In VS Code, Format
 Document (Shift-Alt-F) does the same.
+
+**Example.** `fmt --check` lists the files that need laying out, and `fmt` rewrites them. Here the `if` block is not indented:
+
+```text
+$ turtle fmt --check ugly.turtle
+ugly.turtle needs formatting
+$ turtle fmt ugly.turtle
+```
+
+After `fmt` the file reads:
+
+```turtle
+if ] x > 1 [
+    show "big" .
+if [end]
+```
+
 
 ## Sharing a program: `turtle build`
 
@@ -2883,6 +3725,16 @@ script (`args[]`):
 - **Windows.** A program can't be rebuilt while it's running: close it
   first. Downloaded on another PC, Windows may say it "protected your PC"
   (it isn't signed); More info, then Run anyway, lets it run.
+
+**Example.** `build` makes one program file that runs without Turtle installed. Then run the file:
+
+```text
+$ turtle build main.turtle -o app
+built app (main.turtle, darwin/arm64)
+$ ./app
+12
+```
+
 
 ## Documentation: `turtle doc`
 
@@ -2932,3 +3784,20 @@ first. Editors show the description on hover (see
 
 Copyright 2017-2026 Nigele McCoy. Licensed under the
 [Apache License 2.0](../LICENSE); see [NOTICE](../NOTICE).
+
+**Example.** `doc` shows the documentation for a library, a function or a file:
+
+```text
+$ turtle doc reshape
+reshape[m, rows, columns]        (import linear)
+  The same numbers, in the same order, as a rows x columns matrix. m is
+  unchanged. rows times columns must be how many numbers m has, or it's a
+  linear error. Method: m at reshape[rows, columns]. Sentence form:
+  m reshape rows, columns.
+  Example:
+    m = matrix [1, 2, 3; 4, 5, 6]
+    r = reshape[m, 3, 2]            // [ 1  2 ]
+                                    // [ 3  4 ]
+                                    // [ 5  6 ]
+```
+
