@@ -1188,7 +1188,7 @@ show stdlib[] at getkeys .
 ```
 
 ```
-1.0.0-dev
+1.0.0
 [ "config", "crypt", "data", "http", "json", "linear", "log", "math", "pattern", "random", "schedule", "search", "server", "sort", "sql", "strings", "system", "test", "time" ]
 ```
 
@@ -2067,8 +2067,8 @@ JSON is written at most 10,000 levels deep, the depth `load` can read.
 
 Each method on lists, sets and maps, with an example and the output it prints.
 Each example is a complete program. The list, set and map examples were run on Turtle
-v0.9.232 (source commit 84f9a10). The string, number, matrix and date examples were run on
-v1.0.0-dev (source commit d8d3499). A method called after `at` changes the collection only when the entry says
+v1.0.0. The string, number, matrix and date examples were run on
+v1.0.0 (source commit b7c0a9d). A method called after `at` changes the collection only when the entry says
 so. The errors at the end show what happens when a method is misused.
 
 #### Lists

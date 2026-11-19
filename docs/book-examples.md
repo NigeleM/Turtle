@@ -1,6 +1,6 @@
 # Book examples, with their output
 
-Every Turtle example in the book, in chapter order, run on the current build (v1.0.0-dev). Each shows the program and what it printed. The book is the reference; this page lets you see every example run.
+Every Turtle example in the book, in chapter order, run on the current build (v1.0.0). Each shows the program and what it printed. The book is the reference; this page lets you see every example run.
 
 Some examples depend on a file, a database, input from the keyboard or an earlier part of their chapter, so they report an error when run alone. Those show the error they give. Examples that serve pages run until they are stopped, and are marked that way. Examples that call a web address need a server at that address.
 
@@ -498,7 +498,7 @@ help[]
 ```
 
 ```text
-Turtle 1.0.0-dev
+Turtle 1.0.0
 
 help["linear"]     a library: what it's for and its functions
 help["reshape"]    one function or method, with an example
@@ -556,7 +556,7 @@ show version .
 ```
 
 ```text
-1.0.0-dev
+1.0.0
 ```
 
 
