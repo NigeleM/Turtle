@@ -594,6 +594,185 @@ x = sum[nums]                  // "sum" needs "import data" first
 Every library, grouped by what it's for: [the library docs](library/index.md).
 Every keyword in one table: [Keywords](reference.md#keywords).
 
+## Theories
+
+A theory teaches Turtle a new phrase. It has a plain-language **abstract**, a **notation**
+that shows how the phrase is written, a **definition** with the code, **theorem** lines that
+every result must keep, and **proof** examples that must give the right answers. Here the
+phrase is `tally b in a`, which counts how many times `b` appears in the list `a`:
+
+```turtle
+theory tally
+    abstract
+        tally says how many times b appears in the list a.
+    notation tally b in a .
+    definition
+        n = 0
+        [loop][x in a]
+            if ] x == b [
+                n = n + 1
+            if [end]
+        [loop][end]
+        return n
+    theorem result >= 0
+    proof
+        tally 1 in list [1, 1, 0, 3] . is 2
+        tally 9 in list [] . is 0
+theory [end]
+
+nums = list [1, 1, 0, 3]
+show "ones: ", tally 1 in nums .
+```
+
+```
+ones: 2
+```
+
+Use `turtle test` to check every theory's proof and theorems. The reference's
+[Theories](reference.md#theories) section has the full rules.
+
+## Scrolls
+
+A scroll passes a value through a list of steps, in order. Each step receives the result of
+the one before it. The `into` word starts the steps:
+
+```turtle
+def add1[x]
+    return x + 1
+def [end]
+def double[x]
+    return x * 2
+def [end]
+show scroll 3 into add1, double .
+```
+
+```
+8
+```
+
+The [scrolls page](scrolls.md) covers `here`, `none` in a scroll, and errors inside a scroll.
+
+## Sentence form
+
+Some calls can be written as words, so a line reads like a sentence. This works with the
+functions of an import:
+
+```turtle
+import data
+nums = list [1, 2, 3, 4]
+show nums keep x give x > 2 .
+show nums sum .
+```
+
+```
+[ 3, 4 ]
+10
+```
+
+The [reference](reference.md#calls-with-the-arguments-after-the-name) explains the forms and the
+rules for negative values and `;`.
+
+## Help and version
+
+`help` explains what you give it. `help[]` lists the topics, `help["keywords"]` lists every
+keyword, `help["if"]` explains one keyword, and `help[nums]` explains a value and its methods.
+`stdlib[]` gives every library and its functions, and `show version .` prints the version:
+
+```turtle
+help["if"]
+show version .
+```
+
+```
+if        (a keyword)
+  Runs code when a condition holds.
+  Example: if ] x > 1 [ ... if [end]
+  More: Conditionals (docs/reference.md#conditionals)
+```
+
+## Tracing a program
+
+`turtle trace` runs a program and prints each line on standard error as it runs, with the
+values it produced. Loops show each pass:
+
+```
+$ turtle trace tr.turtle
+line 1   import data
+line 2   nums = list [5, 7]               nums = [ 5, 7 ]
+line 3   total = 0                        total = 0
+line 4   [loop][x in nums]
+                                          pass 1: x = 5
+line 5       total = total + x            total = 5
+                                          pass 2: x = 7
+line 5       total = total + x            total = 12
+```
+
+To keep the trace apart from the program's output, send the trace to a file:
+`turtle trace report.turtle 2> trace.txt`.
+
+## Debugging a program
+
+`turtle debug` runs a program one line at a time. At the `(debug)` prompt, Enter or `s` steps,
+`n` steps over a call, `o` runs to the end of a function, `c` continues to the next breakpoint,
+`b 5` sets a breakpoint, `d 5` removes one, `p total` shows a value, `v` lists the variables, `w`
+shows where you are, `l` lists the lines around you, `h` lists the commands and `q` quits:
+
+```
+$ turtle debug dbg2.turtle
+turtle debug: stopped before the first line. Enter steps; h shows the commands.
+→ line 1  import data
+(debug) s
+→ line 2  nums = list [5, 7]
+(debug) s
+→ line 3  total = 0
+(debug) s
+→ line 4  [loop][x in nums]
+(debug) s
+→ line 5      total = total + x
+(debug) p total
+0
+(debug) b 5
+will stop at 5
+(debug) c
+→ line 5      total = total + x
+(debug) p total
+5
+(debug) q
+```
+
+A breakpoint stops the program only on a line that runs. The debugger warns you about blank
+lines, comments, and declarations such as `def` and `notation`.
+
+## Formatting
+
+`turtle fmt` lays out `.turtle` files in one standard way. `--check` only lists the files that
+need it:
+
+```
+$ turtle fmt --check messy.turtle
+messy.turtle needs formatting
+$ turtle fmt messy.turtle
+formatted messy.turtle
+```
+
+## Building a program
+
+`turtle build` makes a single program file that runs without Turtle installed:
+
+```
+$ turtle build hello.turtle -o hello
+$ ./hello
+Hello, world
+```
+
+The file runs on the kind of computer it was built on.
+
+## Editors
+
+Turtle has a language server, `turtle lsp`, which gives an editor help while you type:
+completions, errors as you type, hover help and go to definition. The [editors page](editors.md)
+lists the editors and how to set them up, and the VS Code extension includes syntax colours.
+
 ---
 
 Copyright 2017-2026 Nigele McCoy. Licensed under the
