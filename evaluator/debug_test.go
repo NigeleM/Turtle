@@ -92,3 +92,29 @@ func TestDebugErrorsAndEndOfInput(t *testing.T) {
 		}
 	}
 }
+
+func TestNeverRunsNamesTheLinesThatCannotStop(t *testing.T) {
+	cases := map[string]string{
+		"":                            "blank",
+		"   // a note":                "a comment",
+		"def double[n]":               "the header or end of a function, which only defines it",
+		"def [end]":                   "the header or end of a function, which only defines it",
+		"theory tally":                "the header or end of a theory, which only defines it",
+		"    notation tally b in a .": "a part of a theory, which describes the theory rather than running it",
+		"    total = total + x":       "",
+		"    return n * 2":            "",
+	}
+	for line, want := range cases {
+		if got := neverRuns(line); got != want {
+			t.Errorf("neverRuns(%q) = %q, want %q", line, got, want)
+		}
+	}
+}
+
+func TestBreakpointWarningAppearsForNotationLine(t *testing.T) {
+	prog := "theory tally\n    abstract\n        tally counts.\n    notation tally b in a .\n    definition\n        return 0\ntheory [end]\nshow tally 1 in list [1] .\n"
+	got, _ := debugSession(t, prog, "b 4\n")
+	if !strings.Contains(got, "warning: line 4 is a part of a theory, which describes the theory rather than running it, so it never runs and this breakpoint won't stop") {
+		t.Errorf("missing warning:\n%s", got)
+	}
+}

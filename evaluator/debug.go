@@ -65,9 +65,18 @@ type debugFrame struct {
 // Debug turns on turtle debug for this interpreter: messages go to out,
 // commands are read as the program's ? input is.
 func (it *Interpreter) Debug(out io.Writer, src string) {
-	it.debug = &Debugger{out: out, in: it.stdin, src: map[string][]string{}, breaks: map[string]bool{}, mode: "step"}
+	it.debug = &Debugger{out: flushingWriter{out}, in: it.stdin, src: map[string][]string{}, breaks: map[string]bool{}, mode: "step"}
 	it.debug.src[""] = splitLines(src)
 	fmt.Fprintln(out, "turtle debug: stopped before the first line. Enter steps; h shows the commands.")
+}
+
+// flushingWriter writes the debugger's own text after the program's output
+// so far, so a show line appears where it ran, not at the end of the program.
+type flushingWriter struct{ w io.Writer }
+
+func (f flushingWriter) Write(p []byte) (int, error) {
+	stdoutBuf.Flush()
+	return f.w.Write(p)
 }
 
 func splitLines(src string) []string {
@@ -107,6 +116,7 @@ func (it *Interpreter) debugStop(stmt ast.Statement, env *object.Environment) {
 	d.show(currentFile, line)
 	for {
 		fmt.Fprint(d.out, "(debug) ")
+		stdoutBuf.Flush() // what the program showed so far comes before the prompt
 		if !d.in.Scan() {
 			fmt.Fprintln(d.out, "\n(no more input: running to the end)")
 			d.quiet = true
@@ -207,11 +217,39 @@ func (d *Debugger) breakpoint(arg string, add bool) {
 	key := fmt.Sprintf("%s:%d", file, n)
 	if add {
 		d.breaks[key] = true
+		if lines := d.src[file]; n >= 1 && n <= len(lines) {
+			if why := neverRuns(lines[n-1]); why != "" {
+				fmt.Fprintf(d.out, "warning: line %d is %s, so it never runs and this breakpoint won't stop\n", n, why)
+			}
+		}
 		fmt.Fprintf(d.out, "will stop at %s\n", arg)
 	} else {
 		delete(d.breaks, key)
 		fmt.Fprintf(d.out, "won't stop at %s\n", arg)
 	}
+}
+
+// neverRuns says what kind of line can't stop the program, or "" if the line
+// is a statement that runs. A breakpoint there would never be reached.
+func neverRuns(line string) string {
+	t := strings.TrimSpace(line)
+	first := ""
+	if f := strings.Fields(t); len(f) > 0 {
+		first = f[0]
+	}
+	switch {
+	case t == "":
+		return "blank"
+	case strings.HasPrefix(t, "//"):
+		return "a comment"
+	case first == "def":
+		return "the header or end of a function, which only defines it"
+	case first == "theory":
+		return "the header or end of a theory, which only defines it"
+	case first == "abstract", first == "notation", first == "definition", first == "theorem", first == "proof":
+		return "a part of a theory, which describes the theory rather than running it"
+	}
+	return ""
 }
 
 func (d *Debugger) list(file string, line int) {
