@@ -44,9 +44,7 @@ import test
 ```text
 Tests. In a file with "import test", three statements check your code;
 "turtle test" runs every test_ function in every test_*.turtle file.
-```
 
-```text
     check total[order] == 45 .                     one fact; == shows how they differ
     check x is integer .                           also: float number string boolean
                                                    list set map date none function empty,
@@ -60,11 +58,7 @@ Tests. In a file with "import test", three statements check your code;
         that result each x give x % 2 == 0 .      the rule on 100 random inputs,
                                                    shrunk to the smallest that fails;
                                                    or: matches other_function[nums]
-```
 
-### `Settings (set at the top of the file, or inside one test for that test):`
-
-```text
 Settings (set at the top of the file, or inside one test for that test):
     suite = false        false: each test alone; "stop": a failure skips the
                          rest; "all": run all, failures listed at the end
@@ -73,12 +67,6 @@ Settings (set at the top of the file, or inside one test for that test):
     benchtime = 1        seconds
     cases = 100          random inputs each validate tries
     seed = none          a number repeats the same random inputs
-```
 
-### `A failure is an error of kind test. Full guide: docs/testing.md.`
-
-```text
 A failure is an error of kind test. Full guide: docs/testing.md.
 ```
-
-<!-- end generated -->

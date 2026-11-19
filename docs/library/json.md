@@ -106,6 +106,8 @@ load[text]        (import json)
 json_text[value]        (import json)
   Writes a value as JSON, on one line.
   Gives back: text.
+  Example:
+    show json_text[map ["id": 7, "tags": list ["a", "b"]]] .   // {"id":7,"tags":["a","b"]}
 ```
 
 ### `json_read[path]`
@@ -114,6 +116,9 @@ json_text[value]        (import json)
 json_read[path]        (import json)
   Reads a JSON file.
   Gives back: the Turtle value. Bad JSON is a json error.
+  Example:
+    json_write["user.json", map ["name": "Ann"]]
+    show json_read["user.json"] .   // { "name": "Ann" }
 ```
 
 ### `json_write[path, value]`
@@ -121,6 +126,9 @@ json_read[path]        (import json)
 ```text
 json_write[path, value]        (import json)
   Saves a value to a file as indented JSON.
+  Example:
+    json_write["out.json", list [1, 2]]
+    show json_read["out.json"] .   // [ 1, 2 ]
 ```
 
 ### `json_get[value, step, step, ...]`
@@ -134,5 +142,3 @@ json_get[value, step, step, ...]        (import json)
     port = json_get[config, "server", "port"]
     show port .
 ```
-
-<!-- end generated -->

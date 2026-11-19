@@ -115,9 +115,7 @@ import random
 
 ```text
 Random values of any shape, written as a sentence after "random":
-```
 
-```text
     die = random integer from 1 to 6
     nums = random list of 5 integers from 0 to 9
     price = random float from 0.5 to 99.99 rounded to 2
@@ -127,11 +125,7 @@ Random values of any shape, written as a sentence after "random":
     grid = random list of 3 lists of 3 integers
     ages = random map of string to integer from 0 to 99
     order = random Order [string, integer from 1 to 10, float]
-```
 
-### `Kinds: integer (-1000 to 1000 unless from A to B), float (0 up to 1),`
-
-```text
 Kinds: integer (-1000 to 1000 unless from A to B), float (0 up to 1),
 string (1 to 10 letters; of N, of N to M, from "chars"), digits of N,
 digit, letter, boolean, date and time (2000 through 2030), list of,
@@ -198,5 +192,3 @@ chance[p]        (import random)
         show "rain" .
     if [end]
 ```
-
-<!-- end generated -->

@@ -1028,5 +1028,3 @@ svd[m]        (import linear)
     parts = svd[m]
     show length of parts .
 ```
-
-<!-- end generated -->

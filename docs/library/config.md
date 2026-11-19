@@ -107,5 +107,3 @@ config_write[path, settings]        (import config)
     config_write["app.toml", settings]
     show "saved" .
 ```
-
-<!-- end generated -->

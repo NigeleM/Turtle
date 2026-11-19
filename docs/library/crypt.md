@@ -142,6 +142,9 @@ decode[text, how]        (import crypt)
 ```text
 uuid[]        (import crypt)
   A random id (a version 4 UUID): 36 characters, different every time.
+  Example:
+    u = uuid[]
+    show length of u .            // 36
 ```
 
 ### `token[length]`
@@ -211,5 +214,3 @@ decrypt[box, passphrase]        (import crypt)
     notes = decrypt[box, phrase]
     show notes .
 ```
-
-<!-- end generated -->

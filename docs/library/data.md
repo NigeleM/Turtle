@@ -387,6 +387,8 @@ group[collection, function]        (import data)
   gave that result, in their order in the collection. Example:
     group[list ["ant", "bee", "ape"], x give x at get[0]] .
     // { "a": [ "ant", "ape" ], "b": [ "bee" ] }
+  Example:
+    show group[list [1, 2, 3, 4], x give x % 2 == 0] .   // { false: [ 1, 3 ], true: [ 2, 4 ] }
 ```
 
 ### `table_column[rows, name]`
@@ -398,6 +400,9 @@ table_column[rows, name]        (import data)
     people = list [map ["first": "Ann", "last": "Lee"], map ["first": "Bob", "last": "Park"]]
     show table_column[people, "last"] .
     show table_row[people, 1] .
+  Example:
+    rows = list [map ["title": "Emma", "copies": 12], map ["title": "Ida", "copies": 4]]
+    show table_column[rows, "copies"] .   // [ 12, 4 ]
 ```
 
 ### `table_row[rows, n]`
@@ -407,6 +412,9 @@ table_row[rows, n]        (import data)
   Row n of a table, counted from 0, as the record itself. Example:
     people = list [map ["first": "Ann", "last": "Lee"], map ["first": "Bob", "last": "Park"]]
     show table_row[people, 1] .
+  Example:
+    rows = list [map ["title": "Emma", "copies": 12], map ["title": "Ida", "copies": 4]]
+    show table_row[rows, 1] .   // { "title": "Ida", "copies": 4 }
 ```
 
 ### `keep[collection, function]`
@@ -480,11 +488,7 @@ sum[collection]        (import data)
     avg = mean[prices]
     spread = stdev[prices]
     show total, " ", avg, " ", spread .
-```
 
-### `Statistics: each takes a list, a set or a map (its values), or a list of`
-
-```text
 Statistics: each takes a list, a set or a map (its values), or a list of
 rows (maps or assembled values, as sql_query and table_read give) and a
 column name. none is skipped, as a missing value; anything else that
@@ -716,5 +720,3 @@ table_read[path [, types]]        (import data)
     rows = table_read["orders.csv"]
     show table[rows] .
 ```
-
-<!-- end generated -->

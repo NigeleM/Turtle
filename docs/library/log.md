@@ -93,17 +93,11 @@ import log
 ```text
 Log lines: a level, a time and where they came from, to the console
 (stderr) and, if you like, a file. In a file with "import log":
-```
 
-```text
     log "server started on port ", port .         info, the default level
     log debug "row ", row .                       also: info, warn, error
     log info "login", map ["user": name] .        a map adds fields: user=ann
-```
 
-### `Settings (variables; set at the top of a file, or inside a function for it):`
-
-```text
 Settings (variables; set at the top of a file, or inside a function for it):
     loglevel = "info"        the lowest level shown; "debug" ... "error", "off"
     logconsole = true        print log lines to stderr
@@ -114,12 +108,6 @@ Settings (variables; set at the top of a file, or inside a function for it):
     logmaxsize = none        rotate the file past this many bytes (app.log.1 ...)
     logkeep = 3              rotated files to keep
     outputfile = none        a file that also gets what show and warn print
-```
 
-### `An error that stops the program is written to logfile too.`
-
-```text
 An error that stops the program is written to logfile too.
 ```
-
-<!-- end generated -->

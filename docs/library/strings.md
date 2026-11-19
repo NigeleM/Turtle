@@ -104,5 +104,3 @@ join[items, separator]        (import strings)
     words = list ["red", "green"]
     show words join ", " .
 ```
-
-<!-- end generated -->

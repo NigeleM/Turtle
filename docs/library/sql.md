@@ -463,6 +463,10 @@ sql_run[db, statement, values]        (import sql)
 sql_tables[db]        (import sql)
   The names of the database's tables.
   Gives back: a list of text.
+  Example:
+    db = sql_create["shop.db"]
+    sql_run[db, "CREATE TABLE books (title TEXT)", list []]
+    show sql_tables[db] .   // [ "books" ]
 ```
 
 ### `sql_save[db, query, path, values]`
@@ -544,6 +548,12 @@ sql_update[db, table, key, path]        (import sql)
     sql_update[db, "books", "sku", "prices.csv"]
     show sql_query[db, "SELECT * FROM books", list []] .
     sql_close[db]
+  Example:
+    db = sql_create["shop.db"]
+    sql_run[db, "CREATE TABLE books (title TEXT, price INTEGER)", list []]
+    sql_run[db, "INSERT INTO books VALUES (?, ?)", list ["Emma", 900]]
+    sql_run[db, "UPDATE books SET price = ? WHERE title = ?", list [950, "Emma"]]
+    show sql_query[db, "SELECT price FROM books", list []] .   // [ { "price": 950 } ]
 ```
 
 ### `sql_delete[db, table, key, path]`
@@ -563,6 +573,12 @@ sql_delete[db, table, key, path]        (import sql)
     sql_delete[db, "books", "sku", "gone.csv"]
     show sql_query[db, "SELECT * FROM books", list []] .
     sql_close[db]
+  Example:
+    db = sql_create["shop.db"]
+    sql_run[db, "CREATE TABLE books (title TEXT)", list []]
+    sql_run[db, "INSERT INTO books VALUES (?)", list ["Emma"]]
+    sql_run[db, "DELETE FROM books WHERE title = ?", list ["Emma"]]
+    show sql_query[db, "SELECT title FROM books", list []] .   // []
 ```
 
 ### `sql_upsert[db, table, key, path]`
@@ -593,6 +609,8 @@ sql_upsert[db, table, key, path]        (import sql)
 sql_close[db]        (import sql)
   Closes the database. A transaction not yet committed is undone.
   Closing twice is fine.
+  Example:
+    db = sql_create["shop.db"]
+    sql_close[db]
+    show "closed" .   // closed
 ```
-
-<!-- end generated -->

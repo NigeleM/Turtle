@@ -88,36 +88,20 @@ import schedule
 ```text
 Many web requests, shell commands or database queries at once. The
 work runs side by side; your Turtle code still runs one line at a time.
-```
 
-### `At most schedulelimit items run at once, like a semaphore: each one that`
-
-```text
 At most schedulelimit items run at once, like a semaphore: each one that
 finishes starts the next straight away. Results come back in the list's
 order, whatever order they finish in. The first failure stops the call
 with that item's error (the running ones finish, the waiting ones never
 start); with skipschedule_error = true a failed item becomes none instead.
-```
 
-### `Settings ("import schedule" makes them; change them like any variable):`
-
-```text
 Settings ("import schedule" makes them; change them like any variable):
     schedulelimit = 5             how many at once; none: all of them
     skipschedule_error = false    true: a failed item becomes none
-```
 
-### `A call's own settings, for that call only, go in a map at the end:`
-
-```text
 A call's own settings, for that call only, go in a map at the end:
     map ["limit": 10, "skip_errors": true]
-```
 
-### `A bad setting, a command that can't start, or queryall on SQLite is an`
-
-```text
 A bad setting, a command that can't start, or queryall on SQLite is an
 error of kind schedule.
 ```
@@ -168,8 +152,7 @@ queryall[db, queries, settings]        (import schedule)
   settings   optional, as for fetchall
   Gives back: a list of results, each a list of maps as sql_query gives.
   A bad query is an sql error naming the item.
+  Illustrative: needs a PostgreSQL or MySQL server, so it is not run as a check.
   Example:
     r = queryall[db, list ["SELECT count(*) AS n FROM books", list ["SELECT * FROM books WHERE price < ?", list [1000]]]]
 ```
-
-<!-- end generated -->

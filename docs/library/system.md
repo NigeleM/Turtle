@@ -254,6 +254,8 @@ script's own folder).
 args[]        (import system)
   The words typed after the script's name: turtle report.turtle a.txt b.txt
   Gives back: a list of text (empty if none).
+  Example:
+    show args[] .            // [] when no arguments are given
 ```
 
 ### `exists[path]`
@@ -262,6 +264,8 @@ args[]        (import system)
 exists[path]        (import system)
   Is there a file or folder at path?
   Gives back: true or false.
+  Example:
+    show exists["notes.txt"] .            // false: no such file
 ```
 
 ### `isfile[path]`
@@ -270,6 +274,8 @@ exists[path]        (import system)
 isfile[path]        (import system)
   Is path a file?
   Gives back: true or false.
+  Example:
+    show isfile["notes.txt"] .            // false: no such file
 ```
 
 ### `isfolder[path]`
@@ -278,6 +284,9 @@ isfile[path]        (import system)
 isfolder[path]        (import system)
   Is path a folder?
   Gives back: true or false.
+  Example:
+    makefolder["out"]
+    show isfolder["out"] .   // true
 ```
 
 ### `exit[code]`
@@ -316,6 +325,12 @@ contents[path]        (import system)
   The names of the files and folders in a folder (path is optional, "."
   by default).
   Gives back: a sorted list of names.
+  Example:
+    makefolder["out"]
+    [write] out/a.txt
+    "one"
+    [end]
+    show contents["out"] .   // [ "a.txt" ]
 ```
 
 ### `erase[path]`
@@ -324,6 +339,10 @@ contents[path]        (import system)
 erase[path]        (import system)
   Deletes a file, or a folder and everything in it. There is no undo.
   A missing path is a file error.
+  Example:
+    makefolder["out"]
+    erase["out"]
+    show exists["out"] .   // false
 ```
 
 ### `warn ... .`
@@ -493,5 +512,3 @@ freememory[]        (import system)
     rows = none
     freed = freememory[]
 ```
-
-<!-- end generated -->

@@ -72,6 +72,10 @@ http_get[url]        (import http)
   Fetches a web address.
   Gives back: the response's body as text. A network problem or an
   error status (4xx, 5xx) is an http error.
+  Illustrative: needs a web server at that address.
+  Example:
+    body = http_get["http://127.0.0.1:8765/data"]
+    show body .   // the text the server sends back
 ```
 
 ### `http_post[url, body]`
@@ -80,6 +84,10 @@ http_get[url]        (import http)
 http_post[url, body]        (import http)
   Sends body to a web address.
   Gives back: the response's body as text.
+  Illustrative: needs a web server at that address.
+  Example:
+    reply = http_post["http://127.0.0.1:8765/users", map ["name": "Ann"]]
+    show status of reply .   // the status code the server sends back
 ```
 
 ### `http_request[method, url, body, headers]`
@@ -91,6 +99,8 @@ http_request[method, url, body, headers]        (import http)
   Gives back: a map with "status" (a number), "body" (text) and
   "headers" (a map). Only a network problem is an error; check the
   status yourself.
+  Illustrative: needs a web server at that address.
+  Example:
+    reply = http_request["PUT", "http://127.0.0.1:8765/users/7", map ["name": "Ann"], map ["Content-Type": "application/json"]]
+    show status of reply .
 ```
-
-<!-- end generated -->

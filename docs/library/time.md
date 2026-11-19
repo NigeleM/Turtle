@@ -203,6 +203,8 @@ to_zone[date, zone]        (import time)
 today_utc[]        (import time)
   The date and time now, in UTC.
   Gives back: a date.
+  Example:
+    show today_utc[] .            // the date and time now, in UTC
 ```
 
 ### `make_date[year, month, day, hour, minute, second, zone]`
@@ -289,8 +291,11 @@ every[amount, unit, job]        (import time)
   amount   a whole number
   unit     "minutes", "days", ...
   job      a function with no parameters
+  Illustrative: runs until the job returns false, so it is not run as a check.
   Example:
+    def backup[]
+        show "backing up" .
+        return true
+    def [end]
     every[7, "days", backup]
 ```
-
-<!-- end generated -->

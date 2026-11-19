@@ -122,6 +122,8 @@ max_sort[collection, key, how]        (import sort)
 is_sorted[collection, key]        (import sort)
   Whether it's already in order, smallest first (equal items allowed).
   Gives back: true or false.
+  Example:
+    show is_sorted[list [1, 2, 2, 5]] .   // true
 ```
 
 ### `reverse_list[collection]`
@@ -143,6 +145,8 @@ bubble_sort[collection, key]        (import sort)
   The same answer as min_sort, by bubble sort: swaps neighbours that are
   out of order until nothing moves. About n*n steps: for learning and
   comparing, not for large lists.
+  Example:
+    show bubble_sort[list [3, 1, 2]] .   // [ 1, 2, 3 ]
 ```
 
 ### `insertion_sort[collection, key]`
@@ -151,6 +155,8 @@ bubble_sort[collection, key]        (import sort)
 insertion_sort[collection, key]        (import sort)
   min_sort's answer by insertion sort: slides each item back into place.
   Quick on lists that are almost in order.
+  Example:
+    show insertion_sort[list [3, 1, 2]] .   // [ 1, 2, 3 ]
 ```
 
 ### `selection_sort[collection, key]`
@@ -159,6 +165,8 @@ insertion_sort[collection, key]        (import sort)
 selection_sort[collection, key]        (import sort)
   min_sort's answer by selection sort: picks the smallest of the rest,
   again and again. Equal items may change order.
+  Example:
+    show selection_sort[list [3, 1, 2]] .   // [ 1, 2, 3 ]
 ```
 
 ### `merge_sort[collection, key]`
@@ -167,6 +175,8 @@ selection_sort[collection, key]        (import sort)
 merge_sort[collection, key]        (import sort)
   min_sort's answer by merge sort: sorts each half, then merges them.
   About n*log(n) steps, always.
+  Example:
+    show merge_sort[list [3, 1, 2]] .   // [ 1, 2, 3 ]
 ```
 
 ### `quick_sort[collection, key]`
@@ -175,6 +185,8 @@ merge_sort[collection, key]        (import sort)
 quick_sort[collection, key]        (import sort)
   min_sort's answer by quick sort: splits around a middle value. Fast on
   average; equal items may change order.
+  Example:
+    show quick_sort[list [3, 1, 2]] .   // [ 1, 2, 3 ]
 ```
 
 ### `heap_sort[collection, key]`
@@ -183,6 +195,8 @@ quick_sort[collection, key]        (import sort)
 heap_sort[collection, key]        (import sort)
   min_sort's answer by heap sort: builds a heap, then takes the largest
   off the top. Equal items may change order.
+  Example:
+    show heap_sort[list [3, 1, 2]] .   // [ 1, 2, 3 ]
 ```
 
 ### `shell_sort[collection, key]`
@@ -191,6 +205,8 @@ heap_sort[collection, key]        (import sort)
 shell_sort[collection, key]        (import sort)
   min_sort's answer by Shell sort: insertion sort over shrinking gaps.
   Equal items may change order.
+  Example:
+    show shell_sort[list [3, 1, 2]] .   // [ 1, 2, 3 ]
 ```
 
 ### `counting_sort[collection, key]`
@@ -199,6 +215,8 @@ shell_sort[collection, key]        (import sort)
 counting_sort[collection, key]        (import sort)
   min_sort's answer by counting sort, for whole-number keys in a modest
   range (ages, scores): counts each value, then places them.
+  Example:
+    show counting_sort[list [3, 1, 2]] .   // [ 1, 2, 3 ]
 ```
 
 ### `radix_sort[collection, key]`
@@ -207,6 +225,6 @@ counting_sort[collection, key]        (import sort)
 radix_sort[collection, key]        (import sort)
   min_sort's answer by radix sort, for whole-number keys: orders them one
   byte at a time.
+  Example:
+    show radix_sort[list [30, 4, 12]] .   // [ 4, 12, 30 ]
 ```
-
-<!-- end generated -->

@@ -385,6 +385,8 @@ moments, whatever their zones.
 ### today_utc[]
   The date and time now, in UTC.
   Gives back: a date.
+  Example:
+    show today_utc[] .            // the date and time now, in UTC
 
 ### make_date[year, month, day, hour, minute, second, zone]
   A date from its parts. Hour and minute, or hour, minute and second, are
@@ -443,7 +445,12 @@ moments, whatever their zones.
   amount   a whole number
   unit     "minutes", "days", ...
   job      a function with no parameters
+  Illustrative: runs until the job returns false, so it is not run as a check.
   Example:
+    def backup[]
+        show "backing up" .
+        return true
+    def [end]
     every[7, "days", backup]
 `,
 
@@ -476,6 +483,8 @@ table[...] shows. Change it like any variable; none shows every row.
   gave that result, in their order in the collection. Example:
     group[list ["ant", "bee", "ape"], x give x at get[0]] .
     // { "a": [ "ant", "ape" ], "b": [ "bee" ] }
+  Example:
+    show group[list [1, 2, 3, 4], x give x % 2 == 0] .   // { false: [ 1, 3 ], true: [ 2, 4 ] }
 
 ### table_column[rows, name]
   The values of one column of a table, one per row, in row order. A row
@@ -483,11 +492,17 @@ table[...] shows. Change it like any variable; none shows every row.
     people = list [map ["first": "Ann", "last": "Lee"], map ["first": "Bob", "last": "Park"]]
     show table_column[people, "last"] .
     show table_row[people, 1] .
+  Example:
+    rows = list [map ["title": "Emma", "copies": 12], map ["title": "Ida", "copies": 4]]
+    show table_column[rows, "copies"] .   // [ 12, 4 ]
 
 ### table_row[rows, n]
   Row n of a table, counted from 0, as the record itself. Example:
     people = list [map ["first": "Ann", "last": "Lee"], map ["first": "Bob", "last": "Park"]]
     show table_row[people, 1] .
+  Example:
+    rows = list [map ["title": "Emma", "copies": 12], map ["title": "Ida", "copies": 4]]
+    show table_row[rows, 1] .   // { "title": "Ida", "copies": 4 }
 
 ### keep[collection, function]
   Keeps only the elements (or map entries) for which the function gives
@@ -721,18 +736,27 @@ script's own folder).
 ### args[]
   The words typed after the script's name: turtle report.turtle a.txt b.txt
   Gives back: a list of text (empty if none).
+  Example:
+    show args[] .            // [] when no arguments are given
 
 ### exists[path]
   Is there a file or folder at path?
   Gives back: true or false.
+  Example:
+    show exists["notes.txt"] .            // false: no such file
 
 ### isfile[path]
   Is path a file?
   Gives back: true or false.
+  Example:
+    show isfile["notes.txt"] .            // false: no such file
 
 ### isfolder[path]
   Is path a folder?
   Gives back: true or false.
+  Example:
+    makefolder["out"]
+    show isfolder["out"] .   // true
 
 ### exit[code]
   Ends the program now. code is optional: 0 (the default) means it went
@@ -755,10 +779,20 @@ script's own folder).
   The names of the files and folders in a folder (path is optional, "."
   by default).
   Gives back: a sorted list of names.
+  Example:
+    makefolder["out"]
+    [write] out/a.txt
+    "one"
+    [end]
+    show contents["out"] .   // [ "a.txt" ]
 
 ### erase[path]
   Deletes a file, or a folder and everything in it. There is no undo.
   A missing path is a file error.
+  Example:
+    makefolder["out"]
+    erase["out"]
+    show exists["out"] .   // false
 
 ### warn ... .
   Like show, but to standard error, so it isn't mixed with output that's
@@ -932,13 +966,21 @@ characters from 0.
 ### json_text[value]
   Writes a value as JSON, on one line.
   Gives back: text.
+  Example:
+    show json_text[map ["id": 7, "tags": list ["a", "b"]]] .   // {"id":7,"tags":["a","b"]}
 
 ### json_read[path]
   Reads a JSON file.
   Gives back: the Turtle value. Bad JSON is a json error.
+  Example:
+    json_write["user.json", map ["name": "Ann"]]
+    show json_read["user.json"] .   // { "name": "Ann" }
 
 ### json_write[path, value]
   Saves a value to a file as indented JSON.
+  Example:
+    json_write["out.json", list [1, 2]]
+    show json_read["out.json"] .   // [ 1, 2 ]
 
 ### json_get[value, step, step, ...]
   Follows a path of map keys and list positions into a value.
@@ -955,10 +997,18 @@ characters from 0.
   Fetches a web address.
   Gives back: the response's body as text. A network problem or an
   error status (4xx, 5xx) is an http error.
+  Illustrative: needs a web server at that address.
+  Example:
+    body = http_get["http://127.0.0.1:8765/data"]
+    show body .   // the text the server sends back
 
 ### http_post[url, body]
   Sends body to a web address.
   Gives back: the response's body as text.
+  Illustrative: needs a web server at that address.
+  Example:
+    reply = http_post["http://127.0.0.1:8765/users", map ["name": "Ann"]]
+    show status of reply .   // the status code the server sends back
 
 ### http_request[method, url, body, headers]
   Any request: "GET", "PUT", "DELETE", ... body and headers (a map) are
@@ -966,6 +1016,10 @@ characters from 0.
   Gives back: a map with "status" (a number), "body" (text) and
   "headers" (a map). Only a network problem is an error; check the
   status yourself.
+  Illustrative: needs a web server at that address.
+  Example:
+    reply = http_request["PUT", "http://127.0.0.1:8765/users/7", map ["name": "Ann"], map ["Content-Type": "application/json"]]
+    show status of reply .
 `,
 
 	"pattern": `Patterns (regular expressions) in text. Write patterns in backticks,
@@ -1057,6 +1111,9 @@ unknown algorithm) is an error of kind crypt.
 
 ### uuid[]
   A random id (a version 4 UUID): 36 characters, different every time.
+  Example:
+    u = uuid[]
+    show length of u .            // 36
 
 ### token[length]
   Random letters and digits from the system's secure source, for keys,
@@ -1180,9 +1237,13 @@ Settings ("import server" makes them):
            "POST /users": adduser, "GET /health": "ok",
            "GET /static/*": "public"
   port     optional: 8080 by default
+  Illustrative: runs until the program is stopped (Ctrl+C), so it is not run as a check.
   Example:
-    serve[app, 8080]
-    app serve 8080
+    def hello[req]
+        return "hello"
+    def [end]
+    routes = map ["GET /": hello, "GET /health": "ok"]
+    serve[routes, 8080]
 
 ### reply[status, body, headers]
   An answer with its own status, and optionally headers.
@@ -1278,6 +1339,7 @@ error of kind schedule.
   settings   optional, as for fetchall
   Gives back: a list of results, each a list of maps as sql_query gives.
   A bad query is an sql error naming the item.
+  Illustrative: needs a PostgreSQL or MySQL server, so it is not run as a check.
   Example:
     r = queryall[db, list ["SELECT count(*) AS n FROM books", list ["SELECT * FROM books WHERE price < ?", list [1000]]]]
 `,
@@ -1381,6 +1443,8 @@ maps (entry by entry).
 ### is_sorted[collection, key]
   Whether it's already in order, smallest first (equal items allowed).
   Gives back: true or false.
+  Example:
+    show is_sorted[list [1, 2, 2, 5]] .   // true
 
 ### reverse_list[collection]
   The items in the opposite order (a map: its entries). The reverse
@@ -1394,38 +1458,56 @@ maps (entry by entry).
   The same answer as min_sort, by bubble sort: swaps neighbours that are
   out of order until nothing moves. About n*n steps: for learning and
   comparing, not for large lists.
+  Example:
+    show bubble_sort[list [3, 1, 2]] .   // [ 1, 2, 3 ]
 
 ### insertion_sort[collection, key]
   min_sort's answer by insertion sort: slides each item back into place.
   Quick on lists that are almost in order.
+  Example:
+    show insertion_sort[list [3, 1, 2]] .   // [ 1, 2, 3 ]
 
 ### selection_sort[collection, key]
   min_sort's answer by selection sort: picks the smallest of the rest,
   again and again. Equal items may change order.
+  Example:
+    show selection_sort[list [3, 1, 2]] .   // [ 1, 2, 3 ]
 
 ### merge_sort[collection, key]
   min_sort's answer by merge sort: sorts each half, then merges them.
   About n*log(n) steps, always.
+  Example:
+    show merge_sort[list [3, 1, 2]] .   // [ 1, 2, 3 ]
 
 ### quick_sort[collection, key]
   min_sort's answer by quick sort: splits around a middle value. Fast on
   average; equal items may change order.
+  Example:
+    show quick_sort[list [3, 1, 2]] .   // [ 1, 2, 3 ]
 
 ### heap_sort[collection, key]
   min_sort's answer by heap sort: builds a heap, then takes the largest
   off the top. Equal items may change order.
+  Example:
+    show heap_sort[list [3, 1, 2]] .   // [ 1, 2, 3 ]
 
 ### shell_sort[collection, key]
   min_sort's answer by Shell sort: insertion sort over shrinking gaps.
   Equal items may change order.
+  Example:
+    show shell_sort[list [3, 1, 2]] .   // [ 1, 2, 3 ]
 
 ### counting_sort[collection, key]
   min_sort's answer by counting sort, for whole-number keys in a modest
   range (ages, scores): counts each value, then places them.
+  Example:
+    show counting_sort[list [3, 1, 2]] .   // [ 1, 2, 3 ]
 
 ### radix_sort[collection, key]
   min_sort's answer by radix sort, for whole-number keys: orders them one
   byte at a time.
+  Example:
+    show radix_sort[list [30, 4, 12]] .   // [ 4, 12, 30 ]
 `,
 	"search": `Finding things. Works on lists, sets, maps and text, and what's inside
 them, like the sort library. Over a map, a function gets the value
@@ -1444,6 +1526,8 @@ them, like the sort library. Over a map, a function gets the value
 
 ### find_last[collection, test]
   The last item for which test says yes, or none.
+  Example:
+    show find_last[list [1, 4, 6, 7], x give x % 2 == 0] .   // 6
 
 ### find_all[collection, test]
   Every item for which test says yes, in order.
@@ -1455,9 +1539,13 @@ them, like the sort library. Over a map, a function gets the value
 
 ### find_index[collection, test]
   The position (from 0) of the first item for which test says yes, or -1.
+  Example:
+    show find_index[list [1, 4, 6, 7], x give x % 2 == 0] .   // 1
 
 ### count_where[collection, test]
   How many items test says yes to.
+  Example:
+    show count_where[list [1, 4, 6, 7], x give x % 2 == 0] .   // 2
 
 ### find_key[map, value]
   The first key whose value is value, or none.
@@ -1497,18 +1585,26 @@ them, like the sort library. Over a map, a function gets the value
 ### jump_search[sorted, value, key]
   binary_search's answer, by jumping ahead in blocks of about the square
   root of the length, then looking through one block.
+  Example:
+    show jump_search[list [1, 3, 5, 7, 9], 7] .   // 3
 
 ### exponential_search[sorted, value, key]
   binary_search's answer, by doubling a bound (1, 2, 4, 8, ...) then
   searching inside it. Quick when the value is near the front.
+  Example:
+    show exponential_search[list [1, 3, 5, 7, 9], 7] .   // 3
 
 ### interpolation_search[sorted, value, key]
   binary_search's answer, guessing the position from the values at the
   ends, like opening a phone book near the right letter. Very fast on
   evenly spread numbers.
+  Example:
+    show interpolation_search[list [1, 3, 5, 7, 9], 7] .   // 3
 
 ### ternary_search[sorted, value, key]
   binary_search's answer, splitting the range in three each step.
+  Example:
+    show ternary_search[list [1, 3, 5, 7, 9], 7] .   // 3
 
 ### insert_position[sorted, value, key]
   Where value would go to keep a sorted collection in order: the
@@ -1588,6 +1684,10 @@ statement, or a change the database refuses, is an sql error.
 ### sql_tables[db]
   The names of the database's tables.
   Gives back: a list of text.
+  Example:
+    db = sql_create["shop.db"]
+    sql_run[db, "CREATE TABLE books (title TEXT)", list []]
+    show sql_tables[db] .   // [ "books" ]
 
 ### sql_save[db, query, path, values]
   Runs a query and saves its rows to a file: the first line names the
@@ -1657,6 +1757,12 @@ statement, or a change the database refuses, is an sql error.
     sql_update[db, "books", "sku", "prices.csv"]
     show sql_query[db, "SELECT * FROM books", list []] .
     sql_close[db]
+  Example:
+    db = sql_create["shop.db"]
+    sql_run[db, "CREATE TABLE books (title TEXT, price INTEGER)", list []]
+    sql_run[db, "INSERT INTO books VALUES (?, ?)", list ["Emma", 900]]
+    sql_run[db, "UPDATE books SET price = ? WHERE title = ?", list [950, "Emma"]]
+    show sql_query[db, "SELECT price FROM books", list []] .   // [ { "price": 950 } ]
 
 ### sql_delete[db, table, key, path]
   Removes the records whose key column matches a line of a .csv, .tsv or .json file. The file's other columns are ignored.
@@ -1672,6 +1778,12 @@ statement, or a change the database refuses, is an sql error.
     sql_delete[db, "books", "sku", "gone.csv"]
     show sql_query[db, "SELECT * FROM books", list []] .
     sql_close[db]
+  Example:
+    db = sql_create["shop.db"]
+    sql_run[db, "CREATE TABLE books (title TEXT)", list []]
+    sql_run[db, "INSERT INTO books VALUES (?)", list ["Emma"]]
+    sql_run[db, "DELETE FROM books WHERE title = ?", list ["Emma"]]
+    show sql_query[db, "SELECT title FROM books", list []] .   // []
 
 ### sql_upsert[db, table, key, path]
   Adds or changes, from a .csv, .tsv or .json file: a line whose key isn't in
@@ -1694,5 +1806,9 @@ statement, or a change the database refuses, is an sql error.
 ### sql_close[db]
   Closes the database. A transaction not yet committed is undone.
   Closing twice is fine.
+  Example:
+    db = sql_create["shop.db"]
+    sql_close[db]
+    show "closed" .   // closed
 `,
 }

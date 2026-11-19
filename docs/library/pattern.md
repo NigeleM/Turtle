@@ -143,5 +143,3 @@ groups[text, pattern]        (import pattern)
   Example:
     groups["2026-10-06", `(\d+)-(\d+)`]    // [ "2026", "10" ]
 ```
-
-<!-- end generated -->

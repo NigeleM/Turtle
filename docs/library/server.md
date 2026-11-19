@@ -139,19 +139,11 @@ whose files it serves. A handler gets the request as a map and gives back
 text (a page), a map or list (JSON), reply[...] or redirect[...]. An
 error in a handler answers 500 and is shown; the server goes on.
 Requests take turns. Ctrl+C stops it.
-```
 
-### `The request: method, path, params (from :name parts, and * for the rest`
-
-```text
 The request: method, path, params (from :name parts, and * for the rest
 of a /* route), query, headers (lowercase names), body (text), json (the
 body read as JSON, or none), form (a posted form), ip.
-```
 
-### `Settings ("import server" makes them):`
-
-```text
 Settings ("import server" makes them):
     serverlog = true            show a line per request: GET /users/7 200 3ms
     serverhost = "localhost"    "0.0.0.0" to answer other computers too
@@ -168,9 +160,13 @@ serve[routes, port]        (import server)
            "POST /users": adduser, "GET /health": "ok",
            "GET /static/*": "public"
   port     optional: 8080 by default
+  Illustrative: runs until the program is stopped (Ctrl+C), so it is not run as a check.
   Example:
-    serve[app, 8080]
-    app serve 8080
+    def hello[req]
+        return "hello"
+    def [end]
+    routes = map ["GET /": hello, "GET /health": "ok"]
+    serve[routes, 8080]
 ```
 
 ### `reply[status, body, headers]`
@@ -194,5 +190,3 @@ redirect[address, status]        (import server)
   Example:
     return redirect["/login"]
 ```
-
-<!-- end generated -->

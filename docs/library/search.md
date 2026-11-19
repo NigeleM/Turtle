@@ -81,6 +81,8 @@ find_first[collection, test]        (import search)
 ```text
 find_last[collection, test]        (import search)
   The last item for which test says yes, or none.
+  Example:
+    show find_last[list [1, 4, 6, 7], x give x % 2 == 0] .   // 6
 ```
 
 ### `find_all[collection, test]`
@@ -100,6 +102,8 @@ find_all[collection, test]        (import search)
 ```text
 find_index[collection, test]        (import search)
   The position (from 0) of the first item for which test says yes, or -1.
+  Example:
+    show find_index[list [1, 4, 6, 7], x give x % 2 == 0] .   // 1
 ```
 
 ### `count_where[collection, test]`
@@ -107,6 +111,8 @@ find_index[collection, test]        (import search)
 ```text
 count_where[collection, test]        (import search)
   How many items test says yes to.
+  Example:
+    show count_where[list [1, 4, 6, 7], x give x % 2 == 0] .   // 2
 ```
 
 ### `find_key[map, value]`
@@ -162,6 +168,8 @@ binary_search[sorted, value, key]        (import search)
 jump_search[sorted, value, key]        (import search)
   binary_search's answer, by jumping ahead in blocks of about the square
   root of the length, then looking through one block.
+  Example:
+    show jump_search[list [1, 3, 5, 7, 9], 7] .   // 3
 ```
 
 ### `exponential_search[sorted, value, key]`
@@ -170,6 +178,8 @@ jump_search[sorted, value, key]        (import search)
 exponential_search[sorted, value, key]        (import search)
   binary_search's answer, by doubling a bound (1, 2, 4, 8, ...) then
   searching inside it. Quick when the value is near the front.
+  Example:
+    show exponential_search[list [1, 3, 5, 7, 9], 7] .   // 3
 ```
 
 ### `interpolation_search[sorted, value, key]`
@@ -179,6 +189,8 @@ interpolation_search[sorted, value, key]        (import search)
   binary_search's answer, guessing the position from the values at the
   ends, like opening a phone book near the right letter. Very fast on
   evenly spread numbers.
+  Example:
+    show interpolation_search[list [1, 3, 5, 7, 9], 7] .   // 3
 ```
 
 ### `ternary_search[sorted, value, key]`
@@ -186,6 +198,8 @@ interpolation_search[sorted, value, key]        (import search)
 ```text
 ternary_search[sorted, value, key]        (import search)
   binary_search's answer, splitting the range in three each step.
+  Example:
+    show ternary_search[list [1, 3, 5, 7, 9], 7] .   // 3
 ```
 
 ### `insert_position[sorted, value, key]`
@@ -201,5 +215,3 @@ insert_position[sorted, value, key]        (import search)
     insert 75 to scores at pos .
     show scores .
 ```
-
-<!-- end generated -->

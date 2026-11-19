@@ -256,5 +256,3 @@ number at random        (import math)
   Example:
     dice is 6 at random .
 ```
-
-<!-- end generated -->
