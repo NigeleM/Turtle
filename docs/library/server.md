@@ -1,192 +1,89 @@
 # `server` — a web server
 
-[Library index](index.md) · `import server`
+`import server`
 
-Serving a web API or pages from a map of routes.
+Answer web requests from your program: define routes, send replies with their own status, and redirect visitors.
 
 
-`import server` runs a web server. Routes are a map from `"METHOD /path"`
-to what answers them, and handlers are ordinary functions: no new
-keywords.
+Answer web requests from your Turtle program. `serve` runs until you stop it with Ctrl+C.
 
-> *Illustrative.* This example needs a folder that the example does not create, so it is shown for reading and is not run as a test.
+## Functions
 
-```
-import server
-
-def home[req]
-    return "<h1>Hello!</h1>"                  // text: a page
-def [end]
-
-def showuser[req]
-    id = id of params of req                  // from /users/:id
-    return map ["id": id, "name": "Ann"]      // a map or list: JSON
-def [end]
-
-def adduser[req]
-    data = json of req                        // the posted JSON
-    return reply[201, map ["made": name of data]]
-def [end]
-
-app = map [
-    "GET /": home,
-    "GET /users/:id": showuser,
-    "POST /users": adduser,
-    "GET /old": redirect["/"],                // a fixed answer
-    "GET /health": "ok",
-    "GET /static/*": "public"                 // the files in the folder public
-]
-serve[app, 8080]                              // or: app serve 8080
-```
-
-```
-serving on http://localhost:8080 (Ctrl+C stops it)
-GET / 200 84µs
-GET /users/7 200 251µs
-```
-
-| Function | Takes | Gives back |
-|---|---|---|
-| `serve[routes [, port]]` | a map of routes, a port (8080 if left out) | answers requests until the program is stopped |
-| `reply[status [, body [, headers]]]` | a status (200, 404, ...), text or a map/list, a map of headers | a `Reply { status, body, headers }` |
-| `redirect[address [, status]]` | where to send the visitor, 302 (or 301, 303, 307, 308) | a `Reply` |
-
-**Routes.** `"GET /users/:id"`: a `:name` part matches any one part and
-lands in `params`. `"GET /files/*"`: the rest of the path lands in
-`params` as `"*"`. A route without a method (`"/ping"`) answers any.
-The most exact route wins: fixed parts before `:names` before `*`, so
-`"GET /users/new"` beats `"GET /users/:id"`. A path no route has is 404;
-one with only other methods is 405. `GET` routes answer `HEAD` too.
-
-**What answers.** A function of one name gets the request; one of none
-is just called. A saved scroll works too, getting the request. Any other
-value is the answer itself, and text on a `/*` route is a folder: its
-files are served (`index.html` for a folder), never anything outside it.
-
-**The request** is a map, read with `of`: `method`, `path`, `params`,
-`query` (text, or a list when a name comes twice), `headers` (lowercase
-names), `body` (text), `json` (the body as JSON when it's sent as JSON,
-else `none`), `form` (a posted form's fields), `ip`.
-
-**What a handler gives back:** text is a page (HTML when it starts with
-`<`, plain text otherwise); a map, list or assembled value is JSON;
-`reply[...]` sets the status and headers; `none` is 204 (no content).
-
-**Errors.** An error in a handler answers `500 server error`, and the
-error shows in the terminal (`GET /broken: line 17: division by zero`);
-the server goes on. `exit[]` in a handler stops the server and the
-program. A port in use, a route that isn't `"METHOD /path"`, or a `/*`
-folder that doesn't exist is an error of kind `server`.
-
-**Settings** (`import server` makes them; change them like any variable):
-
-| Setting | Default | Meaning |
-|---|---|---|
-| `serverlog` | `true` | a line per request: method, path, status, time |
-| `serverhost` | `"localhost"` | only this computer; `"0.0.0.0"` answers others on the network |
-| `servertimeout` | `30` | how many seconds a handler may run (a whole or decimal number); past that it stops and the visitor gets `503`. `0` is no limit |
-
-**One request at a time.** Turtle code runs one line at a time, so
-requests take turns (the network work around them runs side by side).
-That's fine for tools, dashboards and small sites.
-
-## Safety
-
-- **Only this computer, unless you say otherwise.** By default the server
-  answers only on `localhost`. `serverhost = "0.0.0.0"` opens it to the
-  network; do that only on purpose.
-- **Hidden files are never served.** A static folder route won't serve
-  a name starting with `.` (`.env`, `.git`, ...), anything outside the
-  folder (`../`), or a link inside it that leads outside.
-- **Slow clients wait alone.** A request must arrive within a minute,
-  body and all, and only the Turtle handler itself takes a turn; reading
-  a request, sending a file and sending an answer happen side by side,
-  so one slow connection doesn't hold up the others. Bodies are limited
-  to 10 MB.
-- **A stuck handler can't hold the server.** Requests take turns, so a
-  handler that never finishes would keep every other visitor waiting.
-  One that runs past `servertimeout` seconds (30 unless you change it)
-  is stopped at its next line, answers `503`, and the terminal shows
-  `GET /path: stopped after 30s (servertimeout)`; the next request goes
-  on. A single long library call (a big sort, `sleep`) finishes before
-  the handler stops. `safe` can't catch the stop.
-- **Errors stay private.** A handler that fails answers `500 server
-  error`; the details go to the terminal, not to the visitor.
-- **On the internet, put a web server in front.** Turtle speaks plain
-  HTTP. For a public site, run it behind one that handles HTTPS
-  certificates (Caddy, nginx), with `serverhost` left as `localhost`.
-
----
-
-Copyright 2017-2026 Nigele McCoy. Licensed under the
-[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).
-
-<!-- generated: turtle doc `server` (regenerate with the script; do not edit by hand) -->
-## Function reference
-
-The entries below are copied from the binary's own documentation (`turtle doc server`), so they match the version you run.
-
-```text
-import server
-```
-
-### `A web server. Routes are a map from "METHOD /path" to what answers`
-
-```text
-A web server. Routes are a map from "METHOD /path" to what answers
-it: a function (a handler), a fixed value, or, on a /* route, a folder
-whose files it serves. A handler gets the request as a map and gives back
-text (a page), a map or list (JSON), reply[...] or redirect[...]. An
-error in a handler answers 500 and is shown; the server goes on.
-Requests take turns. Ctrl+C stops it.
-
-The request: method, path, params (from :name parts, and * for the rest
-of a /* route), query, headers (lowercase names), body (text), json (the
-body read as JSON, or none), form (a posted form), ip.
-
-Settings ("import server" makes them):
-    serverlog = true            show a line per request: GET /users/7 200 3ms
-    serverhost = "localhost"    "0.0.0.0" to answer other computers too
-    servertimeout = 30          seconds a handler may run before it's stopped
-                                with 503; 0 is no limit
-```
+`serve`, `reply`, `redirect`.
 
 ### `serve[routes, port]`
 
+Starts a web server. `routes` is a map from `"METHOD /path"` to a function or a fixed text. `port` is optional and is 8080 by default.
+
+**Example**
+
+```turtle
+import server
+def hello[req]
+    return "hello"
+def [end]
+routes = map ["GET /": hello, "GET /health": "ok"]
+serve[routes, 8080]
+```
+
+**Output**
+
 ```text
-serve[routes, port]        (import server)
-  Starts the server and answers requests until the program is stopped.
-  routes   a map: "GET /": home, "GET /users/:id": showuser,
-           "POST /users": adduser, "GET /health": "ok",
-           "GET /static/*": "public"
-  port     optional: 8080 by default
-  Illustrative: runs until the program is stopped (Ctrl+C), so it is not run as a check.
-  Example:
-    def hello[req]
-        return "hello"
-    def [end]
-    routes = map ["GET /": hello, "GET /health": "ok"]
-    serve[routes, 8080]
+Then, in another window:
+
+$ curl http://127.0.0.1:8080/
+hello
+$ curl http://127.0.0.1:8080/health
+ok
 ```
 
 ### `reply[status, body, headers]`
 
-```text
-reply[status, body, headers]        (import server)
-  An answer with its own status, and optionally headers.
-  status   200 ok, 201 made, 404 not found, ...
-  body     optional: text, or a map or list (JSON)
-  headers  optional: a map, like map ["Cache-Control": "no-store"]
-  Gives back: a Reply { status, body, headers }.
-  Example:
+Gives back an answer with its own status code. Use it when a route must answer with something other than 200.
+
+**Example**
+
+```turtle
+import server
+def find[req]
     return reply[404, "no such user"]
+def [end]
+routes = map ["GET /users/x": find]
+serve[routes, 8080]
+```
+
+**Output**
+
+```text
+$ curl -i http://127.0.0.1:8080/users/x
+HTTP/1.1 404 Not Found
+Content-Type: text/plain; charset=utf-8
+...
+
+no such user
 ```
 
 ### `redirect[address, status]`
 
-```text
-redirect[address, status]        (import server)
-  Sends the visitor to another address (302, or 301, 303, 307, 308).
-  Example:
+Sends the visitor to another address. The default status is 302.
+
+**Example**
+
+```turtle
+import server
+def go[req]
     return redirect["/login"]
+def [end]
+routes = map ["GET /old": go]
+serve[routes, 8080]
 ```
+
+**Output**
+
+```text
+$ curl -i http://127.0.0.1:8080/old
+HTTP/1.1 302 Found
+Location: /login
+```
+
+The examples use `serve` in a file of its own, because it runs until it is stopped. Start it, then open the address in a browser or with `curl`.

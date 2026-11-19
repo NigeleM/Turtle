@@ -1,7 +1,8 @@
-# Chapter guide
+# Book guide
 
-This guide follows the Turtle book chapter by chapter, and shows where each topic is covered on
-this site. Use it to go end to end: read the tour for a first look, then the reference for the
+The Turtle book is a digital book, available as a PDF from the Book link at the top of the site. Each of its chapters is listed below, with the pages on this site that cover the same topic.
+
+This guide follows the book chapter by chapter, and shows where each topic is covered on this site. Use it to go end to end: read the tour for a first look, then the reference for the
 full rules, and the library pages for every function.
 
 | Book chapter | Where on this site |

@@ -1,106 +1,68 @@
 # `http` — web requests
 
-[Library index](index.md) · `import http`
+`import http`
 
-GET, POST and any other web request.
+Get and send data over the web: fetch a page, post data, or send any request with its own method and headers.
 
 
-`import http` makes web requests:
+Get and send data over the web. Addresses start with `http://` or `https://`. (A local test server, for the examples: `GET /data` gives the text `some text`, `POST /users` gives `made`, `PUT /users/7` gives `updated`.)
 
-| Function | Args | Returns |
-|---|---|---|
-| `http_get[url]` | web address | the response body as text |
-| `http_post[url, body]` | web address, body | the response body as text |
-| `http_request[method, url [, body [, headers]]]` | `"GET"`, `"PUT"`, ...; address; optional body and headers map | a map with `status` (integer), `body` (text), `headers` (map, lowercase names) |
+## Functions
 
-**Bodies:** text is sent as is (`text/plain`); a map, list, set or
-assembled value is sent as JSON (`application/json`); `none` sends no body.
-
-**Errors** are kind `http`. `http_get` and `http_post` fail on a network
-problem or a 4xx/5xx status: `http_get https://api.example.com/x: 404 Not
-Found: no such page`. `http_request` only fails on a network problem, and
-hands back any status for you to check. A request with no answer in 30
-seconds fails, and so does a response larger than 64 MB (it isn't cut
-short).
-
-> *Illustrative.* This example needs a network address or a running server, so it is shown for reading and is not run as a test.
-
-```
-import http
-import json
-import system
-
-safe
-    users = load[http_get["https://api.example.com/users"]]   // a list of maps
-handle [http, json] e .
-    warn "couldn't fetch users: ", e .
-    users = list []
-safe [end]
-
-reply = http_post["https://api.example.com/users", map ["name": "Ann"]]
-
-r = http_request["DELETE", "https://api.example.com/users/7", none, map ["Authorization": "Bearer {token}"]]
-if ] r at get["status"] != 204 [
-    show "delete failed: ", r at get["body"] .
-if [end]
-```
-
----
-
-Copyright 2017-2026 Nigele McCoy. Licensed under the
-[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).
-
-<!-- generated: turtle doc `http` (regenerate with the script; do not edit by hand) -->
-## Function reference
-
-The entries below are copied from the binary's own documentation (`turtle doc http`), so they match the version you run.
-
-```text
-import http
-```
-
-### `Web requests. A map, list or assembled value sent as a body goes as JSON.`
-
-```text
-Web requests. A map, list or assembled value sent as a body goes as JSON.
-```
+`http_get`, `http_post`, `http_request`.
 
 ### `http_get[url]`
 
+Fetches a web address and gives back the page's text. An error status (4xx or 5xx) is an error.
+
+**Example**
+
+```turtle
+import http
+body = http_get["http://127.0.0.1:8765/data"]
+show body .
+```
+
+**Output**
+
 ```text
-http_get[url]        (import http)
-  Fetches a web address.
-  Gives back: the response's body as text. A network problem or an
-  error status (4xx, 5xx) is an http error.
-  Illustrative: needs a web server at that address.
-  Example:
-    body = http_get["http://127.0.0.1:8765/data"]
-    show body .   // the text the server sends back
+some text
 ```
 
 ### `http_post[url, body]`
 
+Sends `body` to a web address and gives back the reply's text.
+
+**Example**
+
+```turtle
+import http
+reply = http_post["http://127.0.0.1:8765/users", map ["name": "Ann"]]
+show reply .
+```
+
+**Output**
+
 ```text
-http_post[url, body]        (import http)
-  Sends body to a web address.
-  Gives back: the response's body as text.
-  Illustrative: needs a web server at that address.
-  Example:
-    reply = http_post["http://127.0.0.1:8765/users", map ["name": "Ann"]]
-    show status of reply .   // the status code the server sends back
+made
 ```
 
 ### `http_request[method, url, body, headers]`
 
+Any request: `"GET"`, `"PUT"`, `"DELETE"` and so on. Gives back a map with `status`, `body` and `headers`. Only a network problem is an error; check the status yourself.
+
+**Example**
+
+```turtle
+import http
+reply = http_request["PUT", "http://127.0.0.1:8765/users/7", map ["name": "Ann"], map ["Content-Type": "application/json"]]
+show status of reply .
+show reply at get["body"] .
+```
+
+**Output**
+
 ```text
-http_request[method, url, body, headers]        (import http)
-  Any request: "GET", "PUT", "DELETE", ... body and headers (a map) are
-  optional.
-  Gives back: a map with "status" (a number), "body" (text) and
-  "headers" (a map). Only a network problem is an error; check the
-  status yourself.
-  Illustrative: needs a web server at that address.
-  Example:
-    reply = http_request["PUT", "http://127.0.0.1:8765/users/7", map ["name": "Ann"], map ["Content-Type": "application/json"]]
-    show status of reply .
+200
+updated
 ```

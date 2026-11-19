@@ -1,144 +1,94 @@
 # `json` — JSON
 
-[Library index](index.md) · `import json`
+`import json`
 
-JSON text and files to Turtle values and back.
+Turn JSON text into Turtle values, and Turtle values back into JSON text, for web APIs and saved data.
 
 
-`import json` (or `import json [load, json_get]`):
+## Functions
 
-| Function | Args | Returns |
-|---|---|---|
-| `load[text]` | JSON text | the Turtle value |
-| `json_text[value]` | any JSON-able value | JSON text on one line |
-| `json_read[path]` | file path | the file's JSON as a Turtle value |
-| `json_write[path, value]` | file path, value | writes the value as indented JSON; returns `none` |
-| `json_get[value, step, ...]` | a value, then keys and indexes | the value at the end of the path, or `none` if any step is missing |
-
-> *Illustrative.* This example needs files that the example does not create, so it is shown for reading and is not run as a test.
-
-```
-import json
-
-cfg = json_read["config.json"]
-port = json_get[cfg, "server", "port"]
-if ] port == none [
-    port = 8080
-if [end]
-
-user = load['{"name": "Ann", "tags": ["admin"]}']
-show user at get["name"] .               // Ann
-tags = user at get["tags"]
-add "editor" to tags .                   // the same list, so user changes too
-json_write["user.json", user]
-show json_text[user] .                   // {"name":"Ann","tags":["admin","editor"]}
-```
-
-**JSON to Turtle:** objects become maps (keys stay in the file's order),
-arrays become lists, whole numbers become integers (`3`), other numbers
-floats (`2.5`, `1e3` → `1000.0`), `true`/`false` booleans, `null` `none`.
-
-**Turtle to JSON:** maps become objects and lists arrays; sets become
-arrays; an assembled value becomes an object of its fields
-(`Order["pen", 3]` → `{"item": "pen", "qty": 3}`); `none` becomes `null`.
-Number map keys become text keys (`1` → `"1"`), since JSON keys are
-always text; any other key, a function, a value that contains itself, or
-one nested more than 10,000 levels deep (deeper than `load` can read back)
-is a `type` error.
-
-**`json_get`** takes map keys, assembled-value field names, and list
-indexes (from 0), one step each. It never fails on a missing step; it
-returns `none`, so you can check instead of using `safe`.
-
-**Errors.** Bad JSON is kind `json` and says where:
-`json_read config.json: invalid JSON at line 6, column 1: invalid
-character '}' looking for beginning of value`. A missing file is kind
-`file`.
-
-```
-import json
-import system
-
-safe
-    cfg = json_read["config.json"]
-handle [file, json] e .
-    warn "using defaults: ", e .
-    cfg = map []
-safe [end]
-```
-
-JSON typed into Turtle code reads best in single quotes, where `"` needs
-no escape and braces before a quote are plain: `'{"a": [1, 2]}'`.
-
----
-
-Copyright 2017-2026 Nigele McCoy. Licensed under the
-[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).
-
-<!-- generated: turtle doc `json` (regenerate with the script; do not edit by hand) -->
-## Function reference
-
-The entries below are copied from the binary's own documentation (`turtle doc json`), so they match the version you run.
-
-```text
-import json
-```
-
-### `Reading and writing JSON. Objects become maps, arrays lists, null none.`
-
-```text
-Reading and writing JSON. Objects become maps, arrays lists, null none.
-```
+`load`, `json_text`, `json_read`, `json_write`, `json_get`.
 
 ### `load[text]`
 
+Reads JSON text.
+
+**Example**
+
+```turtle
+user = load['{"name": "Ann"}']
+```
+
+**Output**
+
 ```text
-load[text]        (import json)
-  Reads JSON text.
-  Gives back: the Turtle value (a map, list, number, text, ...).
-  Example:
-    user = load['{"name": "Ann"}']
+(prints nothing)
 ```
 
 ### `json_text[value]`
 
+Writes a value as JSON, on one line.
+
+**Example**
+
+```turtle
+show json_text[map ["id": 7, "tags": list ["a", "b"]]] .
+```
+
+**Output**
+
 ```text
-json_text[value]        (import json)
-  Writes a value as JSON, on one line.
-  Gives back: text.
-  Example:
-    show json_text[map ["id": 7, "tags": list ["a", "b"]]] .   // {"id":7,"tags":["a","b"]}
+{"id":7,"tags":["a","b"]}
 ```
 
 ### `json_read[path]`
 
+Reads a JSON file.
+
+**Example**
+
+```turtle
+json_write["user.json", map ["name": "Ann"]]
+show json_read["user.json"] .
+```
+
+**Output**
+
 ```text
-json_read[path]        (import json)
-  Reads a JSON file.
-  Gives back: the Turtle value. Bad JSON is a json error.
-  Example:
-    json_write["user.json", map ["name": "Ann"]]
-    show json_read["user.json"] .   // { "name": "Ann" }
+{ "name": "Ann" }
 ```
 
 ### `json_write[path, value]`
 
+Saves a value to a file as indented JSON.
+
+**Example**
+
+```turtle
+json_write["out.json", list [1, 2]]
+show json_read["out.json"] .
+```
+
+**Output**
+
 ```text
-json_write[path, value]        (import json)
-  Saves a value to a file as indented JSON.
-  Example:
-    json_write["out.json", list [1, 2]]
-    show json_read["out.json"] .   // [ 1, 2 ]
+[ 1, 2 ]
 ```
 
 ### `json_get[value, step, step, ...]`
 
+Follows a path of map keys and list positions into a value.
+
+**Example**
+
+```turtle
+config = load['{"server": {"port": 8080}}']
+port = json_get[config, "server", "port"]
+show port .
+```
+
+**Output**
+
 ```text
-json_get[value, step, step, ...]        (import json)
-  Follows a path of map keys and list positions into a value.
-  Gives back: what's at the end, or none if any step is missing.
-  Example:
-    config = load['{"server": {"port": 8080}}']
-    port = json_get[config, "server", "port"]
-    show port .
+8080
 ```

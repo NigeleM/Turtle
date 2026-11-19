@@ -1,113 +1,37 @@
 # `log` — logging
 
-[Library index](index.md) · `import log`
+`import log`
 
-Log lines with levels and timestamps, to the screen or a file.
+Write log lines with a level and a time, to the screen or a file. Use it to record what a program does, so problems can be found later.
 
 
-`import log` adds the `log` statement: a line with a level, a time and
-where it came from, written to the console and, if you like, a file.
+## Statements
 
-```
-port = 8080
-row = "r1"
-pct = 91
-host = "db1"
-name = "ann"
-ip = "10.0.0.4"
+`log`, with a level before the message: `debug`, `info`, `warn` or `error`. With no level it is `info`.
+
+## Example
+
+### `log level "message", value`
+
+Writes a line with the time, the level and the message. A map adds fields after the message. `debug` lines don't show unless the level is turned down.
+
+**Example**
+
+```turtle
 import log
-
-log "server started on port ", port .            // info, the default level
-log debug "row ", row .
-log warn "disk at ", pct, "%" .
-log error "lost connection to ", host .
-log info "login", map ["user": name, "ip": ip] .  // a map adds fields
+log "server started on port ", 8080 .
+log warn "disk at ", 91, "%" .
+log error "lost connection to ", "db1" .
+log info "login", map ["user": "ann", "ip": "10.0.0.4"] .
 ```
+
+**Output**
 
 ```text
-2026-10-06 19:48:04 INFO  server started on port 8080
-2026-10-06 19:48:04 WARN  disk at 91%
-2026-10-06 19:48:04 ERROR lost connection to db1
-2026-10-06 19:48:04 INFO  login user=ann ip=10.0.0.4
+2026-11-19 01:59:13 INFO  server started on port 8080
+2026-11-19 01:59:13 WARN  disk at 91%
+2026-11-19 01:59:13 ERROR lost connection to db1
+2026-11-19 01:59:13 INFO  login user=ann ip=10.0.0.4
 ```
 
-The values are written one after another, as `show` writes them; a map
-among them becomes `key=value` fields (a value with a space is quoted:
-`from="home office"`).
-
-**Levels**: `debug` < `info` < `warn` < `error`. Lines below `loglevel`
-are skipped, so `log debug` lines can stay in the code and be turned on
-when needed.
-
-**Settings.** `import log` makes these variables; set them like any
-variable. Set at the top of a file, they hold for the file; set inside a
-function, for that function. An imported library that logs uses its own.
-
-| Variable | Default | Means |
-|---|---|---|
-| `loglevel` | `"info"` | the lowest level shown: `"debug"`, `"info"`, `"warn"`, `"error"`, or `"off"` for nothing |
-| `logconsole` | `true` | print log lines to the console. They go to stderr, so a program's own output (`show`) stays clean, and `turtle report.turtle > out.txt` captures only that |
-| `logfile` | `none` | a file to add each line to. It's added to across runs, never replaced, and not held open, so it can be read, moved or deleted while the program runs |
-| `logtime` | `"YYYY-MM-DD hh:mm:ss"` | the time, in `format_date`'s patterns (`"hh:mm"`, `"DD Mon hh:mm"` ...); `none` leaves it out |
-| `logparts` | `list ["time", "level", "message"]` | what a line shows, in order: `time`, `level`, `message`, `file`, `line`, `where` (`file:line`) |
-| `logformat` | `"text"` | `"json"`: one JSON object per line, for tools that read logs: `{"time": ..., "level": "warn", "message": ..., "file": ..., "line": 12, "sku": "B1"}` (fields are keys of their own) |
-| `logmaxsize` | `none` | rotate the log file before it grows past this many bytes: `app.log` becomes `app.log.1`, `.1` becomes `.2`, ... |
-| `logkeep` | `3` | how many rotated files to keep (the oldest goes) |
-| `outputfile` | `none` | a file that also gets everything `show` and `warn` print, to look at a run later |
-
-```
-import log
-logfile = "app.log"
-logparts = list ["time", "level", "where", "message"]
-log warn "retrying" .                  // 2026-10-06 19:48:04 WARN  main.turtle:14 retrying
-
-logmaxsize = 1000000                   // about 1 MB per file
-logkeep = 5
-
-outputfile = "run.txt"                 // show still prints; run.txt keeps a copy
-```
-
-- **When a program stops with an error** and has a `logfile`, the error
-  is written there too: `ERROR main.turtle:18 stopped: division by zero`.
-- `log` begins a statement only in a file with `import log`; elsewhere it's
-  an ordinary name, and `log = 5` still assigns.
-- A log file or `outputfile` that can't be written is an error of kind
-  `file`; a setting of the wrong kind is a `type` error naming it.
-
----
-
-Copyright 2017-2026 Nigele McCoy. Licensed under the
-[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).
-
-<!-- generated: turtle doc `log` (regenerate with the script; do not edit by hand) -->
-## Function reference
-
-The entries below are copied from the binary's own documentation (`turtle doc log`), so they match the version you run.
-
-```text
-import log
-```
-
-### `Log lines: a level, a time and where they came from, to the console`
-
-```text
-Log lines: a level, a time and where they came from, to the console
-(stderr) and, if you like, a file. In a file with "import log":
-
-    log "server started on port ", port .         info, the default level
-    log debug "row ", row .                       also: info, warn, error
-    log info "login", map ["user": name] .        a map adds fields: user=ann
-
-Settings (variables; set at the top of a file, or inside a function for it):
-    loglevel = "info"        the lowest level shown; "debug" ... "error", "off"
-    logconsole = true        print log lines to stderr
-    logfile = none           a file to add lines to (kept across runs)
-    logtime = "YYYY-MM-DD hh:mm:ss"   format_date's patterns; none for no time
-    logparts = list ["time", "level", "message"]   also file, line, where
-    logformat = "text"       or "json": one JSON object per line
-    logmaxsize = none        rotate the file past this many bytes (app.log.1 ...)
-    logkeep = 3              rotated files to keep
-    outputfile = none        a file that also gets what show and warn print
-
-An error that stops the program is written to logfile too.
-```
+The times above are when the example was run; your lines will show your own time.

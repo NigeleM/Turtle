@@ -1,194 +1,82 @@
 # `random` — random values
 
-[Library index](index.md) · `import random`
+`import random`
 
-Random values of any shape, written as a sentence, and picking, shuffling and sampling.
+Random values: pick an item, shuffle a list, take a sample, or decide something by chance.
 
 
-`import random` makes random values of any shape. Describe the value in
-words after `random`; each time the line runs, it gives a new one.
+## Functions
 
-```
-import random
-assemble Order [item, qty, price]
+`pick`, `shuffle`, `sample`, `chance`.
 
-die = random integer from 1 to 6
-nums = random list of 5 integers from 0 to 9       // [ 9, 5, 1, 7, 6 ]
-price = random float from 0.5 to 99.99 rounded to 2 // 38.61
-code = random string of 8                            // "AGhwhRHU"
-pin = random digits of 4                           // "5875": a string, so "0427" keeps its 0
-id = random string of 6 from "ABCDEF0123456789"      // "6B3838"
-day = random date from "2026-01-01" to "2026-12-31"
-grid = random list of 3 lists of 3 integers from 1 to 9
-groups = random set of 4 lists of 2 strings of 3
-ages = random map of 3 string of 2 to integer from 0 to 99
-order = random Order [string of 5, integer from 1 to 10, float rounded to 2]
-orders = random list of 20 Order [string, integer, float]
-```
+### `pick[x]`
 
-| Kind | Gives | Options |
-|---|---|---|
-| `integer` | a whole number, -1000 to 1000 | `from A to B` (both included) |
-| `float` | a decimal, 0 up to 1 | `from A to B`, `rounded to N` (places) |
-| `string` | 1 to 10 letters, a–z and A–Z | `of N`, `of N to M` (length), `from "chars"` (only these) |
-| `digits of N` | a string of N digits (`"0427"`) | `of N to M` |
-| `digit`, `letter` | one digit or letter, as a string | |
-| `boolean` | `true` or `false` | |
-| `date` | a day, 2000-01-01 to 2030-12-31 | `from A to B`: dates or strings like `"2026-01-31"` |
-| `time` | a date with a time of day, to the second | `from A to B` |
-| `list of <kind>` | a list | a count: `list of 5 integers`, `list of 2 to 8 integers`, `list of n integers` |
-| `set of <kind>` | a set; its items are all different | a count, as for lists |
-| `map of <kind> to <kind>` | a map; its keys are all different | a count: `map of 3 string to integer` |
-| `Order [<kind>, ...]` | an assembled value, one kind per field, in order | |
+One item, chosen at random. x   a list, set, map (one of its keys) or string (one character) An empty one is an error.
 
-- **Plurals** read naturally and mean the same: `integers`, `floats`,
-  `strings`, `letters`, `booleans`, `dates`, `lists`, `sets`, `maps`
-  (`digits` without `of` is single digits: `list of 3 digits`).
-- **A count comes before the kind**, and is a whole number or a
-  variable's name. Without one, a list, set or map has 0 to 10 items.
-  Limits (`from`, `of`, `rounded`) come after the kind.
-- **Kinds nest** any way: `list of 3 lists of 3 integers`,
-  `set of 4 lists of string`, `map of string to list of Order [string, float]`.
-- **Where the sentence ends**: arithmetic belongs to a limit (`to n + 1`),
-  but a comparison applies to the random value:
-  `random integer from 1 to 6 == 6` is true one time in six. A method
-  works on the value right before it (`to 9 at abs` is about the 9), so
-  to call one on the random value, name it first: `nums = random list
-  of 5 integers`, then `nums at length`.
-- A set or map that can't get enough different values
-  (`set of 5 integers from 1 to 3`) is a `math` error, as is a range
-  whose `from` is more than its `to`.
-- `random` is a sentence word only in a file that has `import random`;
-  elsewhere it's an ordinary name, and `n at random` (math) works as
-  before.
+**Example**
 
-**Choosing from your own values** (`pick` and `chance` are written in
-Turtle, in `evaluator/lib/random.turtle`, on the `random` sentence; `shuffle`
-and `sample`, which go through every item, are built in for speed):
-
-| Function | Gives |
-|---|---|
-| `pick[x]` | one item of a list or set, one key of a map, one character of a string |
-| `shuffle[x]` | a new list in random order (a string, for a string), and `x` is left as it was. As a whole statement, `shuffle[x] .` or `x shuffle .`, it shuffles a list or a set itself, as `process` changes its list. A string can't change in place (write `t = shuffle[t]`), and a map has no order to shuffle (`shuffle[m]` gives its keys in random order) |
-| `sample[x, n]` | a list of `n` different items |
-| `chance[p]` | `true` with probability `p` (0 to 1) |
-
-```
-import random
-deck = list ["A", "K", "Q", "J", "10"]
+```turtle
 color = pick[list ["red", "green", "blue"]]
-hand = sample[shuffle[deck], 5]
+```
+
+**Output**
+
+```text
+(prints nothing)
+```
+
+### `shuffle[x]`
+
+The items in a random order. x   a list, set, map (its keys) or string Gives back: a new list (a string, for a string); x is left as it was.
+
+**Example**
+
+```turtle
+cards = list ["A", "K", "Q", "J"]
+deck = shuffle[cards]
+hand = sample[deck, 2]
+show length of hand .
+```
+
+**Output**
+
+```text
+2
+```
+
+### `sample[x, n]`
+
+n different items (different positions), chosen at random. x   a list, set, map (its keys) or string n   how many; more than x has is an index error Gives back: a list.
+
+**Example**
+
+```turtle
+cards = list ["A", "K", "Q", "J"]
+deck = shuffle[cards]
+hand = sample[deck, 2]
+show length of hand .
+```
+
+**Output**
+
+```text
+2
+```
+
+### `chance[p]`
+
+true with probability p. p   a number from 0 to 1: 0.3 is true 30% of the time
+
+**Example**
+
+```turtle
 if ] chance[0.3] [
     show "rain" .
 if [end]
 ```
 
-**The same values every run.** `import random` also makes the variable
-`seed`, `none`: different values each run. Set it to a whole number and
-every random value from there on is the same each time the program runs,
-which is how to repeat a run exactly (a test that failed on random
-data, say). Setting it again, even to the same number, starts the values
-over; `seed = none` goes back to different values each run.
-
-```
-seed = 42
-a = random list of 3 integers
-seed = 42
-b = random list of 3 integers      // the same as a
-```
-
----
-
-Copyright 2017-2026 Nigele McCoy. Licensed under the
-[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).
-
-<!-- generated: turtle doc `random` (regenerate with the script; do not edit by hand) -->
-## Function reference
-
-The entries below are copied from the binary's own documentation (`turtle doc random`), so they match the version you run.
+**Output**
 
 ```text
-import random
-```
-
-### `Random values of any shape, written as a sentence after "random":`
-
-```text
-Random values of any shape, written as a sentence after "random":
-
-    die = random integer from 1 to 6
-    nums = random list of 5 integers from 0 to 9
-    price = random float from 0.5 to 99.99 rounded to 2
-    code = random string of 8                    pin = random digits of 4
-    id = random string of 6 from "ABCDEF0123456789"
-    day = random date from "2026-01-01" to "2026-12-31"
-    grid = random list of 3 lists of 3 integers
-    ages = random map of string to integer from 0 to 99
-    order = random Order [string, integer from 1 to 10, float]
-
-Kinds: integer (-1000 to 1000 unless from A to B), float (0 up to 1),
-string (1 to 10 letters; of N, of N to M, from "chars"), digits of N,
-digit, letter, boolean, date and time (2000 through 2030), list of,
-set of (all different), map of K to V, and an assembled type with a kind
-for each field. Plurals work too (integers, lists). A count comes before
-the item's kind: list of 5 integers, list of 2 to 8 integers, list of n
-integers; without one, 0 to 10 items.
-"import random" also makes the variable seed, none: different values
-each run. seed = 42 gives the same values every run from there on, to
-repeat a run exactly; setting it again starts them over.
-random is a sentence word only in a file with "import random".
-pick and chance are written in Turtle, on the Go-written sentence (the
-first hybrid library; see evaluator/lib/random.turtle); shuffle and sample are Go.
-```
-
-### `pick[x]`
-
-```text
-pick[x]        (import random)
-  One item, chosen at random.
-  x   a list, set, map (one of its keys) or string (one character)
-  An empty one is an error.
-  Example:
-    color = pick[list ["red", "green", "blue"]]
-```
-
-### `shuffle[x]`
-
-```text
-shuffle[x]        (import random)
-  The items in a random order.
-  x   a list, set, map (its keys) or string
-  Gives back: a new list (a string, for a string); x is left as it was.
-  Example:
-    cards = list ["A", "K", "Q", "J"]
-    deck = shuffle[cards]
-    hand = sample[deck, 2]
-    show length of hand .
-```
-
-### `sample[x, n]`
-
-```text
-sample[x, n]        (import random)
-  n different items (different positions), chosen at random.
-  x   a list, set, map (its keys) or string
-  n   how many; more than x has is an index error
-  Gives back: a list.
-  Example:
-    cards = list ["A", "K", "Q", "J"]
-    deck = shuffle[cards]
-    hand = sample[deck, 2]
-    show length of hand .
-```
-
-### `chance[p]`
-
-```text
-chance[p]        (import random)
-  true with probability p.
-  p   a number from 0 to 1: 0.3 is true 30% of the time
-  Example:
-    if ] chance[0.3] [
-        show "rain" .
-    if [end]
+rain
 ```

@@ -1,72 +1,36 @@
 # `test` — testing
 
-[Library index](index.md) · `import test`
+`import test`
 
-`check`, `verify` and `validate`, and `turtle test`.
+Check that code works with `check`, `verify` and `validate`, and run them with the `turtle test` command.
 
 
-`import test` adds three statements, `check` (one fact), `verify` (a
-rule for every item) and `validate` (a rule on many random inputs), and
-the settings `turtle test` reads. Everything is in
-[`testing.md`](../testing.md).
+## Statements
 
-```
+`check`, `verify` and `validate`. `turtle test` runs the `test_` functions in files named `test_*.turtle`.
+
+## Example
+
+### `check expression .`
+
+Passes when the expression is true. If it is false, the program stops with a test error.
+
+**Example**
+
+```turtle
 import test
-
-def test_evens[]
-    check evens[list [1, 2, 3, 4]] == list [2, 4] .
-    verify evens[nums] each x give x % 2 == 0 .
-    validate evens[nums] with nums as list of integer
-        that result each x give x % 2 == 0 .
+def sum_two[a, b]
+    return a + b
 def [end]
+check sum_two[2, 3] == 5 .
+verify list [1, 2, 3] each x give x > 0 .
+show "checks ran" .
 ```
 
-```sh
-turtle test
-```
-
----
-
-Copyright 2017-2026 Nigele McCoy. Licensed under the
-[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).
-
-<!-- generated: turtle doc `test` (regenerate with the script; do not edit by hand) -->
-## Function reference
-
-The entries below are copied from the binary's own documentation (`turtle doc test`), so they match the version you run.
+**Output**
 
 ```text
-import test
+checks ran
 ```
 
-### `Tests. In a file with "import test", three statements check your code;`
-
-```text
-Tests. In a file with "import test", three statements check your code;
-"turtle test" runs every test_ function in every test_*.turtle file.
-
-    check total[order] == 45 .                     one fact; == shows how they differ
-    check x is integer .                           also: float number string boolean
-                                                   list set map date none function empty,
-                                                   an assembled type, "is not"
-    check 0.1 + 0.2 is close to 0.3 .              decimals ("within 0.01" to choose)
-    check 1 div 0 fails [math] .                   the right answer is an error
-    verify nums each x give x > 0 .               a rule for every item; also any, not,
-                                                   at least N, at most N, exactly N,
-                                                   and "each pair [a, b] give a <= b"
-    validate evens[nums] with nums as list of integer
-        that result each x give x % 2 == 0 .      the rule on 100 random inputs,
-                                                   shrunk to the smallest that fails;
-                                                   or: matches other_function[nums]
-
-Settings (set at the top of the file, or inside one test for that test):
-    suite = false        false: each test alone; "stop": a failure skips the
-                         rest; "all": run all, failures listed at the end
-    benchmark = false    true: time many runs of each test
-    runs = none          none: as many runs as fit in benchtime; or a number
-    benchtime = 1        seconds
-    cases = 100          random inputs each validate tries
-    seed = none          a number repeats the same random inputs
-
-A failure is an error of kind test. Full guide: docs/testing.md.
-```
+Everything else about testing is in [the testing guide](../testing.md).

@@ -1,89 +1,96 @@
 # Files, shell commands and modules
 
-[Library index](index.md)
+Read, write and append files, list folders, run shell commands with `sys`, and import your own modules. No import is needed.
 
-Reading and writing files, running shell commands, and importing your own modules. No import needed.
 
-## Files
+`import` is not needed for these.
 
-Paths are quoted strings or barewords (`file.txt`, `data/in.csv`),
-resolved relative to the folder `turtle` was run in, like any command-line
-tool (use `system`'s `scriptfolder[]` for files next to the script). A
-single bare word with no `.` or `/` uses the variable of that name if one
-exists. Any I/O failure (file not found, permission denied, etc.) is a
-fatal error. Check first with `system`'s `exists[path]`.
+## Statements
 
-```
-[read] <path> to <ident> [end]
-```
+`[read]`, `[write]`, `[append]`, `[directory]`, `sys`, and `import`.
 
-Reads the whole file, splits on newlines, assigns the result as a `list`
-of strings (one per line) to `<ident>`. A file saved on Windows reads the
-same: `\r\n` line ends split like `\n`, and a byte order mark at the start
-is dropped.
+### `[read] path to lines [end]`
 
-```
-[write] <path>
-<line>
-...
+Reads the whole file into a list of text, one item per line.
+
+**Example**
+
+```turtle
+[write] notes.txt
+"first line"
+"second line"
 [end]
-
-[append] <path>
-<line>
-...
+[append] notes.txt
+"third line"
 [end]
+[read] notes.txt to lines [end]
+show lines at get[2] .
 ```
 
-Each `<line>` is either a quoted string (written verbatim) or a bare
-identifier (replaced with that variable's current display value). Lines
-are newline-joined and written with a trailing newline. `[write]` creates
-or overwrites the file; `[append]` creates it if missing, otherwise adds to
-the end.
-
-```
-[directory] <path> to <ident> [end]
-```
-
-Lists the directory's entries (names only, not full paths) into `<ident>`
-as a `list`.
-
-## Shell escape: `sys`
-
-```
-sys <rest of line>
-```
-
-`sys` must be the first word of the statement. Everything after it,
-verbatim to the end of the line, is passed to `sh -c` (`cmd /c` on
-Windows). It runs in the folder turtle was run in, where file paths
-resolve too. The child process inherits stdin,
-stdout, and stderr; its exit status is not checked or reported back to
-the Turtle program (`runall` in `import schedule` gives back the output
-and exit code).
-
-This is a deliberately dangerous, unsandboxed feature. Only use it with trusted script
-content.
-
-## Modules: `import`
+**Output**
 
 ```text
-import <name>
+third line
 ```
+
+### `[write] path` and `[append] path`
+
+`[write]` replaces the file. `[append]` adds to the end, or creates the file. Each line between them is a quoted text or a variable name.
+
+**Example**
+
+Shown above, in the `[read]` example.
+
+### `[directory] path to names [end]`
+
+Lists the names in a folder, into a list.
+
+**Example**
+
+```turtle
+[directory] . to names [end]
+show length of names > 0 .
+```
+
+**Output**
 
 ```text
-import <name> [<f>, <g>]
+true
 ```
 
-Reads `<name>.turtle` (relative to the script's own folder, wherever `turtle`
-was run from) and runs it
-once, in its own scope. Its top-level functions become available to your
-program: all of them, or only the ones listed in `[...]`. Its top-level
-variables stay private to it. When two imports export the same function
-name, call it qualified by module, as in `mylib now[]` or `time now[]`.
-An unqualified call to a name that clashes is a fatal error. Full rules
-are in [`reference.md`](../reference.md#modules).
+### `sys command`
 
----
+Runs a command in the shell. The rest of the line is the command.
 
-Copyright 2017-2026 Nigele McCoy. Licensed under the
-[Apache License 2.0](../../LICENSE); see [NOTICE](../../NOTICE).
+**Example**
+
+```turtle
+sys echo from the shell
+```
+
+**Output**
+
+```text
+from the shell
+```
+
+### `import name`
+
+Brings in your own `.turtle` file. Its functions are called with its name in front, or as listed.
+
+**Example**
+
+With `lib/utils.turtle` holding `def half[n]` that returns `n / 2`:
+
+```turtle
+import lib/utils
+show utils half[4] .
+```
+
+**Output**
+
+```text
+2.0
+```
+
+Paths are relative to the folder you run `turtle` from. For files next to your program, see `scriptfolder[]` in the [system](system.md) library.
