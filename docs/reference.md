@@ -899,6 +899,9 @@ show apple 1,2; " is the sum" .    // in show, ';' ends the arguments: 3 is the 
   be written with `;` between calls, and `;,` works too:
 
   ```turtle
+  def apple[a, b]
+      return a + b
+  def [end]
   show list [apple -4,2;] .                 // [ -2 ]
   show list[apple -4,2; apple 3,2; 1,2,3] . // [ -2, 5, 1, 2, 3 ]
   show list [apple 1,2;, apple 3,4;, 5] .   // [ 3, 7, 5 ]
