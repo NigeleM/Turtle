@@ -66,15 +66,15 @@ func TestPlaceholders(t *testing.T) {
 
 func TestRoundTrip(t *testing.T) {
 	db := connect(t)
-	mustExec(t, db, "DROP TABLE IF EXISTS turtle_books")
-	mustExec(t, db, "CREATE TABLE turtle_books (id SERIAL PRIMARY KEY, sku TEXT UNIQUE NOT NULL, title TEXT, price NUMERIC(10,2), qty INTEGER, rating DOUBLE PRECISION, ok BOOLEAN, added DATE, at TIMESTAMPTZ, data JSONB, raw BYTEA)")
-	n := mustExec(t, db, "INSERT INTO turtle_books (sku, title, price, qty, rating, ok, added, at, data, raw) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+	mustExec(t, db, "DROP TABLE IF EXISTS turtle_books_driver")
+	mustExec(t, db, "CREATE TABLE turtle_books_driver (id SERIAL PRIMARY KEY, sku TEXT UNIQUE NOT NULL, title TEXT, price NUMERIC(10,2), qty INTEGER, rating DOUBLE PRECISION, ok BOOLEAN, added DATE, at TIMESTAMPTZ, data JSONB, raw BYTEA)")
+	n := mustExec(t, db, "INSERT INTO turtle_books_driver (sku, title, price, qty, rating, ok, added, at, data, raw) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 		"B1", "Dune ? 🐢", 9.5, int64(4), 4.25, true, "2026-10-05", "2026-10-05 14:30:00+00", `{"a": [1, 2]}`, []byte{0xca, 0xfe},
 		"B2", "Emma", "12.00", nil, nil, false, nil, nil, nil, nil)
 	if n != 2 {
 		t.Errorf("inserted %d", n)
 	}
-	cols, rows, err := db.Query("SELECT sku, title, price, qty, rating, ok, added, at, data, raw FROM turtle_books ORDER BY sku", nil)
+	cols, rows, err := db.Query("SELECT sku, title, price, qty, rating, ok, added, at, data, raw FROM turtle_books_driver ORDER BY sku", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,23 +97,23 @@ func TestRoundTrip(t *testing.T) {
 	if r := rows[1]; r[2] != 12.0 || r[3] != nil || r[5] != false {
 		t.Errorf("row 2: %#v", r)
 	}
-	if n := mustExec(t, db, "UPDATE turtle_books SET qty = coalesce(qty, 0) + ?", int64(1)); n != 2 {
+	if n := mustExec(t, db, "UPDATE turtle_books_driver SET qty = coalesce(qty, 0) + ?", int64(1)); n != 2 {
 		t.Errorf("updated %d", n)
 	}
 	// A unique violation: the server's message, with its code.
-	_, err = db.Exec("INSERT INTO turtle_books (sku) VALUES (?)", []any{"B1"})
+	_, err = db.Exec("INSERT INTO turtle_books_driver (sku) VALUES (?)", []any{"B1"})
 	if e, ok := err.(*Error); !ok || e.Code != "23505" || !strings.Contains(e.Msg, "duplicate key") {
 		t.Errorf("duplicate: %v", err)
 	}
 	// Several statements at once, without values.
-	if _, err := db.Exec("UPDATE turtle_books SET qty = 0; UPDATE turtle_books SET qty = qty + 1 WHERE sku = 'B1'", nil); err != nil {
+	if _, err := db.Exec("UPDATE turtle_books_driver SET qty = 0; UPDATE turtle_books_driver SET qty = qty + 1 WHERE sku = 'B1'", nil); err != nil {
 		t.Fatal(err)
 	}
-	if got := mustQuery(t, db, "SELECT sum(qty) FROM turtle_books"); got[0][0] != int64(1) {
+	if got := mustQuery(t, db, "SELECT sum(qty) FROM turtle_books_driver"); got[0][0] != int64(1) {
 		t.Errorf("after two statements: %v", got)
 	}
 	tables, err := db.Tables()
-	if err != nil || !strings.Contains(strings.Join(tables, ","), "turtle_books") {
+	if err != nil || !strings.Contains(strings.Join(tables, ","), "turtle_books_driver") {
 		t.Errorf("tables: %v %v", tables, err)
 	}
 	if _, _, err := db.Query("SELEC 1", nil); err == nil || !strings.Contains(err.Error(), "syntax error") {
@@ -126,7 +126,7 @@ func TestRoundTrip(t *testing.T) {
 	if got := mustQuery(t, db, "SELECT 'NaN'::float8, 'Infinity'::float8"); !math.IsNaN(got[0][0].(float64)) || !math.IsInf(got[0][1].(float64), 1) {
 		t.Errorf("special floats: %v", got)
 	}
-	mustExec(t, db, "DROP TABLE turtle_books")
+	mustExec(t, db, "DROP TABLE turtle_books_driver")
 }
 
 func TestTransactionsAndRows(t *testing.T) {

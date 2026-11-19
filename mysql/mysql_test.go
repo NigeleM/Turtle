@@ -48,15 +48,15 @@ func mustQuery(t *testing.T, db *DB, sql string, params ...any) [][]any {
 
 func TestRoundTrip(t *testing.T) {
 	db := connect(t)
-	mustExec(t, db, "DROP TABLE IF EXISTS turtle_books")
-	mustExec(t, db, "CREATE TABLE turtle_books (id INT AUTO_INCREMENT PRIMARY KEY, sku VARCHAR(20) UNIQUE NOT NULL, title TEXT, price DECIMAL(10,2), qty INT, rating DOUBLE, ok BOOLEAN, added DATE, at DATETIME(3), data JSON, raw BLOB, big BIGINT UNSIGNED)")
-	n := mustExec(t, db, "INSERT INTO turtle_books (sku, title, price, qty, rating, ok, added, at, data, raw, big) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+	mustExec(t, db, "DROP TABLE IF EXISTS turtle_books_driver")
+	mustExec(t, db, "CREATE TABLE turtle_books_driver (id INT AUTO_INCREMENT PRIMARY KEY, sku VARCHAR(20) UNIQUE NOT NULL, title TEXT, price DECIMAL(10,2), qty INT, rating DOUBLE, ok BOOLEAN, added DATE, at DATETIME(3), data JSON, raw BLOB, big BIGINT UNSIGNED)")
+	n := mustExec(t, db, "INSERT INTO turtle_books_driver (sku, title, price, qty, rating, ok, added, at, data, raw, big) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 		"B1", "Dune ? 🐢", 9.5, int64(4), 4.25, true, "2026-10-05", "2026-10-05 14:30:00.250", `{"a": [1, 2]}`, []byte{0xca, 0xfe}, int64(7),
 		"B2", "Emma", "12.00", nil, nil, false, nil, nil, nil, nil, nil)
 	if n != 2 {
 		t.Errorf("inserted %d", n)
 	}
-	query := "SELECT sku, title, price, qty, rating, ok, added, at, data, raw, big FROM turtle_books ORDER BY sku"
+	query := "SELECT sku, title, price, qty, rating, ok, added, at, data, raw, big FROM turtle_books_driver ORDER BY sku"
 	check := func(how string, cols []string, rows [][]any) {
 		if strings.Join(cols, ",") != "sku,title,price,qty,rating,ok,added,at,data,raw,big" {
 			t.Errorf("%s columns: %v", how, cols)
@@ -90,21 +90,21 @@ func TestRoundTrip(t *testing.T) {
 	}
 	check("binary", cols, rows)
 
-	if n := mustExec(t, db, "UPDATE turtle_books SET qty = coalesce(qty, 0) + ?", int64(1)); n != 2 {
+	if n := mustExec(t, db, "UPDATE turtle_books_driver SET qty = coalesce(qty, 0) + ?", int64(1)); n != 2 {
 		t.Errorf("updated %d", n)
 	}
-	_, err = db.Exec("INSERT INTO turtle_books (sku) VALUES (?)", []any{"B1"})
+	_, err = db.Exec("INSERT INTO turtle_books_driver (sku) VALUES (?)", []any{"B1"})
 	if e, ok := err.(*Error); !ok || e.Code != 1062 || !strings.Contains(e.Msg, "Duplicate entry") {
 		t.Errorf("duplicate: %v", err)
 	}
-	if _, err := db.Exec("UPDATE turtle_books SET qty = 0; UPDATE turtle_books SET qty = qty + 1 WHERE sku = 'B1'", nil); err != nil {
+	if _, err := db.Exec("UPDATE turtle_books_driver SET qty = 0; UPDATE turtle_books_driver SET qty = qty + 1 WHERE sku = 'B1'", nil); err != nil {
 		t.Fatal(err)
 	}
-	if got := mustQuery(t, db, "SELECT sum(qty) FROM turtle_books"); got[0][0] != int64(1) {
+	if got := mustQuery(t, db, "SELECT sum(qty) FROM turtle_books_driver"); got[0][0] != int64(1) {
 		t.Errorf("after two statements: %#v", got)
 	}
 	tables, err := db.Tables()
-	if err != nil || !strings.Contains(strings.Join(tables, ","), "turtle_books") {
+	if err != nil || !strings.Contains(strings.Join(tables, ","), "turtle_books_driver") {
 		t.Errorf("tables: %v %v", tables, err)
 	}
 	if _, _, err := db.Query("SELEC 1", nil); err == nil || !strings.Contains(err.Error(), "SQL syntax") {
@@ -113,7 +113,7 @@ func TestRoundTrip(t *testing.T) {
 	if got := mustQuery(t, db, "SELECT 1 + ?", int64(1)); got[0][0] != int64(2) {
 		t.Errorf("after an error: %#v", got)
 	}
-	mustExec(t, db, "DROP TABLE turtle_books")
+	mustExec(t, db, "DROP TABLE turtle_books_driver")
 }
 
 func TestTransactionsAndRows(t *testing.T) {
