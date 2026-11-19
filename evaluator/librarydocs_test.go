@@ -40,7 +40,7 @@ func TestLibraryPages(t *testing.T) {
 		}
 	}
 	pages, _ := filepath.Glob(filepath.Join(dir, "*.md"))
-	fence := regexp.MustCompile("(?s)```\\n(import .*?)```")
+	fence := regexp.MustCompile("(?s)```(?:turtle)?\\n(import .*?)```")
 	examples := 0
 	for _, p := range pages {
 		text, _ := os.ReadFile(p)

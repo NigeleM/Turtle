@@ -1008,7 +1008,7 @@ characters from 0.
   Illustrative: needs a web server at that address.
   Example:
     reply = http_post["http://127.0.0.1:8765/users", map ["name": "Ann"]]
-    show status of reply .   // the status code the server sends back
+    show reply .   // the text the server sends back (for the status, use http_request)
 
 ### http_request[method, url, body, headers]
   Any request: "GET", "PUT", "DELETE", ... body and headers (a map) are
