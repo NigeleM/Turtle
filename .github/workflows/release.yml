@@ -10,6 +10,7 @@ on:
   push:
     tags:
       - 'v*.*.*'
+      - '!v1.0.0'
 
 permissions:
   contents: write
