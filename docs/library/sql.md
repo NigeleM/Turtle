@@ -20,7 +20,14 @@ Makes a new, empty SQLite database file. It is an error if the file already exis
 ```turtle
 import sql
 db = sql_create["new.db"]
+show sql_tables[db] .
 sql_close[db]
+```
+
+**Output**
+
+```text
+[]
 ```
 
 ### `sql_open[address]`

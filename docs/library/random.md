@@ -16,14 +16,18 @@ One item, chosen at random. x   a list, set, map (one of its keys) or string (on
 **Example**
 
 ```turtle
+import random
 color = pick[list ["red", "green", "blue"]]
+show color .
 ```
 
 **Output**
 
 ```text
-(prints nothing)
+blue
 ```
+
+The colour is chosen at random, so the output above is one of the three possible results; it can differ on each run.
 
 ### `shuffle[x]`
 

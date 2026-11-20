@@ -96,15 +96,17 @@ A date from its parts.
 **Example**
 
 ```turtle
+import time
 d = make_date[2026, 12, 25]
 d = make_date[2026, 12, 25, 9, 30]
 d = make_date[2026, 12, 25, 9, 0, 0, "Europe/London"]
+show d .
 ```
 
 **Output**
 
 ```text
-(prints nothing)
+2026-12-25 09:00:00 GMT
 ```
 
 ### `to_date[text, zone]`
@@ -114,13 +116,15 @@ Reads a date from text: "2026-10-03", "2026-10-03 14:05", "2026-10-03 14:05:00",
 **Example**
 
 ```turtle
+import time
 d = to_date["2026-10-03"]
+show d .
 ```
 
 **Output**
 
 ```text
-(prints nothing)
+2026-10-03 00:00:00
 ```
 
 ### `add_time[date, amount, unit]`
@@ -130,14 +134,18 @@ A date moved forward (or back, with a negative amount).
 **Example**
 
 ```turtle
+import time
 due = add_time[today[], 30, "days"]
+show due .
 ```
 
 **Output**
 
 ```text
-(prints nothing)
+2026-12-19 14:58:18
 ```
+
+The output is 30 days after today, so it shows the date on the day you run it.
 
 ### `time_between[a, b, unit]`
 

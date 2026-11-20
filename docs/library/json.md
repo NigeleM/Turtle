@@ -16,13 +16,15 @@ Reads JSON text.
 **Example**
 
 ```turtle
+import json
 user = load['{"name": "Ann"}']
+show user .
 ```
 
 **Output**
 
 ```text
-(prints nothing)
+{ "name": "Ann" }
 ```
 
 ### `json_text[value]`

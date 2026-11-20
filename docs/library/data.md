@@ -215,13 +215,15 @@ The middle number once sorted; with an even count, the average of the two in the
 **Example**
 
 ```turtle
+import data
 mid = median[list [3, 1, 2]]
+show mid .
 ```
 
 **Output**
 
 ```text
-(prints nothing)
+2
 ```
 
 ### `mode[values, column]`
@@ -231,13 +233,15 @@ The value that appears most often; a tie goes to the one seen first.
 **Example**
 
 ```turtle
+import data
 top = mode[list ["tea", "coffee", "tea"]]
+show top .
 ```
 
 **Output**
 
 ```text
-(prints nothing)
+tea
 ```
 
 ### `variance[numbers, column]`
@@ -377,13 +381,15 @@ Each number's distance from the mean, counted in (sample) standard deviations.
 **Example**
 
 ```turtle
+import data
 z = zscores[list [1, 2, 3]]
+show z .
 ```
 
 **Output**
 
 ```text
-(prints nothing)
+[ -1.0, 0.0, 1.0 ]
 ```
 
 ### `describe[numbers, column]`

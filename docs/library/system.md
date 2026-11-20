@@ -93,14 +93,18 @@ An environment variable's value.
 **Example**
 
 ```turtle
+import system
 home = env["HOME"]
+show home .
 ```
 
 **Output**
 
 ```text
-(prints nothing)
+/Users/nigy
 ```
+
+The output is your own home folder, so it differs between people and machines.
 
 ### `scriptfolder[]`
 
@@ -109,14 +113,18 @@ The full path of the folder the running script is in.
 **Example**
 
 ```turtle
+import system
 data = "{scriptfolder[]}/data.csv"
+show data .
 ```
 
 **Output**
 
 ```text
-(prints nothing)
+/private/tmp/claude-501/-Users-nigy-Desktop-turtle/00572d6e-9342-4345-a34d-34b881f3a559/scratchpad/libfix/w/data.csv
 ```
+
+The output is the folder the program is in, so it differs on each computer.
 
 ### `contents[path]`
 
@@ -323,14 +331,16 @@ Named options from the command line.
 **Example**
 
 ```turtle
+import system
 opts = options["--out": "result.csv", "-v": false]
 out = opts at get["--out"]
+show out .
 ```
 
 **Output**
 
 ```text
-(prints nothing)
+result.csv
 ```
 
 ### `memory[]`
@@ -356,15 +366,17 @@ About how many bytes x takes, with everything in it (an estimate: a value inside
 **Example**
 
 ```turtle
+import system
 import test
 rows = list [1, 2, 3]
-check sizeof[rows] < 5000000 .
+size = sizeof[rows]
+show size > 0 .
 ```
 
 **Output**
 
 ```text
-(prints nothing)
+true
 ```
 
 ### `freememory[]`
@@ -374,12 +386,16 @@ Collects the values nothing refers to now, and gives that memory back to the sys
 **Example**
 
 ```turtle
+import system
 rows = none
 freed = freememory[]
+show freed .
 ```
 
 **Output**
 
 ```text
-(prints nothing)
+154656
 ```
+
+The output is the memory free right now, so it differs on each run and machine.

@@ -16,14 +16,16 @@ A fingerprint of the text: the same text always gives the same hash. algorithm  
 **Example**
 
 ```turtle
+import crypt
 h = hash["hello"]
 h = "hello" hash "sha512"
+show h .
 ```
 
 **Output**
 
 ```text
-(prints nothing)
+9b71d224bd62f3785d96d46ad3ea3d73319bfbc2890caadae2dff72519673ca72323c3d99ba5c11d7c7acc6e14b8c5da0c4663475c2e5c3adef46f73bcdec043
 ```
 
 ### `filehash[path, algorithm]`
@@ -72,13 +74,15 @@ how: "base64" (the default), "base64url" (for links, no padding) or "hex".
 **Example**
 
 ```turtle
+import crypt
 b = encode["hi"]
+show b .
 ```
 
 **Output**
 
 ```text
-(prints nothing)
+aGk=
 ```
 
 ### `decode[text, how]`
@@ -88,13 +92,15 @@ The other way; how as for encode.
 **Example**
 
 ```turtle
+import crypt
 s = decode["aGk="]
+show s .
 ```
 
 **Output**
 
 ```text
-(prints nothing)
+hi
 ```
 
 ### `uuid[]`
@@ -121,14 +127,18 @@ Random letters and digits from the system's secure source, for keys, session ids
 **Example**
 
 ```turtle
+import crypt
 key = token[]
+show key .
 ```
 
 **Output**
 
 ```text
-(prints nothing)
+NWv4EyT4KonoemTX8AcG1SKv7COLCbZT
 ```
+
+The token is random, so it differs on every run.
 
 ### `passwordhash[password]`
 
