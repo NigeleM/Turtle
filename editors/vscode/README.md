@@ -12,25 +12,9 @@ the extension is three JSON files and one small JavaScript file.
 
 ## Install
 
-You need `turtle` installed (`turtle version` in a terminal should work).
+Install **Turtle Programming Language** from the [Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=turtle-lang.turtle-lang), or search for it in the Extensions view. Nothing else is needed, except the `turtle` program itself (`turtle version` in a terminal should work).
 
-**Copy the folder** into VS Code's extensions folder, then restart VS Code:
-
-```sh
-# macOS / Linux
-cp -r editors/vscode ~/.vscode/extensions/turtle
-
-# Windows (PowerShell)
-Copy-Item -Recurse editors\vscode "$env:USERPROFILE\.vscode\extensions\turtle"
-```
-
-Or build a `.vsix` to share (needs Node.js once, for the packaging tool):
-
-```sh
-cd editors/vscode
-npx @vscode/vsce package
-code --install-extension turtle-*.vsix      # the file vsce just made
-```
+**Developers:** to try a change to this extension without publishing it, copy the folder into `~/.vscode/extensions/turtle` and restart VS Code, or package it with `npx @vscode/vsce package` and install the `.vsix` with `code --install-extension`.
 
 ## Settings
 

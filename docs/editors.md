@@ -17,11 +17,9 @@ It's built into `turtle` (no extra install). Files end in `.turtle` (or `.trt`, 
 
 ## VS Code
 
-Install the extension in [`editors/vscode`](../editors/vscode/README.md)
-(copy the folder into `~/.vscode/extensions/turtle`). It adds the language,
-a color grammar, comment toggling (Ctrl-/), bracket matching and
-indenting, a ▶ button that runs the open file (Ctrl-F5), and starts
-`turtle lsp`.
+Install **Turtle Programming Language** from the [Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=turtle-lang.turtle-lang), or search for it in the Extensions view (Cmd+Shift+X on a Mac, Ctrl+Shift+X on Windows and Linux). Click **Install**; nothing else is needed. You still need the `turtle` program installed for the extension to run your files.
+
+It adds the language, colours, comment toggling (Ctrl-/), bracket matching and indenting, a ▶ button that runs the open file (Ctrl-F5), errors as you type, completion, hover help, go to definition, and it starts `turtle lsp`.
 
 ## Neovim (0.11 and later)
 
